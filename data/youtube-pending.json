@@ -3,7 +3,7 @@
   "_howToPublish": "Take an object out of `pending`, write its `body`, set `id` to the next log number, drop it at the TOP of `entries` in data/transmissions.json (newest first — that file does not sort itself), then delete it from `pending` here and commit. Keys beginning with _ are notes for you and must NOT be copied across. Note that a row with an empty body renders as 'Title — ' with a trailing dash, so body is required in practice even though nothing enforces it.",
   "_cutoffNote": "The nine videos already on the channel were bulk-uploaded on 2025-06-11 and belong to an earlier album — they are deliberately excluded so the Channel Terminal stays a record of NEW activity rather than opening with nine identical timestamps. Two things keep them out: this cutoff date, and their ids being pre-listed in `seen`. To backfill them you would have to move the cutoff back AND remove their ids from `seen`. Remember YouTube's feed only ever returns the latest 15 videos, so anything older than that can never be recovered here and must be hand-written.",
   "channelId": "UC9Nw6WA3ipifJ2YUZICflRg",
-  "cutoff": "2025-01-01",
+  "cutoff": "2026-07-29",
   "_seenNote": "Every video id this job has ever surfaced. Its purpose is that a video you looked at and decided not to publish stays gone instead of reappearing every six hours. The job also treats anything already linked from data/transmissions.json as seen, so publishing an entry is enough on its own.",
   "seen": [
     "DHFAb5WLPm4",
@@ -16,19 +16,5 @@
     "tCBPtr4rjg4",
     "u738BYr3FSA"
   ],
-  "pending": [
-    {
-      "id": "TBD",
-      "channel": "youtube",
-      "date": "2025-06-11",
-      "title": "Lucid Dreams",
-      "body": "",
-      "href": "https://www.youtube.com/shorts/GcDSw1q407Q",
-      "_videoId": "GcDSw1q407Q",
-      "_publishedUtc": "2025-06-11T00:00:49+00:00",
-      "_isShort": true,
-      "_thumbnail": "https://i4.ytimg.com/vi/GcDSw1q407Q/hqdefault.jpg",
-      "_todo": "Write `body`, set `id` to the next log number, then move this object to the TOP of `entries` in data/transmissions.json and delete it from here. Keys starting with _ are notes for you and must not be copied across."
-    }
-  ]
+  "pending": []
 }

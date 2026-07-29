@@ -34,8 +34,15 @@ This is the finding that shaped the whole build. A naive sync would have opened 
 | `.github/workflows/youtube-sync.yml` | did not exist | runs every 6h \+ `workflow_dispatch` |
 | Repo Actions permission | read\-only (default) | **Read and write** |
 | Repo privacy | undecided | decided: stays public |
+| Domain records in `site.json` / `robots.txt` / `sitemap.xml` | edited last session, **never committed** | committed and pushed |
 
-* * *
+Six commits on `main`\: `e2df350` the sync job, `6c2dae5` the drill, `d08da40` its revert, `96c1dca` the bot's own staging commit, `07d2fc4` HANDOFF 6, `88e0592` the domain records.
+
+### Three files were carried over from last session
+
+`data/site.json`, `robots.txt` and `sitemap.xml` held the domain\-confirmation work HANDOFF 5 describes — the `domain` block, the "do not fill it in, it is already filled in" comments, the `lastmod` bumps, and the warning not to submit the sitemap before the site resolves. **All of it existed only in the working tree.** HANDOFF 5's claims about those files were true of the disk and false of the repo for a full session.
+
+They are committed now, so the repo matches what HANDOFF 5 says. Nothing downstream was wrong — but for a session it was one accidental `git restore` away from being lost, which is the whole thing git was set up to prevent.
 
 ## The YouTube staging job
 
@@ -99,8 +106,7 @@ Worth recording, because they shape what a session can do:
 - **The assistant had no shell on the local machine** — the device bridge does file transfer only. Every `git` command was run by the owner. Files were edited by writing them across the bridge.
 - **The bridge refuses to write `.github/workflows`** — blocked as a code\-execution path. The workflow file had to be created by hand locally. This is why the sync logic lives in `scripts/youtube-sync.mjs` rather than inline in the YAML: the script is bridge\-writable, the workflow is not.
 - **`scripts/` is not excluded from the published site.** It will be served at the public URL. That costs nothing — it is public code with no secrets — but add `--exclude='./scripts'` to `deploy-pages.yml` if that is unwanted.
-
-* * *
+- **Matching refs do not mean a clean tree.** This session opened by comparing `refs/heads/main` against `refs/remotes/origin/main`, finding them equal, and concluding nothing was outstanding. That was wrong — it proves local and remote agree on *commits*, and says nothing about uncommitted working\-tree changes. Three files had been sitting modified since the previous session. **The end\-of\-session check is `git status` reporting a clean working tree, not a successful push.** A push can succeed and still leave work behind.
 
 ## Still open
 

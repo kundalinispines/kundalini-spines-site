@@ -1,0 +1,63 @@
+name: Stage new YouTube videos
+
+# Pulls the channel's RSS feed and stages anything new into
+# data/youtube-pending.json for review. It is a STAGING job, not a publisher.
+#
+# It never writes data/transmissions.json. That file stays hand-authored, so
+# nothing here can clobber a body you wrote or reorder your entries. To publish
+# a staged video you move the object across by hand. The logic lives in
+# scripts/youtube-sync.mjs — read the comments there before changing it.
+#
+# Why a build step at all: YouTube's RSS feed sends no CORS headers, so
+# js/transmissions.js cannot fetch it from the browser no matter how it is
+# written. The feed is free and keyless for a SERVER. This runner is the server.
+#
+# Two GitHub behaviours worth knowing before they confuse you:
+#
+#   * A commit made with GITHUB_TOKEN does not trigger other workflows. So this
+#     job pushing to main will NOT fire deploy-pages.yml. That is harmless here
+#     precisely because staged items are not rendered — the site is unchanged
+#     until you move one into `entries` and push it yourself, which deploys the
+#     normal way. If this job is ever changed to write transmissions.json
+#     directly, that assumption breaks and the site will silently stop updating.
+#   * GitHub disables scheduled workflows after 60 days with no repository
+#     activity. If updates quietly stop appearing, check that first — it is not
+#     a bug in this file. Actions -> this workflow -> Enable, or just push.
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'     # every six hours, UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write             # requires Settings -> Actions -> General ->
+                              # Workflow permissions -> Read and write
+
+concurrency:
+  group: youtube-sync
+  cancel-in-progress: false
+
+jobs:
+  stage:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # No setup-node step and no dependencies on purpose: the runner image
+      # ships a Node with global fetch, and the script imports nothing but
+      # node:fs. Fewer moving parts to rot.
+      - name: Pull the feed and stage new videos
+        run: node scripts/youtube-sync.mjs
+
+      - name: Commit if anything was staged
+        run: |
+          if git diff --quiet -- data/youtube-pending.json; then
+            echo "Nothing staged - no commit."
+            exit 0
+          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/youtube-pending.json
+          git commit -m "Stage new YouTube video(s) for review"
+          git push

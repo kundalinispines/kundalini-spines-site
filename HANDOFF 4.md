@@ -16,15 +16,20 @@ rebuilt as a live update channel. Site working.
 `fetch()`, which browsers block on `file://`. Run `python -m http.server 8000` in the
 folder and open `http://localhost:8000`.
 
-**Git is set up but not yet initialised.** Run `setup\init-git.bat` once — it creates the
-repo, installs the GitHub Pages workflow, and makes the first commit. Until that is done,
-**deletions are still permanent**, which is why several now-unused files are kept on
-purpose (see Housekeeping). Full instructions and the Pages/private-repo caveat are in
-`setup/README-SETUP.md`.
+**Git is live.** Remote: **`https://github.com/kundalinispines/kundalini-spines-site`**
+(private). First push was 173 files / 88.5 MB on `main`. The "deletions are permanent"
+warning from HANDOFF 3 **no longer applies**.
+
+**Do not confuse this with `kundalinispines/kundalini-spines`** — that is a *different,
+pre-existing* repo holding brand assets, logos and brand-development history (808 objects).
+The website was deliberately given its own repo rather than merged into it, because the
+brand repo uses `Assets/` (capital A) against the site's `assets/`, and Windows treats
+those as the same folder while Git and Linux do not. Merging them invites files that
+appear to vanish on the build server. **Never force-push to the brand repo.**
 
 The bridge cannot write `.git` or `.github/workflows` — both are blocked as remote
-code-execution vectors — so git has to be run locally. That is the only reason this is a
-script rather than an already-built repo.
+code-execution vectors — so git had to be run locally. `setup/` was the one-time bootstrap
+and is gitignored; it can be deleted.
 
 * * *
 
@@ -263,19 +268,18 @@ Keep deliberately, despite being unreferenced: **`js/music-page.js`,
 The device bridge cannot delete files. To remove any of these, move them into a
 `_to_delete/` folder by hand.
 
-**The backup is stale.** The `ks-backup-20260728-part1..7` zips were taken *before* the
-Brutus replacement, the May 26th sample, the music.html retirement and the whole
-Transmissions build. **Running `setup\init-git.bat` and pushing supersedes this** — once
-history is on a remote, the zips stop being the only safety net. The 885 MB masters folder
-is still not covered by anything and needs its own backup either way.
+**Backups are now handled by the git remote** — the stale `ks-backup-20260728-part1..7`
+zips predate everything from this session and are safe to delete. **The 885 MB masters
+folder is still covered by nothing**, is not in the repo, and needs its own backup. That is
+now the only unprotected thing in the project.
 
 * * *
 
-## Version control
+## Version control — done
 
-`setup/` holds a one-time bootstrap: **double-click `setup\init-git.bat`.** It creates the
-repo, moves the Pages workflow into `.github/workflows/`, makes the first commit, and
-prints the two commands to push. Safe to run twice. `setup/` is gitignored; delete it after.
+Pushed to **`kundalinispines/kundalini-spines-site`** (private), branch `main`.
+Tracked: `.gitignore`, `.gitattributes`, `.github/workflows/deploy-pages.yml`, and the
+whole site including assets. `setup/` was the bootstrap, is gitignored, and can be deleted.
 
 - **`.gitattributes` sets `* -text`.** Line-ending conversion is off on purpose. The project
   is authored on Windows and deployed to a Linux runner; the default `text=auto` makes a

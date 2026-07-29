@@ -358,6 +358,10 @@
 .newsletter__status { margin-top: var(--space-4); font-size: var(--fs-caption); min-height: 1.2em; }
 .newsletter__status[data-state="error"] { color: var(--color-crimson-lit); }
 .newsletter__status[data-state="info"] { color: var(--text-secondary); }
+.newsletter__status[data-state="success"] { color: var(--text-secondary); }
+.newsletter__powered { margin-top: var(--space-3); font-size: var(--fs-caption); color: var(--text-muted); }
+.newsletter__powered a { color: inherit; text-decoration: none; border-bottom: 1px solid currentColor; opacity: 0.6; }
+.newsletter__powered a:hover { opacity: 1; }
 
 /* ---- Bio (homepage condensed version) ---- */
 .bio {

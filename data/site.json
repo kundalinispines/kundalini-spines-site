@@ -10,6 +10,11 @@
     "secondaryCta": {
       "label": "Listen Now",
       "href": "/#tracks"
+    },
+    "domain": {
+      "host": "kundalinispines.com",
+      "status": "registered 2026-07-29; DNS not yet configured, site not yet served from it",
+      "note": "HANDOFF 4 listed this as a placeholder in sitemap.xml/robots.txt. It is not — the placeholder happened to be the real domain. Once DNS is set and the custom domain is configured in GitHub Settings -> Pages, the site serves at the root of this host, which is what every root-absolute link in the HTML already assumes."
     }
   },
   "homepage": {

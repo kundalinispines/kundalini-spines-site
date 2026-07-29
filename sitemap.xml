@@ -1,12 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  Replace https://kundalinispines.com with the real domain once one is chosen,
-  and update each <lastmod> when that page's content actually changes.
+  Domain CONFIRMED 2026-07-29: kundalinispines.com is registered to the project.
+  It was originally written here as a placeholder and turned out to be the real
+  domain, so every <loc> below is already correct. Nothing to replace.
+
+  NOT YET SERVED FROM IT. GitHub Pages was still disabled as of 2026-07-29 and the
+  DNS records have not been set. Until the custom domain is configured in
+  Settings -> Pages, this sitemap advertises URLs that do not resolve. Do not
+  submit it to a search engine before the site is actually live at this host.
+
+  Update each <lastmod> when that page's content actually changes.
 -->
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://kundalinispines.com/</loc>
-    <lastmod>2026-07-28</lastmod>
+    <lastmod>2026-07-29</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
@@ -18,31 +26,31 @@
   -->
   <url>
     <loc>https://kundalinispines.com/transmissions.html</loc>
-    <lastmod>2026-07-28</lastmod>
+    <lastmod>2026-07-29</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://kundalinispines.com/transmissions/001.html</loc>
-    <lastmod>2026-07-21</lastmod>
+    <lastmod>2026-07-29</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://kundalinispines.com/archive.html</loc>
-    <lastmod>2026-07-21</lastmod>
+    <lastmod>2026-07-29</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://kundalinispines.com/archive/artwork/001.html</loc>
-    <lastmod>2026-07-21</lastmod>
+    <lastmod>2026-07-29</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://kundalinispines.com/about.html</loc>
-    <lastmod>2026-07-21</lastmod>
+    <lastmod>2026-07-29</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>

@@ -1,4 +1,6 @@
-# Replace the domain in the Sitemap line below once one is chosen.
+# Domain CONFIRMED 2026-07-29: kundalinispines.com is registered to the project.
+# It was written here as a placeholder and turned out to be the real domain — it is
+# correct as written. Do not "fill it in"; it is already filled in.
 User-agent: *
 Allow: /
 

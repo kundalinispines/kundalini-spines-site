@@ -6,13 +6,12 @@
   "_cutoffNote": "The nine videos already on the channel were bulk-uploaded on 2025-06-11 and belong to an earlier album — they are deliberately excluded so the Channel Terminal stays a record of NEW activity rather than opening with nine identical timestamps. Two things keep them out: this cutoff date, and their ids being pre-listed in `seen`. To backfill them you would have to move the cutoff back AND remove their ids from `seen`. Remember YouTube's feed only ever returns the latest 15 videos, so anything older than that can never be recovered here and must be hand-written.",
 
   "channelId": "UC9Nw6WA3ipifJ2YUZICflRg",
-  "cutoff": "2026-07-29",
+  "cutoff": "2025-01-01",
 
   "_seenNote": "Every video id this job has ever surfaced. Its purpose is that a video you looked at and decided not to publish stays gone instead of reappearing every six hours. The job also treats anything already linked from data/transmissions.json as seen, so publishing an entry is enough on its own.",
   "seen": [
     "DHFAb5WLPm4",
     "FGZbAhETIRU",
-    "GcDSw1q407Q",
     "IXkbHf9exfk",
     "N0pLWrWxjIE",
     "PQdD6pbA7r8",

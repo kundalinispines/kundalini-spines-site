@@ -1,0 +1,109 @@
+/* ==========================================================================
+   KUNDALINI SPINES — DESIGN TOKENS
+   Single source of truth for color, type, spacing, motion, and breakpoints.
+   Every component should reference these variables — no hardcoded values.
+   ========================================================================== */
+
+:root {
+  /* ---- Color: core palette (from brand audit) ---- */
+  --color-black:      #050505;  /* Archive Black — dominant background */
+  --color-white:      #F2F2EE;  /* Signal White — high-contrast text/accents */
+  --color-bone:       #D8D0BE;  /* Archive Bone — warm neutral, secondary text */
+  --color-crimson:    #5E0A0A;  /* Deep Crimson — rare interruption/accent only */
+  --color-crimson-lit:#8A1414;  /* lightened crimson for hover/active states */
+  --color-moonlight:  #34455B;  /* cool moonlit blue — imagery/photographic accent only, never UI chrome */
+
+  /* ---- Color: derived grayscale (neutral, slightly warm) ---- */
+  --color-gray-900: #0A0A0A;
+  --color-gray-800: #141414;
+  --color-gray-700: #1F1F1F;
+  --color-gray-600: #2E2E2E;
+  --color-gray-500: #4A4A4A;
+  --color-gray-400: #6B6B6B;
+  --color-gray-300: #8F8F8F;
+
+  /* ---- Color: semantic roles ---- */
+  --bg-primary:      var(--color-black);
+  --bg-surface:      var(--color-gray-800);
+  --bg-surface-raised: var(--color-gray-700);
+  --text-primary:    var(--color-white);
+  --text-secondary:  var(--color-bone);
+  --text-muted:      var(--color-gray-300);
+  --border-subtle:   var(--color-gray-600);
+  --accent-critical: var(--color-crimson);
+  --focus-ring:       var(--color-bone);
+
+  /* ---- Typography: three roles per brand audit ----
+     Display  = gritty/industrial condensed type (nav, buttons, headings) — street/military-label feel, stays legible small.
+     Display Stencil = same family's stencil cut, reserved for large showcase moments only (hero, big section titles) —
+                       stencil cutouts lose legibility below a certain size, so this is never used for body-scale text.
+     Body     = archive text type (long-form, captions, body copy)
+     Mono     = technical annotation type (record numbers, timestamps, eyebrow labels)
+     Loaded via <link> in <head>; see docs/06-architecture.md for the tags. */
+  --font-display: 'Big Shoulders Display', 'Arial Narrow', sans-serif;
+  --font-display-stencil: 'Big Shoulders Stencil', 'Arial Narrow', sans-serif;
+  --font-body:    'Source Serif 4', Georgia, serif;
+  --font-mono:    'IBM Plex Mono', 'Courier New', monospace;
+
+  --fs-hero:      clamp(2.75rem, 6vw, 6rem);
+  --fs-h1:        clamp(2rem, 4vw, 3.5rem);
+  --fs-h2:        clamp(1.5rem, 2.6vw, 2.25rem);
+  --fs-h3:        clamp(1.15rem, 1.8vw, 1.5rem);
+  --fs-body-lg:   1.125rem;
+  --fs-body:      1rem;
+  --fs-caption:   0.875rem;
+  --fs-mono:      0.8125rem;
+
+  --lh-tight: 1.1;
+  --lh-heading: 1.25;
+  --lh-body: 1.6;
+
+  --tracking-display: 0.02em;   /* expanded tracking for institutional headings/labels */
+  --tracking-label:   0.12em;   /* wider tracking for uppercase labels/eyebrows */
+
+  /* ---- Spacing scale (4px base) ---- */
+  --space-1: 0.25rem;   /* 4px */
+  --space-2: 0.5rem;    /* 8px */
+  --space-3: 0.75rem;   /* 12px */
+  --space-4: 1rem;      /* 16px */
+  --space-6: 1.5rem;    /* 24px */
+  --space-8: 2rem;      /* 32px */
+  --space-12: 3rem;     /* 48px */
+  --space-16: 4rem;     /* 64px */
+  --space-24: 6rem;     /* 96px */
+  --space-32: 8rem;     /* 128px */
+
+  /* ---- Grid / layout ---- */
+  --container-max: 1280px;
+  --container-pad: var(--space-6);
+  --grid-gap: var(--space-6);
+
+  /* ---- Borders & surfaces ---- */
+  --radius-sharp: 0px;     /* default — severe/institutional, not soft */
+  --radius-min:   2px;     /* only for small interactive controls if needed */
+  --border-hairline: 1px solid var(--border-subtle);
+
+  /* ---- Motion (respects prefers-reduced-motion, see architecture.md) ---- */
+  --motion-fast:  150ms;
+  --motion-base:  300ms;
+  --motion-slow:  600ms;
+  --motion-hero:  1200ms;
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* ---- Breakpoints (reference only — used in @media queries directly) ----
+     mobile:  0–479px   (base styles)
+     sm:      480px
+     md:      768px
+     lg:      1024px
+     xl:      1280px
+     xxl:     1440px */
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-fast: 0ms;
+    --motion-base: 0ms;
+    --motion-slow: 0ms;
+    --motion-hero: 0ms;
+  }
+}

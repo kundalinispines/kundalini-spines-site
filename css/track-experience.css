@@ -1,0 +1,302 @@
+/* ==========================================================================
+   TRACK EXPERIENCE — arch-depth carousel, single always-focused view.
+   The centered track is always the hero and the focus panel below it is
+   always populated; there is no separate rest state. Browsing: drag,
+   arrow keys, the ‹ › buttons, or clicking a side card. No wheel, no
+   hover-pan — both fought the user rather than helping.
+   Pixel values below (gap, margins, the 75%/2.5 push-pull constants) were
+   tuned empirically against a 250px card and are load-bearing — changing
+   card width will shift the whole layout.
+   ========================================================================== */
+
+.track-experience {
+  /* --card-w is the LAYOUT STEP: how far apart consecutive cards sit. The card
+     BOX is 1.85x that, and the hero renders at scale 1 rather than being scaled
+     up from a small box — a card rasterised at 250px and then blown up 1.85x
+     loses most of its detail. A negative right margin pulls the advance back to
+     --card-w so the arch spacing is unchanged. --hero-w adds the 1.0588
+     perspective foreshortening at translateZ(100px) under perspective:1800px. */
+  --card-w: 250px;
+  --card-box: calc(var(--card-w) * 1.85);
+  --arc-h: 640px;             /* .track-arc-viewport min-height */
+  --hero-w: calc(var(--card-box) * 1.0588);
+  position: relative;
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding-block: var(--space-8);
+  scroll-margin-top: 90px; /* clears the fixed nav when jumped to via #tracks */
+  overflow: hidden;
+  background: var(--color-black);
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity var(--motion-slow) var(--ease-standard),
+              transform var(--motion-slow) var(--ease-standard);
+}
+.track-experience.is-visible { opacity: 1; transform: translateY(0); }
+
+.track-arc-wrap { position: relative; padding-block: var(--space-4); }
+
+.track-arc-viewport {
+  position: relative;
+  overflow: visible;
+  min-height: var(--arc-h);
+  display: flex;
+  align-items: flex-start;
+  padding-top: var(--space-6);
+  perspective: 1800px;
+  cursor: grab;
+}
+.track-arc-viewport.is-dragging { cursor: grabbing; }
+
+.track-arc {
+  display: flex;
+  align-items: center;
+  gap: 0.75px;
+  list-style: none;
+  margin: 0;
+  padding: 0 0 50px;
+  touch-action: pan-y;
+  user-select: none;
+  transform-style: preserve-3d;
+}
+
+.track-card {
+  position: relative;
+  flex: 0 0 auto;
+  width: var(--card-box);
+  margin-right: calc(var(--card-w) - var(--card-box)); /* negative: restores the step */
+  aspect-ratio: 1 / 1;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface);
+  cursor: pointer;
+  padding: 0;
+  transition: filter 0.4s ease;
+}
+
+/* will-change is applied ONLY while the carousel is actually moving.
+   Left on permanently it promotes every card to its own composited layer and
+   Chrome caches a raster scale for that layer — so a card that arrives at the
+   centre keeps the low-resolution raster it was given while it was a small,
+   scaled-down side card, and looks soft until something forces a repaint.
+   Scoping the hint to the animating state lets each card re-rasterise at its
+   settled size. */
+.track-arc.is-animating .track-card { will-change: transform, filter; }
+.track-arc.is-animating { will-change: transform; }
+
+/* First paint only: cards would otherwise flash at full brightness and then
+   visibly dim over 0.4s as their filters transition in from nothing. */
+.track-arc.is-priming .track-card { transition: none; }
+.track-card__media {
+  position: absolute;
+  inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+  display: block;
+  pointer-events: none;
+  -webkit-user-drag: none;
+}
+.track-card__still { background: var(--bg-surface); }
+/* Video sits on top of the still and is invisible until the track rolls, so a
+   buffered-but-paused video can never replace the sharper still. */
+.track-card__video { opacity: 0; transition: opacity 0.35s ease; }
+.track-card.is-rolling .track-card__video { opacity: 1; }
+@media (prefers-reduced-motion: reduce) {
+  .track-card__video { transition: none; }
+}
+.track-card:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 4px; }
+
+
+/* ---- Settled hero overlay: the sharpness fix ----
+   `perspective` on .track-arc-viewport and `transform-style: preserve-3d` on
+   .track-arc place every card in one shared 3D rendering context, and Chrome
+   rasterises that whole context once at a fixed scale. Measured on a 2560x1440
+   display at DPR 1 (variance-of-Laplacian on the settled hero): a card inside
+   the 3D context reads 612 where the identical image outside it reads 1087.
+   Removing EITHER the perspective or the preserve-3d restores it (1072 / 1068),
+   so it is the ancestor chain that holds the card there — giving the card its
+   own 2D transform does NOT get it out, which is why the earlier flatten fix
+   did not land.
+
+   So the settled hero is painted here instead: a sibling of .track-arc-viewport
+   and therefore outside the 3D context entirely. Measured 1056 = 0.97x of a
+   plain untransformed image. The in-row card is left in place at opacity 0 so
+   hit-testing, focus and the arch geometry are all untouched. */
+.track-hero-layer {
+  position: absolute;
+  top: 0; left: 0;
+  box-sizing: border-box;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface);
+  pointer-events: none;   /* clicks fall through to the real card underneath */
+  visibility: hidden;
+  z-index: 900;
+  overflow: hidden;
+}
+.track-hero-layer.is-showing { visibility: visible; }
+.track-hero-layer img,
+.track-hero-layer video {
+  position: absolute;
+  inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+  display: block;
+  -webkit-user-drag: none;
+}
+/* The overlay carries the hero's video too, for the same reason it carries the
+   still: a video left in the card is back inside the 3D rendering context and
+   pays the same rasterisation cost. Only one of the two ever decodes at a
+   time — see syncLayerVideo() in track-experience.js. Timing must match
+   VIDEO_FADE_MS. */
+.track-hero-layer video { opacity: 0; transition: opacity 0.35s ease; }
+.track-hero-layer.is-rolling video { opacity: 1; }
+@media (prefers-reduced-motion: reduce) {
+  .track-hero-layer video { transition: none; }
+}
+
+
+/* ---- Intro heading: permanent, sits just above the hero card ----
+   The hero card is scaled up, so its top edge overflows the carousel viewport
+   and would collide with the type. Required clearance was measured at nine
+   widths (250px card -> 138px, 190 -> 104..111, 164 -> 92, 151 -> 87) and fits
+   `0.48 * card + 18px` within a few px. Add the gap we actually want to see
+   (24px) and the whole thing self-scales — no per-breakpoint overrides. */
+.track-experience__intro {
+  text-align: center;
+  margin-bottom: calc(var(--card-w) * 0.48 + 42px); /* clearance + 24px gap */
+}
+.track-experience__intro .label { display: block; margin-bottom: var(--space-2); }
+.track-experience__intro h2 {
+  font-family: var(--font-display-stencil);
+  margin: 0;
+  font-size: clamp(1.9rem, 4vw, 2.6rem);
+  line-height: 1;
+}
+/* Streaming-status note. Bottom margin stays 0 on purpose: the clearance gap to
+   the hero card is owned by .track-experience__intro's margin-bottom formula
+   above, and a margin here would stack with it and open a second gap. */
+.track-experience__intro .track-experience__note {
+  max-width: 60ch;
+  margin: var(--space-3) auto 0;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+/* ---- Focus panel: in-place, below the carousel (not a fullscreen takeover) ---- */
+/* The panel is pulled up into the slack the enlarged hero leaves at the bottom
+   of the carousel viewport: slack = arc-height - (card * 1.425) + 4px, measured.
+   Expressed as a formula so it stays flush at every card size instead of
+   needing a hand-tuned value per breakpoint. */
+.track-focus-panel {
+  max-width: 760px;
+  margin: calc(var(--card-w) * 1.425 - var(--arc-h) - 4px) auto 0;
+  text-align: center;
+  opacity: 0;
+  transform: translateY(14px);
+  pointer-events: none;
+  transition: opacity 0.4s ease, transform 0.4s ease, margin 0.4s ease;
+}
+.track-focus-panel.is-visible { opacity: 1; transform: translateY(0); pointer-events: auto; }
+
+.track-focus-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: var(--hero-w);
+  max-width: 100%;
+  margin: 0 auto var(--space-3);
+}
+.track-focus-nav__counter {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--fs-caption);
+  letter-spacing: var(--tracking-label);
+  color: var(--text-muted);
+  display: flex;
+  align-items: baseline;
+  gap: 0.45em;
+}
+.track-focus-nav__index { color: var(--track-accent, var(--text-primary)); }
+.track-focus-nav__sep { opacity: 0.5; }
+.track-focus-nav__btn {
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  width: 38px; height: 38px;
+  cursor: pointer;
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  display: flex; align-items: center; justify-content: center;
+}
+.track-focus-nav__btn:hover:not(:disabled) { color: var(--color-bone); }
+.track-focus-nav__btn:disabled { opacity: 0.25; cursor: not-allowed; }
+
+.track-focus-panel__eyebrow { display: block; margin-bottom: 4px; color: var(--track-accent, var(--text-muted)); font-family: var(--font-mono); font-size: var(--fs-caption); letter-spacing: var(--tracking-label); text-transform: uppercase; }
+/* The title is carried by the artwork itself, so it is hidden visually but kept
+   in the DOM (.sr-only) so screen readers and search engines still get it. */
+.track-focus-panel__title.sr-only { margin: 0; }
+.track-focus-panel__desc { color: var(--text-secondary); font-size: 0.95rem; line-height: 1.5; margin: 0 auto var(--space-2); max-width: 60ch; }
+
+.track-sample-player { display: flex; align-items: center; gap: var(--space-3); max-width: 360px; margin: 0 auto var(--space-2); }
+.track-sample-player__btn {
+  width: 36px; height: 36px;
+  flex-shrink: 0;
+  border: 1px solid var(--track-accent, var(--color-white));
+  background: transparent;
+  /* Glyph takes the accent too, not just the ring — otherwise the button reads
+     as outlined-in-the-artwork-colour rather than as part of the artwork. */
+  color: var(--track-accent, var(--text-primary));
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.track-sample-player__btn:hover:not(:disabled) { background: var(--track-accent, var(--color-white)); color: var(--color-black); }
+.track-sample-player__btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.track-sample-player__bar { flex: 1; height: 3px; background: var(--color-gray-600); position: relative; }
+.track-sample-player__bar-fill { position: absolute; inset: 0; width: 0%; background: var(--track-accent, var(--color-white)); transition: width 0.15s linear; }
+.track-sample-player__status { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+.track-focus-panel__actions { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-2); margin-bottom: var(--space-2); }
+/* Tighter than the global .btn so all five actions sit on one row. */
+.track-focus-panel__actions .btn { font-size: 0.78rem; padding: 0.55rem 0.9rem; }
+.track-focus-panel__actions .btn[disabled],
+.track-focus-panel__actions .btn.is-placeholder { opacity: 0.45; cursor: not-allowed; pointer-events: none; }
+.track-focus-panel__actions-note {
+  font-family: var(--font-body);
+  font-size: 0.72rem;
+  line-height: 1.4;
+  color: var(--text-muted);
+  max-width: none;
+  margin: var(--space-2) auto 0;
+}
+
+.track-focus-panel__close {
+  display: block;
+  margin: var(--space-2) auto 0;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: var(--fs-caption);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.track-focus-panel__close:hover { color: var(--text-primary); }
+
+/* ---- Responsive ---- */
+@media (max-width: 1024px) {
+  .track-experience { --card-w: 190px; }
+}
+
+@media (max-width: 768px) {
+  .track-experience { min-height: auto; padding-block: var(--space-12); }
+  .track-experience { --card-w: min(42vw, 190px); --arc-h: 420px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .track-card { transition: none; }
+  .track-experience__intro,
+  .track-focus-panel { transition: none; }
+}

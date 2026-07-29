@@ -1,0 +1,47 @@
+# Kundalini Spines — static site, no build step, no dependencies.
+# Almost everything here is source and belongs in the repo, including the
+# assets: the site cannot deploy without them and they total ~88 MB, well
+# inside GitHub's limits (100 MB per file, 1 GB soft repo limit).
+
+# ---- Backups and masters (never commit) ----
+# The 885 MB Kundalini-Spines-Track-Art masters folder lives outside this
+# directory and must stay out. The backup zips are snapshots of this repo —
+# committing them would double the repo on every snapshot.
+ks-backup-*.zip
+*-Track-Art*.zip
+_to_delete/
+
+# ---- OS / editor noise ----
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.DS_Store
+._*
+.Spotlight-V100
+.Trashes
+*.swp
+*~
+.idea/
+.vscode/
+*.code-workspace
+
+# ---- One-time setup scaffolding ----
+# setup/ exists only to create this repo (see setup/README-SETUP.md). Its job is
+# done after the first commit; it is not part of the site.
+setup/
+
+# ---- Local server / tooling ----
+__pycache__/
+*.pyc
+node_modules/
+.env
+.env.*
+
+# ---- Deliberately NOT ignored, so nobody "tidies" them away later ----
+# js/music-page.js and js/audio-player.js are loaded by no page. They are the
+# reference implementation for a future all-tracks directory page and are kept
+# on purpose — see docs/06-legacy-music-page.md.
+# raster-test.html and raster-test-2.html are the sharpness harness.
+# transmissions-options.html and transmissions-option5-v2.html are design
+# mockups, noindex and unlinked. All are tracked intentionally.

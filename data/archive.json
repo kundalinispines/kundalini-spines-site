@@ -1,0 +1,23 @@
+{
+  "categories": [
+    { "slug": "artwork", "label": "Artwork" },
+    { "slug": "artifacts", "label": "Artifacts" },
+    { "slug": "lyrics", "label": "Lyrics" },
+    { "slug": "videos", "label": "Videos" },
+    { "slug": "records", "label": "Selected Records" },
+    { "slug": "promotional", "label": "Promotional Visuals" },
+    { "slug": "concepts", "label": "Concept Pieces" }
+  ],
+  "entries": [
+    {
+      "id": "archive-001",
+      "category": "artwork",
+      "title": "The Spine Between Them",
+      "date": "PLACEHOLDER \u2014 exact date not yet confirmed",
+      "detailUrl": "archive/artwork/001.html",
+      "media": { "type": "image", "asset": "assets/hero/messengers-hero-duo.jpg" },
+      "description": "Two Messengers, one signal, and the geometry that connects them.",
+      "body": "Every seal starts as a shape before it becomes a symbol. This one began here \u2014 two figures, one axis, the spine rendered as the thing that receives before it transmits. Filed as the first piece in the collection; more will join it as they're recovered."
+    }
+  ]
+}

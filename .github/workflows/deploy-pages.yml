@@ -1,0 +1,93 @@
+name: Deploy site to GitHub Pages
+
+# The site is static with no build step, so this only has to copy the public
+# files into an artifact and hand it to Pages.
+#
+# IMPORTANT: it does NOT publish the whole repo. The handoffs contain local
+# Windows paths, internal notes and Higgsfield element IDs; docs/ holds
+# planning material; the raster-test and transmissions-option* files are
+# internal design harnesses. All of that is fine in a private repo and none of
+# it should be readable at a public URL. The rsync excludes below are the only
+# thing standing between those files and the open web — if you add another
+# internal document, add it here too.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Let one deployment finish rather than cancelling it mid-publish.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # tar rather than rsync: tar is guaranteed present on every runner image
+      # and in any container you might later switch to, and this exact command
+      # was verified against the real file list before it shipped.
+      - name: Assemble the public site
+        run: |
+          mkdir -p _site
+          tar -cf - \
+            --exclude='./_site' \
+            --exclude='./.git' \
+            --exclude='./.github' \
+            --exclude='./.gitignore' \
+            --exclude='./.gitattributes' \
+            --exclude='./HANDOFF*.md' \
+            --exclude='./README.md' \
+            --exclude='./docs' \
+            --exclude='./setup' \
+            --exclude='./raster-test.html' \
+            --exclude='./raster-test-2.html' \
+            --exclude='./transmissions-options.html' \
+            --exclude='./transmissions-option5-v2.html' \
+            . | tar -xf - -C _site
+          echo "--- published, top level ---"
+          find _site -maxdepth 1 | sort
+
+      - name: Fail if anything internal slipped through
+        run: |
+          # A missing exclude would otherwise publish silently. Breaking the
+          # deploy is much better than leaking a handoff full of local paths.
+          LEAKED=$(find _site \( \
+            -name 'HANDOFF*' -o \
+            -name 'raster-test*' -o \
+            -name 'transmissions-option*' -o \
+            -name 'README.md' -o \
+            -name '.gitignore' -o \
+            -name '.gitattributes' -o \
+            -path '_site/docs*' -o \
+            -path '_site/setup*' \) )
+          if [ -n "$LEAKED" ]; then
+            echo "::error::Internal files reached the publish directory. Fix the excludes above."
+            echo "$LEAKED"
+            exit 1
+          fi
+          echo "Clean - nothing internal is being published."
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4

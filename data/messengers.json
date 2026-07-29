@@ -1,0 +1,49 @@
+{
+  "messengers": [
+    {
+      "id": "messenger-a",
+      "displayName": "Messenger",
+      "archetype": "The Seeker",
+      "bio": "Receives what others miss. Reads the pattern before the sentence.",
+      "portrait": {
+        "asset": "assets/messengers/messenger-a-portrait.jpg",
+        "sourceElementId": "46229f47-2d2f-45f7-a578-8d169ca5fbb7",
+        "sourceElementName": "Messenger-A",
+        "approvedJobId": "46c0cea8-c1fb-4de9-9775-0ad448c65aa5",
+        "aspectRatio": "4:5",
+        "status": "approved",
+        "notes": "Final approved asset supplied by user (messanger_a.png), optimized to assets/messengers/messenger-a-portrait.jpg."
+      }
+    },
+    {
+      "id": "messenger-b",
+      "displayName": "Messenger",
+      "archetype": "The Alchemist",
+      "bio": "Turns pressure into record. Carries what the Signal leaves behind.",
+      "portrait": {
+        "asset": "assets/messengers/messenger-b-portrait.jpg",
+        "sourceElementId": "37f342de-2add-4f4c-bcc7-2aa3530676d3",
+        "sourceElementName": "Messenger-B",
+        "approvedJobId": "69bd1459-9032-47b5-ab6b-976137d1908d",
+        "aspectRatio": "4:5",
+        "status": "approved",
+        "notes": "Final approved asset supplied by user (messanger_b.png), optimized to assets/messengers/messenger-b-portrait.jpg."
+      }
+    }
+  ],
+  "heroDuo": {
+    "asset": "assets/hero/messengers-hero-duo.jpg",
+    "approvedJobId": "fef33bd6-c19d-4d1f-86b3-eccba1492777",
+    "aspectRatio": "16:9",
+    "status": "approved",
+    "notes": "Final approved asset supplied by user (messanger_a_and_b.png), optimized to assets/hero/messengers-hero-duo.jpg. Now used as the og:image social-preview fallback; the live homepage hero uses heroVideo below instead."
+  },
+  "heroVideo": {
+    "mp4": "assets/hero/messengers-hero-video.mp4",
+    "webm": "assets/hero/messengers-hero-video.webm",
+    "poster": "assets/hero/messengers-hero-video-poster.jpg",
+    "original": "assets/_originals/messengers-hero-video-original.mp4",
+    "status": "approved",
+    "notes": "User-supplied video (spines_hero_movie.mp4), has a real (non-silent) audio track. Autoplays muted+looped; visible Sound On/Off toggle lets visitors opt in. Falls back to the static poster frame with no autoplay when prefers-reduced-motion is set."
+  }
+}

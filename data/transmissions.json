@@ -1,0 +1,79 @@
+{
+  "_note": "Feed for transmissions.html (the Channel Terminal). Add a new update by putting an object at the TOP of `entries` — newest first, the page does not sort for you. Nothing else needs changing: channels, counts and the readout all derive from this file. See `_template` below for every supported field. No API keys, no build step, no third-party service.",
+
+  "_template": {
+    "id": "next number, zero-padded to 3 — this is the log number shown on the left",
+    "channel": "one of the channel ids below: x | instagram | tiktok | youtube | spotify | filed",
+    "date": "YYYY-MM-DD — formatted for display automatically",
+    "time": "HH:MM, 24h. Optional; omit for filed pieces that have no clock time",
+    "title": "short — this is the line that reads in the row",
+    "body": "the full text. Shown when the row is opened",
+    "media": "optional path, e.g. assets/music/blue-pills-cover.webp",
+    "mediaAlt": "required whenever media is set — describes the image for screen readers",
+    "video": "optional true — marks it as a clip and shows the play glyph",
+    "href": "optional external URL — the post on the platform",
+    "internal": "optional internal page, e.g. transmissions/001.html. Wins over href if both are set"
+  },
+
+  "_channelsNote": "Every channel listed here gets a tab, whether or not it has entries. That is deliberate — an empty frequency reads as 'NO SIGNAL ON THIS FREQUENCY', which is true, on-concept, and tells a visitor which platforms exist. Set \"hideEmptyChannels\": true at the top level if you would rather only show channels that have something in them. Remove a platform from this list entirely if you are not on it.",
+
+  "hideEmptyChannels": false,
+
+  "channels": [
+    { "id": "all",          "label": "All" },
+    { "id": "x",            "label": "X" },
+    { "id": "instagram",    "label": "Instagram" },
+    { "id": "tiktok",       "label": "TikTok" },
+    { "id": "youtube",      "label": "YouTube" },
+    { "id": "spotify",      "label": "Spotify" },
+    { "id": "filed",        "label": "Filed" }
+  ],
+
+  "_seedNote": "The four entries marked \"seed\": true below are true statements about the project, written so the page has something real on it at launch. Edit them into your own voice or delete them — they are not load-bearing. Transmission 001 at the bottom is genuine and links to its existing page; keep that one.",
+
+  "entries": [
+    {
+      "id": "004",
+      "seed": true,
+      "channel": "filed",
+      "date": "2026-07-28",
+      "title": "May 26th completes the library",
+      "body": "The last missing sample is in. Twenty-eight tracks, twenty-eight covers, twenty-eight pieces of moving artwork, twenty-eight samples — the Rise Up library is closed. May 26th's artwork has never been seen moving, because the video only rolls while the audio is audible, and until now there was no audio.",
+      "media": "assets/music/may-26th-cover.webp",
+      "mediaAlt": "May 26th cover art — a figure with a glowing spinal column beneath a planet, flanked by DNA helices and two hooded Messengers.",
+      "internal": "/#tracks"
+    },
+    {
+      "id": "003",
+      "seed": true,
+      "channel": "filed",
+      "date": "2026-07-28",
+      "title": "Brutus, replaced",
+      "body": "New cover and new moving artwork for Brutus. The throne, the skull, the severed marble head at its feet. Some betrayals do not need a bridge or a hook — just the moment right before the knife.",
+      "media": "assets/music/brutus-cover.webp",
+      "mediaAlt": "Brutus cover art — a skull-faced figure seated on a throne in a ruined city, a marble bust toppled at its feet.",
+      "video": true,
+      "internal": "/#tracks"
+    },
+    {
+      "id": "002",
+      "seed": true,
+      "channel": "filed",
+      "date": "2026-07-21",
+      "title": "Thirty-three and seven",
+      "body": "Thirty-three vertebrae. Seven nodes. One signal moving through the whole structure. Everything here is built on that count — it is not decoration, it is the architecture.",
+      "media": "assets/music/spine-glow-cover.webp",
+      "mediaAlt": "Spine Glow cover art — an illuminated spinal column rendered as a signal receiver."
+    },
+    {
+      "id": "001",
+      "channel": "filed",
+      "date": "2026-07-01",
+      "title": "Source Unknown",
+      "body": "Some signals arrive before the words that explain them. This one came first — masked, hooded, standing at the edge between fog and geometry. What it means depends on how closely you are listening.",
+      "media": "assets/messengers/messenger-b-portrait.jpg",
+      "mediaAlt": "Transmission 001 — a masked Messenger of Kundalini Spines against a blueprint-and-spine backdrop.",
+      "internal": "transmissions/001.html"
+    }
+  ]
+}

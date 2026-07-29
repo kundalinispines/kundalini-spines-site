@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Raster isolation test 2 — the ancestor chain</title>
+<style>
+  :root { --box: 462.5px; --hero: 490px; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 16px 12px 40px;
+    background: #000; color: #ccc;
+    font: 12px/1.3 ui-monospace, Menlo, Consolas, monospace;
+  }
+  h1 { font-size: 13px; font-weight: 600; margin: 0 0 12px; color: #fff; letter-spacing: .06em; }
+  .grid { display: flex; flex-wrap: wrap; gap: 10px; }
+  .cell { width: 490px; }
+  .label { height: 16px; margin-bottom: 4px; color: #7fd1ff; white-space: nowrap; overflow: hidden; }
+
+  /* The real page's ancestor chain, reproduced exactly:
+     .vp { perspective: 1800px }  >  .row { transform-style: preserve-3d; transform: translateX(frac) }  >  .card  */
+  .vp  { width: var(--hero); height: var(--hero); position: relative; }
+  .row { position: absolute; inset: 0; }
+  .card { position: relative; width: var(--box); height: var(--box); }
+  .card img, .card video {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    object-fit: cover; display: block;
+  }
+  .card video { opacity: 0; }
+
+  /* --- ancestor variations --- */
+  .persp .vp   { perspective: 1800px; }
+  .p3d   .row  { transform-style: preserve-3d; }
+  .flat  .row  { transform-style: flat; }
+  .shift .row  { transform: translateX(-137.43px); }
+  .shift .card { margin-left: 137.43px; }   /* cancel the shift so the card lands in frame */
+
+  /* the card's own settled transform — 2D, exactly what flattenHero emits */
+  .settled .card { transform: scale(1.0588); }
+
+  /* CTRL: no 3D ancestor at all, card sized to its final 490 and untransformed */
+  .ctrl .card { width: var(--hero); height: var(--hero); transform: none; }
+</style>
+</head>
+<body>
+<h1>RASTER ISOLATION 2 &mdash; the ancestor chain. All cards 490&times;490 on screen. 100% zoom, no page scaling.</h1>
+<div class="grid">
+
+  <div class="cell ctrl"><div class="label">CTRL / no 3D ancestor, no transform</div>
+    <div class="vp"><div class="row"><div class="card"><img src="assets/music/the-33rd-floor-cover.webp" alt=""></div></div></div></div>
+
+  <div class="cell settled persp p3d shift"><div class="label">I / FULL REAL CHAIN: persp + preserve-3d + shift</div>
+    <div class="vp"><div class="row"><div class="card"><img src="assets/music/the-33rd-floor-cover.webp" alt=""></div></div></div></div>
+
+  <div class="cell settled persp p3d shift"><div class="label">L / I + paused video sibling  &lt;&lt; SHIPS TODAY</div>
+    <div class="vp"><div class="row"><div class="card"><img src="assets/music/the-33rd-floor-cover.webp" alt="">
+      <video src="assets/music/the-33rd-floor-art.mp4" muted loop playsinline preload="auto" disablepictureinpicture aria-hidden="true"></video>
+    </div></div></div></div>
+
+  <div class="cell settled persp flat shift"><div class="label">J / I but transform-style: flat on the row</div>
+    <div class="vp"><div class="row"><div class="card"><img src="assets/music/the-33rd-floor-cover.webp" alt=""></div></div></div></div>
+
+  <div class="cell settled p3d shift"><div class="label">N / I but NO perspective on the viewport</div>
+    <div class="vp"><div class="row"><div class="card"><img src="assets/music/the-33rd-floor-cover.webp" alt=""></div></div></div></div>
+
+  <div class="cell settled persp p3d"><div class="label">O / I but no fractional row shift</div>
+    <div class="vp"><div class="row"><div class="card"><img src="assets/music/the-33rd-floor-cover.webp" alt=""></div></div></div></div>
+
+  <div class="cell settled"><div class="label">M / PROPOSED FIX: same 2D transform, no 3D ancestor</div>
+    <div class="vp"><div class="row"><div class="card"><img src="assets/music/the-33rd-floor-cover.webp" alt=""></div></div></div></div>
+
+  <div class="cell settled shift"><div class="label">P / M + fractional shift (fix, realistic position)</div>
+    <div class="vp"><div class="row"><div class="card"><img src="assets/music/the-33rd-floor-cover.webp" alt=""></div></div></div></div>
+
+</div>
+<script>
+  addEventListener('load', () => {
+    document.querySelector('h1').textContent +=
+      `   [DPR ${devicePixelRatio}  viewport ${innerWidth}x${innerHeight}]`;
+    document.querySelectorAll('video').forEach(v => { v.pause(); v.currentTime = 0.1; });
+  });
+</script>
+</body>
+</html>

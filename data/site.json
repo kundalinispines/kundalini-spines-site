@@ -1,0 +1,50 @@
+{
+  "site": {
+    "name": "Kundalini Spines",
+    "tagline": "Knowledge Hidden in Plain Sight",
+    "description": "Kundalini Spines is a two-member underground hip-hop project built on mysticism, coded transmissions, sacred geometry, and street experience.",
+    "primaryCta": { "label": "Enter the World", "href": "/about" },
+    "secondaryCta": { "label": "Listen Now", "href": "/music" }
+  },
+  "homepage": {
+    "_note": "Superseded by the WEBSITEREADME.txt redesign — the homepage is now Hero -> Track Experience (data/tracks.json) -> Newsletter -> Bio -> simplified Footer. Fields below are kept only as a historical record of the pre-redesign layout.",
+    "heroStatement": "Knowledge Hidden in Plain Sight",
+    "identityStatement": "Two Messengers. One Signal. Kundalini Spines moves through sacred geometry, coded lyricism, and the architecture of the spine itself — knowledge carried in plain sight, for anyone willing to listen closely enough to decode it.",
+    "featuredReleaseSlug": "PLACEHOLDER-release-slug",
+    "featuredTransmissionNumber": "001",
+    "entryPoints": [
+      { "label": "Music", "href": "/music", "description": "Releases, tracks, and the current signal." },
+      { "label": "Transmissions", "href": "/transmissions", "description": "Curated visual and lyrical transmissions." },
+      { "label": "Archive", "href": "/archive", "description": "The recovered collection." }
+    ]
+  },
+  "footerSimple": {
+    "_note": "Used by index.html's simplified footer (footer--simple). Other pages still use the fuller footer.links sitemap below.",
+    "tagline": "Knowledge Hidden in Plain Sight"
+  },
+  "messengers": {
+    "intro": "The Messengers don't claim mastery over the Signal. They receive it, preserve it, and carry it forward without weakening its meaning — witnesses first, performers second.",
+    "members": ["messenger-a", "messenger-b"]
+  },
+  "about": {
+    "philosophy": "The project moves between the sacred and the street — Metatron's Cube next to a blueprint, an X-ray beside a manuscript. Ancient knowledge, modern static. The spine sits at the center of all of it: thirty-three vertebrae, seven nodes, one signal moving through the whole structure.",
+    "transmissionsExplainer": "Numbered pieces called Transmissions carry the Signal forward — visual, lyrical, sometimes both. Each one is filed once and never reused.",
+    "contactEmail": "kundalinispines@gmail.com",
+    "contactEmailStatus": "confirmed"
+  },
+  "social": [
+    { "platform": "Instagram", "href": "PLACEHOLDER", "handle": "@PLACEHOLDER" },
+    { "platform": "Spotify", "href": "PLACEHOLDER" },
+    { "platform": "YouTube", "href": "PLACEHOLDER" },
+    { "platform": "TikTok", "href": "PLACEHOLDER" }
+  ],
+  "footer": {
+    "copyright": "\u00a9 {year} Kundalini Spines. All rights reserved.",
+    "links": [
+      { "label": "Music", "href": "/music" },
+      { "label": "Transmissions", "href": "/transmissions" },
+      { "label": "Archive", "href": "/archive" },
+      { "label": "About", "href": "/about" }
+    ]
+  }
+}

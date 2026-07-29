@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Music — Kundalini Spines</title>
+<meta name="description" content="Releases and tracks from Kundalini Spines — the current Signal, as it drops.">
+
+<!-- This page was a flat grid of the same 28 tracks the homepage carousel already
+     renders, from the same data/tracks.json, with the same 20s samples — a strict
+     subset of #tracks, minus the video art, the sampled accent and the streaming
+     buttons. It is now a redirect, kept rather than deleted so the /music.html URL
+     survives for anyone who bookmarked or shared it.
+
+     If a real Music page comes back, it should be the thing the carousel is not:
+     a flat, scannable directory of all 28 with stream and download buttons, for
+     people who already know what they want. Do not rebuild the grid as-is.
+
+     There is no git repo here, so nothing is recoverable from history. The old
+     page is preserved deliberately: the markup is in docs/06-legacy-music-page.md,
+     and js/music-page.js + js/audio-player.js are still on disk, now unreferenced
+     by any page. Keep them or delete them knowingly — they are not orphan junk. -->
+
+<link rel="canonical" href="/">
+<meta name="robots" content="noindex, follow">
+<meta http-equiv="refresh" content="0; url=/#tracks">
+
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" href="assets/marks/spine-mark.svg" type="image/svg+xml">
+
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/components.css">
+<script>location.replace('/#tracks');</script>
+</head>
+<body>
+<main id="main">
+  <section class="section container" style="padding-top: calc(var(--space-24) + 3rem); text-align: center;">
+    <span class="label">Music</span>
+    <h1>The music moved to the front page</h1>
+    <p>Taking you to the tracks now. If nothing happens, <a href="/#tracks">open the carousel</a>.</p>
+  </section>
+</main>
+</body>
+</html>

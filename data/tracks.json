@@ -1,0 +1,848 @@
+{
+  "release": {
+    "name": "Rise Up",
+    "year": "2026"
+  },
+  "tracks": [
+    {
+      "id": "skeleton-keys",
+      "slug": "skeleton-keys",
+      "title": "Skeleton Keys",
+      "oneLiner": "One shape that opens every door it was never meant to.",
+      "description": "Skeleton Keys is about the access nobody's supposed to have — and what you find once you're through the door.",
+      "artwork": "assets/music/skeleton-keys-cover.webp",
+      "sampleUrl": "assets/audio/samples/skeleton-keys-sample.mp3",
+      "sampleDuration": 20,
+      "duration": "5:01",
+      "release": "Rise Up",
+      "year": "2026",
+      "transmissionNumber": null,
+      "explicit": null,
+      "accentColor": "#8A7148",
+      "visualTheme": {
+        "effect": "geometry",
+        "intensity": "medium",
+        "geometry": "metatron",
+        "lyricFragment": null
+      },
+      "links": {
+        "stream": null,
+        "spotify": null,
+        "appleMusic": null,
+        "youtubeMusic": null,
+        "download": null
+      },
+      "artworkVideo": "assets/music/skeleton-keys-art.mp4"
+    },
+    {
+      "id": "spine-glow",
+      "slug": "spine-glow",
+      "title": "Spine Glow",
+      "oneLiner": "The signal made visible, one vertebra at a time.",
+      "description": "Spine Glow is the clearest statement of the whole project's core idea — the spine isn't just structure, it's the receiver.",
+      "artwork": "assets/music/spine-glow-cover.webp",
+      "sampleUrl": "assets/audio/samples/spine-glow-sample.mp3",
+      "sampleDuration": 20,
+      "duration": "2:34",
+      "release": "Rise Up",
+      "year": "2026",
+      "transmissionNumber": null,
+      "explicit": null,
+      "accentColor": "#1F4A4A",
+      "visualTheme": {
+        "effect": "geometry",
+        "intensity": "high",
+        "geometry": "metatron",
+        "lyricFragment": null
+      },
+      "links": {
+        "stream": null,
+        "spotify": null,
+        "appleMusic": null,
+        "youtubeMusic": null,
+        "download": null
+      },
+      "artworkVideo": "assets/music/spine-glow-art.mp4"
+    },
+    {
+      "id": "graveyard-shift",
+      "slug": "graveyard-shift",
+      "title": "Graveyard Shift",
+      "oneLiner": "A midnight transmission from the place where the living and the lost clock in together.",
+      "description": "Graveyard Shift is a transmission from the hours nobody else is awake for — about showing up anyway, carrying a weight that doesn't clock out when the sun comes up. Enter it after dark for the full effect.",
+      "artwork": "assets/music/graveyard-shift-cover.webp",
+      "sampleUrl": "assets/audio/samples/graveyard-shift-sample.mp3",
+      "sampleDuration": 20,
+      "duration": "4:01",
+      "release": "Rise Up",
+      "year": "2026",
+      "transmissionNumber": null,
+      "explicit": null,
+      "accentColor": "#34455B",
+      "visualTheme": {
+        "effect": "fog",
+        "intensity": "medium",
+        "geometry": "vignette",
+        "lyricFragment": null
+      },
+      "links": {
+        "stream": null,
+        "spotify": null,
+        "appleMusic": null,
+        "youtubeMusic": null,
+        "download": null
+      },
+      "artworkVideo": "assets/music/graveyard-shift-art.mp4"
+    },
+    {
+      "id": "first-48",
+      "slug": "first-48",
+      "title": "First 48",
+      "oneLiner": "The clock every case lives or dies by.",
+      "description": "First 48 moves at the speed of an investigation running out of time — every line a lead, every silence a dead end.",
+      "artwork": "assets/music/first-48-cover.webp",
+      "sampleUrl": "assets/audio/samples/first-48-sample.mp3",
+      "sampleDuration": 20,
+      "duration": "3:23",
+      "release": "Rise Up",
+      "year": "2026",
+      "transmissionNumber": null,
+      "explicit": null,
+      "accentColor": "#34455B",
+      "visualTheme": {
+        "effect": "fog",
+        "intensity": "medium",
+        "geometry": "vignette",
+        "lyricFragment": null
+      },
+      "links": {
+        "stream": null,
+        "spotify": null,
+        "appleMusic": null,
+        "youtubeMusic": null,
+        "download": null
+      },
+      "artworkVideo": "assets/music/first-48-art.mp4"
+    },
+    {
+      "id": "spic-n-span",
+      "slug": "spic-n-span",
+      "title": "Spic N Span",
+      "oneLiner": "Everything looks clean when you don't ask what got scrubbed away.",
+      "description": "Spic N Span is the version of the story that's been wiped down until it's presentable.",
+      "artwork": "assets/music/spic-n-span-cover.webp",
+      "sampleUrl": "assets/audio/samples/spic-n-span-sample.mp3",
+      "sampleDuration": 20,
+      "duration": "3:48",
+      "release": "Rise Up",
+      "year": "2026",
+      "transmissionNumber": null,
+      "explicit": null,
+      "accentColor": "#34455B",
+      "visualTheme": {
+        "effect": "fog",
+        "intensity": "medium",
+        "geometry": "vignette",
+        "lyricFragment": null
+      },
+      "links": {
+        "stream": null,
+        "spotify": null,
+        "appleMusic": null,
+        "youtubeMusic": null,
+        "download": null
+      },
+      "artworkVideo": "assets/music/spic-n-span-art.mp4"
+    },
+    {
+      "id": "brutus",
+      "slug": "brutus",
+      "title": "Brutus",
+      "oneLiner": "Et tu — the shortest distance between trust and the blade.",
+      "description": "Brutus is brief on purpose. Some betrayals don't need a bridge or a hook — just the moment right before the knife.",
+      "artwork": "assets/music/brutus-cover.webp",
+      "sampleUrl": "assets/audio/samples/brutus-sample.mp3",
+      "sampleDuration": 20,
+      "duration": "1:40",
+      "release": "Rise Up",
+      "year": "2026",
+      "transmissionNumber": null,
+      "explicit": null,
+      "accentColor": "#5E0A0A",
+      "visualTheme": {
+        "effect": "distortion",
+        "intensity": "medium",
+        "geometry": "vesica",
+        "lyricFragment": null
+      },
+      "links": {
+        "stream": null,
+        "spotify": null,
+        "appleMusic": null,
+        "youtubeMusic": null,
+        "download": null
+      },
+      "artworkVideo": "assets/music/brutus-art.mp4"
+    },
+    {
+      "id": "llama-mia",
+      "slug": "llama-mia",
+      "title": "Llama Mia",
+      "oneLiner": "A little chaos, dressed up and let loose.",
+      "description": "Llama Mia doesn't take itself too seriously — a loose, playful cut in a catalog built on weight.",
+      "artwork": "assets/music/llama-mia-cover.webp",
+      "sampleUrl": "assets/audio/samples/llama-mia-sample.mp3",
+      "sampleDuration": 20,
+      "duration": "3:58",
+      "release": "Rise Up",
+      "year": "2026",
+      "transmissionNumber": null,
+      "explicit": null,
+      "accentColor": "#8A7148",
+      "visualTheme": {
+        "effect": "fog",
+        "intensity": "low",
+        "geometry": "vignette",
+        "lyricFragment": null
+      },
+      "links": {
+        "stream": null,
+        "spotify": null,
+        "appleMusic": null,
+        "youtubeMusic": null,
+        "download": null
+      },
+      "artworkVideo": "assets/music/llama-mia-art.mp4"
+    },
+    {
+      "id": "uzi-fruit",
+      "slug": "uzi-fruit",
+      "title": "Uzi Fruit",
+      "oneLiner": "Sweet on the outside, still going off.",
+      "description": "Uzi Fruit doesn't ask permission to be dangerous and a little ridiculous at the same time.",
+      "artwork": "assets/music/uzi-fruit-cover.webp",
+      "sampleUrl": "assets/audio/samples/uzi-fruit-sample.mp3",
+      "sampleDuration": 20,
+      "duration": "5:09",
+      "release": "Rise Up",
+      "year": "2026",
+      "transmissionNumber": null,
+      "explicit": null,
+      "accentColor": "#4B4E8F",
+      "visualTheme": {
+        "effect": "distortion",
+        "intensity": "medium",
+        "geometry": "vesica",
+        "lyricFragment": null
+      },
+      "links": {
+        "stream": null,
+        "spotify": null,
+        "appleMusic": null,
+        "youtubeMusic": null,
+        "download": null
+      },
+      "artworkVideo": "assets/music/uzi-fruit-art.mp4"
+    },
+    {
+      "id": "semi-auto",
+      "slug": "semi-auto",
+      "title": "Semi-Auto",
+      "oneLiner": "Rapid-fire thought, no safety on.",
+      "description": "Semi Auto doesn't pause between ideas — each one fires before the last has finished landing.",
+      "artwork": "assets/music/semi-auto-cover.webp",
+      "sampleUrl": "assets/audio/samples/semi-auto-sample.mp3",
+      "sampleDuration": 20,
+      "duration": "3:49",
+      "release": "Rise Up",
+      "year": "2026",
+      "transmissionNumber": null,
+      "explicit": null,
+      "accentColor": "#5E0A0A",
+      "visualTheme": {
+        "effect": "distortion",
+        "intensity": "high",
+        "geometry": "vesica",
+        "lyricFragment": null
+      },
+      "links": {
+        "stream": null,
+        "spotify": null,
+        "appleMusic": null,
+        "youtubeMusic": null,
+        "download": null
+      },
+      "artworkVideo": "assets/music/semi-auto-art.mp4"
+    },
+    {
+      "id": "extra-zoom",
+      "slug": "extra-zoom",
+      "title": "Extra Zoom",
+      "oneLiner": "Pull in closer and the picture stops making sense.",
+      "description": "Extra Zoom is about the point where scrutiny stops revealing truth and starts inventing it.",
+      "artwork": "assets/music/extra-zoom-cover.webp",
+      "sampleUrl": "assets/audio/samples/extra-zoom-sample.mp3",
+      "sampleDuration": 20,
+      "duration": "5:17",
+      "release": "Rise Up",
+      "year": "2026",
+      "transmissionNumber": null,
+      "explicit": null,
+      "accentColor": "#6B3A2E",
+      "visualTheme": {
+        "effect": "distortion",
+        "intensity": "medium",
+        "geometry": "vesica",
+        "lyricFragment": null
+      },
+      "links": {
+        "stream": null,
+        "spotify": null,
+        "appleMusic": null,
+        "youtubeMusic": null,
+        "download": null
+      },
+      "artworkVideo": "assets/music/extra-zoom-art.mp4"
+    },
+    {
+      "id": "the-33rd-floor",
+      "slug": "the-33rd-floor",
+      "title": "33rd Floor",
+      "oneLiner": "The floor the building doesn't officially have.",
+      "description": "The 33rd Floor sits exactly where the project's own architecture points — the vertebra at the very top, past where most elevators stop.",
+      "artwork": "assets/music/the-33rd-floor-cover.webp",
+      "sampleUrl": "assets/audio/samples/the-33rd-floor-sample.mp3",
+      "sampleDuration": 20,
+      "duration": "4:13",
+      "release": "Rise Up",
+      "year": "2026",
+      "transmissionNumber": null,
+      "explicit": null,
+      "accentColor": "#1F4A4A",
+      "visualTheme": {
+        "effect": "geometry",
+        "intensity": "high",
+        "geometry": "metatron",
+        "lyricFragment": null
+      },
+      "links": {
+        "stream": null,
+        "spotify": null,
+        "appleMusic": null,
+        "youtubeMusic": null,
+        "download": null
+      },
+      "artworkVideo": "assets/music/the-33rd-floor-art.mp4"
+    },
+    {
+      "id": "x-files",
+      "slug": "x-files",
+      "title": "X-Files",
+      "oneLiner": "The truth was never really out there — it was already in the signal.",
+      "description": "X Files chases the same static everyone else ignores, convinced the interference itself is the message.",
+      "artwork": "assets/music/x-files-cover.webp",
+      "sampleUrl": "assets/audio/samples/x-files-sample.mp3",
+      "sampleDuration": 20,
+      "duration": "4:09",
+      "release": "Rise Up",
+      "year": "2026",
+      "transmissionNumber": null,
+      "explicit": null,
+      "accentColor": "#5E0A0A",
+      "visualTheme": {
+        "effect": "distortion",
+        "intensity": "high",
+        "geometry": "vesica",
+        "lyricFragment": null
+      },
+      "links": {
+        "stream": null,
+        "spotify": null,
+        "appleMusic": null,
+        "youtubeMusic": null,
+        "download": null
+      },
+      "artworkVideo": "assets/music/x-files-art.mp4"
+    },
+    {
+      "id": "kabal",
+      "slug": "kabal",
+      "title": "Kabal",
+      "oneLiner": "Every circle has an inside, and this one doesn't let just anyone in.",
+      "description": "Kabal is about the architecture of secrecy — who's in the room, who built the room, and who's never allowed to ask.",
+      "artwork": "assets/music/kabal-cover.webp",
+      "sampleUrl": "assets/audio/samples/kabal-sample.mp3",
+      "sampleDuration": 20,
+      "duration": "3:34",
+      "release": "Rise Up",
+      "year": "2026",
+      "transmissionNumber": null,
+      "explicit": null,
+      "accentColor": "#6B3A2E",
+      "visualTheme": {
+        "effect": "geometry",
+        "intensity": "medium",
+        "geometry": "metatron",
+        "lyricFragment": null
+      },
+      "links": {
+        "stream": null,
+        "spotify": null,
+        "appleMusic": null,
+        "youtubeMusic": null,
+        "download": null
+      },
+      "artworkVideo": "assets/music/kabal-art.mp4"
+    },
+    {
+      "id": "some-thing-flashy",
+      "slug": "some-thing-flashy",
+      "title": "Something Flashy",
+      "oneLiner": "Shine bright enough and nobody checks what's underneath.",
+      "description": "Some Thing Flashy is a study in surface — what gets seen, what gets missed, and who benefits from the difference.",
+      "artwork": "assets/music/some-thing-flashy-cover.webp",
+      "sampleUrl": "assets/audio/samples/some-thing-flashy-sample.mp3",
+      "sampleDuration": 20,
+      "duration": "3:32",
+      "release": "Rise Up",
+      "year": "2026",
+      "transmissionNumber": null,
+      "explicit": null,
+      "accentColor": "#4B4E8F",
+      "visualTheme": {
+        "effect": "distortion",
+        "intensity": "medium",
+        "geometry": "vesica",
+        "lyricFragment": null
+      },
+      "links": {
+        "stream": null,
+        "spotify": null,
+        "appleMusic": null,
+        "youtubeMusic": null,
+        "download": null
+      },
+      "artworkVideo": "assets/music/some-thing-flashy-art.mp4"
+    },
+    {
+      "id": "blue-pills",
+      "slug": "blue-pills",
+      "title": "Blue Pills",
+      "oneLiner": "The comfortable version of the truth, and what it costs to keep taking it.",
+      "description": "Blue Pills sits inside the moment right before a choice — the pull toward the easier story. It's restless and reflective, and it never tells you which way to go.",
+      "artwork": "assets/music/blue-pills-cover.webp",
+      "sampleUrl": "assets/audio/samples/blue-pills-sample.mp3",
+      "sampleDuration": 20,
+      "duration": "4:24",
+      "release": "Rise Up",
+      "year": "2026",
+      "transmissionNumber": null,
+      "explicit": null,
+      "accentColor": "#4B4E8F",
+      "visualTheme": {
+        "effect": "distortion",
+        "intensity": "medium",
+        "geometry": "vesica",
+        "lyricFragment": null
+      },
+      "links": {
+        "stream": null,
+        "spotify": null,
+        "appleMusic": null,
+        "youtubeMusic": null,
+        "download": null
+      },
+      "artworkVideo": "assets/music/blue-pills-art.mp4"
+    },
+    {
+      "id": "highly-unstable",
+      "slug": "highly-unstable",
+      "title": "Highly Unstable",
+      "oneLiner": "One wrong move from combustion.",
+      "description": "Highly Unstable stays one beat away from falling apart the entire time — that's the point.",
+      "artwork": "assets/music/highly-unstable-cover.webp",
+      "sampleUrl": "assets/audio/samples/highly-unstable-sample.mp3",
+      "sampleDuration": 20,
+      "duration": "4:24",
+      "release": "Rise Up",
+      "year": "2026",
+      "transmissionNumber": null,
+      "explicit": null,
+      "accentColor": "#4B4E8F",
+      "visualTheme": {
+        "effect": "distortion",
+        "intensity": "high",
+        "geometry": "vesica",
+        "lyricFragment": null
+      },
+      "links": {
+        "stream": null,
+        "spotify": null,
+        "appleMusic": null,
+        "youtubeMusic": null,
+        "download": null
+      },
+      "artworkVideo": "assets/music/highly-unstable-art.mp4"
+    },
+    {
+      "id": "steps-from-the-edge",
+      "slug": "steps-from-the-edge",
+      "title": "Steps from the Edge",
+      "oneLiner": "Close enough to see exactly how far the fall would be.",
+      "description": "Steps from the Edge stays right at the boundary — never jumping, never stepping back either.",
+      "artwork": "assets/music/steps-from-the-edge-cover.webp",
+      "sampleUrl": "assets/audio/samples/steps-from-the-edge-sample.mp3",
+      "sampleDuration": 20,
+      "duration": "3:34",
+      "release": "Rise Up",
+      "year": "2026",
+      "transmissionNumber": null,
+      "explicit": null,
+      "accentColor": "#34455B",
+      "visualTheme": {
+        "effect": "fog",
+        "intensity": "medium",
+        "geometry": "vignette",
+        "lyricFragment": null
+      },
+      "links": {
+        "stream": null,
+        "spotify": null,
+        "appleMusic": null,
+        "youtubeMusic": null,
+        "download": null
+      },
+      "artworkVideo": "assets/music/steps-from-the-edge-art.mp4"
+    },
+    {
+      "id": "scorpion-road",
+      "slug": "scorpion-road",
+      "title": "Scorpion Road",
+      "oneLiner": "The path that bites back the further you walk it.",
+      "description": "Scorpion Road is a travel record for a route that gets more dangerous with each mile, not less.",
+      "artwork": "assets/music/scorpion-road-cover.webp",
+      "sampleUrl": "assets/audio/samples/scorpion-road-sample.mp3",
+      "sampleDuration": 20,
+      "duration": "3:24",
+      "release": "Rise Up",
+      "year": "2026",
+      "transmissionNumber": null,
+      "explicit": null,
+      "accentColor": "#34455B",
+      "visualTheme": {
+        "effect": "fog",
+        "intensity": "medium",
+        "geometry": "vignette",
+        "lyricFragment": null
+      },
+      "links": {
+        "stream": null,
+        "spotify": null,
+        "appleMusic": null,
+        "youtubeMusic": null,
+        "download": null
+      },
+      "artworkVideo": "assets/music/scorpion-road-art.mp4"
+    },
+    {
+      "id": "scorpion-dreams",
+      "slug": "scorpion-dreams",
+      "title": "Scorpion Dreams",
+      "oneLiner": "Venom doesn't need to be awake to still be dangerous.",
+      "description": "Scorpion Dreams lives in the space between sleep and threat — quiet, patient, never fully harmless.",
+      "artwork": "assets/music/scorpion-dreams-cover.webp",
+      "sampleUrl": "assets/audio/samples/scorpion-dreams-sample.mp3",
+      "sampleDuration": 20,
+      "duration": "3:57",
+      "release": "Rise Up",
+      "year": "2026",
+      "transmissionNumber": null,
+      "explicit": null,
+      "accentColor": "#34455B",
+      "visualTheme": {
+        "effect": "fog",
+        "intensity": "medium",
+        "geometry": "vignette",
+        "lyricFragment": null
+      },
+      "links": {
+        "stream": null,
+        "spotify": null,
+        "appleMusic": null,
+        "youtubeMusic": null,
+        "download": null
+      },
+      "artworkVideo": "assets/music/scorpion-dreams-art.mp4"
+    },
+    {
+      "id": "vision-quest",
+      "slug": "vision-quest",
+      "title": "Vision Quest",
+      "oneLiner": "Some answers only show up after you've been lost long enough.",
+      "description": "Vision Quest treats confusion as the price of admission — the clarity only comes after you stop looking for a shortcut.",
+      "artwork": "assets/music/vision-quest-cover.webp",
+      "sampleUrl": "assets/audio/samples/vision-quest-sample.mp3",
+      "sampleDuration": 20,
+      "duration": "5:29",
+      "release": "Rise Up",
+      "year": "2026",
+      "transmissionNumber": null,
+      "explicit": null,
+      "accentColor": "#34455B",
+      "visualTheme": {
+        "effect": "fog",
+        "intensity": "medium",
+        "geometry": "vignette",
+        "lyricFragment": null
+      },
+      "links": {
+        "stream": null,
+        "spotify": null,
+        "appleMusic": null,
+        "youtubeMusic": null,
+        "download": null
+      },
+      "artworkVideo": "assets/music/vision-quest-art.mp4"
+    },
+    {
+      "id": "dark-meta",
+      "slug": "dark-meta",
+      "title": "Dark Meta",
+      "oneLiner": "A meditation on the architecture behind the architecture — the pattern beneath the pattern.",
+      "description": "Dark Meta moves through the geometry most people walk past without seeing — the structure underneath the structure. Enter it if you're ready to see the frame instead of the picture.",
+      "artwork": "assets/music/dark-meta-cover.webp",
+      "sampleUrl": "assets/audio/samples/dark-meta-sample.mp3",
+      "sampleDuration": 20,
+      "duration": "3:47",
+      "release": "Rise Up",
+      "year": "2026",
+      "transmissionNumber": null,
+      "explicit": null,
+      "accentColor": "#5E0A0A",
+      "visualTheme": {
+        "effect": "geometry",
+        "intensity": "high",
+        "geometry": "metatron",
+        "lyricFragment": null
+      },
+      "links": {
+        "stream": null,
+        "spotify": null,
+        "appleMusic": null,
+        "youtubeMusic": null,
+        "download": null
+      },
+      "artworkVideo": "assets/music/dark-meta-art.mp4"
+    },
+    {
+      "id": "block-blast",
+      "slug": "block-blast",
+      "title": "Block Blast",
+      "oneLiner": "Concrete and pressure, detonated on the beat.",
+      "description": "Block Blast is built from the corner, not the studio — raw, loud, and unwilling to explain itself twice.",
+      "artwork": "assets/music/block-blast-cover.webp",
+      "sampleUrl": "assets/audio/samples/block-blast-sample.mp3",
+      "sampleDuration": 20,
+      "duration": "4:59",
+      "release": "Rise Up",
+      "year": "2026",
+      "transmissionNumber": null,
+      "explicit": null,
+      "accentColor": "#6B3A2E",
+      "visualTheme": {
+        "effect": "distortion",
+        "intensity": "high",
+        "geometry": "vesica",
+        "lyricFragment": null
+      },
+      "links": {
+        "stream": null,
+        "spotify": null,
+        "appleMusic": null,
+        "youtubeMusic": null,
+        "download": null
+      },
+      "artworkVideo": "assets/music/block-blast-art.mp4"
+    },
+    {
+      "id": "heavy-weight",
+      "slug": "heavy-weight",
+      "title": "Heavyweight",
+      "oneLiner": "Carrying more than the beat lets on.",
+      "description": "Heavy Weight sits under real pressure — the kind that doesn't show on the outside until it does.",
+      "artwork": "assets/music/heavy-weight-cover.webp",
+      "sampleUrl": "assets/audio/samples/heavy-weight-sample.mp3",
+      "sampleDuration": 20,
+      "duration": "2:56",
+      "release": "Rise Up",
+      "year": "2026",
+      "transmissionNumber": null,
+      "explicit": null,
+      "accentColor": "#6B3A2E",
+      "visualTheme": {
+        "effect": "fog",
+        "intensity": "medium",
+        "geometry": "vignette",
+        "lyricFragment": null
+      },
+      "links": {
+        "stream": null,
+        "spotify": null,
+        "appleMusic": null,
+        "youtubeMusic": null,
+        "download": null
+      },
+      "artworkVideo": "assets/music/heavy-weight-art.mp4"
+    },
+    {
+      "id": "the-great-work",
+      "slug": "the-great-work",
+      "title": "The Great Work",
+      "oneLiner": "Alchemy was never really about gold.",
+      "description": "The Great Work borrows its title from the oldest transformation myth there is — turning pressure into something worth keeping.",
+      "artwork": "assets/music/the-great-work-cover.webp",
+      "sampleUrl": "assets/audio/samples/the-great-work-sample.mp3",
+      "sampleDuration": 20,
+      "duration": "3:13",
+      "release": "Rise Up",
+      "year": "2026",
+      "transmissionNumber": null,
+      "explicit": null,
+      "accentColor": "#8A7148",
+      "visualTheme": {
+        "effect": "geometry",
+        "intensity": "medium",
+        "geometry": "metatron",
+        "lyricFragment": null
+      },
+      "links": {
+        "stream": null,
+        "spotify": null,
+        "appleMusic": null,
+        "youtubeMusic": null,
+        "download": null
+      },
+      "artworkVideo": "assets/music/the-great-work-art.mp4"
+    },
+    {
+      "id": "7-chambers-of-light",
+      "slug": "7-chambers-of-light",
+      "title": "Seven Chambers of Light",
+      "oneLiner": "Seven thresholds, one signal — each chamber lets a little more of it through.",
+      "description": "7 Chambers of Light moves through seven distinct states, each one stripping something away until only the signal is left. Less a song than a passage.",
+      "artwork": "assets/music/7-chambers-of-light-cover.webp",
+      "sampleUrl": "assets/audio/samples/7-chambers-of-light-sample.mp3",
+      "sampleDuration": 20,
+      "duration": "4:43",
+      "release": "Rise Up",
+      "year": "2026",
+      "transmissionNumber": null,
+      "explicit": null,
+      "accentColor": "#1F4A4A",
+      "visualTheme": {
+        "effect": "geometry",
+        "intensity": "high",
+        "geometry": "metatron",
+        "lyricFragment": null
+      },
+      "links": {
+        "stream": null,
+        "spotify": null,
+        "appleMusic": null,
+        "youtubeMusic": null,
+        "download": null
+      },
+      "artworkVideo": "assets/music/7-chambers-of-light-art.mp4"
+    },
+    {
+      "id": "may-26th",
+      "slug": "may-26th",
+      "title": "May 26th",
+      "oneLiner": "The day every spine calibrates for the final switch.",
+      "description": "“May 26th” captures the moment a global Kundalini awakening triggers a planetary shift in consciousness, DNA, and human frequency. Cosmic imagery, sacred geometry, and apocalyptic energy collide as every spine calibrates for the final switch.",
+      "artwork": "assets/music/may-26th-cover.webp",
+      "sampleUrl": "assets/audio/samples/may-26th-sample.mp3",
+      "sampleDuration": 20,
+      "duration": "4:40",
+      "release": "Rise Up",
+      "year": "2026",
+      "transmissionNumber": null,
+      "explicit": null,
+      "accentColor": "#3575E3",
+      "visualTheme": {
+        "effect": "geometry",
+        "intensity": "high",
+        "geometry": "metatron",
+        "lyricFragment": null
+      },
+      "links": {
+        "stream": null,
+        "spotify": null,
+        "appleMusic": null,
+        "youtubeMusic": null,
+        "download": null
+      },
+      "artworkVideo": "assets/music/may-26th-art.mp4"
+    },
+    {
+      "id": "prophocie-in-motion",
+      "slug": "prophocie-in-motion",
+      "title": "Prophecy in Motion",
+      "oneLiner": "The future, already moving before you noticed it start.",
+      "description": "Prophocie in Motion treats prediction as a physical force — something already underway long before it arrives.",
+      "artwork": "assets/music/prophocie-in-motion-cover.webp",
+      "sampleUrl": "assets/audio/samples/prophocie-in-motion-sample.mp3",
+      "sampleDuration": 20,
+      "duration": "4:07",
+      "release": "Rise Up",
+      "year": "2026",
+      "transmissionNumber": null,
+      "explicit": null,
+      "accentColor": "#1F4A4A",
+      "visualTheme": {
+        "effect": "geometry",
+        "intensity": "medium",
+        "geometry": "metatron",
+        "lyricFragment": null
+      },
+      "links": {
+        "stream": null,
+        "spotify": null,
+        "appleMusic": null,
+        "youtubeMusic": null,
+        "download": null
+      },
+      "artworkVideo": "assets/music/prophocie-in-motion-art.mp4"
+    },
+    {
+      "id": "protocal-complete",
+      "slug": "protocal-complete",
+      "title": "Protocol Complete",
+      "oneLiner": "Every step followed exactly, until the last one changes everything.",
+      "description": "Protocal Complete is procedural until it isn't — the exact moment a system stops being predictable.",
+      "artwork": "assets/music/protocal-complete-cover.webp",
+      "sampleUrl": "assets/audio/samples/protocal-complete-sample.mp3",
+      "sampleDuration": 20,
+      "duration": "3:10",
+      "release": "Rise Up",
+      "year": "2026",
+      "transmissionNumber": null,
+      "explicit": null,
+      "accentColor": "#6B3A2E",
+      "visualTheme": {
+        "effect": "geometry",
+        "intensity": "medium",
+        "geometry": "metatron",
+        "lyricFragment": null
+      },
+      "links": {
+        "stream": null,
+        "spotify": null,
+        "appleMusic": null,
+        "youtubeMusic": null,
+        "download": null
+      },
+      "artworkVideo": "assets/music/protocal-complete-art.mp4"
+    }
+  ]
+}

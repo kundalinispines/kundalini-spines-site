@@ -1,0 +1,28 @@
+{
+  "releases": [
+    {
+      "slug": "PLACEHOLDER-release-slug",
+      "title": "[DRAFT — release title]",
+      "type": "EP",
+      "releaseDate": "PLACEHOLDER-YYYY-MM-DD",
+      "coverArt": "assets/music/PLACEHOLDER-cover.jpg",
+      "featured": true,
+      "streamingLinks": {
+        "spotify": "PLACEHOLDER",
+        "appleMusic": "PLACEHOLDER",
+        "youtubeMusic": "PLACEHOLDER",
+        "soundcloud": "PLACEHOLDER"
+      },
+      "tracks": [
+        {
+          "id": "track-001",
+          "title": "[DRAFT — track title]",
+          "durationSeconds": 0,
+          "audioFile": "assets/audio/PLACEHOLDER.mp3",
+          "lyrics": "[OPTIONAL — add if approved for public display]",
+          "notes": "[OPTIONAL — track notes / annotations]"
+        }
+      ]
+    }
+  ]
+}

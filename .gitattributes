@@ -1,0 +1,21 @@
+# Kundalini Spines
+#
+# Take every file exactly as it is on disk. `* -text` disables git's automatic
+# line-ending conversion entirely.
+#
+# This is deliberate. The project is authored on Windows and deployed to a Linux
+# runner, and the default `text=auto` would rewrite line endings on checkout —
+# which shows up as a working tree that reports itself modified the moment it is
+# cloned, and as spurious whole-file diffs on every platform change. Nothing here
+# needs conversion: HTML/CSS/JS/JSON are served byte-for-byte, and the assets are
+# binary.
+* -text
+
+# Belt and braces for the binaries, so git never tries to diff or merge them.
+*.webp  binary
+*.mp4   binary
+*.webm  binary
+*.mp3   binary
+*.jpg   binary
+*.png   binary
+*.ico   binary

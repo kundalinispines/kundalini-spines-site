@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kundalini Spines — Knowledge Hidden in Plain Sight</title>
+<meta name="description" content="Kundalini Spines is a two-member underground hip-hop project built on mysticism, coded transmissions, sacred geometry, and street experience. Two Messengers. One Signal.">
+<link rel="canonical" href="/">
+
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" href="assets/marks/spine-mark.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="assets/marks/apple-touch-icon.png">
+
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Kundalini Spines">
+<meta property="og:title" content="Kundalini Spines — Knowledge Hidden in Plain Sight">
+<meta property="og:description" content="Two Messengers. One Signal. Enter the world of Kundalini Spines.">
+<meta property="og:image" content="/assets/hero/messengers-hero-duo.jpg">
+<meta name="twitter:card" content="summary_large_image">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&family=Big+Shoulders+Stencil:wght@700;900&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/components.css">
+<link rel="stylesheet" href="css/track-experience.css">
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="nav">
+  <div class="container nav__inner">
+    <a class="nav__mark" href="/"><img src="assets/marks/spine-mark.svg" alt="" width="18" height="18" style="vertical-align:-3px;margin-right:8px;">KUNDALINI SPINES</a>
+    <button class="nav__toggle" aria-expanded="false" aria-controls="primary-nav">Menu</button>
+    <nav id="primary-nav" aria-label="Primary">
+      <ul class="nav__links">
+        <li><a href="/" aria-current="page">Home</a></li>
+        <li><a href="#tracks">Music</a></li>
+        <li><a href="transmissions.html">Transmissions</a></li>
+        <li><a href="archive.html">Archive</a></li>
+        <li><a href="about.html">About</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="hero__media">
+      <video id="hero-video" class="hero__video" poster="assets/hero/messengers-hero-video-poster.jpg"
+             muted loop playsinline preload="auto" aria-hidden="true">
+        <source src="assets/hero/messengers-hero-video.webm" type="video/webm">
+        <source src="assets/hero/messengers-hero-video.mp4" type="video/mp4">
+      </video>
+    </div>
+    <div class="hero__scrim" aria-hidden="true"></div>
+    <button type="button" id="hero-sound-toggle" class="hero__sound-toggle" aria-pressed="false">
+      <span aria-hidden="true">&#128264;</span> Sound Off
+    </button>
+    <div class="container hero__content">
+      <span class="label hero__eyebrow">Kundalini Spines</span>
+      <h1 class="hero__title text-stencil">Knowledge Hidden<br>in Plain Sight</h1>
+      <p class="hero__statement">Two Messengers. One Signal. An underground transmission built from sacred geometry, coded lyricism, and the architecture of the spine itself.</p>
+      <div class="hero__ctas">
+        <a class="btn btn--primary" href="about.html">Enter the World</a>
+        <a class="btn btn--ghost" href="#tracks">Listen Now</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Music and Tracks — the dominant interactive section -->
+  <section class="track-experience" id="tracks" aria-label="Music and Tracks">
+    <div class="track-arc-wrap">
+      <div class="track-experience__intro container">
+        <span class="label">Music</span>
+        <h2 class="text-stencil">Enter the Tracks</h2>
+        <p class="track-experience__note" role="status"><strong>Rise Up</strong> isn&rsquo;t on streaming platforms yet &mdash; 20-second samples are available here for every track now. Full streaming and download links go live once each platform is connected.</p>
+      </div>
+
+      <div class="track-arc-viewport">
+        <ul class="track-arc" role="listbox" aria-label="Available tracks"></ul>
+      </div>
+
+      <div class="track-focus-panel" aria-label="Selected track">
+        <div class="track-focus-nav">
+          <button type="button" class="track-focus-nav__btn" data-dir="prev" aria-label="Previous track">&#10094;</button>
+          <p class="track-focus-nav__counter" role="status" aria-live="polite">
+            <span class="track-focus-nav__index">1</span><span class="track-focus-nav__sep">/</span><span class="track-focus-nav__total">1</span>
+          </p>
+          <button type="button" class="track-focus-nav__btn" data-dir="next" aria-label="Next track">&#10095;</button>
+        </div>
+        <span class="label track-focus-panel__eyebrow"></span>
+        <h3 class="track-focus-panel__title sr-only"></h3>
+        <p class="track-focus-panel__desc"></p>
+        <div class="track-sample-player">
+          <button type="button" class="track-sample-player__btn" aria-label="Play sample">
+            <span aria-hidden="true">&#9654;</span>
+          </button>
+          <div class="track-sample-player__bar"><div class="track-sample-player__bar-fill"></div></div>
+          <span class="track-sample-player__status" role="status" aria-live="polite">Play Sample</span>
+        </div>
+        <button type="button" class="track-focus-panel__close">&times; Close</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Newsletter -->
+  <section class="section newsletter">
+    <div class="container newsletter__inner">
+      <span class="label">Stay Connected</span>
+      <h2>Stay Connected to the Signal</h2>
+      <p>Receive new music, transmissions, visual releases, and limited announcements directly from Kundalini Spines. No constant noise. Only meaningful signals.</p>
+      <form id="newsletter-form" class="newsletter-form" novalidate>
+        <label class="sr-only" for="newsletter-email">Email address</label>
+        <input type="email" id="newsletter-email" class="newsletter-form__field" placeholder="you@email.com" autocomplete="email" required>
+        <button type="submit" class="btn btn--primary">Join the Signal</button>
+      </form>
+      <p class="newsletter__privacy">No spam. Unsubscribe anytime. Your email is never sold or shared.</p>
+      <p id="newsletter-status" class="newsletter__status" role="status" aria-live="polite"></p>
+    </div>
+  </section>
+
+  <!-- Bio -->
+  <section class="section container">
+    <div class="bio">
+      <div class="bio__media">
+        <img src="assets/hero/messengers-hero-duo.jpg" alt="Two hooded Messengers of Kundalini Spines standing either side of a glowing sacred-geometry spine motif." loading="lazy">
+      </div>
+      <div class="bio__body">
+        <span class="label">About</span>
+        <h2>Two Messengers. One Signal.</h2>
+        <p>Kundalini Spines is a two-member creative and musical project moving between underground hip-hop, mysticism, symbolism, street experience, ancient knowledge, and speculative thought. The Messengers don&rsquo;t claim mastery over the Signal &mdash; they receive it, interpret it, and carry it forward. You&rsquo;re invited to decode it for yourself.</p>
+        <p><a class="btn btn--ghost" href="about.html">More About Kundalini Spines</a></p>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="footer footer--simple container">
+  <div class="footer__inner">
+    <div>
+      <div class="footer__brand"><img src="assets/marks/spine-mark.svg" alt="" width="16" height="16">KUNDALINI SPINES</div>
+      <p class="footer__tagline">Knowledge Hidden in Plain Sight</p>
+    </div>
+    <ul class="footer__social">
+      <li><a href="#" data-social="spotify">Spotify</a></li>
+      <li><a href="#" data-social="instagram">Instagram</a></li>
+      <li><a href="#" data-social="x">X</a></li>
+      <li><a href="#" data-social="youtube">YouTube</a></li>
+      <li><a href="mailto:kundalinispines@gmail.com">Contact</a></li>
+    </ul>
+    <p class="footer__copyright">&copy; <span id="year">2026</span> Kundalini Spines. All rights reserved.</p>
+  </div>
+</footer>
+
+<script src="js/nav.js"></script>
+<script src="js/hero-video.js"></script>
+<script src="js/track-experience.js"></script>
+<script src="js/newsletter.js"></script>
+<script>document.getElementById('year').textContent = new Date().getFullYear();</script>
+</body>
+</html>

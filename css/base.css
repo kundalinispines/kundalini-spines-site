@@ -1,0 +1,133 @@
+/* ==========================================================================
+   BASE — reset, typography, layout primitives
+   ========================================================================== */
+
+*, *::before, *::after { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+body {
+  margin: 0;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+img, video { max-width: 100%; height: auto; display: block; }
+
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  line-height: var(--lh-heading);
+  letter-spacing: var(--tracking-display);
+  margin: 0 0 var(--space-4);
+  text-wrap: balance;
+}
+h1 { font-size: var(--fs-hero); line-height: var(--lh-tight); }
+h2 { font-size: var(--fs-h1); }
+h3 { font-size: var(--fs-h2); }
+h4 { font-size: var(--fs-h3); }
+
+/* Reserved for large showcase moments only (hero title, big section headings) —
+   the stencil cutouts lose legibility below roughly 2.5rem, so this is never used at body/nav scale. */
+.text-stencil {
+  font-family: var(--font-display-stencil);
+  text-shadow:
+    1px 1px 0 rgba(0, 0, 0, 0.5),
+    -0.5px -0.5px 0 rgba(242, 242, 238, 0.06);
+}
+
+p { margin: 0 0 var(--space-4); max-width: 65ch; }
+p:last-child { margin-bottom: 0; }
+
+a {
+  color: inherit;
+  text-decoration-color: var(--color-gray-400);
+  text-underline-offset: 0.2em;
+}
+a:hover { text-decoration-color: currentColor; }
+
+/* Uppercase, tracked-out label style — record numbers, eyebrows, nav */
+.label {
+  font-family: var(--font-mono);
+  font-size: var(--fs-mono);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* Visible focus ring everywhere — never color-only, never suppressed */
+:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 3px;
+}
+:focus:not(:focus-visible) { outline: none; }
+
+/* Skip link */
+.skip-link {
+  position: absolute;
+  left: var(--space-4);
+  top: -100px;
+  background: var(--color-white);
+  color: var(--color-black);
+  padding: var(--space-2) var(--space-4);
+  z-index: 1000;
+  transition: top var(--motion-fast) var(--ease-standard);
+}
+.skip-link:focus { top: var(--space-4); }
+
+.sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Layout primitives */
+.container {
+  max-width: var(--container-max);
+  margin-inline: auto;
+  padding-inline: var(--container-pad);
+}
+
+.section {
+  padding-block: var(--space-24);
+}
+@media (max-width: 768px) {
+  .section { padding-block: var(--space-16); }
+}
+
+.section-header {
+  margin-bottom: var(--space-8);
+  max-width: 60ch;
+}
+.section-header .label { display: block; margin-bottom: var(--space-2); }
+
+.grid {
+  display: grid;
+  gap: var(--grid-gap);
+}
+.grid--3 { grid-template-columns: repeat(3, 1fr); }
+.grid--2 { grid-template-columns: repeat(2, 1fr); }
+@media (max-width: 1024px) {
+  .grid--3 { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 768px) {
+  .grid--3, .grid--2 { grid-template-columns: 1fr; }
+}
+
+.visually-loading { min-height: 4rem; }

@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Transmissions as an update channel — 5 options</title>
+<meta name="robots" content="noindex, nofollow">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&family=Big+Shoulders+Stencil:wght@700;900&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+/* Tokens lifted verbatim from css/tokens.css so every mockup below is in the
+   real palette and type scale — nothing here is invented. */
+:root{
+  --color-black:#050505; --color-white:#F2F2EE; --color-bone:#D8D0BE;
+  --color-crimson:#5E0A0A; --color-crimson-lit:#8A1414; --color-moonlight:#34455B;
+  --color-gray-900:#0A0A0A; --color-gray-800:#141414; --color-gray-700:#1F1F1F;
+  --color-gray-600:#2E2E2E; --color-gray-500:#4A4A4A; --color-gray-400:#6B6B6B;
+  --color-gray-300:#8F8F8F;
+  --bg-primary:var(--color-black); --bg-surface:var(--color-gray-800);
+  --bg-surface-raised:var(--color-gray-700);
+  --text-primary:var(--color-white); --text-secondary:var(--color-bone);
+  --text-muted:var(--color-gray-300); --border-subtle:var(--color-gray-600);
+  --font-display:'Big Shoulders Display','Arial Narrow',sans-serif;
+  --font-stencil:'Big Shoulders Stencil','Arial Narrow',sans-serif;
+  --font-body:'Source Serif 4',Georgia,serif;
+  --font-mono:'IBM Plex Mono','Courier New',monospace;
+  --tracking-label:0.12em;
+  --s1:.25rem;--s2:.5rem;--s3:.75rem;--s4:1rem;--s6:1.5rem;--s8:2rem;
+  --s12:3rem;--s16:4rem;--s24:6rem;
+  --container:1280px;
+  --hair:1px solid var(--color-gray-700);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0;background:var(--bg-primary);color:var(--text-primary);
+  font-family:var(--font-body);line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+}
+img,video{display:block;max-width:100%}
+a{color:inherit}
+.wrap{max-width:var(--container);margin:0 auto;padding:0 var(--s6)}
+.label{
+  font-family:var(--font-mono);font-size:.75rem;text-transform:uppercase;
+  letter-spacing:var(--tracking-label);color:var(--text-muted);
+}
+
+/* ---------- Review-harness chrome (NOT part of any option) ---------- */
+.harness-top{
+  position:sticky;top:0;z-index:60;background:rgba(5,5,5,.94);
+  backdrop-filter:blur(8px);border-bottom:var(--hair);
+}
+.harness-top__inner{
+  max-width:var(--container);margin:0 auto;padding:var(--s3) var(--s6);
+  display:flex;gap:var(--s4);align-items:center;flex-wrap:wrap;
+}
+.harness-top__mark{
+  font-family:var(--font-display);font-weight:800;letter-spacing:.02em;
+  text-transform:uppercase;font-size:1rem;white-space:nowrap;
+}
+.optnav{display:flex;gap:var(--s1);flex-wrap:wrap;margin-left:auto}
+.optnav a{
+  font-family:var(--font-mono);font-size:.7rem;letter-spacing:.08em;
+  text-transform:uppercase;text-decoration:none;color:var(--text-muted);
+  border:1px solid var(--color-gray-700);padding:6px 10px;border-radius:2px;
+  transition:.18s;
+}
+.optnav a:hover{color:var(--color-white);border-color:var(--color-gray-500)}
+
+.intro{padding:var(--s24) 0 var(--s12)}
+.intro h1{
+  font-family:var(--font-stencil);font-weight:900;line-height:1;margin:0 0 var(--s4);
+  font-size:clamp(2.2rem,5.5vw,4rem);text-transform:uppercase;
+}
+.intro__lede{font-size:1.125rem;color:var(--text-secondary);max-width:62ch;margin:0 0 var(--s8)}
+
+.briefing{
+  border:var(--hair);border-left:3px solid var(--color-crimson-lit);
+  background:var(--color-gray-900);padding:var(--s6);max-width:82ch;
+}
+.briefing h2{
+  font-family:var(--font-display);font-weight:800;text-transform:uppercase;
+  letter-spacing:.02em;font-size:1.1rem;margin:0 0 var(--s3);
+}
+.briefing p{margin:0 0 var(--s3);color:var(--text-secondary);font-size:.95rem}
+.briefing p:last-child{margin-bottom:0}
+.briefing code{font-family:var(--font-mono);font-size:.85em;color:var(--color-bone)}
+
+.feedtable{width:100%;border-collapse:collapse;margin-top:var(--s4);font-size:.85rem}
+.feedtable th,.feedtable td{
+  text-align:left;padding:var(--s2) var(--s3);border-bottom:1px solid var(--color-gray-800);
+  vertical-align:top;
+}
+.feedtable th{
+  font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.08em;
+  font-size:.68rem;color:var(--text-muted);font-weight:500;
+}
+.feedtable td{color:var(--text-secondary)}
+.yes{color:#7FB069}.no{color:#B4544A}.mid{color:var(--color-bone)}
+
+/* Option shell */
+.option{border-top:1px solid var(--color-gray-800);padding:var(--s24) 0}
+.option__head{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,340px);gap:var(--s8);align-items:start;margin-bottom:var(--s12)}
+.option__num{
+  font-family:var(--font-mono);font-size:.75rem;letter-spacing:var(--tracking-label);
+  color:var(--color-crimson-lit);text-transform:uppercase;display:block;margin-bottom:var(--s2);
+}
+.option__name{
+  font-family:var(--font-stencil);font-weight:900;text-transform:uppercase;
+  font-size:clamp(1.8rem,3.6vw,2.8rem);line-height:1;margin:0 0 var(--s4);
+}
+.option__concept{font-size:1.05rem;color:var(--text-secondary);margin:0 0 var(--s4);max-width:56ch}
+.option__why{font-size:.95rem;color:var(--text-muted);margin:0;max-width:56ch}
+.spec{border:var(--hair);background:var(--color-gray-900);padding:var(--s4)}
+.spec dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:var(--s2) var(--s4);font-size:.82rem}
+.spec dt{
+  font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.08em;
+  font-size:.66rem;color:var(--text-muted);padding-top:2px;
+}
+.spec dd{margin:0;color:var(--text-secondary)}
+.mock{border:var(--hair);background:#000;position:relative;overflow:hidden}
+.mock__tag{
+  position:absolute;top:0;left:0;z-index:5;
+  font-family:var(--font-mono);font-size:.6rem;letter-spacing:.14em;text-transform:uppercase;
+  background:var(--color-gray-800);color:var(--text-muted);padding:4px 10px;
+}
+.mock__body{padding:var(--s12) var(--s6)}
+
+/* ---------- Shared post primitives ---------- */
+.pf{ /* platform flag */
+  font-family:var(--font-mono);font-size:.66rem;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--text-muted);
+}
+.stamp{font-family:var(--font-mono);font-size:.66rem;letter-spacing:.1em;color:var(--color-gray-400)}
+.newflag{
+  font-family:var(--font-mono);font-size:.6rem;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--color-white);background:var(--color-crimson);padding:2px 7px;
+}
+.ph{ /* media placeholder if an asset is missing */
+  aspect-ratio:1;width:100%;
+  background:
+    radial-gradient(120% 90% at 50% 0%,rgba(52,69,91,.5),transparent 60%),
+    repeating-linear-gradient(135deg,#0d0d0d 0 8px,#111 8px 16px);
+}
+
+/* ============ OPTION 1 — THE SIGNAL LOG ============ */
+.o1{max-width:760px;margin:0 auto}
+.o1__head{text-align:center;margin-bottom:var(--s12)}
+.o1__title{font-family:var(--font-stencil);font-weight:900;text-transform:uppercase;font-size:clamp(2rem,4.4vw,3rem);line-height:1;margin:var(--s2) 0 var(--s3)}
+.o1__sub{color:var(--text-secondary);max-width:52ch;margin:0 auto}
+.o1__filters{display:flex;gap:var(--s2);justify-content:center;flex-wrap:wrap;margin:var(--s8) 0 0}
+.chip{
+  font-family:var(--font-mono);font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;
+  background:none;border:1px solid var(--color-gray-700);color:var(--text-muted);
+  padding:7px 14px;cursor:pointer;transition:.18s;border-radius:2px;
+}
+.chip:hover{color:var(--color-white);border-color:var(--color-gray-500)}
+.chip[aria-pressed="true"]{color:var(--color-black);background:var(--color-bone);border-color:var(--color-bone)}
+.o1__log{margin-top:var(--s12);border-top:var(--hair)}
+.logrow{
+  display:grid;grid-template-columns:96px minmax(0,1fr);gap:var(--s6);
+  padding:var(--s8) 0;border-bottom:var(--hair);
+}
+.logrow__meta{display:flex;flex-direction:column;gap:6px;padding-top:3px}
+.logrow__idx{font-family:var(--font-mono);font-size:.95rem;color:var(--color-bone);letter-spacing:.06em}
+.logrow__body h3{
+  font-family:var(--font-display);font-weight:800;text-transform:uppercase;letter-spacing:.02em;
+  font-size:1.35rem;margin:0 0 var(--s2);line-height:1.15;
+}
+.logrow__body p{margin:0 0 var(--s4);color:var(--text-secondary);font-size:.98rem}
+.logrow__media{border:var(--hair);overflow:hidden;margin-bottom:var(--s4);position:relative}
+.logrow__media img,.logrow__media video{width:100%;height:auto}
+.logrow__foot{display:flex;gap:var(--s4);align-items:center;flex-wrap:wrap}
+.o1link{
+  font-family:var(--font-mono);font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--color-white);text-decoration:none;border-bottom:1px solid var(--color-gray-600);
+  padding-bottom:2px;transition:.18s;
+}
+.o1link:hover{border-color:var(--color-bone)}
+.playbadge{
+  position:absolute;inset:auto var(--s3) var(--s3) auto;width:38px;height:38px;border-radius:50%;
+  background:rgba(5,5,5,.72);border:1px solid rgba(242,242,238,.5);
+  display:grid;place-items:center;font-size:.7rem;color:var(--color-white);
+}
+
+/* ============ OPTION 2 — FREQUENCY BOARD ============ */
+.o2__bar{display:flex;gap:var(--s6);align-items:baseline;justify-content:space-between;flex-wrap:wrap;margin-bottom:var(--s8);padding-bottom:var(--s4);border-bottom:var(--hair)}
+.o2__title{font-family:var(--font-stencil);font-weight:900;text-transform:uppercase;font-size:clamp(1.8rem,4vw,2.6rem);margin:0;line-height:1}
+/* grid-auto-flow:dense backfills the holes that mixed tile spans leave behind.
+   Without it a 2x2 tile followed by a 1x2 opens dead cells the eye reads as
+   broken. Dense reorders visually, not in the DOM, so tab order stays correct. */
+.o2__grid{display:grid;grid-template-columns:repeat(4,1fr);grid-auto-rows:1fr;grid-auto-flow:dense;gap:2px;background:var(--color-gray-800)}
+.tile{
+  position:relative;background:var(--color-black);overflow:hidden;
+  aspect-ratio:1;display:block;text-decoration:none;
+}
+.tile--wide{grid-column:span 2;aspect-ratio:2}
+.tile--tall{grid-row:span 2;aspect-ratio:1/2}
+.tile--big{grid-column:span 2;grid-row:span 2;aspect-ratio:1}
+.tile .ph{height:100%;aspect-ratio:auto}
+.tile img{width:100%;height:100%;object-fit:cover;transition:transform .5s cubic-bezier(.2,.7,.3,1),opacity .3s}
+.tile:hover img{transform:scale(1.045)}
+.tile__scrim{position:absolute;inset:0;background:linear-gradient(to top,rgba(5,5,5,.9) 0%,rgba(5,5,5,.15) 45%,transparent 70%)}
+.tile__edge{position:absolute;left:0;top:0;bottom:0;width:3px}
+.tile__in{position:absolute;inset:auto 0 0 0;padding:var(--s4);display:flex;flex-direction:column;gap:6px}
+.tile__txt{
+  font-family:var(--font-display);font-weight:800;text-transform:uppercase;letter-spacing:.02em;
+  font-size:1.05rem;line-height:1.1;color:var(--color-white);margin:0;
+}
+.tile--text{background:var(--color-gray-900);display:grid;align-content:center;padding:var(--s6);gap:var(--s3)}
+.tile--text blockquote{
+  font-family:var(--font-body);font-size:1.02rem;line-height:1.45;margin:0;color:var(--text-secondary);
+}
+.o2__legend{display:flex;gap:var(--s4);flex-wrap:wrap;margin-top:var(--s6)}
+.leg{display:flex;align-items:center;gap:8px}
+.leg i{width:14px;height:3px;display:block}
+
+/* ============ OPTION 3 — CHANNEL TERMINAL ============ */
+.o3{border:var(--hair);background:linear-gradient(180deg,#070707,#040404)}
+.o3__topbar{display:flex;align-items:center;gap:var(--s4);padding:var(--s3) var(--s4);border-bottom:var(--hair);flex-wrap:wrap}
+.o3__dot{width:8px;height:8px;border-radius:50%;background:var(--color-crimson-lit);box-shadow:0 0 8px var(--color-crimson-lit);animation:o3pulse 2.4s ease-in-out infinite}
+@keyframes o3pulse{0%,100%{opacity:.35}50%{opacity:1}}
+.o3__chans{display:flex;gap:0;margin-left:auto;flex-wrap:wrap}
+.o3__chan{
+  font-family:var(--font-mono);font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;
+  background:none;border:none;border-bottom:2px solid transparent;color:var(--color-gray-400);
+  padding:8px 14px;cursor:pointer;transition:.18s;
+}
+.o3__chan:hover{color:var(--color-white)}
+.o3__chan[aria-selected="true"]{color:var(--color-white);border-bottom-color:var(--color-crimson-lit)}
+.o3__screen{padding:var(--s8) var(--s6);position:relative;min-height:420px}
+.o3__scan{
+  position:absolute;inset:0;pointer-events:none;opacity:.5;
+  background:repeating-linear-gradient(to bottom,rgba(255,255,255,.022) 0 1px,transparent 1px 3px);
+}
+.o3__readout{font-family:var(--font-mono);font-size:.72rem;letter-spacing:.08em;color:var(--color-gray-400);margin-bottom:var(--s6)}
+.o3__list{display:flex;flex-direction:column;gap:var(--s2);position:relative}
+.o3row{
+  display:grid;grid-template-columns:132px 92px minmax(0,1fr) auto;gap:var(--s4);
+  align-items:center;padding:var(--s3) var(--s3);border:1px solid transparent;
+  border-left:2px solid var(--color-gray-700);background:rgba(255,255,255,.012);
+  text-decoration:none;transition:.18s;
+}
+.o3row:hover{background:rgba(255,255,255,.045);border-left-color:var(--color-bone)}
+.o3row__t{font-family:var(--font-mono);font-size:.72rem;color:var(--color-gray-400);letter-spacing:.06em}
+.o3row__p{font-family:var(--font-mono);font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;color:var(--color-bone)}
+.o3row__x{font-family:var(--font-body);font-size:.95rem;color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.o3row__go{font-family:var(--font-mono);font-size:.9rem;color:var(--color-gray-500)}
+.o3row:hover .o3row__go{color:var(--color-white)}
+.o3__caret{display:inline-block;width:8px;height:1em;background:var(--color-bone);vertical-align:-2px;animation:o3blink 1.1s steps(2) infinite}
+@keyframes o3blink{0%,50%{opacity:1}51%,100%{opacity:0}}
+
+/* ============ OPTION 4 — BROADCAST + LEDGER ============ */
+.o4{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:var(--s8)}
+.o4__live{border:var(--hair);background:var(--color-gray-900);overflow:hidden}
+.o4__livehead{display:flex;align-items:center;gap:var(--s3);padding:var(--s3) var(--s4);border-bottom:var(--hair)}
+.o4__media{position:relative;background:#000}
+/* Square, not 16/10. The cover art is square and its printed title sits at the
+   bottom of the frame — a 16/10 crop cut "MAY 26TH" clean off, and the printed
+   title is the ground truth for which art belongs to which track. Square is
+   also what Instagram and the card carousel already use. */
+.o4__media img,.o4__media video{width:100%;aspect-ratio:1;object-fit:cover}
+.o4__body{padding:var(--s6)}
+.o4__body h3{font-family:var(--font-stencil);font-weight:900;text-transform:uppercase;font-size:clamp(1.5rem,2.8vw,2.1rem);line-height:1.05;margin:0 0 var(--s3)}
+.o4__body p{margin:0 0 var(--s6);color:var(--text-secondary)}
+.o4__ledger{border:var(--hair);background:var(--color-gray-900);display:flex;flex-direction:column}
+.o4__ledgerhead{padding:var(--s3) var(--s4);border-bottom:var(--hair);display:flex;justify-content:space-between;align-items:center}
+.o4__scroll{overflow-y:auto;max-height:560px}
+.o4item{display:grid;grid-template-columns:56px minmax(0,1fr);gap:var(--s3);padding:var(--s4);border-bottom:1px solid var(--color-gray-800);text-decoration:none;transition:.18s}
+.o4item:hover{background:rgba(255,255,255,.04)}
+.o4item__thumb{width:56px;height:56px;object-fit:cover;border:1px solid var(--color-gray-700)}
+.o4item__t{font-family:var(--font-display);font-weight:800;text-transform:uppercase;font-size:.95rem;letter-spacing:.02em;margin:0 0 3px;line-height:1.15}
+.o4item__m{display:flex;gap:var(--s3);align-items:center}
+.o4__more{padding:var(--s4);text-align:center}
+
+/* ============ OPTION 5 — THE SPINE ============ */
+.o5{position:relative;padding:var(--s8) 0}
+.o5__rail{position:absolute;left:50%;top:0;bottom:0;width:1px;background:linear-gradient(to bottom,transparent,var(--color-gray-600) 6%,var(--color-gray-600) 94%,transparent);transform:translateX(-50%)}
+.o5__node{position:relative;display:grid;grid-template-columns:1fr 64px 1fr;align-items:center;margin-bottom:var(--s16)}
+.o5__vert{
+  grid-column:2;justify-self:center;width:34px;height:34px;position:relative;
+  display:grid;place-items:center;
+}
+.o5__vert svg{width:34px;height:34px;overflow:visible}
+.o5__card{border:var(--hair);background:var(--color-gray-900);padding:var(--s6);position:relative}
+/* .o5__rail is the first child of #o5, so the first .o5__node is child 2.
+   Even -> left, odd -> right, which puts the NEWEST post on the left where
+   the eye starts. Getting this backwards is easy and looks like a bug. */
+.o5__node:nth-child(even) .o5__card{grid-column:1}
+.o5__node:nth-child(odd)  .o5__card{grid-column:3}
+.o5__card h3{font-family:var(--font-display);font-weight:800;text-transform:uppercase;letter-spacing:.02em;font-size:1.2rem;margin:var(--s2) 0;line-height:1.15}
+.o5__card p{margin:0 0 var(--s4);color:var(--text-secondary);font-size:.95rem}
+.o5__card img{border:var(--hair);margin-bottom:var(--s4);width:100%}
+.o5__meta{display:flex;gap:var(--s3);align-items:center;flex-wrap:wrap}
+.o5__pulse{animation:o5glow 3.2s ease-in-out infinite}
+@keyframes o5glow{0%,100%{opacity:.35}50%{opacity:1}}
+
+/* Verdict block */
+.verdict{border-top:1px solid var(--color-gray-800);padding:var(--s24) 0 var(--s32)}
+.verdict h2{font-family:var(--font-stencil);font-weight:900;text-transform:uppercase;font-size:clamp(1.8rem,4vw,2.6rem);margin:0 0 var(--s6);line-height:1}
+.verdict p{max-width:70ch;color:var(--text-secondary);margin:0 0 var(--s4)}
+.verdict strong{color:var(--color-white)}
+
+@media (max-width:900px){
+  .option__head{grid-template-columns:1fr}
+  .o4{grid-template-columns:1fr}
+  .o2__grid{grid-template-columns:repeat(2,1fr)}
+  .tile--big,.tile--wide{grid-column:span 2}
+  .tile--tall{grid-row:span 1;aspect-ratio:1}
+  .o3row{grid-template-columns:100px minmax(0,1fr) auto}
+  .o3row__p{display:none}
+  .o5__rail{left:18px}
+  .o5__node{grid-template-columns:36px minmax(0,1fr);gap:var(--s4)}
+  .o5__vert{grid-column:1}
+  .o5__node:nth-child(odd) .o5__card,.o5__node:nth-child(even) .o5__card{grid-column:2}
+  .logrow{grid-template-columns:1fr;gap:var(--s3)}
+  .logrow__meta{flex-direction:row;align-items:center;gap:var(--s3)}
+}
+@media (prefers-reduced-motion:reduce){
+  *{animation:none!important;transition:none!important}
+}
+</style>
+</head>
+<body>
+
+<div class="harness-top">
+  <div class="harness-top__inner">
+    <span class="harness-top__mark">Transmissions &mdash; 5 Options</span>
+    <nav class="optnav" aria-label="Jump to option">
+      <a href="#opt1">1 &middot; Signal Log</a>
+      <a href="#opt2">2 &middot; Frequency Board</a>
+      <a href="#opt3">3 &middot; Channel Terminal</a>
+      <a href="#opt4">4 &middot; Broadcast + Ledger</a>
+      <a href="#opt5">5 &middot; The Spine</a>
+      <a href="#verdict">Read this first</a>
+    </nav>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <section class="intro">
+    <span class="label">Kundalini Spines &middot; Concept review</span>
+    <h1>Transmissions<br>as an update channel</h1>
+    <p class="intro__lede">Five ways the page could stop being a gallery of one numbered piece and start being the place your Instagram, TikTok, X and YouTube activity lands. Every mockup below is live &mdash; the filters, tabs and hovers all work &mdash; and every one uses the real palette, real type and real cover art.</p>
+
+    <div class="briefing">
+      <h2>Read this before you pick</h2>
+      <p>The hard part of this page is not the design. It is that <strong>none of these platforms will hand you a free, automatic feed anymore.</strong> That single fact shapes which option is cheap and which is expensive, so it is worth thirty seconds:</p>
+      <table class="feedtable">
+        <thead><tr><th>Platform</th><th>Auto-feed?</th><th>What it actually takes</th></tr></thead>
+        <tbody>
+          <tr><td>X / Twitter</td><td class="no">No</td><td>Timeline API is paid tier only. Single posts can still be embedded one at a time.</td></tr>
+          <tr><td>Instagram</td><td class="no">No</td><td>Needs a Meta app, review, and a long-lived token you re-fresh. Weeks of setup, breaks on policy changes.</td></tr>
+          <tr><td>TikTok</td><td class="mid">Partly</td><td>Individual videos embed cleanly. A profile feed needs their Display API and approval.</td></tr>
+          <tr><td>YouTube</td><td class="yes">Yes</td><td>Genuinely easy &mdash; a channel RSS feed, no key, no approval.</td></tr>
+          <tr><td>Spotify</td><td class="yes">Yes</td><td>Embeddable player per release, no key.</td></tr>
+        </tbody>
+      </table>
+      <p style="margin-top:var(--s4)">So there are three honest ways to fill any of these designs:</p>
+      <p><strong>A &mdash; You post it here too.</strong> A line added to <code>data/transmissions.json</code> per update. No API, no keys, nothing to break, and it works the day it ships. Costs you about a minute per post.</p>
+      <p><strong>B &mdash; A paid aggregator</strong> (Curator.io, Behold, EmbedSocial). Roughly $15&ndash;30/month, handles the tokens, but their markup lands inside your page and it will not look like the mockups below without a fight.</p>
+      <p><strong>C &mdash; Hybrid.</strong> YouTube and Spotify pull themselves in for free; X, Instagram and TikTok get added by hand. Most of the benefit, none of the monthly fee.</p>
+      <p>Every option below works with <strong>A</strong> on day one. Where an option leans on something harder, its spec card says so.</p>
+    </div>
+  </section>
+
+  <!-- ============================ OPTION 1 ============================ -->
+  <section class="option" id="opt1">
+    <div class="option__head">
+      <div>
+        <span class="option__num">Option 01</span>
+        <h2 class="option__name">The Signal Log</h2>
+        <p class="option__concept">One vertical column, newest first. Every update &mdash; a tweet, a TikTok, a numbered Transmission &mdash; is an entry in the same running log, stamped and sequenced.</p>
+        <p class="option__why">This is the option that changes the page least and respects it most. Transmissions are already &ldquo;numbered and never reused&rdquo;; this keeps that idea and simply widens what counts as one. A tweet becomes <em>049</em>. The archive framing survives, and the page reads as a record rather than a social wall.</p>
+      </div>
+      <div class="spec">
+        <dl>
+          <dt>Feels like</dt><dd>A dispatch log. Deliberate, archival, unhurried.</dd>
+          <dt>Best if</dt><dd>You post rarely and want each one to carry weight.</dd>
+          <dt>Content</dt><dd>Route A works fully. Nothing else needed.</dd>
+          <dt>Build</dt><dd>Lightest of the five. One template, one JSON file.</dd>
+          <dt>Weakness</dt><dd>Slow to scan once there are 60+ entries. Needs the filters to stay usable.</dd>
+        </dl>
+      </div>
+    </div>
+
+    <div class="mock">
+      <span class="mock__tag">Live mockup &middot; filters work</span>
+      <div class="mock__body">
+        <div class="o1">
+          <div class="o1__head">
+            <span class="label">Transmissions</span>
+            <h2 class="o1__title">The Signal Log</h2>
+            <p class="o1__sub">Everything the Messengers put out, in the order it went out. Numbered, dated, never reused.</p>
+            <div class="o1__filters" id="o1filters">
+              <button class="chip" aria-pressed="true" data-f="all">All</button>
+              <button class="chip" aria-pressed="false" data-f="transmission">Transmissions</button>
+              <button class="chip" aria-pressed="false" data-f="instagram">Instagram</button>
+              <button class="chip" aria-pressed="false" data-f="x">X</button>
+              <button class="chip" aria-pressed="false" data-f="tiktok">TikTok</button>
+              <button class="chip" aria-pressed="false" data-f="youtube">YouTube</button>
+            </div>
+          </div>
+          <div class="o1__log" id="o1log"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================ OPTION 2 ============================ -->
+  <section class="option" id="opt2">
+    <div class="option__head">
+      <div>
+        <span class="option__num">Option 02</span>
+        <h2 class="option__name">Frequency Board</h2>
+        <p class="option__concept">A dense mosaic of tiles at mixed sizes &mdash; a contact sheet. Image posts dominate, text posts become pull-quotes, and the biggest tile is whatever matters most this week.</p>
+        <p class="option__why">Your artwork is the strongest asset the project has, and a single-column log shows one piece at a time. This shows twelve at once. It is the only option here that makes the page feel <em>busy</em> in a good way, and the only one that survives posting several times a day.</p>
+      </div>
+      <div class="spec">
+        <dl>
+          <dt>Feels like</dt><dd>A contact sheet, or a wall of evidence.</dd>
+          <dt>Best if</dt><dd>You post often and it is mostly visual.</dd>
+          <dt>Content</dt><dd>Route A works, but it is hungry &mdash; a thin board looks broken.</dd>
+          <dt>Build</dt><dd>Medium, with one real trap &mdash; see below.</dd>
+          <dt>Weakness</dt><dd>Text-only posts fight for space, and the platform edge-colours below break the &ldquo;crimson only, never moonlight in UI&rdquo; palette rule. Shown so you can judge it &mdash; easy to strip back to bone/gray.</dd>
+        </dl>
+      </div>
+    </div>
+
+    <div class="mock">
+      <span class="mock__tag">Live mockup &middot; hover the tiles</span>
+      <div class="mock__body">
+        <div class="o2__bar">
+          <div>
+            <span class="label">Transmissions</span>
+            <h2 class="o2__title">Frequency Board</h2>
+          </div>
+          <p class="stamp">LAST SIGNAL &middot; 26 JUL 2026 &middot; 14 ENTRIES THIS MONTH</p>
+        </div>
+        <div class="o2__grid" id="o2grid"></div>
+        <div class="o2__legend" id="o2legend"></div>
+        <p class="option__why" style="margin-top:var(--s6);max-width:78ch">
+          <strong style="color:var(--color-white)">The trap, found while building this:</strong> mixed tile sizes leave dead cells
+          unless the spans happen to fill the rows. The first pass here sat at <strong style="color:var(--color-white)">84% fill</strong> &mdash;
+          six visible holes, which read as a broken page rather than a designed one. Two fixes got it to
+          <strong style="color:var(--color-white)">99%</strong>: <code style="font-family:var(--font-mono);font-size:.85em">grid-auto-flow: dense</code> to backfill,
+          and a rule that the tile spans in view must total a multiple of the column count. That is a real
+          ongoing constraint on this option &mdash; every new post has to be assigned a size that keeps the
+          board whole. The other four options have no equivalent rule.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================ OPTION 3 ============================ -->
+  <section class="option" id="opt3">
+    <div class="option__head">
+      <div>
+        <span class="option__num">Option 03</span>
+        <h2 class="option__name">Channel Terminal</h2>
+        <p class="option__concept">Each platform is a channel you tune to. The content area is a monospace readout &mdash; timestamped rows, scanlines, a blinking caret &mdash; and switching channels re-filters the feed in place.</p>
+        <p class="option__why">The most on-concept of the five by a distance. &ldquo;Transmissions&rdquo;, &ldquo;the Signal&rdquo;, coded messages, numbered dispatches &mdash; the whole project already speaks in radio language, and this is the only option that takes that literally. It also degrades beautifully: an empty channel reads as <em>NO SIGNAL</em> rather than as a broken page.</p>
+      </div>
+      <div class="spec">
+        <dl>
+          <dt>Feels like</dt><dd>Tuning a shortwave set. Intercepted traffic.</dd>
+          <dt>Best if</dt><dd>You want the page to be a piece of the world, not a widget.</dd>
+          <dt>Content</dt><dd>Route A works. Handles thin channels better than any other option.</dd>
+          <dt>Build</dt><dd>Medium. The character is in the details &mdash; don't cheap out on them.</dd>
+          <dt>Weakness</dt><dd>Text-forward, so your artwork plays a supporting role. Strongest paired with a preview pane if imagery matters.</dd>
+        </dl>
+      </div>
+    </div>
+
+    <div class="mock">
+      <span class="mock__tag">Live mockup &middot; switch channels</span>
+      <div class="mock__body">
+        <div class="o3">
+          <div class="o3__topbar">
+            <span class="o3__dot" aria-hidden="true"></span>
+            <span class="pf" style="color:var(--color-bone)">KS&ndash;TRANSMISSIONS</span>
+            <span class="stamp" id="o3clock">RECEIVING</span>
+            <div class="o3__chans" role="tablist" aria-label="Channel">
+              <button class="o3__chan" role="tab" aria-selected="true"  data-f="all">All</button>
+              <button class="o3__chan" role="tab" aria-selected="false" data-f="x">X</button>
+              <button class="o3__chan" role="tab" aria-selected="false" data-f="instagram">Instagram</button>
+              <button class="o3__chan" role="tab" aria-selected="false" data-f="tiktok">TikTok</button>
+              <button class="o3__chan" role="tab" aria-selected="false" data-f="youtube">YouTube</button>
+              <button class="o3__chan" role="tab" aria-selected="false" data-f="transmission">Filed</button>
+            </div>
+          </div>
+          <div class="o3__screen">
+            <div class="o3__scan" aria-hidden="true"></div>
+            <p class="o3__readout" id="o3readout">&gt; CHANNEL: ALL &middot; 10 RECORDS DECODED<span class="o3__caret"></span></p>
+            <div class="o3__list" id="o3list"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================ OPTION 4 ============================ -->
+  <section class="option" id="opt4">
+    <div class="option__head">
+      <div>
+        <span class="option__num">Option 04</span>
+        <h2 class="option__name">Broadcast + Ledger</h2>
+        <p class="option__concept">Split the page. The newest update takes the whole left side at full size; everything before it becomes a tight scrolling ledger on the right.</p>
+        <p class="option__why">The only option built around <em>recency</em>. Someone landing here sees one thing first and knows immediately it is the current signal. That matters most around a release &mdash; drop day, a video premiere, an announcement &mdash; where you want the newest thing to be unmissable rather than merely first in a list.</p>
+      </div>
+      <div class="spec">
+        <dl>
+          <dt>Feels like</dt><dd>A station front page. One headline, then the wire.</dd>
+          <dt>Best if</dt><dd>Your updates cluster around releases and drops.</dd>
+          <dt>Content</dt><dd>Route A works. Rewards a good image or video on the newest post.</dd>
+          <dt>Build</dt><dd>Medium. The ledger needs its own scroll behaviour on desktop.</dd>
+          <dt>Weakness</dt><dd>Goes stale loudly. If the top post is three months old, the whole page announces it.</dd>
+        </dl>
+      </div>
+    </div>
+
+    <div class="mock">
+      <span class="mock__tag">Live mockup &middot; ledger scrolls</span>
+      <div class="mock__body">
+        <div class="o4">
+          <article class="o4__live">
+            <div class="o4__livehead">
+              <span class="newflag">Now broadcasting</span>
+              <span class="pf" id="o4pf">Instagram</span>
+              <span class="stamp" id="o4stamp" style="margin-left:auto">26 JUL 2026</span>
+            </div>
+            <div class="o4__media">
+              <video id="o4video" muted loop playsinline preload="metadata"
+                     poster="assets/music/may-26th-cover.webp">
+                <source src="assets/music/may-26th-art.mp4" type="video/mp4">
+              </video>
+            </div>
+            <div class="o4__body">
+              <h3 id="o4title">May 26th &mdash; the day every spine calibrates</h3>
+              <p id="o4text">Cover art is live. Full track drops with <em>Rise Up</em>. Twenty-second sample is on the front page now &mdash; the rest arrives when the platforms clear.</p>
+              <a class="o1link" href="#opt4">View on Instagram &nbsp;&rarr;</a>
+            </div>
+          </article>
+
+          <aside class="o4__ledger">
+            <div class="o4__ledgerhead">
+              <span class="label">The ledger</span>
+              <span class="stamp">09 ENTRIES</span>
+            </div>
+            <div class="o4__scroll" id="o4ledger"></div>
+            <div class="o4__more"><a class="o1link" href="#opt4">Load earlier signals</a></div>
+          </aside>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================ OPTION 5 ============================ -->
+  <section class="option" id="opt5">
+    <div class="option__head">
+      <div>
+        <span class="option__num">Option 05</span>
+        <h2 class="option__name">The Spine</h2>
+        <p class="option__concept">A single vertical column runs down the page. Each update is a vertebra on it &mdash; a small geometric node that lights as you scroll &mdash; with the post alternating left and right.</p>
+        <p class="option__why">The only option that could not belong to any other band. Thirty-three vertebrae, seven nodes, one signal moving through the structure &mdash; that is the project's stated core idea, and this is the page where it becomes literal navigation. The most distinctive of the five, and the most expensive.</p>
+      </div>
+      <div class="spec">
+        <dl>
+          <dt>Feels like</dt><dd>An X-ray, or a spinal column read top to bottom.</dd>
+          <dt>Best if</dt><dd>You want one page that is unmistakably this project.</dd>
+          <dt>Content</dt><dd>Route A works. Best with 15&ndash;40 entries; awkward under 6.</dd>
+          <dt>Build</dt><dd>Heaviest. Custom SVG nodes, scroll-linked lighting, a real mobile rethink.</dd>
+          <dt>Weakness</dt><dd>Alternating layout collapses to one side on mobile, where most of your traffic will be &mdash; so the signature effect is mostly a desktop reward. It also burns vertical space: every post leaves the opposite column empty, so the page is roughly twice as long as Option 1 for the same content. Visible in the mockup below &mdash; judge it with that in mind.</dd>
+        </dl>
+      </div>
+    </div>
+
+    <div class="mock">
+      <span class="mock__tag">Live mockup &middot; scroll to light the nodes</span>
+      <div class="mock__body">
+        <div class="o5" id="o5">
+          <div class="o5__rail" aria-hidden="true"></div>
+          <!-- nodes injected -->
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================ VERDICT ============================ -->
+  <section class="verdict" id="verdict">
+    <h2>If you want my read</h2>
+    <p><strong>Option 3, the Channel Terminal, is the one I'd build.</strong> It is the only design that comes out of the project's own vocabulary rather than being applied to it &mdash; the page is already called Transmissions, the concept is already a signal being received, and every other option would work just as well for any other artist. It also has the single most useful practical property of the five: it looks <em>correct</em> when a channel is empty. &ldquo;NO SIGNAL ON THIS FREQUENCY&rdquo; is on-brand. An empty mosaic is just a broken page.</p>
+    <p><strong>Option 1, the Signal Log, is the safe pick</strong>, and it is genuinely good. It is the cheapest to build, the easiest to keep filled, and it preserves the numbered-and-never-reused idea you already established. If you want this live next week rather than next month, build this one.</p>
+    <p><strong>Option 5, the Spine, is the one to want and be careful about.</strong> It is the most distinctive thing on this page and the only one nobody else could copy. It is also the most work, and its best trick &mdash; the alternating column &mdash; is exactly the part that has to be thrown away on phones. Worth doing if this page is going to be a destination. Not worth it if it is a place people glance at.</p>
+    <p style="margin-top:var(--s8);color:var(--text-muted);font-size:.92rem">A note on all five: I would start on <strong>route A</strong> &mdash; posting updates into <code>data/transmissions.json</code> yourself &mdash; whichever design you choose. It costs a minute per post, it never breaks, and it means the page is real immediately instead of waiting on Meta's app review. Wiring YouTube's free RSS in afterwards is a small, separate job that does not change the design.</p>
+  </section>
+
+</div>
+
+<script>
+/* ------------------------------------------------------------------
+   One content model, rendered five ways. That is the point: choosing
+   between these options is a presentation decision, not a data one —
+   the same data/transmissions.json feeds whichever one you pick.
+------------------------------------------------------------------ */
+const POSTS = [
+  { n:'049', platform:'instagram', label:'Instagram', handle:'@kundalinispines', date:'26 JUL 2026', time:'21:04',
+    kind:'video', title:'May 26th — the day every spine calibrates',
+    text:'Cover art is live. Full track drops with Rise Up. Twenty-second sample is on the front page now.',
+    img:'assets/music/may-26th-cover.webp', vid:'assets/music/may-26th-art.mp4', size:'big' },
+
+  { n:'048', platform:'x', label:'X', handle:'@kundalinispines', date:'24 JUL 2026', time:'11:20',
+    kind:'text', title:'Thirty-three and seven',
+    text:'Thirty-three vertebrae. Seven nodes. One signal moving through the whole structure. Everything we make is built on that count.',
+    size:'wide' },
+
+  { n:'047', platform:'tiktok', label:'TikTok', handle:'@kundalinispines', date:'22 JUL 2026', time:'19:47',
+    kind:'video', title:'Brutus — the moment before the knife',
+    text:'Some betrayals do not need a bridge or a hook.',
+    img:'assets/music/brutus-cover.webp', vid:'assets/music/brutus-art.mp4', size:'tall' },
+
+  { n:'046', platform:'transmission', label:'Filed', handle:'Transmission 002', date:'19 JUL 2026', time:'00:00',
+    kind:'image', title:'Second Recovery',
+    text:'Filed, numbered, never reused. The image speaks first.',
+    img:'assets/messengers/messenger-a-portrait.jpg', size:'std' },
+
+  { n:'045', platform:'youtube', label:'YouTube', handle:'Kundalini Spines', date:'17 JUL 2026', time:'16:00',
+    kind:'video', title:'33rd Floor — visualiser',
+    text:'Locked-off camera, moving light. The beam is the only thing that travels.',
+    img:'assets/music/the-33rd-floor-cover.webp', size:'wide' },
+
+  { n:'044', platform:'x', label:'X', handle:'@kundalinispines', date:'15 JUL 2026', time:'08:33',
+    kind:'text', title:'On plain sight',
+    text:'Nothing here is hidden. It is placed where you would only look if you already suspected something was there.',
+    size:'std' },
+
+  { n:'043', platform:'instagram', label:'Instagram', handle:'@kundalinispines', date:'12 JUL 2026', time:'22:15',
+    kind:'image', title:'Blue Pills — the pull toward the easier story',
+    text:'Restless, reflective, and it never tells you which one to take.',
+    img:'assets/music/blue-pills-cover.webp', size:'std' },
+
+  { n:'042', platform:'tiktok', label:'TikTok', handle:'@kundalinispines', date:'09 JUL 2026', time:'20:02',
+    kind:'video', title:'Skeleton Keys — access nobody is supposed to have',
+    text:'One shape that opens every door it was never meant to.',
+    img:'assets/music/skeleton-keys-cover.webp', size:'std' },
+
+  { n:'041', platform:'youtube', label:'YouTube', handle:'Kundalini Spines', date:'05 JUL 2026', time:'12:00',
+    kind:'video', title:'Rise Up — the whole record, explained',
+    text:'Twenty-eight tracks, one signal. What each one is doing and why it sits where it sits.',
+    img:'assets/hero/messengers-hero-duo.jpg', size:'std' },
+
+  { n:'040', platform:'transmission', label:'Filed', handle:'Transmission 001', date:'01 JUL 2026', time:'00:00',
+    kind:'image', title:'Source Unknown',
+    text:'The first recovered transmission.',
+    img:'assets/messengers/messenger-b-portrait.jpg', size:'std' },
+];
+
+const EDGE = { instagram:'#8A1414', x:'#F2F2EE', tiktok:'#34455B', youtube:'#B4544A', transmission:'#D8D0BE' };
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const mediaOrPlaceholder = (p, cls='') =>
+  p.img ? `<img class="${cls}" src="${p.img}" alt="" loading="lazy" onerror="this.outerHTML='<div class=\\'ph\\'></div>'">`
+        : `<div class="ph"></div>`;
+
+/* ---------- Option 1 ---------- */
+function renderO1(filter='all'){
+  const log = document.getElementById('o1log');
+  const rows = POSTS.filter(p => filter==='all' || p.platform===filter);
+  log.innerHTML = rows.map((p,i) => `
+    <article class="logrow">
+      <div class="logrow__meta">
+        <span class="logrow__idx">${p.n}</span>
+        <span class="pf">${esc(p.label)}</span>
+        <span class="stamp">${p.date}</span>
+        ${i===0 && filter==='all' ? '<span class="newflag" style="align-self:flex-start">Newest</span>' : ''}
+      </div>
+      <div class="logrow__body">
+        <h3>${esc(p.title)}</h3>
+        <p>${esc(p.text)}</p>
+        ${p.img ? `<div class="logrow__media">${mediaOrPlaceholder(p)}${p.kind==='video'?'<span class="playbadge">&#9654;</span>':''}</div>` : ''}
+        <div class="logrow__foot">
+          <a class="o1link" href="#opt1">Open on ${esc(p.label)} &nbsp;&rarr;</a>
+          <span class="stamp">${esc(p.handle)} &middot; ${p.time}</span>
+        </div>
+      </div>
+    </article>`).join('') ||
+    `<p class="stamp" style="padding:var(--s12) 0;text-align:center">NO ENTRIES ON THIS FILTER</p>`;
+}
+document.getElementById('o1filters').addEventListener('click', e => {
+  const b = e.target.closest('.chip'); if(!b) return;
+  [...e.currentTarget.querySelectorAll('.chip')].forEach(c=>c.setAttribute('aria-pressed', String(c===b)));
+  renderO1(b.dataset.f);
+});
+
+/* ---------- Option 2 ---------- */
+function renderO2(){
+  const grid = document.getElementById('o2grid');
+  grid.innerHTML = POSTS.map(p => {
+    const cls = p.size==='big' ? 'tile--big' : p.size==='wide' ? 'tile--wide' : p.size==='tall' ? 'tile--tall' : '';
+    if (p.kind === 'text') return `
+      <a class="tile tile--text ${cls}" href="#opt2">
+        <span class="tile__edge" style="background:${EDGE[p.platform]}"></span>
+        <span class="pf">${esc(p.label)} &middot; ${p.date}</span>
+        <blockquote>&ldquo;${esc(p.text)}&rdquo;</blockquote>
+        <span class="stamp">${p.n}</span>
+      </a>`;
+    return `
+      <a class="tile ${cls}" href="#opt2">
+        ${mediaOrPlaceholder(p)}
+        <span class="tile__scrim"></span>
+        <span class="tile__edge" style="background:${EDGE[p.platform]}"></span>
+        <span class="tile__in">
+          <span class="pf">${esc(p.label)}${p.kind==='video'?' &middot; &#9654;':''}</span>
+          <span class="tile__txt">${esc(p.title)}</span>
+          <span class="stamp">${p.n} &middot; ${p.date}</span>
+        </span>
+      </a>`;
+  }).join('');
+
+  document.getElementById('o2legend').innerHTML = Object.entries(EDGE).map(([k,v]) =>
+    `<span class="leg"><i style="background:${v}"></i><span class="pf">${k}</span></span>`).join('');
+}
+
+/* ---------- Option 3 ---------- */
+function renderO3(filter='all'){
+  const list = document.getElementById('o3list');
+  const rows = POSTS.filter(p => filter==='all' || p.platform===filter);
+  document.getElementById('o3readout').innerHTML =
+    `&gt; CHANNEL: ${filter.toUpperCase()} &middot; ${String(rows.length).padStart(2,'0')} RECORD${rows.length===1?'':'S'} DECODED<span class="o3__caret"></span>`;
+  list.innerHTML = rows.map(p => `
+    <a class="o3row" href="#opt3">
+      <span class="o3row__t">${p.date} ${p.time}</span>
+      <span class="o3row__p">${esc(p.label)}</span>
+      <span class="o3row__x">${esc(p.title)} &mdash; ${esc(p.text)}</span>
+      <span class="o3row__go">&rarr;</span>
+    </a>`).join('') ||
+    `<p class="stamp" style="padding:var(--s16) 0;text-align:center;letter-spacing:.2em">NO SIGNAL ON THIS FREQUENCY</p>`;
+}
+document.querySelector('.o3__chans').addEventListener('click', e => {
+  const b = e.target.closest('.o3__chan'); if(!b) return;
+  [...e.currentTarget.querySelectorAll('.o3__chan')].forEach(c=>c.setAttribute('aria-selected', String(c===b)));
+  renderO3(b.dataset.f);
+});
+
+/* ---------- Option 4 ---------- */
+function renderO4(){
+  document.getElementById('o4ledger').innerHTML = POSTS.slice(1).map(p => `
+    <a class="o4item" href="#opt4">
+      ${p.img ? `<img class="o4item__thumb" src="${p.img}" alt="" loading="lazy">` : `<span class="o4item__thumb ph"></span>`}
+      <span>
+        <span class="o4item__t">${esc(p.title)}</span>
+        <span class="o4item__m">
+          <span class="pf">${esc(p.label)}</span>
+          <span class="stamp">${p.n} &middot; ${p.date}</span>
+        </span>
+      </span>
+    </a>`).join('');
+  // Autoplay the hero clip only when it is actually on screen.
+  const v = document.getElementById('o4video');
+  if (v) new IntersectionObserver(es => es.forEach(en => {
+    if (en.isIntersecting) v.play().catch(()=>{}); else v.pause();
+  }), {threshold:.35}).observe(v);
+}
+
+/* ---------- Option 5 ---------- */
+const VERT = `<svg viewBox="0 0 40 40" aria-hidden="true">
+  <circle cx="20" cy="20" r="15" fill="none" stroke="#2E2E2E" stroke-width="1"/>
+  <path d="M20 5 L31 12.5 L31 27.5 L20 35 L9 27.5 L9 12.5 Z" fill="#050505" stroke="#4A4A4A" stroke-width="1"/>
+  <circle class="v-core" cx="20" cy="20" r="4" fill="#D8D0BE" opacity=".28"/>
+</svg>`;
+function renderO5(){
+  const root = document.getElementById('o5');
+  root.insertAdjacentHTML('beforeend', POSTS.slice(0,6).map(p => `
+    <div class="o5__node">
+      <div class="o5__card">
+        <span class="pf">${esc(p.label)} &middot; ${p.n}</span>
+        ${p.img ? `<h3>${esc(p.title)}</h3>${mediaOrPlaceholder(p)}` : `<h3>${esc(p.title)}</h3>`}
+        <p>${esc(p.text)}</p>
+        <div class="o5__meta">
+          <a class="o1link" href="#opt5">Open &nbsp;&rarr;</a>
+          <span class="stamp">${p.date}</span>
+        </div>
+      </div>
+      <div class="o5__vert">${VERT}</div>
+    </div>`).join(''));
+
+  // Light each vertebra as it reaches the middle band of the viewport.
+  const io = new IntersectionObserver(entries => entries.forEach(en => {
+    const core = en.target.querySelector('.v-core');
+    if (!core) return;
+    core.style.transition = 'opacity .6s ease, r .6s ease';
+    core.setAttribute('opacity', en.isIntersecting ? '1' : '.28');
+    core.setAttribute('r', en.isIntersecting ? '6' : '4');
+    en.target.classList.toggle('o5__pulse', en.isIntersecting);
+  }), { rootMargin: '-35% 0px -35% 0px' });
+  root.querySelectorAll('.o5__vert').forEach(v => io.observe(v));
+}
+
+renderO1(); renderO2(); renderO3(); renderO4(); renderO5();
+</script>
+</body>
+</html>

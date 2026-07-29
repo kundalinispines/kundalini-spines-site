@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Option 5 v2 — The Spine, space-filled + animated</title>
+<meta name="robots" content="noindex, nofollow">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&family=Big+Shoulders+Stencil:wght@700;900&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  --color-black:#050505; --color-white:#F2F2EE; --color-bone:#D8D0BE;
+  --color-crimson:#5E0A0A; --color-crimson-lit:#8A1414; --color-moonlight:#34455B;
+  --color-gray-900:#0A0A0A; --color-gray-800:#141414; --color-gray-700:#1F1F1F;
+  --color-gray-600:#2E2E2E; --color-gray-500:#4A4A4A; --color-gray-400:#6B6B6B;
+  --color-gray-300:#8F8F8F;
+  --text-primary:var(--color-white); --text-secondary:var(--color-bone);
+  --text-muted:var(--color-gray-300);
+  --font-display:'Big Shoulders Display','Arial Narrow',sans-serif;
+  --font-stencil:'Big Shoulders Stencil','Arial Narrow',sans-serif;
+  --font-body:'Source Serif 4',Georgia,serif;
+  --font-mono:'IBM Plex Mono','Courier New',monospace;
+  --tracking-label:.12em;
+  --s1:.25rem;--s2:.5rem;--s3:.75rem;--s4:1rem;--s6:1.5rem;--s8:2rem;
+  --s12:3rem;--s16:4rem;--s24:6rem;
+  --hair:1px solid var(--color-gray-700);
+  --spine-w:88px;          /* width of the centre channel */
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--color-black);color:var(--text-primary);
+  font-family:var(--font-body);line-height:1.6;-webkit-font-smoothing:antialiased}
+img,video{display:block;max-width:100%}
+a{color:inherit}
+.wrap{max-width:1280px;margin:0 auto;padding:0 var(--s6)}
+.label{font-family:var(--font-mono);font-size:.75rem;text-transform:uppercase;
+  letter-spacing:var(--tracking-label);color:var(--text-muted)}
+.stamp{font-family:var(--font-mono);font-size:.66rem;letter-spacing:.1em;color:var(--color-gray-400)}
+.pf{font-family:var(--font-mono);font-size:.66rem;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--text-muted)}
+
+/* review chrome */
+.top{position:sticky;top:0;z-index:80;background:rgba(5,5,5,.94);
+  backdrop-filter:blur(8px);border-bottom:var(--hair)}
+.top__in{max-width:1280px;margin:0 auto;padding:var(--s3) var(--s6);
+  display:flex;gap:var(--s4);align-items:center;flex-wrap:wrap}
+.top__mark{font-family:var(--font-display);font-weight:800;text-transform:uppercase;
+  letter-spacing:.02em;font-size:1rem;white-space:nowrap}
+.switch{display:flex;gap:var(--s1);margin-left:auto;flex-wrap:wrap}
+.switch button{font-family:var(--font-mono);font-size:.7rem;letter-spacing:.08em;
+  text-transform:uppercase;background:none;border:1px solid var(--color-gray-700);
+  color:var(--text-muted);padding:7px 12px;cursor:pointer;transition:.18s;border-radius:2px}
+.switch button:hover{color:var(--color-white);border-color:var(--color-gray-500)}
+.switch button[aria-pressed="true"]{background:var(--color-bone);color:var(--color-black);
+  border-color:var(--color-bone)}
+
+.intro{padding:var(--s24) 0 var(--s12)}
+.intro h1{font-family:var(--font-stencil);font-weight:900;line-height:1;
+  margin:0 0 var(--s4);font-size:clamp(2.2rem,5.5vw,4rem);text-transform:uppercase}
+.intro__lede{font-size:1.125rem;color:var(--text-secondary);max-width:64ch;margin:0 0 var(--s8)}
+.fix{border:var(--hair);border-left:3px solid var(--color-crimson-lit);
+  background:var(--color-gray-900);padding:var(--s6);max-width:84ch}
+.fix h2{font-family:var(--font-display);font-weight:800;text-transform:uppercase;
+  letter-spacing:.02em;font-size:1.1rem;margin:0 0 var(--s3)}
+.fix p{margin:0 0 var(--s3);color:var(--text-secondary);font-size:.95rem}
+.fix p:last-child{margin-bottom:0}
+.fix code{font-family:var(--font-mono);font-size:.85em;color:var(--color-bone)}
+.metrics{display:flex;gap:var(--s8);flex-wrap:wrap;margin:var(--s6) 0 0;
+  padding-top:var(--s4);border-top:1px solid var(--color-gray-800)}
+.metric b{display:block;font-family:var(--font-display);font-weight:800;
+  font-size:1.9rem;line-height:1;color:var(--color-white)}
+.metric span{font-family:var(--font-mono);font-size:.64rem;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--text-muted)}
+
+/* ============================================================
+   THE SPINE — v2 layout
+   Two independent columns + a centre channel. Cards are dealt
+   into whichever column is currently SHORTER, so neither column
+   ever waits on the other. That is the whole fix: v1 used paired
+   rows, so a short text post opposite a tall image post left the
+   short side empty for the full height of the tall one.
+   ============================================================ */
+.spine-head{text-align:center;margin:0 auto var(--s16);max-width:56ch}
+.spine-head h2{font-family:var(--font-stencil);font-weight:900;text-transform:uppercase;
+  font-size:clamp(2rem,4.4vw,3rem);line-height:1;margin:var(--s2) 0 var(--s3)}
+.spine-head p{color:var(--text-secondary);margin:0}
+
+/* align-items:start is load-bearing, not cosmetic. Grid's default `stretch`
+   makes BOTH columns report the row's height, so "which column is shorter"
+   always compares equal and every card is dealt to the same side. With start,
+   each column measures its own content. The channel opts back into stretch so
+   the rail still spans the full height. */
+.spine{position:relative;display:grid;align-items:start;
+  grid-template-columns:minmax(0,1fr) var(--spine-w) minmax(0,1fr)}
+.spine__col{display:flex;flex-direction:column;gap:var(--s6)}
+.spine__col--l{grid-column:1}
+.spine__col--r{grid-column:3}
+
+/* centre channel */
+.spine__channel{grid-column:2;position:relative;align-self:stretch}
+.spine__rail{position:absolute;left:50%;top:0;bottom:0;width:1px;
+  transform:translateX(-50%);
+  background:linear-gradient(to bottom,transparent 0,var(--color-gray-700) 3%,
+    var(--color-gray-700) 97%,transparent 100%)}
+/* the lit portion of the rail — height driven by scroll */
+.spine__charge{position:absolute;left:50%;top:0;width:1px;transform:translateX(-50%);
+  height:0;background:linear-gradient(to bottom,rgba(216,208,190,0) 0,
+    var(--color-bone) 60%,var(--color-white) 100%);
+  box-shadow:0 0 10px 1px rgba(216,208,190,.45);pointer-events:none}
+.vert{position:absolute;left:50%;transform:translate(-50%,-50%);
+  width:44px;height:44px;display:grid;place-items:center;pointer-events:none}
+.vert svg{width:100%;height:100%;overflow:visible}
+.vert--anchor{width:56px;height:56px}
+.v-shell{transition:stroke .5s ease,opacity .5s ease}
+.v-core{transition:opacity .5s ease,r .5s ease,fill .5s ease}
+.v-glow{transition:opacity .6s ease}
+
+/* connector from vertebra to its card */
+.conn{position:absolute;height:1px;background:var(--color-gray-700);
+  transition:background .5s ease,box-shadow .5s ease;pointer-events:none}
+.conn.is-lit{background:var(--color-bone);box-shadow:0 0 6px rgba(216,208,190,.5)}
+
+/* cards */
+.pcard{border:var(--hair);background:var(--color-gray-900);padding:var(--s6);
+  position:relative;transition:border-color .45s ease,transform .45s ease}
+.pcard.is-lit{border-color:var(--color-gray-500)}
+.pcard__top{display:flex;gap:var(--s3);align-items:center;margin-bottom:var(--s3);flex-wrap:wrap}
+.pcard h3{font-family:var(--font-display);font-weight:800;text-transform:uppercase;
+  letter-spacing:.02em;font-size:1.25rem;margin:0 0 var(--s3);line-height:1.15}
+.pcard p{margin:0 0 var(--s4);color:var(--text-secondary);font-size:.95rem}
+.pcard__media{border:var(--hair);overflow:hidden;margin-bottom:var(--s4);position:relative}
+.pcard__media img{width:100%}
+.pcard__foot{display:flex;gap:var(--s4);align-items:center;flex-wrap:wrap}
+.plink{font-family:var(--font-mono);font-size:.7rem;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--color-white);text-decoration:none;
+  border-bottom:1px solid var(--color-gray-600);padding-bottom:2px;transition:.18s}
+.plink:hover{border-color:var(--color-bone)}
+.newflag{font-family:var(--font-mono);font-size:.6rem;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--color-white);background:var(--color-crimson);padding:2px 7px}
+.quote{font-size:1.05rem;line-height:1.45;color:var(--text-secondary);margin:0 0 var(--s4);
+  border-left:2px solid var(--color-gray-700);padding-left:var(--s4)}
+.ph{aspect-ratio:1;width:100%;
+  background:radial-gradient(120% 90% at 50% 0%,rgba(52,69,91,.5),transparent 60%),
+    repeating-linear-gradient(135deg,#0d0d0d 0 8px,#111 8px 16px)}
+.playbadge{position:absolute;inset:auto var(--s3) var(--s3) auto;width:36px;height:36px;
+  border-radius:50%;background:rgba(5,5,5,.72);border:1px solid rgba(242,242,238,.5);
+  display:grid;place-items:center;font-size:.68rem;color:var(--color-white)}
+
+.readout{position:sticky;bottom:var(--s6);margin-top:var(--s16);text-align:center;
+  pointer-events:none;z-index:20}
+.readout span{font-family:var(--font-mono);font-size:.66rem;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--color-gray-400);background:rgba(5,5,5,.85);
+  border:var(--hair);padding:6px 14px}
+
+.note{border-top:1px solid var(--color-gray-800);margin-top:var(--s24);padding:var(--s12) 0 var(--s24)}
+.note h2{font-family:var(--font-stencil);font-weight:900;text-transform:uppercase;
+  font-size:clamp(1.6rem,3.4vw,2.3rem);margin:0 0 var(--s6);line-height:1}
+.note p{max-width:72ch;color:var(--text-secondary);margin:0 0 var(--s4)}
+.note strong{color:var(--color-white)}
+
+@media (max-width:900px){
+  :root{--spine-w:44px}
+  .spine{grid-template-columns:var(--spine-w) minmax(0,1fr)}
+  .spine__channel{grid-column:1;grid-row:1}
+  .spine__col--l{grid-column:2;grid-row:1}
+  .spine__col--r{grid-column:2;grid-row:2;margin-top:var(--s6)}
+  .vert{left:50%}
+}
+@media (prefers-reduced-motion:reduce){
+  *{animation:none!important;transition:none!important}
+  .spine__charge{display:none}
+}
+</style>
+</head>
+<body>
+
+<div class="top">
+  <div class="top__in">
+    <span class="top__mark">Option 5 v2 &mdash; The Spine</span>
+    <div class="switch" role="group" aria-label="Spine treatment">
+      <button aria-pressed="true"  data-t="geometric">Geometric</button>
+      <button aria-pressed="false" data-t="xray">X-ray</button>
+      <button aria-pressed="false" data-t="circuit">Circuit</button>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+  <section class="intro">
+    <span class="label">Kundalini Spines &middot; Option 5, second pass</span>
+    <h1>The Spine,<br>space-filled</h1>
+    <p class="intro__lede">Same concept, two things fixed. The columns no longer wait on each other, so there is no dead space at any length. And the centre is now a real spine that charges as you scroll &mdash; a continuous column of vertebrae, not a plain rule with dots on it. Switch treatments in the bar above; scroll to charge it.</p>
+
+    <div class="fix">
+      <h2>What changed, and why the space was empty</h2>
+      <p>V1 laid the posts out in <strong>paired rows</strong> &mdash; one grid row per post, card on alternating sides. A three-line text post sitting opposite a tall image post left its whole row half empty, and the taller the image, the bigger the hole. That is where the emptiness came from; it was structural, not a spacing problem.</p>
+      <p>V2 drops rows entirely. The two columns are <strong>independent stacks</strong>, so a short post never reserves height on the opposite side. Getting them to actually finish level took two more passes than expected, and the numbers are worth seeing because they are the difference between &ldquo;designed&rdquo; and &ldquo;ragged&rdquo;:</p>
+      <p style="padding-left:var(--s4);border-left:2px solid var(--color-gray-700)">
+        <strong>Deal in date order, always to the shorter column</strong> &mdash; the obvious approach &mdash; finished <strong>1054px apart</strong>. Whichever column receives the last tall card overshoots, and a text post is 200px against an image post's 740px.<br>
+        <strong>Walking trailing cards across</strong> to close the gap got it to <strong>474px</strong>. Better, still a visible ragged tail.<br>
+        <strong>Largest-first packing</strong> &mdash; place the tall cards while there is still slack to absorb them, fill the rest with the small ones, then re-sort each column back into date order &mdash; finishes <strong>20px apart</strong>. Sorting does not change heights, so the balance survives it and each column still reads newest-first.
+      </p>
+      <p>That last number is the one that matters: <strong>20px on a 4100px column</strong>, and it holds at any post count, because the packing is recomputed from measured heights every time.</p>
+      <p>The vertebrae are then placed <strong>after</strong> layout, at each card's measured midpoint, with filler vertebrae between them so the spine reads as one continuous column rather than a dotted line. A connector reaches from each anchored vertebra out to its card. All of it is re-measured on resize.</p>
+      <p>The charge effect is scroll-linked, not a loop: the lit section of the rail tracks how far down the column you are, so the signal appears to travel down the spine as you read. Vertebrae light as the charge front passes them.</p>
+      <div class="metrics">
+        <div class="metric"><b id="m-fill">&mdash;</b><span>Column fill</span></div>
+        <div class="metric"><b id="m-delta">&mdash;</b><span>Column height gap</span></div>
+        <div class="metric"><b id="m-verts">&mdash;</b><span>Vertebrae drawn</span></div>
+        <div class="metric"><b id="m-posts">&mdash;</b><span>Posts placed</span></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="spine-head">
+    <span class="label">Transmissions</span>
+    <h2>The Spine</h2>
+    <p>Thirty-three vertebrae. Seven nodes. One signal moving through the whole structure &mdash; and every transmission sits on it.</p>
+  </div>
+
+  <div class="spine" id="spine">
+    <div class="spine__col spine__col--l" id="colL"></div>
+    <div class="spine__channel" id="channel">
+      <div class="spine__rail"></div>
+      <div class="spine__charge" id="charge"></div>
+    </div>
+    <div class="spine__col spine__col--r" id="colR"></div>
+  </div>
+
+  <div class="readout"><span id="readout">SIGNAL 00% &middot; VERTEBRA 00 / 00</span></div>
+
+  <section class="note">
+    <h2>Where this still costs you</h2>
+    <p><strong>Mobile is still a compromise, and it always will be.</strong> Below 900px there is no room for two columns either side of a spine, so the rail moves to the left edge and the posts stack in one column beside it. That reads well &mdash; it becomes a timeline rather than a spine &mdash; but the alternating symmetry, the thing that makes this option distinctive, is a desktop reward. Worth knowing given where most music traffic comes from.</p>
+    <p><strong>It needs content to look right.</strong> Below about ten posts the columns are too short for the spine to feel like a column, and the filler vertebrae end up outnumbering the real ones. Fourteen are shown here. That is the honest threshold for rotating this in.</p>
+    <p><strong>The measuring pass is real work.</strong> Vertebra placement and connectors depend on measured card positions, so they run after layout and again on resize, and they have to wait for images to decode or every anchor lands in the wrong place. That is handled here, but it is the part that makes this option more expensive than the Signal Log rather than just prettier.</p>
+    <p style="color:var(--text-muted);font-size:.92rem;margin-top:var(--s8)">On the X-ray treatment: its glow uses <code style="font-family:var(--font-mono)">--color-moonlight</code>, which the token file reserves for imagery and forbids in UI chrome. A spine graphic is arguably imagery rather than chrome, but it is a judgement call, and it is the one place any of this bends a stated rule. The geometric and circuit treatments stay strictly inside bone/gray.</p>
+  </section>
+</div>
+
+<script>
+/* ---------------------------------------------------------------
+   Same content model as the other options — data/transmissions.json.
+   Fourteen posts here rather than ten, because this option needs
+   volume to read correctly and the brief was "when we have more".
+--------------------------------------------------------------- */
+const POSTS = [
+  {n:'053',p:'instagram',l:'Instagram',d:'26 JUL 2026',k:'image',
+   t:'May 26th — the day every spine calibrates',
+   x:'Cover art is live. Full track drops with Rise Up. Twenty-second sample is on the front page now.',
+   img:'assets/music/may-26th-cover.webp'},
+  {n:'052',p:'x',l:'X',d:'25 JUL 2026',k:'text',t:'Thirty-three and seven',
+   x:'Thirty-three vertebrae. Seven nodes. One signal moving through the whole structure. Everything we make is built on that count.'},
+  {n:'051',p:'tiktok',l:'TikTok',d:'24 JUL 2026',k:'video',
+   t:'Brutus — the moment before the knife',
+   x:'Some betrayals do not need a bridge or a hook.',
+   img:'assets/music/brutus-cover.webp'},
+  {n:'050',p:'x',l:'X',d:'23 JUL 2026',k:'text',t:'On plain sight',
+   x:'Nothing here is hidden. It is placed where you would only look if you already suspected something was there.'},
+  {n:'049',p:'youtube',l:'YouTube',d:'21 JUL 2026',k:'video',
+   t:'33rd Floor — visualiser',
+   x:'Locked-off camera, moving light. The beam is the only thing that travels.',
+   img:'assets/music/the-33rd-floor-cover.webp'},
+  {n:'048',p:'transmission',l:'Filed',d:'19 JUL 2026',k:'image',t:'Second Recovery',
+   x:'Filed, numbered, never reused. The image speaks first.',
+   img:'assets/messengers/messenger-a-portrait.jpg'},
+  {n:'047',p:'instagram',l:'Instagram',d:'17 JUL 2026',k:'image',
+   t:'Blue Pills — the pull toward the easier story',
+   x:'Restless, reflective, and it never tells you which one to take.',
+   img:'assets/music/blue-pills-cover.webp'},
+  {n:'046',p:'x',l:'X',d:'16 JUL 2026',k:'text',t:'Received, not written',
+   x:'The Messengers do not claim mastery over the Signal. They receive it, preserve it, and carry it forward without weakening its meaning.'},
+  {n:'045',p:'tiktok',l:'TikTok',d:'14 JUL 2026',k:'video',
+   t:'Skeleton Keys — access nobody is supposed to have',
+   x:'One shape that opens every door it was never meant to.',
+   img:'assets/music/skeleton-keys-cover.webp'},
+  {n:'044',p:'youtube',l:'YouTube',d:'12 JUL 2026',k:'video',
+   t:'Rise Up — the whole record, explained',
+   x:'Twenty-eight tracks, one signal. What each one is doing and why it sits where it sits.',
+   img:'assets/hero/messengers-hero-duo.jpg'},
+  {n:'043',p:'x',l:'X',d:'10 JUL 2026',k:'text',t:'Sacred and street',
+   x:'Metatron’s Cube next to a blueprint. An X-ray beside a manuscript. Ancient knowledge, modern static.'},
+  {n:'042',p:'instagram',l:'Instagram',d:'08 JUL 2026',k:'image',
+   t:'Spine Glow — the receiver',
+   x:'The spine is not just structure. It is the receiver.',
+   img:'assets/music/spine-glow-cover.webp'},
+  {n:'041',p:'tiktok',l:'TikTok',d:'05 JUL 2026',k:'video',t:'X-Files — studio fragment',
+   x:'Forty seconds that did not make the record. Filed anyway.',
+   img:'assets/music/x-files-cover.webp'},
+  {n:'040',p:'transmission',l:'Filed',d:'01 JUL 2026',k:'image',t:'Source Unknown',
+   x:'The first recovered transmission.',
+   img:'assets/messengers/messenger-b-portrait.jpg'},
+];
+
+const esc = s => String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* ---------- vertebra treatments ----------
+   Each returns SVG. .v-shell = the outline, .v-core = the lit centre,
+   .v-glow = the halo that only appears when charged. */
+const TREATMENTS = {
+  geometric: anchor => `
+    <svg viewBox="0 0 48 48">
+      <circle class="v-glow" cx="24" cy="24" r="${anchor?16:12}" fill="#D8D0BE" opacity="0"
+              style="filter:blur(7px)"/>
+      <path class="v-shell" d="M24 6 L39 15 L39 33 L24 42 L9 33 L9 15 Z"
+            fill="#050505" stroke="#4A4A4A" stroke-width="1"/>
+      ${anchor?`<path class="v-shell" d="M24 12 L34 18 L34 30 L24 36 L14 30 L14 18 Z"
+            fill="none" stroke="#2E2E2E" stroke-width="1"/>`:''}
+      <circle class="v-core" cx="24" cy="24" r="${anchor?5:3}" fill="#4A4A4A" opacity=".8"/>
+    </svg>`,
+  xray: anchor => `
+    <svg viewBox="0 0 48 48">
+      <circle class="v-glow" cx="24" cy="24" r="${anchor?17:13}" fill="#34455B" opacity="0"
+              style="filter:blur(8px)"/>
+      <g class="v-shell" fill="#0A0A0A" stroke="#4A4A4A" stroke-width="1">
+        <rect x="14" y="17" width="20" height="14" rx="5"/>
+        <path d="M14 21 L6 17 L6 25 L14 27 Z"/>
+        <path d="M34 21 L42 17 L42 25 L34 27 Z"/>
+        <path d="M21 31 L27 31 L25 41 L23 41 Z"/>
+      </g>
+      <ellipse class="v-core" cx="24" cy="24" rx="${anchor?7:5}" ry="${anchor?4:3}"
+               fill="#4A4A4A" opacity=".8"/>
+    </svg>`,
+  circuit: anchor => `
+    <svg viewBox="0 0 48 48">
+      <circle class="v-glow" cx="24" cy="24" r="${anchor?15:11}" fill="#D8D0BE" opacity="0"
+              style="filter:blur(7px)"/>
+      <g class="v-shell" stroke="#4A4A4A" stroke-width="1" fill="#050505">
+        <rect x="15" y="15" width="18" height="18" rx="2"/>
+        <path d="M8 24 H15 M33 24 H40" fill="none"/>
+        ${anchor?`<path d="M24 8 V15 M24 33 V40" fill="none"/>
+                  <rect x="19" y="19" width="10" height="10" rx="1" fill="none" stroke="#2E2E2E"/>`:''}
+      </g>
+      <rect class="v-core" x="${anchor?21:22}" y="${anchor?21:22}"
+            width="${anchor?6:4}" height="${anchor?6:4}" fill="#4A4A4A" opacity=".8"/>
+    </svg>`,
+};
+let treatment = 'geometric';
+
+/* ---------- render cards into the shorter column ---------- */
+const colL = document.getElementById('colL');
+const colR = document.getElementById('colR');
+const channel = document.getElementById('channel');
+const charge = document.getElementById('charge');
+
+function cardHTML(p, i){
+  const media = p.img
+    ? `<div class="pcard__media"><img src="${p.img}" alt="" loading="eager">${p.k==='video'?'<span class="playbadge">&#9654;</span>':''}</div>`
+    : '';
+  const body = p.k==='text'
+    ? `<blockquote class="quote">&ldquo;${esc(p.x)}&rdquo;</blockquote>`
+    : `<p>${esc(p.x)}</p>`;
+  return `<article class="pcard" data-i="${i}">
+      <div class="pcard__top">
+        <span class="pf">${esc(p.l)}</span>
+        <span class="stamp">${p.n} &middot; ${p.d}</span>
+        ${i===0?'<span class="newflag">Newest</span>':''}
+      </div>
+      <h3>${esc(p.t)}</h3>
+      ${p.k==='text' ? body : media + body}
+      <div class="pcard__foot">
+        <a class="plink" href="#">Open on ${esc(p.l)} &nbsp;&rarr;</a>
+      </div>
+    </article>`;
+}
+
+/* Cards are built ONCE and then moved between columns — never re-created.
+   Rebuilding with innerHTML on every pass makes fresh <img> elements, which
+   measure zero height until they decode, so the deal balances against
+   text-only heights and every image card lands in the wrong place. Moving
+   live elements keeps their loaded images and their real heights. */
+const cardEls = POSTS.map((p,i) => {
+  const holder = document.createElement('div');
+  holder.innerHTML = cardHTML(p,i);
+  const el = holder.firstElementChild;
+  // Swap a missing image for a placeholder in JS rather than an inline onerror.
+  // A broken <img> collapses to zero height, which silently poisons the deal —
+  // the card measures as text-only and the column balance comes out wrong.
+  el.querySelectorAll('img').forEach(img => {
+    img.addEventListener('error', () => {
+      const ph = document.createElement('div');
+      ph.className = 'ph';
+      img.replaceWith(ph);
+    }, { once:true });
+  });
+  return el;
+});
+
+const GAP = 24;   // must match .spine__col gap
+
+/* Two-stage deal.
+
+   Naive "append to whichever column is shorter, in date order" is the obvious
+   approach and it is not good enough here: the cards are wildly uneven (a text
+   post is ~200px, an image post ~740px), so whichever column receives the last
+   tall card overshoots. Measured, that left the columns 474px apart — an
+   11% imbalance, still a visible ragged tail at the bottom of the page.
+
+   Instead: measure every card, assign LARGEST FIRST to the shorter column
+   (longest-processing-time bin packing — the tall cards get placed while there
+   is still slack to absorb them, and the small ones fill the remainder), then
+   re-sort each column back into date order for display. Sorting does not change
+   heights, so the balance survives it and reading order is still newest-first
+   down each column. */
+function deal(){
+  // Measure with real column width — cards must be attached to size correctly.
+  colL.replaceChildren(...cardEls); colR.replaceChildren();
+  const h = cardEls.map(el => el.offsetHeight);
+
+  const order = cardEls.map((_,i)=>i).sort((a,b)=> h[b]-h[a]);
+  const bins = [[],[]], sum = [0,0];
+  order.forEach(i => {
+    const t = sum[0] <= sum[1] ? 0 : 1;
+    bins[t].push(i); sum[t] += h[i] + GAP;
+  });
+
+  bins.forEach(b => b.sort((a,c)=>a-c));          // back into date order
+  colL.replaceChildren(...bins[0].map(i=>cardEls[i]));
+  colR.replaceChildren(...bins[1].map(i=>cardEls[i]));
+}
+
+/* ---------- place vertebrae + connectors after layout ---------- */
+const VERT_GAP = 74;   // target spacing between filler vertebrae, px
+let verts = [];
+
+function buildSpine(){
+  channel.querySelectorAll('.vert').forEach(v=>v.remove());
+  document.querySelectorAll('.conn').forEach(c=>c.remove());
+  verts = [];
+
+  const chBox = channel.getBoundingClientRect();
+  const total = channel.offsetHeight;
+  if (!total) return;
+
+  // 1. anchored vertebrae: one per card, at the card's measured midpoint
+  const anchors = [...document.querySelectorAll('.pcard')].map(card => {
+    const r = card.getBoundingClientRect();
+    return { y: r.top - chBox.top + r.height/2, card, side: r.left < chBox.left ? 'l' : 'r' };
+  }).sort((a,b)=>a.y-b.y);
+
+  // 2. filler vertebrae in the gaps, so the column reads continuous
+  const points = [];
+  let prev = 0;
+  anchors.forEach(a => {
+    const gap = a.y - prev;
+    const n = Math.max(0, Math.round(gap / VERT_GAP) - 1);
+    for (let i=1;i<=n;i++) points.push({ y: prev + (gap*i)/(n+1), anchor:false });
+    points.push({ y:a.y, anchor:true, card:a.card, side:a.side });
+    prev = a.y;
+  });
+  const tail = total - prev;
+  for (let i=1;i<=Math.max(0,Math.round(tail/VERT_GAP)-1);i++)
+    points.push({ y: prev + (tail*i)/(Math.round(tail/VERT_GAP)), anchor:false });
+
+  // 3. draw
+  points.forEach(pt => {
+    const el = document.createElement('div');
+    el.className = 'vert' + (pt.anchor?' vert--anchor':'');
+    el.style.top = pt.y + 'px';
+    el.innerHTML = TREATMENTS[treatment](pt.anchor);
+    channel.appendChild(el);
+    verts.push({ el, y:pt.y, anchor:pt.anchor, card:pt.card||null });
+
+    if (pt.anchor && pt.card && window.innerWidth > 900){
+      // Run from the channel's outer edge to the anchored vertebra's outer edge.
+      // (Anchored vertebrae are 56px wide, so half of one is 28px from centre.)
+      const conn = document.createElement('div');
+      conn.className = 'conn';
+      const reach = Math.max(0, channel.offsetWidth/2 - 28);
+      if (pt.side === 'l'){ conn.style.left  = '0'; }
+      else                { conn.style.right = '0'; }
+      conn.style.width = reach + 'px';
+      conn.style.top = pt.y + 'px';
+      channel.appendChild(conn);
+      verts[verts.length-1].conn = conn;
+    }
+  });
+
+  report();
+}
+
+/* ---------- scroll-linked charge ---------- */
+let ticking = false;
+function onScroll(){
+  if (ticking) return; ticking = true;
+  requestAnimationFrame(() => {
+    ticking = false;
+    const chBox = channel.getBoundingClientRect();
+    const total = channel.offsetHeight;
+    // the charge front sits at 55% of the viewport height
+    const front = window.innerHeight * 0.55 - chBox.top;
+    const clamped = Math.max(0, Math.min(total, front));
+    charge.style.height = clamped + 'px';
+
+    let lit = 0;
+    verts.forEach(v => {
+      const on = v.y <= clamped;
+      if (on) lit++;
+      const core = v.el.querySelector('.v-core');
+      const glow = v.el.querySelector('.v-glow');
+      const shell = v.el.querySelectorAll('.v-shell');
+      if (core){ core.setAttribute('fill', on ? '#D8D0BE' : '#4A4A4A'); core.setAttribute('opacity', on ? '1' : '.8'); }
+      if (glow) glow.setAttribute('opacity', on ? (v.anchor ? '.55' : '.3') : '0');
+      shell.forEach(s => s.setAttribute('stroke', on ? '#8F8F8F' : '#4A4A4A'));
+      if (v.conn) v.conn.classList.toggle('is-lit', on);
+      if (v.card) v.card.classList.toggle('is-lit', on);
+    });
+
+    const pct = total ? Math.round(clamped/total*100) : 0;
+    document.getElementById('readout').textContent =
+      `SIGNAL ${String(pct).padStart(2,'0')}% · VERTEBRA ${String(lit).padStart(2,'0')} / ${String(verts.length).padStart(2,'0')}`;
+  });
+}
+
+/* ---------- measured metrics, shown in the brief ---------- */
+function report(){
+  const l = colL.offsetHeight, r = colR.offsetHeight;
+  const tall = Math.max(l,r), short = Math.min(l,r);
+  document.getElementById('m-fill').textContent  = tall ? Math.round((l+r)/(tall*2)*100)+'%' : '—';
+  document.getElementById('m-delta').textContent = (tall-short) + 'px';
+  document.getElementById('m-verts').textContent = verts.length;
+  document.getElementById('m-posts').textContent = POSTS.length;
+}
+
+/* ---------- treatment switch ---------- */
+document.querySelector('.switch').addEventListener('click', e => {
+  const b = e.target.closest('button'); if(!b) return;
+  [...e.currentTarget.querySelectorAll('button')].forEach(x=>x.setAttribute('aria-pressed', String(x===b)));
+  treatment = b.dataset.t;
+  buildSpine(); onScroll();
+});
+
+/* ---------- boot ----------
+   Vertebrae are placed from measured card positions, so this has to wait
+   for images to decode — otherwise every anchor lands against a zero-height
+   card and the spine comes out bunched at the top. */
+function pass(){ deal(); requestAnimationFrame(()=>{ buildSpine(); onScroll(); }); }
+pass();
+Promise.all([...document.images].map(img =>
+  img.complete ? Promise.resolve() : new Promise(res => { img.onload = img.onerror = res; })
+)).then(() => {
+  pass();
+  // A third pass on a short delay. A broken image is swapped for a placeholder
+  // by its onerror handler, which changes that card's height AFTER the load
+  // promise settles — without this the deal is balanced against stale heights.
+  setTimeout(pass, 350);
+});
+
+// Any late height change (a font swapping in, a placeholder replacing an image)
+// invalidates the measured vertebra positions. Re-place them, but never re-deal
+// from inside the observer — that would feed its own trigger.
+if (window.ResizeObserver){
+  let rot; const ro = new ResizeObserver(() => {
+    clearTimeout(rot); rot = setTimeout(() => { buildSpine(); onScroll(); }, 120);
+  });
+  ro.observe(colL); ro.observe(colR);
+}
+
+window.addEventListener('scroll', onScroll, { passive:true });
+let rt; window.addEventListener('resize', () => {
+  clearTimeout(rt); rt = setTimeout(() => { deal(); requestAnimationFrame(()=>{ buildSpine(); onScroll(); }); }, 150);
+});
+</script>
+</body>
+</html>

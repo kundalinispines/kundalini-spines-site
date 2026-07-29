@@ -71,11 +71,13 @@ The only honest way to keep visitors on the page is a server\-side proxy returni
 
 The full reasoning is duplicated as a comment block at the top of `js/newsletter.js`, because that is where someone will be standing when they think about "simplifying" it.
 
-### Unverified
+### Deliverability — one good data point, not yet settled
 
-Whether Buttondown's confirmation emails land in inbox or spam. A brand\-new sender with no domain reputation, sending from a Gmail from\-address on a free tier, is the textbook spam case. **If it is happening it matters more than anything else in this document** — it is the strongest argument for custom\-domain sending once a domain exists.
+Buttondown's confirmation email **landed in the main inbox, not spam** (owner\-checked, July 29 2026). That was the largest risk hanging over the integration and it came back clean.
 
-* * *
+Treat it as encouraging rather than closed. It is a single delivery, almost certainly Gmail\-to\-Gmail, which is the most forgiving case there is. Outlook and Yahoo filter new senders harder. **A second test to a non\-Gmail address would actually settle it.**
+
+If spam does turn up later as the list grows, the fix is custom\-domain sending with proper SPF/DKIM — which Buttondown supports on the free tier and which becomes possible as soon as `kundalinispines.com` has DNS configured. That is the same prerequisite as publishing the site, so both unlock together.
 
 ## Social links
 
@@ -157,12 +159,12 @@ Also unmeasured: whether the channel has any videos yet. If it is empty, this wo
 Carried forward, minus what this session closed:
 
 - **Domain: CLOSED, not open.** `kundalinispines.com` is registered to the project, confirmed July 29 2026. The string sitting in `sitemap.xml` and `robots.txt` was written as a placeholder and turned out to be the real domain — those files are already correct. Both now say so in their comments, along with a warning not to submit the sitemap to a search engine until the site actually resolves at that host. What remains is **DNS configuration**, not a decision.
+- **Buttondown deliverability: mostly closed.** Confirmation email reached the main inbox. Outstanding only as a second test to a non\-Gmail address — see the Newsletter section.
 - **`explicit` is `null` on all 28 tracks.** Owner's decision: leave null for now. Nothing renders it today.
 - **Streaming links** — `spotify` / `appleMusic` / `youtubeMusic` / `stream` all `null` across all 28.
 - **`data/releases.json` is entirely `PLACEHOLDER`** — slug, title, date, cover, all four streaming links. Nothing reads it yet.
 - **Download links** \+ Stripe or Gumroad.
 - **TikTok and Spotify accounts** do not exist. Both remain in the footers as dead links by owner's decision.
-- **Buttondown deliverability is unverified** — whether confirmation emails land in inbox or spam. See the Newsletter section; this is the highest\-consequence unknown in this document.
 - **Accent hue collision** — may\-26th / blue\-pills, and uzi\-fruit / the\-33rd\-floor. Not adjacent in the running order, so nothing reads as repetitive yet.
 - **Video takes** chosen by name\-matching the approved still; most tracks have 2–4 takes and others may still be wrong.
 - **May 26th's cover→video crossfade has still never been watched.** It is the one still→video pair in the set nobody has seen.

@@ -172,6 +172,18 @@
       file: 'css/star-bg.css' },
     { v: '--star-twinkle-ms', label: 'twnk ms', min: 800, max: 12000, step: 100, unit: 'ms',
       file: 'css/star-bg.css' },
+    /* DESYNC — how far apart the four star bands run, and the A/B for the whole
+       four-band rebuild.
+         0 = all four on one clock with no delay. Because the band images are a
+             true PARTITION of what build 6 crushed out at runtime, this renders
+             build 6 exactly. It is an identity, not an approximation.
+         1 = the shipped spread: periods 1x / 1.37x / 1.79x / 2.31x, four phases.
+       If the sky reads as one object breathing, come UP. If it reads as too
+       busy, come DOWN this rather than pulling the amplitude — amplitude
+       changes how bright the twinkle is, desync changes whether it reads as a
+       sky at all. */
+    { v: '--star-desync', label: 'desync', min: 0, max: 1, step: 0.05, unit: '',
+      file: 'css/star-bg.css' },
     /* The soft glow on the nebula, separate from the star cores above. The stars
        flare from their whitest points; the clouds only swell. */
     { v: '--star-cloud',      label: 'cloud',   min: 0, max: 1.2, step: 0.02, unit: '',
@@ -258,12 +270,25 @@
      screen, so the glow can be judged against where they actually sit instead of
      from memory. The last two entries are the old diagnostic modes, kept because
      they cost nothing and found a real bug once. */
+  /* The six full-screen layers css/star-bg.css owns: base sky, four twinkle
+     bands, clouds. Kept as one string so a mode cannot hide five of six by
+     accident, which is how the old 'stars off' entry drifted. */
+  var STAR_LAYERS = 'body::before,body::after,html::before,html::after,main::before,main::after';
+  var KEEP_BANDS  = 'main::before,main::after{visibility:visible!important}';
+
   var ISOLATE = [
     ['— normal page —', ''],
     ['cards ghosted 12%', '.track-card,.track-hero-layer{opacity:.12!important}'],
     ['cards hidden', '.track-card,.track-hero-layer{visibility:hidden!important}'],
     ['cards + panel hidden', '.track-card,.track-hero-layer{visibility:hidden!important}.track-focus-panel{visibility:hidden!important}'],
-    ['spine only (all content off)', 'main,.footer,.nav{visibility:hidden!important}'],
+    /* KEEP-BANDS. Since star-bg.css build 8, two of the four star bands live on
+       main::before and main::after. `visibility` INHERITS into pseudo-elements,
+       so every mode that hides main also silently switches off half the sky —
+       which reads as "the twinkle broke" rather than as "this view mode hid
+       it". Every entry below that hides main puts the two pseudo-elements back
+       explicitly. Add the same clause to any new mode that hides main. */
+    ['spine only (all content off)',
+      'main,.footer,.nav{visibility:hidden!important}' + KEEP_BANDS],
     /* MASK ONLY. Swaps the artwork for a flat white column, so what is on screen
        is the MASK and nothing else — the band's top edge, the charge front and
        both feathers are directly visible and directly measurable.
@@ -273,12 +298,26 @@
        worked looked like it did nothing. Judge band/soft/bias here first, then
        switch back to "cards ghosted" to place it against the real cards. */
     ['mask only (flat column)',
-      'main,.footer,.nav{visibility:hidden!important}' +
+      'main,.footer,.nav{visibility:hidden!important}' + KEEP_BANDS +
       '.spine-bg__scan,.spine-bg__bloom{display:none!important}' +
       '.spine-bg__art{background-image:linear-gradient(#FFF,#FFF)!important;' +
       'background-size:var(--spine-w) 100%!important;background-position:50% 0!important}'],
     ['spine layer off', '.spine-bg{display:none!important}'],
-    ['stars off', 'body::before{display:none!important}'],
+    /* All six star layers, not just the base sky. Before build 8 there was only
+       one twinkle layer and this entry hid the sky alone, which left the cores
+       flickering over black and looked like the mode had not worked. */
+    ['stars off', STAR_LAYERS + '{display:none!important}'],
+    /* THE BAND VIEW. Base sky and clouds off, page content hidden, amplitude
+       forced to 1, so what is on screen is the four twinkle bands and nothing
+       else. This is where you can actually see whether they are running out of
+       phase — at the shipped 0.04 amplitude the movement is far too small to
+       judge, and at desync 0 versus 1 the difference here is unmistakable.
+       Forced with !important because the sliders write inline styles on <html>,
+       which would otherwise win. */
+    ['star bands only (amp 1)',
+      'body::before,html::after{display:none!important}' +
+      'main,.footer,.nav,.spine-bg{visibility:hidden!important}' + KEEP_BANDS +
+      ':root{--star-twinkle:1!important;--star-twinkle-hi:1!important}'],
     ['scrims off', '.newsletter::before,main>.section::before,.track-experience::before{display:none!important}']
   ];
   var isoStyle = document.createElement('style');

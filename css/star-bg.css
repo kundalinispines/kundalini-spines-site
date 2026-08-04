@@ -27,8 +27,7 @@
    lift the floor — the field is about twice as bright and twice as blue as the
    frame it came from, and under screen blending that is a blue cast added to the
    page's black everywhere the nebula is not. --star-dim and --star-sat both
-   attenuate it; at the shipped 0.55 / 0.45 it lands close to where the raw frame
-   sat unattenuated. Worth knowing before either slider goes up.
+   attenuate it. Worth knowing before either slider goes up.
 
    THE BLUE IS THE THING TO WATCH. css/spine-bg.css opens with a rule — the
    hero is essentially colourless, 2-7% saturation, do not re-warm it — and that
@@ -41,8 +40,11 @@
 
 :root {
   /* Bumped on every change, same reason as --spine-build: a browser sitting on
-     a cached stylesheet is indistinguishable from a change that did not work. */
-  --star-build: 6;
+     a cached stylesheet is indistinguishable from a change that did not work.
+     8 = four-band twinkle, plus the cloud layer's transform replaced by a
+     negative inset (worth 63 -> 88 fps, see html::after below). 6 was the
+     single lockstep cores layer. */
+  --star-build: 8;
 
   /* Brightness of the whole field. 0 is off — the layer still exists but adds
      no light, and under screen blending (see below) that is exactly the same
@@ -60,7 +62,7 @@
   --star-sat: 1;
 
   /* ---- TWINKLE ----------------------------------------------------------
-     Amplitude of the twinkle layer, 0 = off (dead static sky).
+     Amplitude of the twinkle layers, 0 = off (dead static sky).
      --star-twinkle is the idle state, always running. --star-twinkle-hi
      replaces it while a sample is playing, driven by the same is-spine-pulsing
      flag on <html> that makes the spine column breathe — so the sky and the
@@ -73,6 +75,24 @@
   --star-twinkle: 0.04;
   --star-twinkle-hi: 0.32;
   --star-twinkle-ms: 7700ms;
+
+  /* ---- DESYNC -----------------------------------------------------------
+     HOW FAR APART THE FOUR STAR BANDS RUN. This is the control the whole
+     four-band rebuild exists to expose, and it is a true A/B:
+
+       0 = every band on the same period with no delay. Because the four band
+           images are an exact PARTITION of the old single cores layer (see
+           "THE FOUR BANDS" below), desync 0 renders pixel-for-pixel what
+           --star-build 6 rendered. Not approximately. Identically.
+       1 = the shipped spread — periods 1x / 1.37x / 1.79x / 2.31x and four
+           different start phases, so neighbouring stars are almost never doing
+           the same thing at the same time.
+
+     Anything between is a linear interpolation of both the periods and the
+     phases. If the sky ever reads as too busy, come down this slider rather
+     than reaching for the amplitude: amplitude changes how bright the twinkle
+     is, desync changes whether it reads as a sky or as one object breathing. */
+  --star-desync: 1;
 
   /* The soft glow on the nebula, independent of the star twinkle above so each
      slider does one thing: turning the stars off leaves the clouds breathing,
@@ -133,48 +153,92 @@ body::before {
    Do not give body a z-index or a transform: either would make body a stacking
    context, the -1 would then be trapped inside it, and the blend would resolve
    against body's own transparent backdrop instead of the page — the same trap
-   documented under "NO z-index HERE" in css/spine-bg.css, one level up. */
+   documented under "NO z-index HERE" in css/spine-bg.css, one level up.
+
+   THE SAME NOW APPLIES TO <main>, which carries two of the four band layers
+   below. main is `position: static` with no transform, filter, opacity,
+   isolation, contain or will-change on any page, and it must stay that way.
+   Verified in a real browser on 2026-08-04 by rendering probe layers from
+   html::before, main::before and main::after at once: all three composited
+   against the page exactly as body::after does. If someone ever puts a
+   transform on main for an entrance animation, bands 3 and 4 will silently
+   stop screening against the page and start screening against main's own
+   transparent box, which renders as a faint grey rectangle — the same failure
+   HANDOFF 7 records for .spine-bg. */
 
 /* ==========================================================================
-   TWINKLE — the star cores, and a soft glow on the clouds.
+   TWINKLE — four star bands, and a soft glow on the clouds.
 
-   CORRECTED 2026-08-04. The first version of this got the mechanism wrong: the
-   twinkle layer was MIRRORED and scaled, on the theory that offsetting it would
-   stop every star pulsing in lockstep. It did — but at the cost of putting the
-   winking points exactly where the sky has NO stars. It was not making the stars
-   twinkle, it was inventing a second set of them in the gaps. Registered is the
-   only correct answer: the light has to land back on the star that is already
-   there.
+   HISTORY, because both wrong turns are instructive and neither is obvious.
 
-   TWO LAYERS, BOTH PIXEL-REGISTERED WITH THE BASE SKY.
+   WRONG TURN 1 (fixed 2026-08-04). The twinkle layer was MIRRORED and scaled,
+   on the theory that offsetting it would stop every star pulsing in lockstep.
+   It did — but at the cost of putting the winking points exactly where the sky
+   has NO stars. It was not making the stars twinkle, it was inventing a second
+   set of them in the gaps. Registered is the only correct answer: the light has
+   to land back on the star that is already there.
 
-   1. body::after — THE CORES. The same frame, same position, same size, NO
-      transform of any kind, crushed with contrast(9) so that everything below
-      roughly L 128 is gone before compositing and only the whitest points of the
-      existing stars survive. Screened back over itself, those cores flare
-      brighter and settle: screen(x, x) takes a core at 0.85 to 0.98, while a
-      nebula pixel that the crush already took to 0 adds exactly nothing.
+   WRONG TURN 2 (fixed here, build 7). Registering it fixed the position and
+   left the real complaint untouched: ONE layer means ONE opacity animation,
+   so every star in the sky brightens and dims on the same clock. Worse, the
+   crush is not evenly spread — MEASURED, 11 blobs larger than 1024px carry
+   50.2% of the whole layer's light, and those eleven pulsing together is what
+   reads as the sky breathing as a single object rather than as weather.
 
-   2. html::after — THE CLOUDS. The same frame again, heavily blurred and held at
-      low amplitude, so the nebula swells and settles as a soft glow rather than
-      twinkling. Blur is what separates this from layer 1: it destroys the point
-      structure, so no star can wink here, and what is left is the broad shape of
-      the dust. Scaled 1.06 only because blur() pulls transparency in from
-      outside the element and would otherwise leave the glow thinning at the
-      viewport edges — at 22px of blur there is no point structure left to
-      misregister, so this costs nothing.
+   THE FIX: FOUR BANDS ON FOUR CLOCKS.
 
-   html::after and body::after are BOTH available without adding markup, which is
-   what keeps this file a single <link> with no script. Both sit at z-index -1
-   and stack in tree order: html::after, then body::before, then body::after.
+   The cores are pre-split into four images, each holding roughly a quarter of
+   the stars, each animated on its own period and phase. Neighbouring stars land
+   in different bands, so nothing on screen shares a clock with the thing next
+   to it.
 
-   The two run at different periods — the clouds at 2.7x the stars — so they
-   drift in and out of phase and the sky does not loop visibly.
+   HOW THE BANDS WERE BUILT (scripts are not in the repo; this is the recipe):
+     1. cores = contrast(9) applied to starfield-deep-4k.webp, per channel —
+        i.e. exactly what build 6 did at runtime, now baked.
+     2. Connected-component label the surviving pixels. 1143 blobs.
+     3. Deal blobs largest-light-first into whichever band is currently dimmest.
+        MEASURED RESULT: every band carries 25.00% of the total light, and a
+        star's nearest neighbour is in the same band 27.8% of the time against
+        25.0% for chance. Balanced and spatially decorrelated at once.
+     4. Write each band as its own full-frame image, black everywhere else.
 
-   MEASURED at 1440x900, each layer frozen at opacity 1 against both off, with
-   the delta sorted by how bright the BASE SKY already is at that pixel. This is
-   the test the mirrored version failed, and it is the one to repeat if either
-   layer is ever touched:
+   NOTE ON STEP 3: HANDOFF 8 proposed splitting by BRIGHTNESS — "sample the
+   cores into a handful of alpha bands". That was tried on paper and rejected:
+   brightness bands put every bright star on the same clock, and the bright
+   stars are exactly the ones you look at, so the lockstep would have survived
+   where it is most visible. Balancing light across bands while randomising
+   which band each star lands in decorrelates the thing the eye actually reads.
+
+   LOSSLESS, NOT q90. The band images are WEBP LOSSLESS and that is
+   load-bearing, not a quality preference. Lossy encoding rings around every
+   star core, and ringing in a mostly-black frame is light in the EMPTY SKY —
+   the precise failure mode the +0.00 rows in the table below certify against.
+   Lossless also happens to be half the size here (13 KB vs 27 KB per band),
+   because the frame is mostly exact black and lossy spends its bits on the
+   ringing. Verified: round-trip error 0.00000, and zero lit pixels outside
+   each band's own blobs. 56 KB for all four.
+
+   WHY DESYNC 0 IS EXACTLY BUILD 6, and why that is a proof rather than a hope:
+   the four images are DISJOINT and their union is byte-identical to build 6's
+   crushed layer. A screen-blended element at opacity o composites to
+   (1-o)*backdrop + o*screen(backdrop, source); where source is black,
+   screen(backdrop, 0) = backdrop, so the whole expression collapses to
+   backdrop. A band is therefore a perfect no-op everywhere it is black,
+   whatever its opacity. So at any pixel exactly one band is doing anything and
+   it does exactly what the single layer did. Set --star-desync: 0 and you are
+   looking at build 6, not at an approximation of it.
+
+   TWO LAYERS PER ELEMENT IS THE CEILING, AND WHY THERE ARE SIX SLOTS.
+   With no markup to add, animatable full-screen layers come only from
+   pseudo-elements: html::before, html::after, body::before, body::after,
+   main::before, main::after. That is six, and they are all now spoken for —
+   base sky, four bands, clouds. A fifth band needs either markup or the
+   clouds' slot. Do not go looking for a seventh; there isn't one.
+
+   MEASURED at 1440x900 on build 6, each layer frozen at opacity 1 against both
+   off, with the delta sorted by how bright the BASE SKY already is at that
+   pixel. Build 7 does not change these figures — the bands are a partition of
+   the same pixels — but this is the test to repeat if either layer is touched:
 
      base sky band            stars      clouds
      empty field  (<p50)      + 0.00     + 2.83
@@ -186,16 +250,15 @@ body::before {
    Read the stars column downward: the light is +113.66 on the cores, +30.18 on
    their halos, and EXACTLY ZERO on the nebula, the dust and the empty sky. It
    cannot light anything that was not already a star, which is the correction.
-   The clouds column is the mirror image — broad through the dust and the nebula,
-   almost nothing on the cores, which are already near clipping and blurred away
-   besides.
+   The clouds column is the mirror image — broad through the dust and the
+   nebula, almost nothing on the cores, which are already near clipping and
+   blurred away besides.
 
-   Concentration says the same thing another way: 70% of the star layer's light
+   Concentration says the same thing another way: 70% of the star layers' light
    falls in 0.185% of the frame, against 29.868% for the clouds. Points versus
-   glow. Whole-frame lift at opacity 1 is +0.41 for the stars and +9.68 for the
-   clouds. BOTH SLIDERS SHIP FAR BELOW THE AMPLITUDES THOSE FIGURES DESCRIBE:
+   glow. BOTH SLIDERS SHIP FAR BELOW THE AMPLITUDES THOSE FIGURES DESCRIBE:
    --star-cloud is 0.02 and --star-twinkle 0.04, so the real opacities are
-   fractions of a percent and the page-black lift is nil. The table above is the
+   fractions of a percent and the page-black lift is nil. The table is the
    measurement of what each layer DOES at full strength — read it to understand
    which layer puts light where, not to predict the shipped page.
 
@@ -203,38 +266,114 @@ body::before {
    records for the playback pulse, it does not report interpolated animation
    values and reads flat while the pixels are plainly moving. Screenshot it.
    ========================================================================== */
-body::after {
+
+/* The shared shape of a band. NO transform of any kind: registration with the
+   base layer is wrong turn 1's correction and it applies to all four. */
+body::after,
+html::before,
+main::before,
+main::after {
   content: "";
   position: fixed;
   inset: 0;
   z-index: -1;
   pointer-events: none;
-  background-image: url("../assets/hero/starfield-deep-4k.webp");
   background-position: 50% 50%;
   background-size: cover;
   background-repeat: no-repeat;
-  /* NO transform. Registration with the base layer is the whole correction —
-     any flip, scale or offset here puts the twinkle back in the empty sky. */
-  /* Order matters: saturate and contrast run BEFORE brightness, so the crush
-     happens against the original levels. Putting brightness first would pull the
-     cores below the contrast pivot and crush the stars along with the nebula. */
-  filter: saturate(var(--star-sat)) contrast(9) brightness(1.2);
+  /* contrast(9) is BAKED into the band images, so only the two live controls
+     remain. Build 6 ran saturate(sat) contrast(9) brightness(1.2) and the order
+     mattered — the crush had to happen against the original levels. Baking it
+     removes that trap entirely, and at the shipped --star-sat: 1 the result is
+     identical because saturate(1) is the identity. Above or below 1 the slider
+     now recolours the flare instead of changing which stars survive the crush,
+     which is the more useful of the two behaviours anyway. */
+  filter: saturate(var(--star-sat)) brightness(1.2);
   mix-blend-mode: screen;
   opacity: 0;
-  animation: star-twinkle var(--star-twinkle-ms) ease-in-out infinite;
+  animation-name: star-twinkle;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
 }
 
+/* Per-band period and phase. Both are scaled by --star-desync so that 0 puts
+   every band back on band 1's clock with no delay.
+
+   The multipliers are 1 / 1.37 / 1.79 / 2.31 — no pair of them is close to a
+   ratio of small integers, so the four never come back into alignment on any
+   timescale anyone is going to watch. The negative delays start each band part
+   way through its own cycle, so they are already spread apart on the first
+   frame rather than converging into spread over the first half minute.
+
+   ONE WAVEFORM FOR ALL FOUR, deliberately. A second set of keyframes for the
+   even bands was tried on paper and dropped: it would have made --star-desync: 0
+   merely similar to build 6 instead of identical to it, and that identity is
+   the only reason the slider can be trusted as an A/B. */
+body::after   { animation-duration: var(--star-twinkle-ms);
+                animation-delay: 0ms;
+                background-image: url("../assets/hero/starfield-cores-1.webp"); }
+html::before  { animation-duration: calc(var(--star-twinkle-ms) * (1 + 0.37 * var(--star-desync)));
+                animation-delay:    calc(var(--star-twinkle-ms) * -0.34 * var(--star-desync));
+                background-image: url("../assets/hero/starfield-cores-2.webp"); }
+main::before  { animation-duration: calc(var(--star-twinkle-ms) * (1 + 0.79 * var(--star-desync)));
+                animation-delay:    calc(var(--star-twinkle-ms) * -0.66 * var(--star-desync));
+                background-image: url("../assets/hero/starfield-cores-3.webp"); }
+main::after   { animation-duration: calc(var(--star-twinkle-ms) * (1 + 1.31 * var(--star-desync)));
+                animation-delay:    calc(var(--star-twinkle-ms) * -1.08 * var(--star-desync));
+                background-image: url("../assets/hero/starfield-cores-4.webp"); }
+
+/* THE CLOUDS. The same frame again, heavily blurred and held at low amplitude,
+   so the nebula swells and settles as a soft glow rather than twinkling. Blur
+   is what separates this from the bands: it destroys the point structure, so no
+   star can wink here, and what is left is the broad shape of the dust. Scaled
+   1.06 only because blur() pulls transparency in from outside the element and
+   would otherwise leave the glow thinning at the viewport edges — at 22px of
+   blur there is no point structure left to misregister, so this costs nothing
+   visually — but see the frame-rate note below for what it used to cost.
+
+   Its period is 2.7x the base, unrelated to the band multipliers, so it drifts
+   against all four.
+
+   THE OVERSCAN IS `inset: -3%`, NOT `transform: scale(1.06)`. Those two are
+   algebraically identical — both give a fixed box 106% of the viewport in each
+   axis, centred, and the measured geometry matches to 0.1px — but on real
+   hardware they cost wildly different amounts.
+
+   MEASURED, 2026-08-04, real GPU, 1920x855 at dpr 1, 220 frames per run, each
+   configuration run twice:
+
+       transform: scale(1.06)      63 fps    p95 frame 29.9ms
+       inset: -3%, no transform    88 fps    p95 frame 14.1ms
+
+   That is a THIRD OF THE PAGE'S FRAME RATE for a layer shipping at
+   --star-cloud: 0.02, which is close enough to off that HANDOFF 8 describes it
+   as "effectively off". The cost was isolated by elimination and it is
+   specifically the transform:
+
+       blur removed entirely       63 fps    no help
+       blur reduced to 8px         63 fps    no help
+       animation paused            63 fps    no help
+       transform removed           89 fps    full recovery
+       display: none               88 fps    same as removing the transform
+
+   So it is not the 22px blur, not the animation and not the layer's existence —
+   a transform on this pseudo-element takes it off the cheap path and nothing
+   else does. DO NOT PUT A TRANSFORM BACK HERE. If the glow ever needs more
+   overscan, make the inset more negative.
+
+   The same question is worth asking of any other always-on transformed layer on
+   this page; this one was found only because the four-band work prompted a
+   frame-time baseline, and it had been shipping since build 5. */
 html::after {
   content: "";
   position: fixed;
-  inset: 0;
+  inset: -3%;
   z-index: -1;
   pointer-events: none;
   background-image: url("../assets/hero/starfield-deep-4k.webp");
   background-position: 50% 50%;
   background-size: cover;
   background-repeat: no-repeat;
-  transform: scale(1.06);
   filter: saturate(var(--star-sat)) blur(22px) brightness(0.85);
   mix-blend-mode: screen;
   opacity: 0;
@@ -244,7 +383,7 @@ html::after {
 /* Uneven keyframe spacing, so one cycle does not read as a sine wave. Nothing
    here touches background-position: drifting stars look like a moving camera,
    not like atmosphere. Opacity only, which the compositor handles without
-   repainting either layer. */
+   repainting any layer. */
 @keyframes star-twinkle {
   0%   { opacity: calc(var(--star-twinkle-amp) * 0.10); }
   17%  { opacity: calc(var(--star-twinkle-amp) * 0.66); }
@@ -274,6 +413,9 @@ html::after {
        rest of this block. */
     --star-twinkle: 0.03;
     --star-twinkle-hi: 0.25;
+    /* --star-desync is NOT overridden. The crop shows fewer stars, which makes
+       lockstep MORE obvious rather than less, so the phone wants at least as
+       much spread as the desktop. */
     /* --star-cloud is NOT overridden here any more. At the shipped 0.02 the
        difference between a desktop and a phone amplitude is far below anything
        visible, so a second number would be noise pretending to be a decision.
@@ -283,8 +425,9 @@ html::after {
 
 @media (prefers-reduced-motion: reduce) {
   /* No twinkle at all. It is decorative movement with no information in it —
-     the same call css/spine-bg.css makes for the playback pulse. The layer is
+     the same call css/spine-bg.css makes for the playback pulse. The layers are
      left in the tree at opacity 0 rather than display:none so that turning
      reduced motion off does not require a reload. */
-  body::after, html::after { animation: none; opacity: 0; }
+  body::after, html::before, main::before, main::after,
+  html::after { animation: none; opacity: 0; }
 }

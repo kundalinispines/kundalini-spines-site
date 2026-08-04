@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>Spine background — image reference, scroll-charge test</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&family=Big+Shoulders+Stencil:wght@700;900&family=Source+Serif+4:opsz,wght@8..60,400&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ==========================================================================
+   SPINE BACKGROUND — image version (Style A artwork, 2K regeneration)
+   Artwork: 1536 x 2752 WebP q84, 170 KB. MEASURED, not guessed:
+     - the glowing spine occupies 25.07% of the image width, centred at 0.4997
+     - lit content runs y 255..2465; the top 9.3% and bottom 10.4% fade to black
+   The 2K regen is a pixel-exact 2x of the 768x1376 first pass and holds the
+   same composition (spine frac 0.2507 vs 0.2460, centre 0.4997 vs 0.4987), so
+   it is a drop-in replacement. WebP q84 measures 1.07/255 mean absolute
+   difference against the source PNG — not visibly lossy, and 170 KB against
+   5.1 MB.
+   Those two numbers drive every size below. If the artwork is ever regenerated
+   at a different crop, re-measure them or the spine will not sit where the
+   CSS thinks it does.
+   ========================================================================== */
+:root{
+  --color-black:#050505; --color-white:#F2F2EE; --color-bone:#D8D0BE;
+  --color-crimson-lit:#8A1414; --color-moonlight:#34455B;
+  --gray-800:#141414; --gray-700:#1F1F1F; --gray-600:#2E2E2E;
+  --gray-500:#4A4A4A; --gray-400:#6B6B6B; --gray-300:#8F8F8F;
+  --font-display:'Big Shoulders Display',sans-serif;
+  --font-stencil:'Big Shoulders Stencil',sans-serif;
+  --font-body:'Source Serif 4',Georgia,serif;
+  --font-mono:'IBM Plex Mono',monospace;
+  --s4:1rem; --s6:1.5rem; --s8:2rem; --s12:3rem; --s16:4rem; --s24:6rem;
+
+  --charge:0;          /* 0..1, written by JS every scroll frame */
+  --spine-w:300px;     /* how wide the SPINE ITSELF renders. Tunable in the bar. */
+  --img-ar:1.79167;    /* 1376/768 — image height / image width */
+  --spine-frac:0.2507; /* measured: spine width / image width, 2K artwork */
+  --dim:0.20;          /* brightness of the uncharged column */
+}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--color-black);color:var(--color-white);
+  font-family:var(--font-body);line-height:1.6;-webkit-font-smoothing:antialiased}
+h2{font-family:var(--font-display);font-weight:700;letter-spacing:.02em;margin:0 0 var(--s4);
+  font-size:clamp(2rem,4vw,3.5rem)}
+.stencil{font-family:var(--font-stencil)}
+.label{font-family:var(--font-mono);font-size:.8125rem;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--gray-300)}
+.container{max-width:1280px;margin-inline:auto;padding-inline:var(--s6)}
+p{max-width:65ch}
+
+/* ---- review chrome. Not part of the design; strip it when this ships. ---- */
+.switch{position:fixed;top:0;left:0;right:0;z-index:200;display:flex;align-items:center;
+  gap:0;background:rgba(5,5,5,.93);border-bottom:1px solid var(--gray-600);
+  backdrop-filter:blur(8px);font-family:var(--font-mono);font-size:.72rem;flex-wrap:wrap}
+.switch b{padding:.6rem .9rem;color:var(--gray-400);font-weight:500;letter-spacing:.12em;
+  text-transform:uppercase;border-right:1px solid var(--gray-700)}
+.switch button{background:none;border:0;border-right:1px solid var(--gray-700);
+  color:var(--gray-300);padding:.6rem .9rem;cursor:pointer;font:inherit;
+  letter-spacing:.1em;text-transform:uppercase}
+.switch button:hover{color:var(--color-white);background:var(--gray-800)}
+.switch button[aria-pressed=true]{color:var(--color-black);background:var(--color-bone)}
+.switch label{display:flex;align-items:center;gap:.5rem;padding:.6rem .9rem;
+  color:var(--gray-400);border-right:1px solid var(--gray-700);letter-spacing:.08em;
+  text-transform:uppercase}
+.switch input[type=range]{width:110px;accent-color:var(--color-bone)}
+.switch .readout{margin-left:auto;padding:.6rem .9rem;color:var(--gray-400);
+  border-left:1px solid var(--gray-700)}
+.switch .warn{padding:.6rem .9rem;color:#C08A5A;border-right:1px solid var(--gray-700)}
+.switch .warn.ok{color:#7FB37F}
+.switch .warn.bad{color:#D8534F;font-weight:500}
+
+.fakehero{height:100svh;display:grid;place-items:center;text-align:center;
+  background:radial-gradient(ellipse at 50% 60%,#141a20 0%,#050505 70%);
+  border-bottom:1px solid var(--gray-700)}
+.fakehero h1{font-family:var(--font-stencil);font-size:clamp(2.75rem,6vw,6rem);
+  line-height:1.05;margin:0 0 var(--s4);text-transform:uppercase}
+
+/* ==========================================================================
+   THE LAYER
+   Two copies of the same artwork, stacked and pixel-identical:
+     DIM  — always on, brightness cranked down, this is the "uncharged" spine
+     LIT  — full brightness, revealed by a mask whose stop tracks scroll
+   Only the mask moves. A scroll frame writes ONE custom property and triggers
+   no layout. The filters are static, so each layer rasterises once.
+   ========================================================================== */
+.charged{position:relative}
+.spinebg{position:absolute;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+
+.spinebg__img{position:absolute;inset:0;
+  background-image:var(--art);
+  background-position:center top;
+  /* repeat-y is the DEFAULT, and it is load-bearing on mobile. At 1440x900 one
+     copy is 2185px against a 2125px region, so it never tiles and this looks
+     like a no-op. At 390x844 the region grows to 2205px while the artwork
+     shrinks to 1383px — measured — and the bottom THIRD of the page had no
+     spine on it at all. Do not switch this back to no-repeat. */
+  background-repeat:repeat-y;
+  /* width is derived from the MEASURED spine fraction, so --spine-w means what
+     it says: the glowing column renders that wide, whatever the artwork's
+     margins happen to be. */
+  background-size:calc(var(--spine-w) / var(--spine-frac)) auto;
+}
+/* fit mode: one copy scaled so the artwork's lit run covers the whole region */
+[data-fit="cover"] .spinebg__img{background-size:auto 100%}
+/* single-copy mode: one tile only, for judging the artwork uninterrupted */
+[data-fit="single"] .spinebg__img{background-repeat:no-repeat}
+
+.spinebg__img--dim{filter:brightness(var(--dim)) saturate(.55) contrast(1.05)}
+
+.spinebg__img--lit{
+  filter:brightness(1.06) contrast(1.04);
+  -webkit-mask-image:linear-gradient(to bottom,
+    #000 0,
+    #000 calc(var(--charge) * 100% - 90px),
+    rgba(0,0,0,.55) calc(var(--charge) * 100% - 20px),
+    rgba(0,0,0,0) calc(var(--charge) * 100% + 14px),
+    rgba(0,0,0,0) 100%);
+  mask-image:linear-gradient(to bottom,
+    #000 0,
+    #000 calc(var(--charge) * 100% - 90px),
+    rgba(0,0,0,.55) calc(var(--charge) * 100% - 20px),
+    rgba(0,0,0,0) calc(var(--charge) * 100% + 14px),
+    rgba(0,0,0,0) 100%);
+}
+
+/* A bloom riding the front, so it reads as a travelling event rather than as
+   the edge of a mask. */
+.spinebg__bloom{position:absolute;inset:0;
+  background:radial-gradient(30% 14% at 50% calc(var(--charge) * 100%),
+    rgba(255,232,186,.26) 0%, rgba(255,180,90,.08) 45%, transparent 72%)}
+
+/* The crimson scan line — the hero video's laser, echoed.
+   --beam is 0..1 and scales the WHOLE beam: line, falloff and halo together.
+   Driving opacity rather than the colour stops is deliberate — the gradient
+   and the box-shadow then dim in step, so turning it down reads as the beam
+   receding rather than as a red line sitting on a red glow.
+
+   MEASURED: opacity alone cannot go above 1, so a slider running past 100%
+   was dead above the midpoint — it read as "the beam has no more headroom"
+   when really the control was doing nothing. Above 1, --beam drives a
+   brightness filter instead, which lifts the gradient and the halo together. */
+.spinebg__scan{position:absolute;left:0;right:0;height:2px;
+  top:calc(var(--charge) * 100%);
+  opacity:min(1, var(--beam,1));
+  filter:brightness(max(1, var(--beam,1)));
+  background:linear-gradient(to right,transparent 0%,rgba(138,20,20,0) 12%,
+    var(--color-crimson-lit) 42%,#C8302E 50%,var(--color-crimson-lit) 58%,
+    rgba(138,20,20,0) 88%,transparent 100%);
+  box-shadow:0 0 14px 2px rgba(200,48,46,.45)}
+
+/* Content sits above. Scrim is deliberately WEAK — an earlier pass used a
+   near-opaque radial per section and erased the spine behind every block,
+   which defeats the layer. Legibility comes from the text-shadow. */
+.sec{position:relative;z-index:1;padding-block:var(--s24)}
+.sec .container{text-shadow:0 2px 14px rgba(5,5,5,.95),0 0 3px rgba(5,5,5,.9)}
+.sec__scrim{position:absolute;inset:0;z-index:-1;
+  background:radial-gradient(58% 46% at 50% 50%,rgba(5,5,5,.72) 0%,rgba(5,5,5,.34) 60%,transparent 100%)}
+
+.carousel-mock{height:640px;display:flex;align-items:center;justify-content:center;gap:2px}
+.carousel-mock i{display:block;background:var(--gray-800);border:1px solid var(--gray-600);
+  box-shadow:0 20px 60px rgba(0,0,0,.8)}
+.carousel-mock i:nth-child(1),.carousel-mock i:nth-child(5){width:170px;height:170px;opacity:.5}
+.carousel-mock i:nth-child(2),.carousel-mock i:nth-child(4){width:250px;height:250px;opacity:.75}
+.carousel-mock i:nth-child(3){width:462px;height:462px;opacity:1;
+  border-color:var(--gray-500);background:var(--gray-700)}
+
+.newsletter-mock{text-align:center}
+.newsletter-mock form{display:flex;gap:.5rem;justify-content:center;margin-top:var(--s6);flex-wrap:wrap}
+.newsletter-mock input{background:var(--gray-800);border:1px solid var(--gray-600);
+  color:var(--color-white);padding:.8rem 1rem;font:inherit;min-width:280px}
+.newsletter-mock button{background:var(--color-bone);color:var(--color-black);border:0;
+  padding:.8rem 1.6rem;font-family:var(--font-display);font-weight:700;
+  letter-spacing:.06em;text-transform:uppercase;cursor:pointer}
+.bio-mock{display:grid;grid-template-columns:1fr 1fr;gap:var(--s12);align-items:center}
+.bio-mock .ph{aspect-ratio:16/9;background:var(--gray-800);border:1px solid var(--gray-600)}
+.foot{position:relative;z-index:1;border-top:1px solid var(--gray-600);padding-block:var(--s12);
+  font-family:var(--font-mono);font-size:.8125rem;color:var(--gray-400);
+  display:flex;justify-content:space-between;flex-wrap:wrap;gap:var(--s4)}
+
+@media (max-width:900px){
+  .bio-mock{grid-template-columns:1fr}
+  .carousel-mock i:nth-child(1),.carousel-mock i:nth-child(5),
+  .carousel-mock i:nth-child(2),.carousel-mock i:nth-child(4){display:none}
+  .carousel-mock i:nth-child(3){width:min(80vw,360px);height:min(80vw,360px)}
+  .carousel-mock{height:auto;padding-block:var(--s16)}
+  :root{--spine-w:190px}
+}
+@media (prefers-reduced-motion:reduce){
+  /* No travelling front. The column is simply lit, all of it, statically. */
+  .spinebg__img--lit{-webkit-mask-image:none;mask-image:none}
+  .spinebg__scan,.spinebg__bloom{display:none}
+}
+</style>
+</head>
+<body data-fit="width">
+
+<div class="switch" role="group" aria-label="Test controls">
+  <b>Image spine</b>
+  <button type="button" data-fit="width" aria-pressed="true">Fixed width</button>
+  <button type="button" data-fit="cover" aria-pressed="false">Fit height</button>
+  <button type="button" data-fit="single" aria-pressed="false">Single copy</button>
+  <label>Spine <input type="range" id="w" min="140" max="640" step="10" value="300"><span id="wv">300</span></label>
+  <label>Dim <input type="range" id="d" min="0" max="60" step="2" value="20"><span id="dv">20%</span></label>
+  <label>Beam <input type="range" id="beam" min="0" max="150" step="5" value="100"><span id="beamv">100%</span></label>
+  <span class="warn" id="warn" hidden>artwork not loaded</span>
+  <span class="readout" id="readout">charge 0%</span>
+</div>
+
+<section class="fakehero">
+  <div>
+    <h1>Knowledge Hidden<br>in Plain Sight</h1>
+    <p class="label">scroll — the spine charges from here to the footer</p>
+  </div>
+</section>
+
+<div class="charged" id="charged">
+  <div class="spinebg" id="spinebg" aria-hidden="true">
+    <div class="spinebg__img spinebg__img--dim"></div>
+    <div class="spinebg__img spinebg__img--lit"></div>
+    <div class="spinebg__bloom"></div>
+    <div class="spinebg__scan"></div>
+  </div>
+
+  <section class="sec" id="tracks">
+    <div class="sec__scrim"></div>
+    <div class="container">
+      <span class="label">Music</span>
+      <h2 class="stencil">Enter the Tracks</h2>
+      <p style="color:var(--color-bone)">Carousel stand-in — the real 640px viewport and 462px hero box, so the spine's scale against the cards is honest.</p>
+    </div>
+    <div class="carousel-mock"><i></i><i></i><i></i><i></i><i></i></div>
+  </section>
+
+  <section class="sec">
+    <div class="sec__scrim"></div>
+    <div class="container newsletter-mock">
+      <span class="label">Stay Connected</span>
+      <h2>Stay Connected to the Signal</h2>
+      <p style="margin-inline:auto;color:var(--color-bone)">Receive new music, transmissions, visual releases, and limited announcements directly from Kundalini Spines. No constant noise. Only meaningful signals.</p>
+      <form onsubmit="return false"><input placeholder="you@email.com"><button>Join the Signal</button></form>
+    </div>
+  </section>
+
+  <section class="sec">
+    <div class="sec__scrim"></div>
+    <div class="container bio-mock">
+      <div class="ph"></div>
+      <div>
+        <span class="label">About</span>
+        <h2>Two Messengers. One Signal.</h2>
+        <p style="color:var(--color-bone)">Kundalini Spines is a two-member creative and musical project moving between underground hip-hop, mysticism, symbolism, street experience, ancient knowledge, and speculative thought.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer class="foot container">
+    <span>KUNDALINI SPINES</span><span>Knowledge Hidden in Plain Sight</span><span>&copy; 2026</span>
+  </footer>
+</div>
+
+<script>
+/* ==========================================================================
+   ARTWORK SOURCE — local first, CDN as a fallback.
+   Nothing to edit. Drop the WebP at assets/hero/spine-column.webp and this
+   picks it up on the next reload; until then it runs off the Higgsfield CDN so
+   the page is never blank.
+   The CDN path is TEST ONLY and must not ship: every other image on this site
+   is a locally optimised asset, and hotlinking would put an offsite request on
+   a page that currently makes none. The status chip in the bar says which one
+   is live, so "it works on my machine" can never hide a missing file.
+   ========================================================================== */
+const ART_LOCAL = 'assets/hero/spine-column.webp';
+const ART_CDN   = 'https://d2ol7oe51mr4n9.cloudfront.net/user_3Go1BxGWZSyIN1UN8GdFv5DdS50/9cd7e8fe-a841-47a5-b1ff-42e0453bd52a.webp';
+
+function useArt(src, label, cls){
+  document.documentElement.style.setProperty('--art', `url("${src}")`);
+  const w = document.getElementById('warn');
+  w.hidden = false; w.textContent = label; w.className = 'warn ' + cls;
+  w.title = 'resolved to: ' + new URL(src, location.href).href;
+  console.log('[spine] using', new URL(src, location.href).href);
+}
+
+/* If the page is not being served over http, say so FIRST. A relative asset
+   path cannot resolve inside a sandboxed preview frame or from a blob: URL,
+   and the failure looks identical to a missing file — which is exactly the
+   wrong diagnosis to hand someone who just saved the file correctly. */
+if (!location.protocol.startsWith('http')) {
+  const w = document.getElementById('warn');
+  w.hidden = false; w.className = 'warn bad';
+  w.textContent = 'not served over http (' + location.protocol + ') — relative assets cannot resolve; run python -m http.server';
+}
+/* Probe the local file first. onerror fires for a 404 as well as a bad decode,
+   so this covers "not saved yet" and "saved but corrupt" alike. */
+const probe = new Image();
+probe.onload  = () => useArt(ART_LOCAL, 'local asset', 'ok');
+probe.onerror = () => {
+  const cdn = new Image();
+  cdn.onload  = () => useArt(ART_CDN, 'CDN fallback — save the WebP locally before committing', '');
+  cdn.onerror = () => useArt(ART_CDN, 'ARTWORK FAILED TO LOAD', 'bad');
+  cdn.src = ART_CDN;
+};
+probe.src = ART_LOCAL;
+
+const charged = document.getElementById('charged');
+const readout = document.getElementById('readout');
+
+/* MEASURED BUG, do not "simplify" this back.
+   The obvious formula — a reading line 55% down the viewport, progress =
+   (read - regionTop) / regionHeight — can never reach 1, because the region
+   ends at the bottom of the document and so can never be scrolled past that
+   line. It topped out at 81% on a 1440x900 page and the last fifth of the
+   spine stayed dark forever. The front is mapped over the SCROLL RANGE
+   instead, finishing exactly when the document bottoms out — the only
+   position guaranteed to be reachable. */
+let ticking = false;
+function update(){
+  ticking = false;
+  const y = window.scrollY, vh = window.innerHeight;
+  const r = charged.getBoundingClientRect();
+  const top = r.top + y;
+  const start = top - vh * 0.55;
+  const end = Math.max(start + 1, top + r.height - vh);
+  const p = Math.min(1, Math.max(0, (y - start) / (end - start)));
+  document.body.style.setProperty('--charge', p.toFixed(4));
+  readout.textContent = 'charge ' + Math.round(p * 100) + '%';
+}
+function onScroll(){ if (!ticking){ ticking = true; requestAnimationFrame(update); } }
+addEventListener('scroll', onScroll, {passive:true});
+addEventListener('resize', onScroll);
+
+/* ---- controls ---- */
+document.querySelectorAll('.switch button').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('.switch button').forEach(o => o.setAttribute('aria-pressed', o === b));
+  document.body.dataset.fit = b.dataset.fit;
+}));
+const w = document.getElementById('w'), wv = document.getElementById('wv');
+w.addEventListener('input', () => {
+  document.documentElement.style.setProperty('--spine-w', w.value + 'px');
+  wv.textContent = w.value;
+});
+const d = document.getElementById('d'), dv = document.getElementById('dv');
+d.addEventListener('input', () => {
+  document.documentElement.style.setProperty('--dim', (d.value / 100).toFixed(2));
+  dv.textContent = d.value + '%';
+});
+/* Beam brightness. 0 turns it off entirely; the range runs past 100 because
+   the beam has to hold its own against the artwork's own amber glow and 100%
+   may well read as too timid once it is over the real cover art. */
+const beam = document.getElementById('beam'), beamv = document.getElementById('beamv');
+beam.addEventListener('input', () => {
+  document.documentElement.style.setProperty('--beam', (beam.value / 100).toFixed(2));
+  beamv.textContent = beam.value + '%';
+});
+
+update();
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(update);
+</script>
+</body>
+</html>

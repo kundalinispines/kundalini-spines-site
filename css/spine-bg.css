@@ -1,0 +1,609 @@
+/* ==========================================================================
+   SPINE BACKGROUND — the charged column behind everything below the hero.
+   Loaded by index.html only. Pairs with js/spine-bg.js.
+
+   ARTWORK: assets/hero/spine-column-moonlight.webp — 1536x2752, WebP q84, 157 KB.
+   MEASURED off the file, not guessed. Re-measure these if it is ever replaced
+   or the column will not sit where this CSS thinks it does:
+     - the glowing spine occupies 25.65% of the image width, centred at 0.500
+     - field reads (6,7,7); mix-blend-mode: screen makes that irrelevant
+
+   COLOUR: matched to messengers-hero-video.mp4 frame 3, the spine close-up.
+   The hero is essentially colourless — stroke core #CDCCC6 at 7% saturation,
+   body #A1A39D at 3%, halo #5E5E5A at 2%. The FIRST artwork was prompted
+   "warm bone-white and pale amber" and came back orange, which is what read as
+   not matching. This one measures #EEF0F3 / #9FA1A8 / #5E626C — same
+   luminances, cool instead of warm. Do not re-warm it.
+
+   HOW IT WORKS: two copies of the artwork, stacked and pixel-identical. DIM is
+   always on. LIT is revealed by a gradient mask whose stop tracks scroll. Only
+   the mask moves, so a scroll frame writes one custom property and triggers no
+   layout; both filters are static and each layer rasterises once.
+   ========================================================================== */
+
+:root {
+  /* Bumped on every change so the tuner can report which stylesheet the browser
+     actually loaded. python -m http.server serves Last-Modified only, and a
+     browser sitting on a cached copy looks identical to a change that did not
+     work — this makes the difference visible instead of arguable. */
+  --spine-build: 18;
+
+  --charge: 0;          /* 0..1, written by js/spine-bg.js every scroll frame */
+  --spine-w: 640px;     /* the width the COLUMN renders at, not the artwork */
+  --spine-frac: 0.2565; /* measured: column width / artwork width */
+  --spine-dim: 0.31;    /* brightness of the uncharged column */
+  --spine-lit: 0.5;    /* brightness of the charged column */
+  --spine-beam: 0.1;   /* crimson scan line, 0..1.5 */
+  --spine-scrim: 0;     /* multiplier on every scrim below, 0 = none */
+
+  /* How far the charge front's transition reaches — the length of the ramp
+     between fully lit and fully dark, in px. Small values give a hard edge
+     travelling down the column; large values light a long stretch of spine at
+     once and the front reads as a swell rather than a line. Everything below is
+     expressed as a fraction of this, so the ramp keeps its shape at any length.
+     The shipped 90px is the original hand-tuned figure. */
+  --spine-feather: 10px;
+
+  /* Vertical offset of the artwork inside the layer. Negative moves the column
+     UP, so the spine can start level with the MUSIC eyebrow instead of below
+     it. The layer itself does not move — it is still pinned to #tracks and still
+     runs to the bottom of the document — only the artwork slides within it, so
+     the charge front, the scan line and the section scrims all stay where they
+     are. With repeat-y this shifts the whole tiled run together. */
+  --spine-offset: -370px;
+
+  /* Where the ramp sits RELATIVE to the charge front, -2 .. 5.
+     --spine-feather is the ramp's LENGTH; this is its position. At 0 the ramp
+     trails above the front, which is the original behaviour. At 0.5 it straddles
+     the front. At 1 it sits entirely below it. Negative pushes it further above.
+     This is what lets the glow be centred behind the hero card rather than
+     always ending at the front line. The range runs well past 1 because the
+     useful travel is measured in CARD HEIGHTS, not ramp lengths: the hero card
+     is 490px, so at a 420px reach a bias of 1 only carries the ramp's bottom to
+     about +487px and the glow still stops around the card's lower edge. Values
+     of 2-3 are what put it fully behind the card.
+     It is a separate control rather than negative --spine-feather because a
+     negative length would put the gradient stops out of order, and CSS clamps
+     out-of-order stops into a hard edge instead of mirroring the ramp. Every
+     coefficient below stays monotonically increasing at any bias, so the ramp
+     keeps its shape wherever it is placed. */
+  --spine-bias: -1;
+
+  /* NOT IMPLEMENTED — an upper edge for the lit zone.
+     The lit region is a half-plane: everything above the charge front is lit,
+     with no top edge. That is why the hero card always sits at the EDGE of the
+     glow rather than inside it, and why raising --spine-bias past ~2 does
+     nothing: once the ramp clears the viewport everything visible is simply lit.
+     Giving the zone a top edge would turn it into a band that --spine-bias could
+     park on the card, which is what is actually wanted here.
+     ATTEMPTED and reverted: two extra gradient stops above the front, guarded
+     with max() so they cannot cross the existing ones. The calc parsed correctly
+     (verified in computed style) but had no measurable effect on the rendered
+     mask — with the dim layer off and the page content hidden, the lit layer
+     still extended from the top of the viewport at every tail value from 4000px
+     down to 80px. Cause not found. Do not re-attempt this by adding stops to
+     this gradient without measuring the LIT LAYER IN ISOLATION (set --spine-dim
+     to 0 and hide main/.footer/.nav) — a profile of the composite is dominated
+     by artwork content and will look like it is working when it is not.
+     A second mask layer holding the band, intersected with this one, is probably
+     the cleaner route and was not tried. */
+
+
+  /* While a sample is playing the charged column breathes between these two
+     brightnesses instead of sitting at --spine-lit. Driven by the is-playing
+     class track-experience.js already sets, mirrored onto <html> by
+     js/spine-bg.js — no change to the player itself. */
+  --spine-pulse-lo: 0.26;
+  --spine-pulse-hi: 0.82;
+  --spine-pulse-ms: 5300ms;
+  --spine-bloom: 0;     /* the flare riding the charge front, 0 = off */
+  --spine-glow: 0.54;      /* 1 = the bloom as generated, 0 = crushed to hard lines */
+
+  /* The glow is BAKED INTO the artwork — a soft halo painted around each bright
+     line, not something CSS added — so it cannot be switched off. It can be
+     crushed: contrast() pulls the broad low-luminance bloom down toward black
+     while the strokes, which are already near-clipping, stay put. Static
+     filter, rasterises once, costs nothing per frame.
+
+     MEASURED at 1440px on the moonlight artwork, counting screen pixels by
+     luminance band — bloom = L 18..70, stroke = L >= 200:
+
+       glow  contrast   stroke px   bloom px   bloom vs glow 1
+       1.0     1.04        7,760      37,423        100%   (as generated)
+       0.8     1.30        7,959      29,832         80%
+       0.6     1.56        8,092      27,074         72%
+       0.4     1.82        8,218      25,131         67%
+       0.2     2.08        8,300      23,613         63%
+       0.0     2.34        8,415      22,503         60%
+
+     Two things that table says and intuition does not:
+     1. MOST OF THE AVAILABLE EFFECT IS IN THE FIRST NOTCH. 1.0 -> 0.8 removes
+        20% of the bloom; the whole rest of the range removes another 20%. If
+        the glow is the annoying part, try 0.8 before you try 0.
+     2. The strokes get very slightly FATTER as glow drops (7,760 -> 8,415),
+        not thinner, because crushing the halo lifts its brightest edge into
+        the stroke band. So this hardens the lines, it does not thin them.
+
+     If 0.0 still is not tight enough, the lever has run out and the fix is a
+     new generation with a tighter bloom prompted in — not more CSS. */
+  --spine-contrast: calc(1.04 + (1 - var(--spine-glow)) * 1.3);
+}
+
+/* The layer is a direct child of body and is positioned in DOCUMENT space, so
+   body has to be the containing block. Without this it resolves against the
+   initial containing block and the column starts at the top of the viewport
+   instead of the top of #tracks. */
+body { position: relative; }
+
+.spine-bg {
+  position: absolute;
+  left: 0;
+  right: 0;
+  overflow: hidden;
+  pointer-events: none;   /* never steals a drag from the carousel */
+  /* top and height are set inline by js/spine-bg.js */
+
+  /* NO z-index HERE, deliberately. z-index:0 on a positioned element creates a
+     stacking context, and mix-blend-mode on the children below would then blend
+     only against this box's own (transparent) backdrop instead of against the
+     page — which silently defeats the whole thing and puts the grey rectangle
+     back. z-index:auto keeps the children blending with the real page
+     background. Content is lifted above with z-index:1 further down. */
+}
+
+.spine-bg__art {
+  position: absolute;
+  inset: 0;
+  background-image: url("../assets/hero/spine-column-moonlight.webp");
+  background-position: 50% var(--spine-offset);
+  /* repeat-y is LOAD-BEARING on narrow screens. At 1440x900 one copy is taller
+     than the region so it never tiles and this looks like a no-op. At 390x844
+     the region grows while the artwork shrinks — measured — and the bottom
+     third of the page had no spine on it at all. Do not set no-repeat. */
+  background-repeat: repeat-y;
+  /* Derived from the measured column fraction, so --spine-w means what it says
+     whatever margins the artwork happens to carry. */
+  background-size: calc(var(--spine-w) / var(--spine-frac)) auto;
+
+  /* THE FIX for the visible lighter panel.
+     The artwork is glow-on-black, and no encode of "black" is ever exactly the
+     page's #050505 — the artwork's field measured (1,2,2) at the corners but
+     (13,11,9) in the top and bottom bands, and its bloom lifts a wide area
+     besides. Painted normally that whole 1316px-wide rectangle reads as a
+     slightly different black with visible vertical edges, which is exactly the
+     seam you can see.
+     screen blending makes that structurally impossible: screen(page, black)
+     leaves the page untouched, so the artwork can only ever ADD light. There is
+     no rectangle to see because the dark parts of the file stop existing.
+     It also means the artwork's own black no longer has to match anything. */
+  mix-blend-mode: screen;
+}
+
+/* Fade the artwork's own top and bottom to true black. Those bands measure
+   (13,11,9) against a (5,5,5) page, so at a tile seam they read as a warm
+   smudge. This costs nothing and does not touch the file. */
+.spine-bg__art {
+  -webkit-mask-image: var(--mask-ends), var(--mask-sides);
+          mask-image: var(--mask-ends), var(--mask-sides);
+  -webkit-mask-composite: source-in;
+          mask-composite: intersect;
+  --mask-ends: linear-gradient(to bottom, transparent 0, #000 90px,
+                #000 calc(100% - 90px), transparent 100%);
+  /* And fade the LEFT and RIGHT edges too.
+     screen blending stops the artwork's field from darkening the page, but it
+     cannot stop it LIGHTENING it: the field measures (6,7,7), so screened over
+     (5,5,5) the artwork's rectangle sits about 1-2 levels above the page. That
+     is invisible on most screens and clearly visible on a good one in a dark
+     room — a faint vertical edge running the height of the page. This removes
+     it outright. The fade is wide (18% of the artwork width each side) because
+     the sacred geometry reaches nearly to the frame edge and a narrow fade
+     would clip it into a hard line instead. */
+  --mask-sides: linear-gradient(to right, transparent 0, #000 18%,
+                #000 82%, transparent 100%);
+}
+
+/* The DIM layer is masked with the COMPLEMENT of the charge front, so it only
+   paints BELOW it. Under normal blending the lit copy simply covered the dim
+   one and this was unnecessary; under screen they ADD, and the charged section
+   came out roughly twice as bright as tuned. Cutting the dim layer away where
+   the lit one takes over keeps the two from ever overlapping, so the tuned
+   --spine-dim / brightness values still mean what they meant. */
+.spine-bg__art--dim {
+  filter: brightness(var(--spine-dim)) saturate(0.55) contrast(var(--spine-contrast));
+  -webkit-mask-image: var(--mask-ends), var(--mask-sides), var(--mask-charge-inv);
+          mask-image: var(--mask-ends), var(--mask-sides), var(--mask-charge-inv);
+  -webkit-mask-composite: source-in, source-in;
+          mask-composite: intersect, intersect;
+  --mask-charge-inv: linear-gradient(to bottom,
+    rgba(0, 0, 0, 0) 0,
+    rgba(0, 0, 0, 0) calc(var(--charge) * 100% + var(--spine-feather) * (var(--spine-bias) - 1)),
+    rgba(0, 0, 0, 0.45) calc(var(--charge) * 100% + var(--spine-feather) * (var(--spine-bias) - 0.22)),
+    #000 calc(var(--charge) * 100% + var(--spine-feather) * (var(--spine-bias) + 0.16)),
+    #000 100%);
+}
+
+/* The pulse animates FILTER, not the custom property. A bare custom property
+   cannot be interpolated without @property registration, and registering it
+   would mean the whole tuner writes through a typed property; animating filter
+   is universally supported, GPU-friendly, and leaves --spine-lit as the plain
+   number the sliders and the paste box expect.
+   The transition is what makes the stop graceful: when the class is removed the
+   animation disappears and filter would otherwise snap straight back to
+   --spine-lit. */
+@keyframes spine-pulse {
+  0%, 100% { filter: brightness(var(--spine-pulse-lo)) contrast(var(--spine-contrast)); }
+  50%      { filter: brightness(var(--spine-pulse-hi)) contrast(var(--spine-contrast)); }
+}
+:root.is-spine-pulsing .spine-bg__art--lit {
+  animation: spine-pulse var(--spine-pulse-ms) ease-in-out infinite;
+}
+
+.spine-bg__art--lit {
+  transition: filter 700ms ease;
+  filter: brightness(var(--spine-lit)) contrast(var(--spine-contrast));
+  /* Two masks composited: the end-fade above, and the travelling charge front.
+     mask-composite intersect means a band is only painted where BOTH allow it. */
+  -webkit-mask-image: var(--mask-ends), var(--mask-sides), var(--mask-charge);
+          mask-image: var(--mask-ends), var(--mask-sides), var(--mask-charge);
+  -webkit-mask-composite: source-in, source-in;
+          mask-composite: intersect, intersect;
+  --mask-charge: linear-gradient(to bottom,
+    #000 0,
+    #000 calc(var(--charge) * 100% + var(--spine-feather) * (var(--spine-bias) - 1)),
+    rgba(0, 0, 0, 0.55) calc(var(--charge) * 100% + var(--spine-feather) * (var(--spine-bias) - 0.22)),
+    rgba(0, 0, 0, 0) calc(var(--charge) * 100% + var(--spine-feather) * (var(--spine-bias) + 0.16)),
+    rgba(0, 0, 0, 0) 100%);
+}
+
+/* A bloom riding the front, so it reads as a travelling event rather than as
+   the edge of a mask. */
+/* The travelling flare that rides the charge front — the thing that reads as a
+   lens flare rolling down the spine. Distinct from --spine-glow, which is the
+   static halo baked into the artwork: this one MOVES.
+
+   MEASURED at the charge front, 1440x900, flare 0 -> flare 1:
+
+     on the column      (x 620-820)   L 70.6 -> 85.1   (+14.5)
+     where copy sits    (x 900-1300)  L  7.3 ->  8.5   (+1.2)
+     far edge           (x 120-320)   L  6.3 ->  6.3   (+0.0)
+
+   READ THAT BEFORE REACHING FOR THIS SLIDER. The flare is much tighter than it
+   looks: it is a 30% x 14% ellipse, so it barely touches anything off the
+   column and does nothing at all at the page edges. If text is washing out as
+   the front passes, this is almost certainly NOT the cause — the backdrop under
+   off-column copy only moves 1.2 levels. What washes text out is the LIT COLUMN
+   itself, which is already at L 70 before the flare is added; the levers for
+   that are --spine-lit and --spine-scrim. Turning the flare down to fix washed
+   text will cost the travelling cue and fix almost nothing.
+
+   Likewise it is not what makes the artwork's rectangle visible — the far edge
+   does not move at all. That was the field being screened over the page, and
+   --mask-sides above deals with it.
+
+   Driving opacity rather than the colour stops keeps the core, the falloff and
+   the outer edge in step, so turning it down reads as the flare receding rather
+   than as a hard disc getting fainter. 0 removes it entirely; the charge front
+   still works, it just loses the "something is travelling" cue and reads more
+   as a mask edge. */
+.spine-bg__bloom {
+  position: absolute;
+  inset: 0;
+  opacity: var(--spine-bloom);
+  /* Cool, to match the moonlight artwork. This was a warm amber bloom for the
+     first artwork; left warm it puts back exactly the orange cast the new
+     colour grade was generated to remove. */
+  /* The flare's vertical radius tracks --spine-feather so the two stay in
+     step: a long ramp with a small flare reads as two separate events. */
+  background: radial-gradient(30% calc(var(--spine-feather) * 1.4) at 50% calc(var(--charge) * 100%),
+    rgba(206, 224, 242, 0.24) 0%, rgba(120, 156, 196, 0.07) 45%, transparent 72%);
+}
+
+/* The crimson scan line — the hero video's laser, echoed.
+   opacity cannot exceed 1, so above 1 --spine-beam drives brightness instead;
+   that way the line, its falloff and its halo all scale together. */
+.spine-bg__scan {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  top: calc(var(--charge) * 100%);
+  opacity: min(1, var(--spine-beam));
+  filter: brightness(max(1, var(--spine-beam)));
+  background: linear-gradient(to right, transparent 0%, rgba(138, 20, 20, 0) 12%,
+    var(--color-crimson-lit) 42%, #C8302E 50%, var(--color-crimson-lit) 58%,
+    rgba(138, 20, 20, 0) 88%, transparent 100%);
+  box-shadow: 0 0 14px 2px rgba(200, 48, 46, 0.45);
+}
+
+/* ==========================================================================
+   LIFTING THE CONTENT ABOVE THE LAYER
+   The layer is positioned, so it paints above statically-positioned siblings.
+   Everything from the carousel down has to be lifted explicitly.
+   ========================================================================== */
+.track-experience,
+.newsletter,
+main > .section,
+.footer {
+  position: relative;
+  z-index: 1;
+}
+
+/* .track-experience paints an opaque black background of its own, which would
+   hide the column entirely behind the carousel. The column passing BEHIND the
+   cards is the chosen design — see the session notes — so this must stay
+   transparent. The page background is already --color-black underneath. */
+.track-experience { background: transparent; }
+
+/* ---- Legibility: ATTENUATE the backdrop, never paint over it -------------
+   Earlier passes painted a soft rgba(5,5,5,...) radial over the artwork. The
+   colour was already an exact match for the page — #050505 — and it STILL read
+   as a dark halo, because matching the page is the wrong target. Over flat page
+   black the scrim is invisible (black on black), but over a column sitting at
+   L 70 the same scrim is far darker than its surroundings, so it shows up as a
+   dark ellipse floating on the spine. Any opaque overlay has this problem, at
+   any colour: paint something darker than the column onto the column and you
+   see the shape of what you painted.
+
+   So these do not paint. backdrop-filter: brightness() SCALES whatever is
+   behind them, which means the effect is proportional rather than absolute:
+   page black is already near the floor so it barely moves, while the lit column
+   is pulled down hard. Nothing is added, so there is no shape to see.
+
+   MEASURED at 1440x900 with the front over the section (see the session notes):
+                             over page black    over the lit column
+     no scrim                    L 5.0               L 70.6
+     old rgba(5,5,5) overlay     L 5.0               L 41.2   <- 36-level step
+                                                                against the page,
+                                                                visible as a disc
+     backdrop-filter version     L 4.6               L 21.4   <- 0.4 off the page,
+                                                                nothing to see
+
+   The radial now lives in mask-image, not in the colour, so the attenuation
+   itself feathers out and there is no edge anywhere. */
+.newsletter::before,
+main > .section::before,
+.track-experience::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: var(--spine-scrim);
+  -webkit-backdrop-filter: brightness(0.30);
+          backdrop-filter: brightness(0.30);
+  /* A BAND, not an ellipse. A radial mask makes the attenuation a shape, and a
+     shape is visible as a shape even when it has no hard edge anywhere — that
+     is the halo. Measured, the radial version added no detectable step (its
+     steepest 20px gradient was 14.6 against 18.8 for no scrim at all, so it was
+     actually SMOOTHING the artwork), which is exactly why it could not be fixed
+     by softening it further. Nothing was wrong with the edge; the problem was
+     that an ellipse is an object.
+     Fading only top and bottom, edge to edge horizontally, leaves nothing to
+     perceive: the section simply sits slightly darker, with no boundary
+     anywhere in view. */
+  -webkit-mask-image: linear-gradient(to bottom,
+    transparent 0%, #000 26%, #000 74%, transparent 100%);
+          mask-image: linear-gradient(to bottom,
+    transparent 0%, #000 26%, #000 74%, transparent 100%);
+}
+
+
+/* The focus panel carries the most small type over the brightest part of the
+   column — description, sample player, stream/download buttons, all 0.95rem or
+   under — so it attenuates harder. It is only ~760px wide, so this costs very
+   little of the column. */
+.track-focus-panel { position: relative; }
+/* NO separate scrim on the focus panel, deliberately.
+   It used to have its own, and that was the blob behind the track cards. The
+   panel carries margin-top: calc(--card-w * 1.425 - --arc-h - 4px), which is
+   -288px at the shipped card size — its box already overlaps the carousel — and
+   the -7rem feather overhang then reached a further 112px up, putting a soft
+   dark oval directly behind the cards you are trying to look at.
+   The whole section gets ONE band instead (see .track-experience::before above).
+   Uniform attenuation across the carousel and the panel together means there is
+   no second shape to notice, and the section is tall enough that its feather has
+   hundreds of pixels to happen in. */
+
+/* backdrop-filter needs something to sample. Safari in particular gives up if
+   the element has no paint of its own, so a fully transparent background is
+   kept explicitly rather than omitted. */
+.newsletter::before,
+main > .section::before,
+.track-experience::before { background: transparent; }
+
+/* Fallback where backdrop-filter is unsupported: go back to the painted scrim.
+   It shows the halo, but unreadable text is the worse failure. */
+@supports not ((backdrop-filter: brightness(1)) or (-webkit-backdrop-filter: brightness(1))) {
+  .newsletter::before,
+  main > .section::before,
+  .track-experience::before { background: rgba(5, 5, 5, 0.42); }
+}
+
+/* EVERY shadow colour here is rgba(5,5,5,...) — the page background — and never
+   rgba(0,0,0,...). MEASURED: pure-black shadows on a #050505 page paint BELOW
+   the background. With the whole layer dialled to zero there was still a strip
+   at L 3.0 against the page's 5.0, running the width of the track copy: a soft
+   dark haze around every glyph that read as a blob under the cards. It was not
+   the artwork, not the scrims, not a box-shadow — it was the text shadows
+   themselves, and it survived turning every slider off because nothing controls
+   them.
+   At rgba(5,5,5) a shadow can darken the lit column but can never go below the
+   page, so it is invisible wherever there is nothing to hide. The contrast cost
+   against a bright vertebra is a floor of 5 instead of 0 — nothing.
+
+   Two tight shadows, not one wide one. The 1px pass gives the glyph a hard
+   edge against a bright line behind it; the 5px pass kills the halo. Neither
+   is wide enough to be seen as a cloud. */
+.newsletter__inner,
+.track-experience__intro,
+.bio__body,
+.track-focus-panel {
+  text-shadow: 0 1px 2px rgba(5, 5, 5, 0.92), 0 0 5px rgba(5, 5, 5, 0.75);
+}
+
+/* Lift the copy that sits over the column. --text-secondary (#D8D0BE) is a
+   warm mid-tone that loses against a lit vertebra; these read at full or near
+   full white instead, which is what actually makes them stand out. */
+.track-focus-panel__desc,
+.track-experience__note,
+.bio__body p { color: var(--color-white); }
+.newsletter p { color: #E8E4DA; }
+.track-focus-panel__actions-note,
+.newsletter__privacy { color: var(--text-secondary); }
+
+/* ---- The horizontal rules -----------------------------------------------
+   components.css draws a hairline above and below .newsletter and above
+   .footer. Against a flat black page they read as quiet section dividers.
+   With a continuous column running through the page they read as PAGE BREAKS
+   — hard lines cutting the spine into segments, which is the opposite of what
+   the layer is for. Removed only on the page that has the column; the other
+   pages still load components.css unchanged and keep their rules. */
+.newsletter { border-top: 0; border-bottom: 0; }
+.footer { border-top: 0; }
+
+/* ---- Track data over a lit column ---------------------------------------
+   The eyebrow (RISE UP · 2026) and the counter index take --track-accent, the
+   per-track colour sampled from the cover by accentFromImage(). That value is
+   clamped to L 55-66% — chosen against FLAT BLACK, where it reads fine. Over a
+   lit vertebra there is no longer a black backdrop to read against, and the
+   mid-tone accents disappear.
+   Fixed here rather than in accentFromImage(), deliberately: that algorithm is
+   documented and load-bearing, it feeds the play button and the sample bar too,
+   and changing its clamp would shift the accent on all 28 tracks to solve a
+   problem that only exists on this one page. A shadow and a weight bump buy the
+   contrast back without touching the colour system at all. */
+.track-focus-panel__eyebrow,
+.track-focus-nav__counter,
+.track-focus-nav__index {
+  font-weight: 500;
+  text-shadow:
+    0 0 3px rgba(5, 5, 5, 0.98),
+    0 1px 2px rgba(5, 5, 5, 0.95),
+    0 0 10px rgba(5, 5, 5, 0.85);
+}
+/* A shadow alone was not enough, and it was never going to be: the accent is a
+   MID-TONE, so the type was low-contrast even where the backdrop was black.
+   Blue Pills resolves to hsl(218 76% 55%) = #3575E3, which is about 4.3:1 on
+   black — borderline for 13px tracked-out mono, and worse over a lit vertebra.
+   Mixing toward white raises the luminance while keeping each track's hue, so
+   the accent system still reads as per-track without going illegible. The
+   plain colour above stays as the fallback for anything without color-mix. */
+@supports (color: color-mix(in srgb, red 50%, white)) {
+  .track-focus-panel__eyebrow,
+  .track-focus-nav__index {
+    color: color-mix(in srgb, var(--track-accent, #FFFFFF) 42%, var(--color-white));
+  }
+}
+/* The counter's own text was --text-muted (#8F8F8F), dim even before the
+   column existed. */
+.track-focus-nav__counter { color: var(--text-secondary); }
+
+/* Every section eyebrow — MUSIC, STAY CONNECTED, ABOUT — is .label at
+   --text-muted #8F8F8F. On flat black that is a deliberate quiet grey. Sitting
+   on a lit vertebra it is the single least readable thing on the page: 13px,
+   tracked out to 0.12em, mid-grey, over the brightest part of the artwork.
+   Caught only once the real moonlight file was in place — the desaturated
+   stand-in was not bright enough at the top of the column to show it. */
+.track-experience .label,
+.newsletter .label,
+main > .section .label {
+  color: var(--text-secondary);
+  text-shadow: 0 0 3px rgba(5, 5, 5, 0.98), 0 1px 2px rgba(5, 5, 5, 0.92);
+}
+
+/* Headings sit over the brightest band of the column and are large enough that
+   a wide shadow would be visible as a cloud, so they get a tight one only. */
+.newsletter h2,
+.bio__body h2,
+.track-experience__intro h2 {
+  text-shadow: 0 1px 3px rgba(5, 5, 5, 0.9), 0 0 12px rgba(5, 5, 5, 0.6);
+}
+
+/* ---- Buttons over a lit column ------------------------------------------
+   .btn--ghost is a transparent box with a 1px white border. Over flat black
+   that is crisp; over a bright vertebra the fill shows straight through and
+   the label competes with the glow behind it. These get their own black so
+   they read as objects sitting ON the column rather than cut out of it. */
+.track-focus-panel__actions .btn,
+.newsletter-form .btn {
+  text-shadow: 0 1px 2px rgba(5, 5, 5, 0.85);
+  box-shadow: 0 2px 14px rgba(5, 5, 5, 0.7);
+}
+.track-focus-panel__actions .btn--ghost,
+.track-experience .btn--ghost {
+  background: rgba(5, 5, 5, 0.72);
+  backdrop-filter: blur(2px);
+}
+.track-focus-panel__actions .btn--ghost:hover {
+  background: var(--color-white);   /* unchanged hover, per components.css */
+}
+.btn--primary { text-shadow: none; }   /* black on white needs no shadow */
+
+/* The placeholder/disabled state was 0.45 opacity — legible on flat black,
+   not over a glow. 0.62 still reads as clearly unavailable. */
+.track-focus-panel__actions .btn[disabled],
+.track-focus-panel__actions .btn.is-placeholder { opacity: 0.62; }
+
+/* ---- The footer sits over the column too -------------------------------
+   Missed on the first pass because at 1440px the footer is wide and the column
+   only crosses its middle third. At 390px the footer stacks into one narrow
+   column directly on top of the spine and the social links were unreadable. */
+.footer__brand,
+.footer__tagline,
+.footer__copyright,
+.footer__social a,
+.footer__nav a {
+  text-shadow: 0 0 3px rgba(5, 5, 5, 0.98), 0 1px 2px rgba(5, 5, 5, 0.92);
+}
+.footer__social a,
+.footer__nav a { color: var(--text-secondary); }
+.footer__tagline,
+.footer__copyright { color: var(--text-secondary); }
+
+/* The nav arrows and close sit over the column too. */
+.track-focus-nav__btn,
+.track-focus-panel__close,
+.track-sample-player__status {
+  text-shadow: 0 0 3px rgba(5, 5, 5, 0.95), 0 1px 2px rgba(5, 5, 5, 0.9);
+}
+
+/* 600, not 768: at a 768px viewport the desktop 330px column still reads well
+   (the artwork simply overflows and stays centred, and the layer clips it). At
+   390px, 330px is 85% of the screen and swamps the content.
+
+   Brightness drops too, and that is the more important half. A column tuned at
+   1440px sits behind wide, sparse content; the SAME column at 390px sits behind
+   a single stacked text column with nothing either side of it, so it
+   reading as a background and starts competing with the copy. Narrowing alone
+   did not fix that — the footer links were still unreadable over a lit
+   vertebra. Do not raise these back to the desktop values. */
+@media (max-width: 600px) {
+  :root {
+    /* Scaled from the desktop values by the same ratios the first pass used
+       (0.61x width, 0.57x lit, 0.61x dim). Re-derive these whenever the desktop
+       numbers change: the previous block was scaled off --spine-lit: 1.06, so
+       against the tuned 0.5 it would have made the phone BRIGHTER than the
+       desktop rather than dimmer, which is backwards. */
+    --spine-w: 390px;
+    --spine-lit: 0.28;
+    --spine-dim: 0.19;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* No travelling front. The column is simply lit, all of it, statically —
+     the page still looks composed rather than half-dark. The dim layer is
+     hidden outright: under screen blending it would add to the lit one and
+     make the static state brighter than the charged state ever gets. */
+  .spine-bg__art--dim { display: none; }
+  /* No breathing under reduced motion — it is a decorative loop with no
+     information in it. The column just holds at --spine-lit. */
+  :root.is-spine-pulsing .spine-bg__art--lit { animation: none; }
+  .spine-bg__art--lit { transition: none; }
+  .spine-bg__art--lit {
+    -webkit-mask-image: var(--mask-ends), var(--mask-sides);
+            mask-image: var(--mask-ends), var(--mask-sides);
+  }
+  .spine-bg__scan,
+  .spine-bg__bloom { display: none; }
+}

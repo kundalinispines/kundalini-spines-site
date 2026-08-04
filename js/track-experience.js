@@ -417,9 +417,37 @@
       const brightness = isHero ? 1 : Math.max(0.4, 1.05 - abs / 900);
       const scale = isHero ? HERO_SCALE : Math.max(0.52, 0.9 - abs / 1000) / BOX_K;
       const blur = isHero ? 0 : Math.min(6, 2 + abs / 220) * BOX_K;
-      const shadow = isHero
-        ? `0 ${44 * BOX_K}px ${64 * BOX_K}px rgba(0,0,0,0.62), 0 ${16 * BOX_K}px ${24 * BOX_K}px rgba(0,0,0,0.48)`
-        : `0 ${(10 - Math.min(8, abs / 70)) * BOX_K}px ${(16 - Math.min(12, abs / 60)) * BOX_K}px rgba(0,0,0,${Math.max(0.12, 0.3 - abs / 1300)})`;
+      // NO CARD SHADOWS. This was two rounds of wrong before it was right, so
+      // the reasoning is here in full — do not reinstate them without reading it.
+      //
+      // The hero originally carried `0 81px 118px rgba(0,0,0,0.62)` plus a
+      // second 44px layer. Against a #050505 page a pure-black shadow paints
+      // BELOW the background — measured (2,2,2) against the page's (5,5,5) —
+      // so the first fix was to recolour them to rgba(5,5,5,...), where
+      // 5 over 5 composites to exactly 5 at any alpha and the shadow becomes
+      // mathematically invisible on flat black while still grounding the cards
+      // against anything lit behind them.
+      //
+      // That identity does not hold on real hardware. Bisected on the owner's
+      // machine (Brave, GPU compositing, wide-gamut display): restoring these
+      // shadows ALONE, with the spine layer hidden and every other suspect
+      // suppressed, brought the blobs straight back. Colour-managed GPU
+      // compositing does not round 5-over-5 to 5, and an 81px-offset, 118px-blur
+      // shadow turns that error into a large soft disc around the centre card
+      // and a second one beneath it.
+      //
+      // None of this reproduces headlessly — HANDOFF 3 already warns that
+      // headless Chromium has no GPU and cannot reproduce raster problems. Every
+      // measurement I could take said the region was within 1-2 levels of the
+      // page. The bisect on real hardware is the only thing that found it.
+      //
+      // They cost nothing to remove: on a page whose background is flat black
+      // everywhere the cards sit, a shadow has nothing to fall on. Depth comes
+      // from the arch transform, the per-card scale and the 1px border. If a
+      // lighter background ever appears behind the carousel, reintroduce them as
+      // a SMALL tight shadow (a 118px blur is what made it read as a blob) and
+      // re-check on real hardware, not headless.
+      const shadow = 'none';
 
       // Cap how many cards show per side so it's never lopsided — anything past
       // MAX_SIDE steps out fades away instead of piling up.

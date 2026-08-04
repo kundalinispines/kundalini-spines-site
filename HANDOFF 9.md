@@ -4,7 +4,7 @@
 
 **Supersedes:** nothing wholesale. `HANDOFF 3`, `4`, `5` and `6` all still own their material and remain required reading. `HANDOFF 7` still owns the spine layer's architecture. `HANDOFF 8` still owns the glow band, the star field's origin, the 4K regeneration and the MUSIC-jump fixes — but its twinkle section, its shipped-values block and two of its stated instrument limits are now out of date.
 
-**Status:** The twinkle is rebuilt as four bands on four clocks, which closes HANDOFF 8's top open item, pending the owner's eye. A pre-existing frame-rate defect was found and fixed on the way — the star field used to cost about a third of the page's frame rate and now costs almost nothing. **This session had a new instrument: the Claude in Chrome extension, so measurements were taken in the owner's real browser on his real GPU with his real webfonts for the first time.** The site still is not served anywhere — Pages is off and `kundalinispines.com` still does not resolve.
+**Status:** The twinkle is rebuilt as four bands on four clocks, which closes HANDOFF 8's top open item — and it was then tuned by the owner and the tuned values are shipped, so it is closed outright rather than pending. The sky also gained a black point, `--star-black`. A pre-existing frame-rate defect was found and fixed on the way — the star field used to cost about a third of the page's frame rate and now costs almost nothing. **This session had a new instrument: the Claude in Chrome extension, so measurements were taken in the owner's real browser on his real GPU with his real webfonts for the first time.** The site still is not served anywhere — Pages is off and `kundalinispines.com` still does not resolve.
 
 * * *
 
@@ -37,6 +37,11 @@ So the rule should read: do not trust `getComputedStyle` on a *running* animatio
 | Cloud layer overscan | `transform: scale(1.06)` | `inset: -3%` — **worth 28–40% of the page's frame rate** |
 | Tuning panel | 22 controls | 23, plus a `star bands only (amp 1)` view mode |
 | `stars off` view mode | hid the base sky only | hides all six star layers |
+| Sky black point | none — the 4K regen's lifted floor sat on the page | `--star-black: 12`, an exact subtract-and-clip |
+| Twinkle amplitude | 0.04 idle / 0.32 playing | **1 / 1** — owner's tuning; play no longer moves the stars |
+| Twinkle period | 7700ms | 5400ms |
+| Cloud glow | 0.02, "effectively off" | 0.36 |
+| Mobile block | scaled off the old desktop numbers | re-derived: twinkle 0.75/0.75, cloud 0.21 |
 | Measurement | headless container only | real Chrome, real GPU, real webfonts |
 
 **New files:** `assets/hero/starfield-cores-1.webp` … `-4.webp`.
@@ -174,12 +179,21 @@ then navigate. Note `fonts.googleapis.com` throws on `fetch` from this origin, s
 Unchanged from HANDOFF 8 except the one new line. `css build` is still **22**; `--star-build` is now **8**.
 
 ```
-/* css/star-bg.css */           build 8
---star-dim: 0.8;                --star-twinkle: 0.04;
---star-sat: 1;                  --star-twinkle-hi: 0.32;
---star-cloud: 0.02;             --star-twinkle-ms: 7700ms;
---star-desync: 1;
+/* css/star-bg.css */           build 9
+--star-dim: 0.8;                --star-twinkle: 1;
+--star-sat: 1;                  --star-twinkle-hi: 1;
+--star-black: 12;               --star-twinkle-ms: 5400ms;
+--star-cloud: 0.36;             --star-desync: 1;
+
+/* mobile <=600px, re-derived, still inferred */
+--star-dim: 0.46;  --star-twinkle: 0.75;  --star-twinkle-hi: 0.75;  --star-cloud: 0.21;
 ```
+
+**`--star-twinkle` and `--star-twinkle-hi` are BOTH 1, and that is a decision, not an oversight.** It means the play button no longer changes the stars, reversing the eight-fold jump HANDOFF 8 shipped and described as "the play button is meant to be the thing that wakes it". Owner's call on 2026-08-04 after seeing the four-band version. The `is-spine-pulsing` machinery is untouched and costs nothing while inert — two different values bring the response straight back — and the **clouds still answer playback at 1.8x**, so the sky is not completely deaf to the player.
+
+Note how far the amplitude could travel: 0.04 to 1, a factor of 25, without the page becoming a disco. At build 6 all the light moved on one clock, so a little went a long way. Spread across four independent bands the same total light reads as scintillation rather than as one object breathing, and it takes far more amplitude before it registers at all. **Any future re-tune of `--star-twinkle` should assume the old numbers are meaningless.**
+
+**The mobile block was re-derived, and this is the second time that has mattered.** HANDOFF 7 records a mobile block scaled off a desktop value that had since moved, which would have made the phone *brighter* than the desktop. Same trap here: mobile was 0.03/0.25 against a desktop 0.04/0.32 — ratios of 0.75 and 0.78 — and the desktop is now 1/1. Re-derived to 0.75/0.75, held equal because the desktop pair is equal. And `--star-cloud` is overridden on mobile again, on the explicit instruction the old comment left behind ("re-introduce it if `--star-cloud` ever goes back above ~0.3"); it is 0.36 now, so it is back, at 0.21.
 
 Band period multipliers are `1 / 1.37 / 1.79 / 2.31` with phase offsets `0 / -0.34 / -0.66 / -1.08` of the base period, all scaled by `--star-desync`. No pair of the multipliers is close to a ratio of small integers, so the four never realign on any timescale anyone will watch.
 
@@ -206,6 +220,23 @@ Everything below was measured in the owner's own Chrome unless stated.
 
 Median luminance is **exactly 5.00** in both frames. The empty sky moves by 0.04 of a level — nothing — while every real difference lands on the cores and the bright pixels. **The bands redistribute light only onto stars that were already there**, which is HANDOFF 8's invariant, now confirmed against real compositing rather than against the artwork alone.
 
+**LEGIBILITY RE-MEASURED AT THE TUNED VALUES**, because the amplitude went up 25x and the cloud glow 18x, and `--spine-scrim` is still 0 so the text-shadows carry everything alone. Frozen at the twinkle peak on the real GPU, background taken as the brightest genuine background pixel in each text box with the text pixels excluded:
+
+```
+                          worst case   typical    HANDOFF 8 (old values)
+    tracks eyebrow 13px      8.93        13.30          —
+    tracks heading          10.73        18.15          —
+    track counter            9.58        13.09         7.76
+    track description        6.04        13.10        13.26
+    newsletter eyebrow      10.85        13.38        10.49
+    newsletter body          5.45        14.29         9.15
+    footer social link          —        13.40        12.99
+```
+
+**Worst reading anywhere is 6.04:1 against a 4.5:1 requirement**, and both sub-7 cases are text over a LIT SPINE VERTEBRA — background `(71,71,73)` and `(90,89,97)`, grey, not blue — which is the spine layer, not the sky, and is the same spot HANDOFF 7 flagged as the least readable on the page. Several figures went UP against HANDOFF 8 despite the far brighter sky, because `--star-black: 12` crushes the backdrop harder than `--star-cloud: 0.36` lifts it. **That pairing is why the tuning is safe; raising the cloud without the black point would not have been.**
+
+One methodological note for whoever repeats this: estimating the background by taking a high percentile of luminance inside the text box does not work. Above about the 75th percentile you are sampling the *text*, and the ratio collapses to 2.5:1 in a way that looks like a catastrophic failure and is pure artefact. Exclude the brightest ~30% first, then take the brightest of what remains.
+
 **Asserted, not verified:** everything the owner judges by eye, including whether the twinkle is now right; the mobile values, and that the bands look correct at 390px, because the window would not resize; `prefers-reduced-motion` — the rule covers all five animated layers and was read, not exercised; that the four extra image decodes do not matter on a memory-constrained device.
 
 * * *
@@ -214,7 +245,8 @@ Median luminance is **exactly 5.00** in both frames. The empty sky moves by 0.04
 
 Carried forward, minus what this session closed.
 
-- **Does the twinkle actually read right now?** The mechanism is fixed and measured; the judgement is the owner's. Open `/?tune`, take `desync` from 0 to 1 and back — 0 is literally the old sky. Use the `star bands only (amp 1)` view mode to see what the bands are doing, because at the shipped 0.04 amplitude the movement is far too small to judge directly.
+- **The twinkle is CLOSED.** Rebuilt, measured, then tuned by the owner and shipped at the values above. If it is ever revisited: `desync` 0 renders the old lockstep sky exactly, and the `star bands only (amp 1)` view mode shows the four populations in isolation.
+- **The hero section was never checked for star legibility, and does not need to be** — the hero video is opaque and the sky sits at `z-index: -1` behind it, so no star layer is ever under hero text. Recorded so nobody re-checks it.
 - **DNS for `kundalinispines.com`** — unchanged, still the single blocker. Nothing on this site is reachable by anyone. Enable sequence in HANDOFF 5 under "Deployment"; do not enable Pages without the custom domain.
 - **Frame-time audit of the remaining always-on layers.** `.spine-bg` costs roughly 3ms/frame and was never looked at. The cloud finding suggests it is worth an hour.
 - **The star field and scroll weight are on `index.html` only** — now one `<link>` and one `<script>` per page, and the four bands ride along with the stylesheet for free.

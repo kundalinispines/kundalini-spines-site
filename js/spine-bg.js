@@ -161,6 +161,19 @@
       file: 'css/star-bg.css' },
     { v: '--star-sat', label: 'hue',   min: 0, max: 1.4, step: 0.05, unit: '',
       file: 'css/star-bg.css' },
+    /* BLACK POINT, in levels out of 255, subtracted from the sky before it
+       screens onto the page. 0 is an exact identity — build 8 pixel for pixel.
+       This is the control for "the blacks are not black": the wash is the faint
+       dust across 58% of the frame sitting ~9 levels of blue above the page,
+       and a subtract kills that while barely touching the star cores (187 -> 175
+       across the whole slider). Reach for this rather than `stars`, which dims
+       the stars along with the dust — and rather than `hue`, which was measured
+       against it and lost: at equal nebula cost it blackens less AND discards
+       the deep-blue grade. By 6 the red and green channels are already at page
+       black and everything left is blue. Above ~14 the nebula reads as cut out
+       rather than fading. */
+    { v: '--star-black', label: 'black', min: 0, max: 16, step: 1, unit: '',
+      file: 'css/star-bg.css' },
     /* TWINKLE. `twnk` is the idle amplitude, `twnk hi` the one that takes over
        while a sample is playing — same is-spine-pulsing flag that drives the
        spine's breathing, so the sky and the column answer the play button

@@ -41,10 +41,10 @@
 :root {
   /* Bumped on every change, same reason as --spine-build: a browser sitting on
      a cached stylesheet is indistinguishable from a change that did not work.
-     8 = four-band twinkle, plus the cloud layer's transform replaced by a
-     negative inset (worth 63 -> 88 fps, see html::after below). 6 was the
-     single lockstep cores layer. */
-  --star-build: 8;
+     9 = --star-black, the sky's black point. 8 = four-band twinkle, plus the
+     cloud layer's transform replaced by a negative inset (worth 63 -> 88 fps,
+     see html::after below). 6 was the single lockstep cores layer. */
+  --star-build: 9;
 
   /* Brightness of the whole field. 0 is off — the layer still exists but adds
      no light, and under screen blending (see below) that is exactly the same
@@ -61,6 +61,79 @@
      to match the spine without asking. */
   --star-sat: 1;
 
+  /* ---- BLACK POINT ------------------------------------------------------
+     HOW MANY LEVELS (out of 255) TO SUBTRACT FROM THE SKY BEFORE IT SCREENS.
+     0 is off and is an exact identity — see the filter note below — so this
+     slider's zero renders build 8 pixel for pixel.
+
+     WHY IT EXISTS. HANDOFF 8 records that the 4K regeneration lifted the sky's
+     floor: field RGB went (0.1, 0.3, 5.5) in the source video frame to
+     (2.0, 1.4, 10.3) in the delivered file. Under screen blending that lift can
+     only ADD, so it sits on the page as a blue-grey wash. The obvious reading —
+     "the empty gaps between stars aren't black" — is not actually where it
+     lives. MEASURED off the shipped file:
+
+       source band        share of frame   on-page BLUE at --star-dim 0.8
+       empty  (<6)           0.23%              8.6
+       FAINT DUST (6-20)    58.45%             14.4      <-- this is the wash
+       dust   (20-60)       35.29%             31.0
+       nebula (60-150)       5.79%             68.6
+       cores  (>=150)        0.25%            159.1
+
+     The true empty sky is a quarter of one percent of the frame. What reads as
+     milky is the faint dust across FIFTY-EIGHT PERCENT of it, landing nine
+     levels of blue above a (5,5,5) page. Dimming the whole layer to fix that
+     also dims the stars; a black point does not.
+
+     WHAT EACH VALUE COSTS — on-page blue for the faint-dust band, against what
+     the star cores lose:
+
+       k     faint dust    nebula    star cores    frame at exactly page black
+       0        14.4        68.6        187.3               0.0%
+       4        11.4        65.5        184.2               0.1%
+       6         9.8        63.9        181.3               3.1%
+       8         8.3        62.3        179.4              12.1%
+      10         7.1        60.8        177.2              24.8%
+      12         6.1        59.2        175.3              35.4%
+
+     The cores barely move — 187.3 to 175.3 across the whole range — because a
+     subtract of twelve levels is nothing to a pixel at 187 and everything to a
+     pixel at 10. That asymmetry is the entire point, and it is why this is the
+     right control for "make the blacks blacker" and --star-dim is the wrong one.
+
+     MEASURED ON REAL HARDWARE, 2026-08-04, four frozen frames of the isolated
+     sky screenshotted from the owner's own GPU and differenced. Darkest 60% of
+     the frame, against a page black of 5.0:
+
+                              R      G      B    blue-R | nebula | cores
+       k=0  hue 1  (build 8)  8.02   8.24  17.04   9.02  |  53.9  | 115.4
+       k=6  hue 1             5.55   5.37  11.73   6.19  |  49.2  | 110.5
+       k=12 hue 1             5.24   5.20   7.18   1.94  |  44.4  | 105.7
+       k=6  hue 0.55          5.69   5.34   8.96   3.27  |  43.2  | 105.4
+
+     TWO FINDINGS, AND THE SECOND ONE SETTLED THE VALUE.
+
+     First: by k=6 the RED AND GREEN CHANNELS ARE ALREADY AT PAGE BLACK — 5.55
+     and 5.37 against 5.0. Everything left is a blue cast. "The blacks aren't
+     black" is really "the blacks are blue", which follows from the artwork's
+     field being (2.0, 1.4, 10.3): blue sits seven levels above the other two,
+     so a subtract that clears red and green still leaves blue standing.
+
+     Second: the obvious lever for a blue cast is --star-sat, and it is the
+     WRONG ONE. Compare the last two rows. Dropping saturation to 0.55 costs the
+     same nebula as k=12 (43.2 against 44.4 — slightly worse), blackens LESS
+     (blue 8.96 against 7.18), and throws away a decision the owner made
+     deliberately on 2026-08-04 that the sky is the footage as shot. The black
+     point is strictly better at this job on every axis. Leave hue at 1.
+
+     SHIPPED AT 12. Not a taste call — it is the value the table supports for
+     the stated goal, and it puts 28.1% of the frame at exactly page black
+     against 1.1% at k=6. Come down toward 6 if the faint dust is missed; 6 is
+     also the level HANDOFF 8 clamped the SPINE artwork by, so the two
+     photographs would then be graded alike. Above ~14 the nebula starts to read
+     as cut out rather than fading. */
+  --star-black: 12;
+
   /* ---- TWINKLE ----------------------------------------------------------
      Amplitude of the twinkle layers, 0 = off (dead static sky).
      --star-twinkle is the idle state, always running. --star-twinkle-hi
@@ -71,10 +144,26 @@
      NOTE FOR THE OTHER FOUR PAGES: that flag is set by js/spine-bg.js, which is
      index.html only. Everywhere else there is no player, the class never
      appears, and the sky simply twinkles at the idle amplitude forever. That is
-     correct, not a bug — do not add spine-bg.js to a page just for this. */
-  --star-twinkle: 0.04;
-  --star-twinkle-hi: 0.32;
-  --star-twinkle-ms: 7700ms;
+     correct, not a bug — do not add spine-bg.js to a page just for this.
+
+     TUNED 2026-08-04, AND THE TWO ARE NOW EQUAL. --star-twinkle and
+     --star-twinkle-hi both sit at 1, which means THE PLAY BUTTON NO LONGER
+     CHANGES THE STARS. That reverses the shape HANDOFF 8 shipped (0.04 idle
+     against 0.32 playing, an eight-fold jump described there as "the play
+     button is meant to be the thing that wakes it") and it is the owner's call
+     after seeing the four-band version. The mechanism is untouched and costs
+     nothing while inert — set the two to different values and the response
+     comes straight back. The clouds DO still answer the player, at 1.8x, so
+     the sky is not completely deaf to playback.
+
+     Note why the amplitude could go from 0.04 to 1 without the page turning
+     into a disco: at build 6 all the light moved on ONE clock, so a little went
+     a long way. Spread across four independent bands, the same total light
+     reads as scintillation rather than as the sky breathing, and it takes far
+     more amplitude before it registers at all. */
+  --star-twinkle: 1;
+  --star-twinkle-hi: 1;
+  --star-twinkle-ms: 5400ms;
 
   /* ---- DESYNC -----------------------------------------------------------
      HOW FAR APART THE FOUR STAR BANDS RUN. This is the control the whole
@@ -97,12 +186,19 @@
   /* The soft glow on the nebula, independent of the star twinkle above so each
      slider does one thing: turning the stars off leaves the clouds breathing,
      and vice versa. It gets its own 1.8x while a sample plays.
-     SHIPPED AT 0.02 — effectively off. It was tried at 0.92, where the glow was
-     the dominant light source on the page rather than a garnish, and the owner
-     took it almost all the way back down. The layer is kept because it is one
-     slider away from being useful again, not because it is doing anything at
-     0.02. If you are wondering why the nebula looks static: this is why. */
-  --star-cloud: 0.02;
+     TUNED TO 0.36 on 2026-08-04, up from 0.02. HANDOFF 8 shipped it at 0.02 —
+     effectively off — after trying 0.92 and finding the glow became the
+     dominant light source on the page. 0.36 is the middle ground the owner
+     settled on once --star-black existed to hold the floor down underneath it,
+     and that pairing is the point: the clouds add light to the nebula while the
+     black point removes it from everything that is not nebula, so the glow
+     reads without the whole frame going milky.
+
+     LEGIBILITY WAS RE-MEASURED AT THIS VALUE, not assumed. See the note under
+     --star-black; worst case on the page is 5.45:1 against a 4.5:1
+     requirement, and that worst case is text over a lit spine vertebra rather
+     than over the sky. */
+  --star-cloud: 0.36;
 
   /* The amplitude actually in force. Indirection rather than two copies of the
      animation: the keyframes below read this one property, so the playing state
@@ -134,7 +230,34 @@ body::before {
   background-position: 50% 50%;
   background-size: cover;
   background-repeat: no-repeat;
-  filter: brightness(var(--star-dim)) saturate(var(--star-sat));
+
+  /* THE BLACK POINT IS THE FIRST TWO FUNCTIONS, AND TOGETHER THEY ARE AN EXACT
+     SUBTRACT-AND-CLIP. Not an approximation of one — the algebra:
+
+         contrast(c):      out = (v - 0.5) * c + 0.5,  clamped at 0
+         brightness(1/c):  out = out / c
+         composed:         out = v - (0.5 - 0.5/c)     for v above that, else 0
+
+     So with k = 0.5 - 0.5/c expressed in levels, this subtracts exactly k and
+     clips at zero — the same linear subtract HANDOFF 8 used on the spine
+     artwork, chosen there because "a linear subtract, not a threshold, so
+     nothing bands at the clip point". Solving for c gives c = 1/(1 - 2k/255),
+     and 1/c is simply (1 - 2k/255), so only one division is needed and Chrome
+     resolves it (verified in a real browser: at k=6 the computed filter reads
+     contrast(1.04938) brightness(0.952941), matching the arithmetic exactly).
+
+     AT --star-black: 0 THIS IS contrast(1) brightness(1) — a true identity, not
+     a near-identity. The slider's zero is build 8 pixel for pixel.
+
+     ORDER IS LOAD-BEARING. The subtract runs BEFORE brightness(--star-dim), so
+     k means "levels of the artwork" and keeps that meaning whatever the dim is
+     set to. Put it after and the same k would cut a different amount every time
+     --star-dim moved, which is how a control stops being tunable. */
+  filter:
+    contrast(calc(1 / (1 - 2 * var(--star-black) / 255)))
+    brightness(calc(1 - 2 * var(--star-black) / 255))
+    brightness(var(--star-dim))
+    saturate(var(--star-sat));
 
   /* SAME REASONING AS THE SPINE LAYER, and load-bearing for the same reason.
      Half of this frame is DARKER than the page background, so painted normally
@@ -287,7 +410,14 @@ main::after {
      removes that trap entirely, and at the shipped --star-sat: 1 the result is
      identical because saturate(1) is the identity. Above or below 1 the slider
      now recolours the flare instead of changing which stars survive the crush,
-     which is the more useful of the two behaviours anyway. */
+     which is the more useful of the two behaviours anyway.
+
+     NO --star-black HERE, deliberately. These four images are already exact
+     black everywhere except the star cores — that is what makes them no-ops
+     under screen — so there is no floor to subtract. Applying it would do
+     nothing but dim the flares, and it would break the desync-0 identity with
+     build 6. The black point is a property of the PHOTOGRAPH, and only the base
+     sky and the clouds are the photograph. */
   filter: saturate(var(--star-sat)) brightness(1.2);
   mix-blend-mode: screen;
   opacity: 0;
@@ -345,10 +475,12 @@ main::after   { animation-duration: calc(var(--star-twinkle-ms) * (1 + 1.31 * va
        transform: scale(1.06)      63 fps    p95 frame 29.9ms
        inset: -3%, no transform    88 fps    p95 frame 14.1ms
 
-   That is a THIRD OF THE PAGE'S FRAME RATE for a layer shipping at
-   --star-cloud: 0.02, which is close enough to off that HANDOFF 8 describes it
-   as "effectively off". The cost was isolated by elimination and it is
-   specifically the transform:
+   That was A THIRD OF THE PAGE'S FRAME RATE, and at the time it was found this
+   layer was running at --star-cloud: 0.02 — close enough to off that HANDOFF 8
+   called it "effectively off". The page had been paying a third of its frame
+   budget for something invisible. (--star-cloud is 0.36 now, so the layer earns
+   its keep; the fix below is what made that affordable.) The cost was isolated
+   by elimination and it is specifically the transform:
 
        blur removed entirely       63 fps    no help
        blur reduced to 8px         63 fps    no help
@@ -374,7 +506,15 @@ html::after {
   background-position: 50% 50%;
   background-size: cover;
   background-repeat: no-repeat;
-  filter: saturate(var(--star-sat)) blur(22px) brightness(0.85);
+  /* The clouds carry the same black point as the base sky, and since
+     --star-cloud was tuned up to 0.36 this is doing visible work rather than
+     sitting there for consistency. The two layers are the same photograph; a
+     black point on one and not the other would show up as the glow having a
+     different floor from the sky it sits on. */
+  filter:
+    contrast(calc(1 / (1 - 2 * var(--star-black) / 255)))
+    brightness(calc(1 - 2 * var(--star-black) / 255))
+    saturate(var(--star-sat)) blur(22px) brightness(0.85);
   mix-blend-mode: screen;
   opacity: 0;
   animation: cloud-glow calc(var(--star-twinkle-ms) * 2.7) ease-in-out infinite;
@@ -410,16 +550,29 @@ html::after {
     --star-dim: 0.46;
     /* The phone crop lands on the densest part of the nebula band, so the same
        amplitude reads as more movement on a smaller screen. Inferred, like the
-       rest of this block. */
-    --star-twinkle: 0.03;
-    --star-twinkle-hi: 0.25;
+       rest of this block.
+       RE-DERIVED 2026-08-04 when the desktop values changed. The old pair was
+       0.03 / 0.25 against a desktop 0.04 / 0.32 — ratios of 0.75 and 0.78. The
+       desktop is now 1 / 1, so the same ratios give 0.75, and the two are held
+       equal here because they are equal on the desktop: a phone that responded
+       to the play button when the desktop does not would be a difference nobody
+       decided on. THIS IS THE TRAP HANDOFF 7 RECORDS — the mobile block was
+       once scaled off a desktop value that had since moved, which would have
+       made the phone BRIGHTER than the desktop. Re-derive every time. */
+    --star-twinkle: 0.75;
+    --star-twinkle-hi: 0.75;
     /* --star-desync is NOT overridden. The crop shows fewer stars, which makes
        lockstep MORE obvious rather than less, so the phone wants at least as
        much spread as the desktop. */
-    /* --star-cloud is NOT overridden here any more. At the shipped 0.02 the
-       difference between a desktop and a phone amplitude is far below anything
-       visible, so a second number would be noise pretending to be a decision.
-       Re-introduce it if --star-cloud ever goes back above ~0.3. */
+    /* --star-cloud IS overridden again, on the instruction the previous version
+       of this comment left: "re-introduce it if --star-cloud ever goes back
+       above ~0.3." It is now 0.36. Scaled by the same 0.575 the dim override
+       uses (0.46/0.8), giving 0.21 — the phone crop is mostly nebula, so an
+       unscaled cloud glow would be far heavier there than on the desktop. */
+    --star-cloud: 0.21;
+    /* --star-black is deliberately NOT overridden. It is a property of the
+       photograph, not of the viewport, and the crop does not change where the
+       artwork's floor sits. */
   }
 }
 

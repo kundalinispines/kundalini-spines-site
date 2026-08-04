@@ -4,6 +4,25 @@
 
 *, *::before, *::after { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
+
+:root {
+  /* HOW HEAVY THE PAGE FEELS UNDER A MOUSE WHEEL. Read by js/scroll-weight.js,
+     which damps wheel scrolling toward the position the browser would have
+     jumped to. 0 is off and means genuinely native — at 0 the handler returns
+     before it touches the event, so the page behaves exactly as it did before
+     that file existed. 1 is the heaviest.
+
+     It lives HERE rather than in css/spine-bg.css because it is a property of
+     the whole site, not of the front page's background layer, and because
+     spine-bg.css is loaded by index.html only. js/scroll-weight.js is currently
+     also on index.html only — the rollout is one script tag per page once the
+     number is settled, with nothing else to change.
+
+     Wheel only. Touch keeps the OS's own momentum, the keyboard and every
+     in-page anchor keep the smooth scroll-behavior above, and
+     prefers-reduced-motion disables it outright. */
+  --scroll-weight: 0.5;
+}
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   *, *::before, *::after {

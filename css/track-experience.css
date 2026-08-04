@@ -37,17 +37,64 @@
   flex-direction: column;
   justify-content: flex-start;
   padding-block: var(--space-8);
-  scroll-margin-top: 90px; /* clears the fixed nav when jumped to via #tracks */
+  /* Where an anchor jump to #tracks parks this section, measured from the top of
+     the viewport. Driven by the LIVE nav height that js/nav.js publishes as
+     --nav-h, never by a hardcoded number.
+
+     The direction matters and only one direction is safe. Land the section BELOW
+     the nav's bottom edge and the strip between them shows whatever precedes it
+     in the document, which at this point in the page is the last rows of the
+     hero video — a thin band of moving footage under the nav's hairline. Land it
+     slightly ABOVE and the section just tucks a few pixels under an opaque bar,
+     invisibly: it carries 32px of its own padding-top, so none of its content is
+     hidden either way. Hence minus 4px rather than exactly the nav height.
+
+     THIS WAS HARDCODED AT 86px AND IT WAS WRONG. 86 came from measuring the nav
+     at 89px — but that measurement was taken with the Google Fonts request
+     blocked, so it was the fallback font's line box, not the real one. With the
+     real webfonts the bar is shorter, the section landed ~8px BELOW it, and a
+     five-pixel strip of hero video sat under the hairline. Proof it was the
+     video and not a gradient: across two settled frames 0.3s apart, that strip
+     changed by 2.10 levels while the bar above it changed by 0.000.
+
+     The 72px fallback is only reachable with JavaScript off, and errs downward
+     on purpose — too small merely tucks the section further under an opaque bar,
+     too large puts the hero back on screen. */
+  scroll-margin-top: calc(var(--nav-h, 72px) - 4px);
   overflow: hidden;
   background: var(--color-black);
   opacity: 0;
-  transform: translateY(24px);
-  transition: opacity var(--motion-slow) var(--ease-standard),
-              transform var(--motion-slow) var(--ease-standard);
+  transition: opacity var(--motion-slow) var(--ease-standard);
 }
-.track-experience.is-visible { opacity: 1; transform: translateY(0); }
+.track-experience.is-visible { opacity: 1; }
 
-.track-arc-wrap { position: relative; padding-block: var(--space-4); }
+/* THE REVEAL'S MOVEMENT LIVES ON THE WRAPPER, NOT ON THE SECTION.
+   It used to be transform: translateY(24px) on .track-experience itself. That
+   moves the SECTION BOX, not just what you see in it: the section is laid out
+   at the hero's bottom edge but painted 24px lower, so it vacates a 24px strip
+   at exactly the seam between the two — and the thing showing through that strip
+   is the last 24px of the hero video. Clicking MUSIC lands you right there, with
+   the fixed nav's hairline immediately above it, so the strip reads as a gap
+   under the line with video moving in it. (The same offset also made the section
+   overlap the newsletter below it by 24px, which is where the other end of the
+   discrepancy went.)
+   Moving the transform one level in fixes it structurally rather than by
+   retuning: .track-arc-wrap holds every child of the section, so the entrance
+   looks identical, but the section's own box now stays exactly where it is laid
+   out and there is no strip to vacate. Safe for the carousel's 3D: perspective
+   is set on .track-arc-viewport, which is BELOW this element, so nothing in the
+   arch's transform chain passes through here. */
+.track-arc-wrap {
+  position: relative;
+  padding-block: var(--space-4);
+  transform: translateY(24px);
+  transition: transform var(--motion-slow) var(--ease-standard);
+}
+.track-experience.is-visible .track-arc-wrap { transform: translateY(0); }
+
+@media (prefers-reduced-motion: reduce) {
+  .track-arc-wrap { transform: none; transition: none; }
+}
 
 .track-arc-viewport {
   position: relative;

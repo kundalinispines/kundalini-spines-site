@@ -1,0 +1,290 @@
+/* ==========================================================================
+   STAR BACKGROUND — the field the whole page sits on.
+
+   ARTWORK: assets/hero/starfield-deep-4k.webp — 3840x2144, WebP q86, 124 KB.
+   Generated at 4K from a FRAME OF THE HERO VIDEO — messengers-hero-video.mp4 at
+   t = 7.79s, frame 187 of 210 — passed in as the reference so the composition,
+   the diagonal nebula band and the star density all come from the footage
+   already playing at the top of the page. Delivered at 5504x3072 and downscaled
+   to 3840 for weight: 3840 is true UHD and covers a 2x 1440px viewport with room
+   to spare, at half the bytes of the native output. starfield-deep.webp, the
+   straight 1920x1080 video frame, is kept beside it.
+
+   To go back to a raw frame instead: ffmpeg -ss <t> -i
+   assets/hero/messengers-hero-video.mp4 -frames:v 1 out.png, encode at q86.
+
+   MEASURED off the shipped file, with the source frame beside it:
+
+                              source frame      shipped 4K
+       median luminance           2.08              4.30
+       mean luminance             9.16             11.32
+       at or below #050505       60.2%             53.3%
+       saturation (L>12)          67%               60%
+       field RGB              (0.1, 0.3, 5.5)   (2.0, 1.4, 10.3)
+
+   Half the frame is still at or below the page's own black, which is the only
+   reason a photograph can sit under body copy at all. But the regeneration DID
+   lift the floor — the field is about twice as bright and twice as blue as the
+   frame it came from, and under screen blending that is a blue cast added to the
+   page's black everywhere the nebula is not. --star-dim and --star-sat both
+   attenuate it; at the shipped 0.55 / 0.45 it lands close to where the raw frame
+   sat unattenuated. Worth knowing before either slider goes up.
+
+   THE BLUE IS THE THING TO WATCH. css/spine-bg.css opens with a rule — the
+   hero is essentially colourless, 2-7% saturation, do not re-warm it — and that
+   rule was measured off the hero's SPINE CLOSE-UP, frame 3. This frame is from
+   the same video and is nothing like colourless. --star-sat exists for exactly
+   that reason: it is the dial between the site's neutral grade and the footage
+   as shot. It is NOT a contradiction of the spine rule, but it is the one place
+   on the page where the two greys disagree, so judge them together.
+   ========================================================================== */
+
+:root {
+  /* Bumped on every change, same reason as --spine-build: a browser sitting on
+     a cached stylesheet is indistinguishable from a change that did not work. */
+  --star-build: 6;
+
+  /* Brightness of the whole field. 0 is off — the layer still exists but adds
+     no light, and under screen blending (see below) that is exactly the same
+     as not being there. */
+  --star-dim: 0.8;
+
+  /* 1 = the footage as shot, deep blue. 0 = colourless, matching the grade the
+     spine artwork was generated to.
+     SHIPPED AT 1 — the owner's call, 2026-08-04, after seeing both. The sky is
+     the footage as filmed, at full saturation. Note what that means: the "2-7%
+     saturation, do not re-warm it" rule in css/spine-bg.css governs the SPINE,
+     and the sky is now deliberately not held to it. The two are allowed to
+     disagree; they are different objects at different depths. Do not "fix" this
+     to match the spine without asking. */
+  --star-sat: 1;
+
+  /* ---- TWINKLE ----------------------------------------------------------
+     Amplitude of the twinkle layer, 0 = off (dead static sky).
+     --star-twinkle is the idle state, always running. --star-twinkle-hi
+     replaces it while a sample is playing, driven by the same is-spine-pulsing
+     flag on <html> that makes the spine column breathe — so the sky and the
+     column react to the play button together rather than as two separate ideas.
+
+     NOTE FOR THE OTHER FOUR PAGES: that flag is set by js/spine-bg.js, which is
+     index.html only. Everywhere else there is no player, the class never
+     appears, and the sky simply twinkles at the idle amplitude forever. That is
+     correct, not a bug — do not add spine-bg.js to a page just for this. */
+  --star-twinkle: 0.04;
+  --star-twinkle-hi: 0.32;
+  --star-twinkle-ms: 7700ms;
+
+  /* The soft glow on the nebula, independent of the star twinkle above so each
+     slider does one thing: turning the stars off leaves the clouds breathing,
+     and vice versa. It gets its own 1.8x while a sample plays.
+     SHIPPED AT 0.02 — effectively off. It was tried at 0.92, where the glow was
+     the dominant light source on the page rather than a garnish, and the owner
+     took it almost all the way back down. The layer is kept because it is one
+     slider away from being useful again, not because it is doing anything at
+     0.02. If you are wondering why the nebula looks static: this is why. */
+  --star-cloud: 0.02;
+
+  /* The amplitude actually in force. Indirection rather than two copies of the
+     animation: the keyframes below read this one property, so the playing state
+     is a single re-binding and the animation never restarts. */
+  --star-twinkle-amp: var(--star-twinkle);
+  --star-cloud-amp: var(--star-cloud);
+}
+:root.is-spine-pulsing {
+  --star-twinkle-amp: var(--star-twinkle-hi);
+  --star-cloud-amp: calc(var(--star-cloud) * 1.8);
+}
+
+/* A pseudo-element, so this file is the ENTIRE feature: one <link> and a page
+   has stars, with no markup to add and no script to load. That matters because
+   the spine is index.html-only and this is not meant to be — the other four
+   pages are flat black and read as a different site.
+
+   position: fixed rather than a document-height layer. Deep space does not
+   scroll past you: one viewport-sized copy that stays put reads as distance,
+   and it also sidesteps tiling a 1080px-tall frame down a 3400px document,
+   where the seam would be a horizon line running across the page. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image: url("../assets/hero/starfield-deep-4k.webp");
+  background-position: 50% 50%;
+  background-size: cover;
+  background-repeat: no-repeat;
+  filter: brightness(var(--star-dim)) saturate(var(--star-sat));
+
+  /* SAME REASONING AS THE SPINE LAYER, and load-bearing for the same reason.
+     Half of this frame is DARKER than the page background, so painted normally
+     it would drag the page's black down below #050505 everywhere the nebula is
+     not — every text-shadow on the site is rgba(5,5,5,...) precisely because
+     that is the floor, and moving the floor would put those shadows back above
+     the background instead of invisible against it.
+     screen(page, black) leaves the page untouched, so this layer can only ever
+     ADD light. The frame's own black stops existing, #050505 stays the floor,
+     and every contrast decision already made on this site still holds. */
+  mix-blend-mode: screen;
+}
+
+/* z-index: -1 puts this behind everything, INCLUDING the spine layer, which is
+   what makes the spine screen over the stars rather than the other way round.
+   Do not give body a z-index or a transform: either would make body a stacking
+   context, the -1 would then be trapped inside it, and the blend would resolve
+   against body's own transparent backdrop instead of the page — the same trap
+   documented under "NO z-index HERE" in css/spine-bg.css, one level up. */
+
+/* ==========================================================================
+   TWINKLE — the star cores, and a soft glow on the clouds.
+
+   CORRECTED 2026-08-04. The first version of this got the mechanism wrong: the
+   twinkle layer was MIRRORED and scaled, on the theory that offsetting it would
+   stop every star pulsing in lockstep. It did — but at the cost of putting the
+   winking points exactly where the sky has NO stars. It was not making the stars
+   twinkle, it was inventing a second set of them in the gaps. Registered is the
+   only correct answer: the light has to land back on the star that is already
+   there.
+
+   TWO LAYERS, BOTH PIXEL-REGISTERED WITH THE BASE SKY.
+
+   1. body::after — THE CORES. The same frame, same position, same size, NO
+      transform of any kind, crushed with contrast(9) so that everything below
+      roughly L 128 is gone before compositing and only the whitest points of the
+      existing stars survive. Screened back over itself, those cores flare
+      brighter and settle: screen(x, x) takes a core at 0.85 to 0.98, while a
+      nebula pixel that the crush already took to 0 adds exactly nothing.
+
+   2. html::after — THE CLOUDS. The same frame again, heavily blurred and held at
+      low amplitude, so the nebula swells and settles as a soft glow rather than
+      twinkling. Blur is what separates this from layer 1: it destroys the point
+      structure, so no star can wink here, and what is left is the broad shape of
+      the dust. Scaled 1.06 only because blur() pulls transparency in from
+      outside the element and would otherwise leave the glow thinning at the
+      viewport edges — at 22px of blur there is no point structure left to
+      misregister, so this costs nothing.
+
+   html::after and body::after are BOTH available without adding markup, which is
+   what keeps this file a single <link> with no script. Both sit at z-index -1
+   and stack in tree order: html::after, then body::before, then body::after.
+
+   The two run at different periods — the clouds at 2.7x the stars — so they
+   drift in and out of phase and the sky does not loop visibly.
+
+   MEASURED at 1440x900, each layer frozen at opacity 1 against both off, with
+   the delta sorted by how bright the BASE SKY already is at that pixel. This is
+   the test the mirrored version failed, and it is the one to repeat if either
+   layer is ever touched:
+
+     base sky band            stars      clouds
+     empty field  (<p50)      + 0.00     + 2.83
+     faint dust   (p50-90)    + 0.00     +11.83
+     nebula       (p90-99)    + 0.00     +31.69
+     star halos   (p99-99.9)  +30.18     +36.84
+     STAR CORES   (>p99.98)  +113.66     + 5.53
+
+   Read the stars column downward: the light is +113.66 on the cores, +30.18 on
+   their halos, and EXACTLY ZERO on the nebula, the dust and the empty sky. It
+   cannot light anything that was not already a star, which is the correction.
+   The clouds column is the mirror image — broad through the dust and the nebula,
+   almost nothing on the cores, which are already near clipping and blurred away
+   besides.
+
+   Concentration says the same thing another way: 70% of the star layer's light
+   falls in 0.185% of the frame, against 29.868% for the clouds. Points versus
+   glow. Whole-frame lift at opacity 1 is +0.41 for the stars and +9.68 for the
+   clouds. BOTH SLIDERS SHIP FAR BELOW THE AMPLITUDES THOSE FIGURES DESCRIBE:
+   --star-cloud is 0.02 and --star-twinkle 0.04, so the real opacities are
+   fractions of a percent and the page-black lift is nil. The table above is the
+   measurement of what each layer DOES at full strength — read it to understand
+   which layer puts light where, not to predict the shipped page.
+
+   Do not check any of this with getComputedStyle — as css/spine-bg.css already
+   records for the playback pulse, it does not report interpolated animation
+   values and reads flat while the pixels are plainly moving. Screenshot it.
+   ========================================================================== */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image: url("../assets/hero/starfield-deep-4k.webp");
+  background-position: 50% 50%;
+  background-size: cover;
+  background-repeat: no-repeat;
+  /* NO transform. Registration with the base layer is the whole correction —
+     any flip, scale or offset here puts the twinkle back in the empty sky. */
+  /* Order matters: saturate and contrast run BEFORE brightness, so the crush
+     happens against the original levels. Putting brightness first would pull the
+     cores below the contrast pivot and crush the stars along with the nebula. */
+  filter: saturate(var(--star-sat)) contrast(9) brightness(1.2);
+  mix-blend-mode: screen;
+  opacity: 0;
+  animation: star-twinkle var(--star-twinkle-ms) ease-in-out infinite;
+}
+
+html::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image: url("../assets/hero/starfield-deep-4k.webp");
+  background-position: 50% 50%;
+  background-size: cover;
+  background-repeat: no-repeat;
+  transform: scale(1.06);
+  filter: saturate(var(--star-sat)) blur(22px) brightness(0.85);
+  mix-blend-mode: screen;
+  opacity: 0;
+  animation: cloud-glow calc(var(--star-twinkle-ms) * 2.7) ease-in-out infinite;
+}
+
+/* Uneven keyframe spacing, so one cycle does not read as a sine wave. Nothing
+   here touches background-position: drifting stars look like a moving camera,
+   not like atmosphere. Opacity only, which the compositor handles without
+   repainting either layer. */
+@keyframes star-twinkle {
+  0%   { opacity: calc(var(--star-twinkle-amp) * 0.10); }
+  17%  { opacity: calc(var(--star-twinkle-amp) * 0.66); }
+  29%  { opacity: calc(var(--star-twinkle-amp) * 0.28); }
+  46%  { opacity: calc(var(--star-twinkle-amp) * 1);    }
+  61%  { opacity: calc(var(--star-twinkle-amp) * 0.38); }
+  78%  { opacity: calc(var(--star-twinkle-amp) * 0.80); }
+  90%  { opacity: calc(var(--star-twinkle-amp) * 0.20); }
+  100% { opacity: calc(var(--star-twinkle-amp) * 0.10); }
+}
+
+/* The clouds only swell and settle — a plain two-stop breath, never down to
+   nothing, because a nebula that switches off is not a glow. */
+@keyframes cloud-glow {
+  0%, 100% { opacity: calc(var(--star-cloud-amp) * 0.40); }
+  50%      { opacity: calc(var(--star-cloud-amp) * 1); }
+}
+
+@media (max-width: 600px) {
+  :root {
+    /* cover on a 390px-wide viewport crops to the middle 20% of the frame,
+       which is the densest part of the nebula band — so the phone gets MORE
+       nebula per screen than the desktop does, not less. Down, not up. */
+    --star-dim: 0.46;
+    /* The phone crop lands on the densest part of the nebula band, so the same
+       amplitude reads as more movement on a smaller screen. Inferred, like the
+       rest of this block. */
+    --star-twinkle: 0.03;
+    --star-twinkle-hi: 0.25;
+    /* --star-cloud is NOT overridden here any more. At the shipped 0.02 the
+       difference between a desktop and a phone amplitude is far below anything
+       visible, so a second number would be noise pretending to be a decision.
+       Re-introduce it if --star-cloud ever goes back above ~0.3. */
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* No twinkle at all. It is decorative movement with no information in it —
+     the same call css/spine-bg.css makes for the playback pulse. The layer is
+     left in the tree at opacity 0 rather than display:none so that turning
+     reduced motion off does not require a reload. */
+  body::after, html::after { animation: none; opacity: 0; }
+}

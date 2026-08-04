@@ -14,9 +14,30 @@
               border-color var(--motion-base) var(--ease-standard);
   border-bottom: 1px solid transparent;
 }
+/* OPAQUE, not 92% + blur. MEASURED 2026-08-04.
+   The scrolled nav used to be rgba(5,5,5,0.92) with a 6px backdrop blur, which
+   let 8% of whatever sits behind it through. That is invisible over the black
+   page and it was invisible for months — until you jump to #tracks, which parks
+   the hero's CTA row directly behind the bar: at that scroll position
+   .hero__ctas spans viewport -28..22, so the solid WHITE "Enter the World"
+   button sits under the nav. Eight percent of white is not nothing. It read as
+   a lit rectangle inside the bar with the hero video moving behind it, ending in
+   a hard horizontal edge a few pixels above the nav's own hairline.
+
+   Isolated by removing one thing at a time and re-measuring the nav band:
+     hiding .hero__ctas     changed it by max 19.0 across 6,495 px
+     hiding .hero__content  changed it by max 19.0 across 6,495 px  (same pixels)
+     hiding .hero__media    changed it by max  1.4 across     0 px
+   So it was the buttons, not the footage — the video was just what you could see
+   moving behind them.
+
+   The landing position cannot be moved out of the way: clearing the CTAs needs
+   ~22px more scroll and clearing .hero__sound-toggle (viewport 28..62) another
+   ~62px, which would bury this section's own heading under the bar. An opaque
+   bar is the fix. The blur goes with it — with nothing showing through there is
+   nothing left to frost, and backdrop-filter still forces a render surface. */
 .nav.is-scrolled {
-  background: rgba(5, 5, 5, 0.92);
-  backdrop-filter: blur(6px);
+  background: var(--color-black);
   border-bottom-color: var(--border-subtle);
 }
 .nav__inner {

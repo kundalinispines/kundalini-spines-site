@@ -1,115 +1,158 @@
 # Kundalini Spines — Website
 
-A static, dependency-free website for Kundalini Spines: dark cinematic mysticism, built as plain HTML/CSS/JS with no build step.
+A static, dependency-free site for Kundalini Spines: dark cinematic mysticism, plain HTML/CSS/JS, no build step and no package manager.
+
+> **This README was rewritten on 4 August 2026 because it had gone badly stale** — it still described three tracks, an unwired newsletter, `#` placeholder social links and a `music.html` that no longer exists in that form. If something here contradicts a `HANDOFF N.md`, **the handoffs win**: they are dated, they record what was measured, and they are written last. Start with the newest one.
+
+---
+
+## The short version
+
+- Five pages, all served as-is. No build, no bundler, no dependencies.
+- `data/tracks.json` is the live source of truth for all **28 tracks** — the homepage carousel fetches it at runtime.
+- **Nothing is deployed.** GitHub Pages is off and `kundalinispines.com` does not resolve. Pushing backs the work up; it does not publish it.
+- The front page carries two background layers (a scroll-charged spine column and a star field) with a tuning panel behind `?tune`.
+
+---
 
 ## What's here
 
 ```
-index.html                    Home
-music.html                    Music (releases/tracks — currently empty state, no release yet)
-transmissions.html            Transmissions index
-transmissions/001.html        Transmission 001 detail page
-archive.html                  Archive index (filterable)
-archive/artwork/001.html      Archive entry detail page
-about.html                    About + Messengers + contact
+index.html                  Home — hero video, track carousel, newsletter, bio
+transmissions.html          Transmissions index
+transmissions/001.html      Transmission detail page (one exists)
+archive.html                Archive index (filterable)
+archive/artwork/001.html    Archive entry detail (one exists)
+about.html                  About, Messengers, contact
+music.html                  REDIRECT to /#tracks — see "music.html" below
 
-css/tokens.css                Design tokens (color, type, spacing, motion) — the source of truth
-css/base.css                  Reset + typography + layout primitives
-css/components.css            All component styles
-css/track-experience.css      Homepage Music/Track arc + selected-track detail view
+css/tokens.css              Design tokens (colour, type, spacing, motion) — source of truth
+css/base.css                Reset, typography, layout primitives, --scroll-weight
+css/components.css          Shared components: nav, buttons, hero, footer, newsletter
+css/track-experience.css    The homepage carousel: arc geometry, cards, focus panel
+css/spine-bg.css            The scroll-charged spine column   (index.html only)
+css/star-bg.css             The star field and its twinkle    (index.html only)
+css/transmissions.css       Transmissions page
 
-js/nav.js                     Scroll state + accessible mobile menu
-js/audio-player.js            Reusable audio player (no autoplay), not yet used on a live page
-js/archive-filter.js          Archive category filter
-js/track-experience.js        Homepage track arc: hover info, selected/expanded view, 20s samples, effects
-js/music-page.js              Simple real-track listing on music.html (shares data/tracks.json)
-js/newsletter.js              Newsletter form states (no provider connected yet — see below)
+js/nav.js                   Scroll state, mobile menu, publishes --nav-h
+js/hero-video.js            Hero video + sound toggle
+js/track-experience.js      The carousel: arc, drag, focus panel, 20s samples
+js/newsletter.js            Newsletter form states (Buttondown — see below)
+js/spine-bg.js              Spine layer + the ?tune panel     (index.html only)
+js/scroll-weight.js         Wheel-scroll damping              (index.html only)
+js/transmissions.js         Transmissions rendering
+js/archive-filter.js        Archive category filter
+js/music-page.js            UNREFERENCED — kept deliberately, see below
+js/audio-player.js          UNREFERENCED — kept deliberately, see below
 
-data/*.json                   Documented content model (see "Editing content" below — not yet live-wired)
-data/tracks.json              Track data model — title, artwork, sample, links, per-track visual effect theme
-assets/                       Images (optimized web versions; originals in assets/_originals/)
-assets/marks/                 Logo marks (spine-mark.svg, primary-seal.svg) + favicon set
-assets/music/                 Track cover art (currently placeholder gradients — see known limitations)
-assets/audio/samples/         20-second track samples (real, cut from the uploaded songs)
+data/tracks.json            28 tracks. Live-wired: the carousel fetches this.
+data/site.json              Site copy, social links and their verification status
+data/transmissions.json     Hand-authored. The YouTube job never writes here.
+data/youtube-pending.json   Staged YouTube videos awaiting manual promotion
+data/archive.json           Archive entries
+data/releases.json          Entirely PLACEHOLDER
 
-favicon.ico, sitemap.xml, robots.txt   at the project root
-docs/                          Planning docs: sitemap, content model, component plan, asset register, architecture
+assets/hero/                Hero video, spine artwork, star field
+assets/music/               28 cover images (.webp) + 28 art videos (.mp4)
+assets/audio/samples/       28 twenty-second samples
+assets/marks/               Logo marks + favicon set
+assets/messengers/          Portraits
+
+.github/workflows/          Pages deploy + YouTube staging (see "Deploying")
+scripts/youtube-sync.mjs    The YouTube RSS staging script
+docs/                       Planning docs: sitemap, content model, asset register
+HANDOFF *.md                Session handoffs — read the newest first
 ```
+
+---
 
 ## Running it locally
 
-This is plain HTML — there's no `npm install` or build step. But **don't open the files directly by double-clicking** (`file://...`); the nav's home link and favicon use root-relative paths (`/`) that only resolve correctly over HTTP. Instead, serve the folder:
+Plain HTML, but **do not open the files by double-clicking** (`file://`). The carousel and Transmissions use `fetch()`, which browsers refuse over `file://`, and several paths are root-relative. Serve the folder instead:
 
 ```bash
-# either works
-python3 -m http.server 8000
-# or, if you have Node:
-npx serve .
+python -m http.server 8000
 ```
 
-Then visit `http://localhost:8000`.
+Then open `http://localhost:8000`.
+
+### The tuning panel
+
+`http://localhost:8000/?tune` opens a live control panel for the front page's background layers — 22 sliders across three stylesheets, plus a `hide` button cycling view modes that isolate individual layers.
+
+**It is not debug scaffolding to be cleaned up.** Without the `?tune` flag nothing below the guard in `js/spine-bg.js` executes, no markup is created and no listeners are attached. Visitors never load it. Dial values in on the real page, press **Copy CSS**, and paste the block back into the `:root` of the file each group is labelled with — the panel emits them grouped by destination, because a site-wide value pasted into `spine-bg.css` would apply on the front page and nowhere else.
+
+Both stylesheets carry a build counter (`--spine-build`, `--star-build`) shown in the panel header. They exist because a browser sitting on a cached stylesheet looks exactly like a change that did not work. **If the number in the header is not the number in the file, hard-reload before you conclude anything.**
+
+---
 
 ## Deploying
 
-No build command — it's already the production output. Any static host works:
+**Nothing is deployed today, and enabling Pages carelessly will break the site.**
 
-- **Vercel / Netlify:** drag-and-drop the folder in their dashboard, or connect the git repo (leave the build command empty, output directory = project root).
-- **GitHub Pages:** push to a repo, enable Pages on the root of the default branch.
+`.github/workflows/deploy-pages.yml` assembles and publishes the site on push to `main`, but Pages itself is disabled. Two things to know before enabling it:
 
-Before going live: replace the placeholder domain (`https://kundalinispines.com`) in `sitemap.xml` and `robots.txt` with the real one.
+1. **Do not enable Pages without the custom domain configured.** The default project URL serves under `/kundalini-spines-site/`, which breaks every root-absolute link on the site. The enable sequence is in `HANDOFF 5` under "Deployment".
+2. **The workflow does not publish the whole repo.** Handoffs contain local Windows paths and internal notes; `docs/` holds planning material; the `raster-test*` and `transmissions-option*` files are internal design harnesses. The workflow excludes all of it and then **fails the build** if anything internal reaches the publish directory. If you add another internal document, add it to the excludes too.
+
+`.github/workflows/youtube-sync.yml` pulls the channel's RSS feed into `data/youtube-pending.json` for review. It is a **staging** job — it never writes `data/transmissions.json`, so it cannot clobber a hand-written entry. Promoting a staged video is a manual move.
+
+---
 
 ## Editing content
 
-**Important caveat:** `data/*.json` documents the content model (what fields exist, what's still placeholder) but the live pages are hand-authored HTML — editing the JSON alone won't change what visitors see. To change visible content today, edit the matching HTML file directly. Keep the JSON updated alongside it if you want it to stay useful as documentation/a future migration path.
+Most visible content is now data-driven, which is the opposite of what this README used to say.
 
-Common edits:
-
-| Want to... | Do this |
+| Want to… | Do this |
 |---|---|
-| Change homepage copy | Edit the relevant `<section>` in `index.html` |
-| Add a real music release | Add cover art + audio files to `assets/`, replace the empty-state block in `music.html` with a release card, and drop in an `<div class="audio-player" data-title="..." data-artist="..." data-src="assets/audio/track.mp3" data-cover="...">` — `js/audio-player.js` will wire it up automatically, no other JS needed |
-| Add a new track to the homepage arc | Add one object to `data/tracks.json` (title, artwork path, sample path, description). It appears automatically on both the homepage arc and `music.html` — no component code changes needed |
-| Add a new Transmission | Copy `transmissions/001.html` → `transmissions/002.html`, update its content, add a matching card to `transmissions.html` |
-| Add a new Archive entry | Copy `archive/artwork/001.html` into the right category folder, update content, add a card to `archive.html` with the correct `data-category` |
-| Update social links | Replace the `href="#"` placeholders in every page's footer (7 files) |
-| Update contact email | Already set to `kundalinispines@gmail.com` in `about.html` |
+| Add or edit a track | Edit `data/tracks.json`. It appears in the homepage carousel automatically. |
+| Change homepage copy | Edit the relevant `<section>` in `index.html`. |
+| Change social links | Edit `data/site.json`. Each entry carries a `status` field recording how it was verified — keep it honest. |
+| Add a Transmission | Edit `data/transmissions.json`, or copy `transmissions/001.html` for a detail page. |
+| Add an Archive entry | Copy `archive/artwork/001.html`, then add a card to `archive.html` with the right `data-category`. |
+| Retune the backgrounds | `?tune`, then Copy CSS. Never hand-type the numbers. |
 
-## Track system — adding tracks, samples, and effects
+### The track model
 
-`data/tracks.json` is the single source of truth for both the homepage's interactive arc and the simpler `music.html` listing. Each track needs:
+Each entry in `data/tracks.json` carries `id`, `slug`, `title`, `oneLiner`, `description`, `artwork`, `artworkVideo`, `sampleUrl`, `sampleDuration`, `duration`, `release`, `year`, `transmissionNumber`, `explicit`, `accentColor`, `visualTheme` and `links`.
 
-- `artwork` — a square (1:1) image path under `assets/music/`
-- `sampleUrl` + `sampleDuration` — a ≤20-second clip under `assets/audio/samples/` (the player hard-stops at `sampleDuration` regardless of the file's real length)
-- `visualTheme.effect` — one of `"fog"`, `"geometry"`, or `"distortion"` (see `css/track-experience.css` for what each renders); add a new effect by adding one more `.track-detail__effect--*` CSS block and one more branch in `effectMarkup()` in `js/track-experience.js`
-- `links.stream` / `spotify` / `appleMusic` / `youtubeMusic` / `download` — leave `null` until real URLs exist; the UI automatically shows them as disabled placeholders instead of dead or fake links
+- `artwork` — square `.webp` under `assets/music/`; `artworkVideo` — the matching `.mp4`
+- `sampleUrl` + `sampleDuration` — the player hard-stops at `sampleDuration` regardless of the file's real length
+- `visualTheme` — `effect` is `fog`, `geometry` or `distortion`, with `intensity` and a `geometry` name
+- `accentColor` — a fallback only. At runtime `accentFromImage()` samples the real cover art; the JSON value is used when that cannot run, and it is dark enough to hide contrast problems, so **do not judge the carousel without real cover art loaded**
+- `links.*` — leave `null` until a real URL exists. The UI renders disabled placeholders rather than dead or fake links. All 28 are currently `null`.
 
-## Newsletter integration
+---
 
-The form (`js/newsletter.js`) validates the email and shows loading/error states, but **does not call any real provider yet** — it intentionally never claims a successful subscription, since none is connected. To go live, replace the `setTimeout` block in `js/newsletter.js` with a real `fetch()` POST to whichever provider you pick (Buttondown, Mailchimp, ConvertKit, and Resend all have simple HTTP APIs for this).
+## Deliberate oddities
 
-## Payment / download integration
+Things that look like mistakes and are not. Do not "clean these up".
 
-The "Download — $1" button on each track is a disabled placeholder — there is no payment processor connected, and none should be faked. To make it live, wire it to a checkout provider (e.g. Stripe Checkout, Gumroad, or a digital-download platform like Payhip) and set `links.download` in `data/tracks.json` to that real checkout URL once it exists.
+- **`music.html` is a redirect.** It was a flat grid of the same 28 tracks the carousel already renders — a strict subset of `#tracks`. It is kept as a redirect so the URL survives for anyone who bookmarked it. The old markup is preserved in `docs/06-legacy-music-page.md`.
+- **`js/music-page.js` and `js/audio-player.js` are loaded by no page.** They are the reference implementation for a future flat all-tracks directory. Keep or delete them knowingly.
+- **The TikTok and Spotify footer links are dead on purpose** — those accounts do not exist. Owner's decision, over inventing URLs.
+- **`js/newsletter.js` posts natively, not via `fetch`.** Buttondown sends no CORS headers to this origin. The `action` and `method` on the form are load-bearing and the form works with JavaScript off. `target="_blank"` was removed deliberately — the popup blocker caught it and failed silently. **The `no-cors` "fix" looks right and is wrong**; read the comment in the file first.
+- **`raster-test*.html` and `transmissions-option*.html`** are internal harnesses and mockups, excluded from the deploy.
 
-## Logo marks & Higgsfield asset register
-
-Full prompts, job IDs, and placement notes for every generated image, plus the construction notes for the hand-drawn Primary Seal and Secondary Spine Mark, are in `docs/04-asset-plan.md`.
+---
 
 ## Known limitations
 
-- **No Next.js/React/TypeScript build** — the original brief specified that stack; this build environment had no network access to install it, so the site was adapted to static HTML/CSS/JS instead. Same tokens/content model/component plan would transfer directly if you want the literal Next.js version built elsewhere (e.g. via Claude Code, which has network access).
-- Only three tracks exist (real songs, real 20-second samples, real cover art) and none has a streaming/download link yet — all shown as honest disabled placeholders.
-- Only one Transmission and one Archive entry exist — enough to prove the pattern, not a full collection.
-- Social links are still `#` placeholders in every footer.
-- Newsletter signup has no connected provider yet (see integration section above).
-- The Primary Seal (`assets/marks/primary-seal.svg`) exists but isn't placed anywhere yet — candidate for a loading state or large-format use.
-- Google Fonts (Big Shoulders Display/Stencil, Source Serif 4, IBM Plex Mono) load from a CDN — fine for any real deployment, just won't load in fully offline/sandboxed environments.
+- **Nothing is reachable by anyone.** DNS for `kundalinispines.com` is the single blocker.
+- **No streaming or download links exist** on any of the 28 tracks — all shown as honest disabled placeholders. `explicit` is `null` throughout and `data/releases.json` is entirely `PLACEHOLDER`.
+- **The spine and star backgrounds are on `index.html` only.** The other four pages are flat black, so the site reads as two different sites.
+- **Mobile values for both background layers are inferred, not judged on a device.**
+- **One Transmission and one Archive entry exist** — enough to prove the pattern, not a collection.
+- **A pre-existing mobile nav bug:** the closed menu panel is not fully off-screen and bleeds through behind the fixed header on every page.
+- **Google Fonts load from a CDN.** Fine for any real deployment, but note that the nav's height depends on which fonts have loaded — never hardcode it, use the `--nav-h` variable `js/nav.js` publishes.
+- **The 885 MB masters folder is backed up by nothing.**
 
-## Recommended next steps
+---
 
-1. Real streaming/download links per track once platforms are connected.
-2. Real social links, and a real newsletter provider wired into `js/newsletter.js`.
-3. A few more Transmissions and Archive entries so those sections don't read as barely-populated.
-4. Decide where (if anywhere) the Primary Seal appears.
-5. Point `sitemap.xml` / `robots.txt` at the real domain once one exists.
-6. If the Next.js version matters long-term, hand this repo + `docs/` to Claude Code for the literal rebuild — nothing here is wasted either way.
+## Where the real documentation is
+
+This README is an orientation, not a reference. The detail lives in:
+
+- **`HANDOFF *.md`** — dated session records. The newest states which older ones are still required reading. They record what was *measured*, and separate that from what was asserted.
+- **`docs/`** — sitemap, content model, component plan, asset register, architecture.
+- **The stylesheets themselves.** `css/spine-bg.css` and `css/star-bg.css` carry long comment blocks with measured figures and explicit "do not do this" notes attached to the code they govern. Several of them exist because the obvious fix was tried first and was wrong.

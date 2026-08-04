@@ -2,18 +2,54 @@
    SPINE BACKGROUND — the charged column behind everything below the hero.
    Loaded by index.html only. Pairs with js/spine-bg.js.
 
-   ARTWORK: assets/hero/spine-column-moonlight.webp — 1536x2752, WebP q84, 157 KB.
-   MEASURED off the file, not guessed. Re-measure these if it is ever replaced
-   or the column will not sit where this CSS thinks it does:
-     - the glowing spine occupies 25.65% of the image width, centred at 0.500
-     - field reads (6,7,7); mix-blend-mode: screen makes that irrelevant
+   ARTWORK: assets/hero/spine-column-moonlight-4k.webp — 3072x5504, WebP q84,
+   212 KB. Replaced the 1536x2752 original on 2026-08-04: same image, twice the
+   linear resolution, with Metatron's Cube and all the background geometry
+   removed. Made by feeding the old file back through nano_banana as an EDIT,
+   not by generating a new one — the previous artwork took a whole session to get
+   the colour right and a fresh generation is exactly how the first one came back
+   orange. spine-column-moonlight.webp is kept beside it for comparison.
+
+   WHY 4K MATTERS HERE: the column is a quarter of the file width, so the old
+   file held only 394px of actual spine and rendered it at --spine-w: 640px CSS
+   = 1280 device px on a 2x display. A 3.25x upscale, which is what read as soft.
+   The new file holds 788px, so the same render is a 1.62x upscale.
+
+   MEASURED off the SHIPPED webp, not the PNG it was encoded from, and not
+   guessed. Re-measure all of these if it is ever replaced or the column will not
+   sit where this CSS thinks it does:
+     - column extent 0.3327 of the width, centred at 0.4998
+       (the old file measured 0.3346 / 0.5003 by the same method, and its
+       half-maximum width 0.2142 against this one's 0.2122 — the geometry is
+       UNCHANGED within 0.6%, which is why --spine-frac below did not move)
+     - field reads (0.2, 0.1, 0.4) — effectively true black, see the clamp note
+     - encode error 0.429/255 mean absolute difference against the source PNG,
+       against 0.888 for the file it replaces
+
+   THE BLACK CLAMP. The generated file had a faint asymmetric wash where the cube
+   used to be: the right margin measured mean L 2.08 against the left's 0.20,
+   with a soft rectangle still readable in the top right. Under screen blending a
+   wash like that can only ADD light, so it would have shown up as a soft vertical
+   band lifting the page — the exact defect --mask-sides was invented for. Fixed
+   before encoding by subtracting 6 levels and clipping at zero: margins went to
+   0.000 and 0.016, and the strokes lost 1% of their brightness. A linear
+   subtract, not a threshold, so nothing bands at the clip point.
 
    COLOUR: matched to messengers-hero-video.mp4 frame 3, the spine close-up.
    The hero is essentially colourless — stroke core #CDCCC6 at 7% saturation,
    body #A1A39D at 3%, halo #5E5E5A at 2%. The FIRST artwork was prompted
    "warm bone-white and pale amber" and came back orange, which is what read as
-   not matching. This one measures #EEF0F3 / #9FA1A8 / #5E626C — same
-   luminances, cool instead of warm. Do not re-warm it.
+   not matching. Do not re-warm it.
+
+   The 4K file measures (240,240,243) at 1.7% saturation in the strokes — cooler
+   and cleaner than the 1536px file it replaces. But its HALO came back at 20.8%
+   saturation, distinctly blue-violet, against roughly 13% before. It did not go
+   warm, so the standing rule holds, but it is more coloured than anything else
+   on this page. The dim layer already carries saturate(0.55), which lands that
+   at about 11%; THE LIT LAYER CARRIES NO saturate() AT ALL, so the charged
+   column shows the full 20.8%. If the glow ever reads too blue, that is where it
+   is coming from and a saturate() on .spine-bg__art--lit is the lever — check it
+   against the star field, which is the other blue thing on the page.
 
    HOW IT WORKS: two copies of the artwork, stacked and pixel-identical. DIM is
    always on. LIT is revealed by a gradient mask whose stop tracks scroll. Only
@@ -26,14 +62,14 @@
      actually loaded. python -m http.server serves Last-Modified only, and a
      browser sitting on a cached copy looks identical to a change that did not
      work — this makes the difference visible instead of arguable. */
-  --spine-build: 18;
+  --spine-build: 22;
 
   --charge: 0;          /* 0..1, written by js/spine-bg.js every scroll frame */
   --spine-w: 640px;     /* the width the COLUMN renders at, not the artwork */
   --spine-frac: 0.2565; /* measured: column width / artwork width */
-  --spine-dim: 0.31;    /* brightness of the uncharged column */
-  --spine-lit: 0.5;    /* brightness of the charged column */
-  --spine-beam: 0.1;   /* crimson scan line, 0..1.5 */
+  --spine-dim: 0.38;    /* brightness of the uncharged column */
+  --spine-lit: 0.52;    /* brightness of the charged column */
+  --spine-beam: 0;      /* crimson scan line, 0..1.5 — tuned off 2026-08-04 */
   --spine-scrim: 0;     /* multiplier on every scrim below, 0 = none */
 
   /* How far the charge front's transition reaches — the length of the ramp
@@ -41,8 +77,10 @@
      travelling down the column; large values light a long stretch of spine at
      once and the front reads as a swell rather than a line. Everything below is
      expressed as a fraction of this, so the ramp keeps its shape at any length.
-     The shipped 90px is the original hand-tuned figure. */
-  --spine-feather: 10px;
+     The shipped 220px is a swell rather than a line, tuned by eye. It replaced
+     10px, which was effectively a hard travelling edge; at that end --spine-bias
+     becomes almost inert, because there is no ramp left for it to move. */
+  --spine-feather: 220px;
 
   /* Vertical offset of the artwork inside the layer. Negative moves the column
      UP, so the spine can start level with the MUSIC eyebrow instead of below
@@ -50,7 +88,7 @@
      runs to the bottom of the document — only the artwork slides within it, so
      the charge front, the scan line and the section scrims all stay where they
      are. With repeat-y this shifts the whole tiled run together. */
-  --spine-offset: -370px;
+  --spine-offset: -520px;
 
   /* Where the ramp sits RELATIVE to the charge front, -2 .. 5.
      --spine-feather is the ramp's LENGTH; this is its position. At 0 the ramp
@@ -67,37 +105,90 @@
      out-of-order stops into a hard edge instead of mirroring the ramp. Every
      coefficient below stays monotonically increasing at any bias, so the ramp
      keeps its shape wherever it is placed. */
-  --spine-bias: -1;
+  --spine-bias: 1.3;
 
-  /* NOT IMPLEMENTED — an upper edge for the lit zone.
-     The lit region is a half-plane: everything above the charge front is lit,
-     with no top edge. That is why the hero card always sits at the EDGE of the
-     glow rather than inside it, and why raising --spine-bias past ~2 does
-     nothing: once the ramp clears the viewport everything visible is simply lit.
-     Giving the zone a top edge would turn it into a band that --spine-bias could
-     park on the card, which is what is actually wanted here.
-     ATTEMPTED and reverted: two extra gradient stops above the front, guarded
-     with max() so they cannot cross the existing ones. The calc parsed correctly
-     (verified in computed style) but had no measurable effect on the rendered
-     mask — with the dim layer off and the page content hidden, the lit layer
-     still extended from the top of the viewport at every tail value from 4000px
-     down to 80px. Cause not found. Do not re-attempt this by adding stops to
-     this gradient without measuring the LIT LAYER IN ISOLATION (set --spine-dim
-     to 0 and hide main/.footer/.nav) — a profile of the composite is dominated
-     by artwork content and will look like it is working when it is not.
-     A second mask layer holding the band, intersected with this one, is probably
-     the cleaner route and was not tried. */
+  /* ---- THE GLOW BAND — the lit zone's upper edge --------------------------
+     The lit region used to be a HALF-PLANE: everything above the charge front
+     was lit, with no top edge. That is why the hero card always sat at the EDGE
+     of the glow rather than inside it, and why raising --spine-bias past ~2 did
+     nothing — once the ramp cleared the viewport, everything visible was simply
+     lit. --spine-band gives the zone a top edge, which turns it into a band that
+     --spine-bias can park on the card.
+
+     --spine-band is the band's HEIGHT in px, measured UP from the bottom of the
+     charge front's ramp. --spine-band-feather is the softness of its top edge,
+     independent of --spine-feather, so the band's top edge and the charge front
+     below it can be ramps of completely different lengths.
+
+       --spine-band: 3000px   = OFF. The top edge sits above the layer at every
+                                desktop layout, so the mask is identical to the
+                                old half-plane. That, not 0, is the off switch.
+       --spine-band: 0        = the band collapses onto the front and NOTHING is
+                                lit. Legitimate ("glow off"), not a bug.
+
+     WHY A SEPARATE MASK LAYER. The previous attempt added two more stops to
+     --mask-charge below, guarded with max(). It parsed (verified in computed
+     style) and had no measurable effect on the rendered mask at any value from
+     4000px down to 80px. Adding stops to that gradient means every stop has to
+     stay monotonic against the front's own three, at every value of --charge,
+     --spine-feather and --spine-bias — and CSS silently clamps out-of-order
+     stops rather than failing, so a wrong guard reads as "no effect" instead of
+     as an error. The band is its own mask layer, intersected with the charge
+     mask, so its two stops only ever have to be ordered against EACH OTHER.
+     That holds for any --spine-band-feather >= 0, unconditionally.
+
+     THE SHIPPED VALUES ARE 1260px WITH A FEATHER OF 0. A zero feather puts the
+     band's two stops at the same position, which is a legal hard step, not an
+     ordering violation — that is the property the separate-mask-layer design
+     guarantees for any feather >= 0. So the top of the lit zone is now a HARD
+     EDGE travelling down the column, while the charge front below it stays a
+     220px ramp. The band is deliberately asymmetric: a line arriving, a swell
+     leaving. Raise --spine-band-feather if a soft top is ever wanted back.
+     For reference, anything at or above 3000px switches the band off outright.
+
+     MEASURED at 1440x900 with the LIT LAYER IN ISOLATION — dim 0, page content
+     hidden, and the artwork swapped for a flat white column so the profile reads
+     the MASK and not the vertebrae (the tuner's "mask only" view mode does all
+     three). Scrolled to 40% of the range: charge front at viewport y 607, hero
+     card occupying y 133-623. Taken at --spine-feather: 10px, before the front
+     was retuned to a 340px swell — the band's own geometry is independent of it,
+     but the numbers below will not reproduce exactly at the shipped feather.
+
+       band      top edge   top edge   lit band
+                 predicted  measured   on screen
+       3000px       -2400      —       off: lit from the top of the viewport to
+                                       607, pixel-for-pixel the old half-plane
+        600px           7      —       ramp sits above the viewport; also off in
+                                       practice at this scroll position
+        400px         207      ~190    ramp visible, top edge above the card
+        300px         307      ~305    ramp 67..307, plateau down to 600
+        200px         407      ~410
+          0px         607      ~600    band collapsed onto the front, nothing lit
+
+     "Measured" is the 50% crossing of the top ramp, so it lands at t1 minus half
+     of --spine-band-feather; every value is within ~20px of prediction, which is
+     the sampling step. The band's bottom edge measured 600 against a front at
+     607 in every run — it is the charge mask doing that, unchanged.
+
+     Do not re-measure this from a composite screenshot. A luminance profile of
+     the real page is dominated by artwork content: the previous attempt was
+     judged that way and a change that did nothing looked like it was working.
+     Note also that the plateau brightness varies about +/-15% run to run in
+     headless Chromium at identical settings — that noise predates this and is
+     not the band. Judge the EDGE POSITIONS, which are stable. */
+  --spine-band: 1260px;
+  --spine-band-feather: 0px;
 
 
   /* While a sample is playing the charged column breathes between these two
      brightnesses instead of sitting at --spine-lit. Driven by the is-playing
      class track-experience.js already sets, mirrored onto <html> by
      js/spine-bg.js — no change to the player itself. */
-  --spine-pulse-lo: 0.26;
-  --spine-pulse-hi: 0.82;
+  --spine-pulse-lo: 0.38;
+  --spine-pulse-hi: 0.8;
   --spine-pulse-ms: 5300ms;
   --spine-bloom: 0;     /* the flare riding the charge front, 0 = off */
-  --spine-glow: 0.54;      /* 1 = the bloom as generated, 0 = crushed to hard lines */
+  --spine-glow: 0.48;      /* 1 = the bloom as generated, 0 = crushed to hard lines */
 
   /* The glow is BAKED INTO the artwork — a soft halo painted around each bright
      line, not something CSS added — so it cannot be switched off. It can be
@@ -127,6 +218,27 @@
      If 0.0 still is not tight enough, the lever has run out and the fix is a
      new generation with a tighter bloom prompted in — not more CSS. */
   --spine-contrast: calc(1.04 + (1 - var(--spine-glow)) * 1.3);
+
+  /* The band's two stop positions, factored out so the lit mask and the dim
+     layer's complement of it cannot drift apart. Both are in the same space as
+     the charge stops below: --charge * 100% of the layer, offset in px.
+     --band-t1 is the top edge; --band-t0 is where its ramp begins, above it. */
+  --band-t1: calc(var(--charge) * 100% + var(--spine-feather) * (var(--spine-bias) + 0.16)
+             - var(--spine-band));
+  /* max(1px, ...) is a FLOOR ON THE RAMP, not a floor on the slider.
+     MEASURED: at --spine-band-feather: 0 the band's top stop and the dim layer's
+     complementary stop land on the same position, and the rasteriser rounds them
+     onto the same pixel row — so that one row is painted by BOTH layers, which
+     under screen blending ADD. It showed up as a bright hairline sitting on top
+     of the hard edge: a 200px-wide sample read 20 (dark) / 192 (the hairline) /
+     138 (the lit plateau) on consecutive rows. This is load-bearing note 3 in
+     miniature, one pixel tall instead of a whole section.
+     Forcing a 1px minimum ramp gives the two masks a single row to cross over
+     in, so they sum to 1 instead of to 2. A 1px ramp is still a hard edge to
+     look at — --spine-band-feather: 0 keeps meaning what the owner tuned it to
+     mean — it just stops the seam. */
+  --band-t0: calc(var(--charge) * 100% + var(--spine-feather) * (var(--spine-bias) + 0.16)
+             - var(--spine-band) - max(1px, var(--spine-band-feather)));
 }
 
 /* The layer is a direct child of body and is positioned in DOCUMENT space, so
@@ -154,7 +266,7 @@ body { position: relative; }
 .spine-bg__art {
   position: absolute;
   inset: 0;
-  background-image: url("../assets/hero/spine-column-moonlight.webp");
+  background-image: url("../assets/hero/spine-column-moonlight-4k.webp");
   background-position: 50% var(--spine-offset);
   /* repeat-y is LOAD-BEARING on narrow screens. At 1440x900 one copy is taller
      than the region so it never tiles and this looks like a no-op. At 390x844
@@ -196,8 +308,16 @@ body { position: relative; }
      is invisible on most screens and clearly visible on a good one in a dark
      room — a faint vertical edge running the height of the page. This removes
      it outright. The fade is wide (18% of the artwork width each side) because
-     the sacred geometry reaches nearly to the frame edge and a narrow fade
-     would clip it into a hard line instead. */
+     the sacred geometry reached nearly to the frame edge and a narrow fade
+     would have clipped it into a hard line instead.
+
+     THAT JUSTIFICATION NO LONGER APPLIES. The geometry is gone from the 4K
+     artwork and its field is clamped to true black, so there is no longer a
+     field to lift the page and nothing near the edges to clip. This is kept as
+     insurance, not because it is load-bearing any more, and it can be narrowed
+     or dropped by a future session. Narrowing it buys no column width, though —
+     the column spans 0.335..0.665 of the frame and the fade ends at 0.18, so the
+     two never meet. All it would recover is a little outer halo. */
   --mask-sides: linear-gradient(to right, transparent 0, #000 18%,
                 #000 82%, transparent 100%);
 }
@@ -208,12 +328,29 @@ body { position: relative; }
    came out roughly twice as bright as tuned. Cutting the dim layer away where
    the lit one takes over keeps the two from ever overlapping, so the tuned
    --spine-dim / brightness values still mean what they meant. */
+/* The band's complement is UNIONED with the charge complement, not intersected:
+   the dim layer has to paint wherever the lit one does not, and that is now two
+   disjoint regions — below the charge front AND above the band's top edge.
+   Intersecting them would leave the column dark above the band instead of
+   returning it to --spine-dim, which is what makes the band read as a lit
+   stretch travelling through a continuous column rather than as the column
+   itself ending.
+   Layer order is top-first, so compositing runs upward from the bottom entry:
+   ends INTERSECT (sides INTERSECT (charge-inv ADD band-inv)). Three operators
+   for four layers; the bottom layer's operator is not used. */
 .spine-bg__art--dim {
   filter: brightness(var(--spine-dim)) saturate(0.55) contrast(var(--spine-contrast));
-  -webkit-mask-image: var(--mask-ends), var(--mask-sides), var(--mask-charge-inv);
-          mask-image: var(--mask-ends), var(--mask-sides), var(--mask-charge-inv);
-  -webkit-mask-composite: source-in, source-in;
-          mask-composite: intersect, intersect;
+  -webkit-mask-image: var(--mask-ends), var(--mask-sides), var(--mask-charge-inv), var(--mask-band-inv);
+          mask-image: var(--mask-ends), var(--mask-sides), var(--mask-charge-inv), var(--mask-band-inv);
+  -webkit-mask-composite: source-in, source-in, source-over;
+          mask-composite: intersect, intersect, add;
+  /* Opaque above the band's top edge, transparent inside the band. Exactly two
+     stops, so it can never go out of order however --spine-band is set. */
+  --mask-band-inv: linear-gradient(to bottom,
+    #000 0,
+    #000 var(--band-t0),
+    rgba(0, 0, 0, 0) var(--band-t1),
+    rgba(0, 0, 0, 0) 100%);
   --mask-charge-inv: linear-gradient(to bottom,
     rgba(0, 0, 0, 0) 0,
     rgba(0, 0, 0, 0) calc(var(--charge) * 100% + var(--spine-feather) * (var(--spine-bias) - 1)),
@@ -241,12 +378,23 @@ body { position: relative; }
 .spine-bg__art--lit {
   transition: filter 700ms ease;
   filter: brightness(var(--spine-lit)) contrast(var(--spine-contrast));
-  /* Two masks composited: the end-fade above, and the travelling charge front.
-     mask-composite intersect means a band is only painted where BOTH allow it. */
-  -webkit-mask-image: var(--mask-ends), var(--mask-sides), var(--mask-charge);
-          mask-image: var(--mask-ends), var(--mask-sides), var(--mask-charge);
-  -webkit-mask-composite: source-in, source-in;
-          mask-composite: intersect, intersect;
+  /* Four masks intersected: the end-fade, the side-fade, the travelling charge
+     front (the band's BOTTOM edge) and the band's TOP edge. intersect means a
+     row is only painted where all four allow it, so the lit zone is the strip
+     between the band's top edge and the front. */
+  -webkit-mask-image: var(--mask-ends), var(--mask-sides), var(--mask-charge), var(--mask-band);
+          mask-image: var(--mask-ends), var(--mask-sides), var(--mask-charge), var(--mask-band);
+  -webkit-mask-composite: source-in, source-in, source-in;
+          mask-composite: intersect, intersect, intersect;
+  /* Transparent above the band's top edge, opaque from there down; the charge
+     mask cuts it off again at the front. Two stops only — see the note on
+     --spine-band in :root for why this is a separate layer and not two more
+     stops in --mask-charge. */
+  --mask-band: linear-gradient(to bottom,
+    rgba(0, 0, 0, 0) 0,
+    rgba(0, 0, 0, 0) var(--band-t0),
+    #000 var(--band-t1),
+    #000 100%);
   --mask-charge: linear-gradient(to bottom,
     #000 0,
     #000 calc(var(--charge) * 100% + var(--spine-feather) * (var(--spine-bias) - 1)),
@@ -585,8 +733,17 @@ main > .section .label {
        against the tuned 0.5 it would have made the phone BRIGHTER than the
        desktop rather than dimmer, which is backwards. */
     --spine-w: 390px;
-    --spine-lit: 0.28;
-    --spine-dim: 0.19;
+    --spine-lit: 0.3;
+    --spine-dim: 0.23;
+    /* INFERRED, not judged on a device — same status as the two values above.
+       The band is a length in DOCUMENT space, and at 390px the same content
+       stacks into a document roughly twice as tall, so a desktop-height band
+       covers half as much of the page and reads as a much shorter flash. Scaled
+       by the card ratio rather than the document ratio: the point of the band is
+       to sit on the hero card, and that card is ~0.7x its desktop height here.
+       Re-derive whenever --spine-band changes on desktop. */
+    --spine-band: 880px;
+    --spine-band-feather: 0px;
   }
 }
 

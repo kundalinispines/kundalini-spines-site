@@ -258,6 +258,41 @@
 
     // Scroll-reveal: nothing elsewhere in the codebase toggles this class, which
     // would otherwise leave the section permanently invisible (opacity:0).
+    //
+    // ARRIVING BY LINK SKIPS THE REVEAL. #tracks is the target of the nav's
+    // MUSIC link, of the hero's "Listen Now" button, and of any shared URL
+    // carrying the hash — all of which drop you ON the section. The entrance is
+    // written to be noticed in passing as you scroll down to it; played at the
+    // top of the viewport, immediately after a jump, it is just the page
+    // visibly assembling itself in front of you. So in that case show it
+    // straight away and suppress the transition for one frame, rather than
+    // animating from a state the visitor never saw.
+    // Both halves of the entrance have to be suppressed, not just the fade: the
+    // opacity transition is on the section, the 24px slide is on .track-arc-wrap
+    // (see the comment on it in css/track-experience.css). Killing only the
+    // section's transition leaves the content visibly sliding into place, which
+    // is the part you actually notice.
+    const revealNow = () => {
+      if (section.classList.contains('is-visible')) return;
+      const wrap = section.querySelector('.track-arc-wrap');
+      const prev = section.style.transition;
+      const prevWrap = wrap ? wrap.style.transition : null;
+      section.style.transition = 'none';
+      if (wrap) wrap.style.transition = 'none';
+      section.classList.add('is-visible');
+      // Two frames: one for the class to take effect with no transition, one to
+      // hand the transitions back before anything else can animate.
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        section.style.transition = prev;
+        if (wrap) wrap.style.transition = prevWrap;
+      }));
+    };
+
+    if (location.hash === '#tracks') revealNow();
+    document.querySelectorAll('a[href="#tracks"]').forEach((a) => {
+      a.addEventListener('click', revealNow);
+    });
+
     if ('IntersectionObserver' in window) {
       const io = new IntersectionObserver((entries) => {
         entries.forEach((entry) => {

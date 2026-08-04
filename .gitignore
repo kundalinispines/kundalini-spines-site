@@ -11,6 +11,14 @@ ks-backup-*.zip
 *-Track-Art*.zip
 _to_delete/
 
+# Scratch files from a Higgsfield round trip. The assistant's environment cannot
+# reach the Higgsfield CDN in either direction, so sources have to be written to
+# this folder for the browser to upload, and results have to be saved back down
+# here to be measured. They are full-size PNGs — the August 4 pair came to 44 MB
+# — and none of them are the shipped asset, which is always the encoded WebP in
+# assets/hero/. Safe to delete at any time.
+_hf-*.png
+
 # ---- OS / editor noise ----
 Thumbs.db
 ehthumbs.db

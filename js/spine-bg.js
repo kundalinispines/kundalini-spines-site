@@ -129,13 +129,55 @@
     { v: '--spine-feather', label: 'reach', min: 10, max: 900, step: 10,   unit: 'px' },
     { v: '--spine-offset', label: 'shift',  min: -900, max: 900, step: 10, unit: 'px' },
     { v: '--spine-bias',   label: 'bias',   min: -2, max: 5, step: 0.05, unit: ''   },
+    /* THE GLOW BAND. `band` is the lit zone's height in px, measured up from the
+       charge front; `soft` is the softness of its top edge only. 3000 is OFF —
+       the top edge clears the layer and the mask is the old half-plane — so the
+       slider's far right is "no band", not "a huge band". Its far LEFT is
+       nothing lit at all, because the top edge lands on the front. */
+    { v: '--spine-band',   label: 'band',   min: 0,  max: 3000, step: 20, unit: 'px' },
+    { v: '--spine-band-feather', label: 'soft', min: 0, max: 800, step: 10, unit: 'px' },
     { v: '--spine-bloom', label: 'flare',  min: 0,   max: 1.5, step: 0.05, unit: ''   },
     { v: '--spine-beam',  label: 'beam',   min: 0,   max: 1.5, step: 0.05, unit: ''   },
     { v: '--spine-scrim', label: 'scrim',  min: 0,   max: 1.5, step: 0.05, unit: ''   },
     { v: '--spine-pulse-lo', label: 'puls lo', min: 0, max: 1.6, step: 0.02, unit: ''   },
     { v: '--spine-pulse-hi', label: 'puls hi', min: 0, max: 1.6, step: 0.02, unit: ''   },
-    { v: '--spine-pulse-ms', label: 'puls ms', min: 600, max: 8000, step: 100, unit: 'ms' }
+    { v: '--spine-pulse-ms', label: 'puls ms', min: 600, max: 8000, step: 100, unit: 'ms' },
+    /* NOT A SPINE CONTROL. How heavy the page feels under a mouse wheel, read by
+       js/scroll-weight.js. It is here because this is the only tuning panel on
+       the site, but it lives in a different stylesheet — `file` below makes Copy
+       CSS emit it under its own heading so it does not get pasted into
+       spine-bg.css, where it would work on the front page and nowhere else.
+       0 is off and means genuinely native. Wheel only; touch, keyboard and
+       anchors are untouched, and reduced motion disables it. */
+    { v: '--scroll-weight', label: 'scroll', min: 0, max: 1, step: 0.05, unit: '',
+      file: 'css/base.css' },
+    /* THE STAR FIELD, css/star-bg.css. `stars` is its brightness (0 = off, and
+       under screen blending that is identical to the layer not being there);
+       `hue` is saturation, 1 = the hero footage as shot (deep blue), 0 = the
+       colourless grade the spine artwork was made to match. Those two greys are
+       the only place on the page where the site disagrees with itself, so judge
+       them against the spine, not on their own. */
+    { v: '--star-dim', label: 'stars', min: 0, max: 1.4, step: 0.05, unit: '',
+      file: 'css/star-bg.css' },
+    { v: '--star-sat', label: 'hue',   min: 0, max: 1.4, step: 0.05, unit: '',
+      file: 'css/star-bg.css' },
+    /* TWINKLE. `twnk` is the idle amplitude, `twnk hi` the one that takes over
+       while a sample is playing — same is-spine-pulsing flag that drives the
+       spine's breathing, so the sky and the column answer the play button
+       together. `twnk ms` is the cycle length. Set twnk to 0 for a dead static
+       sky; set both equal to make the player stop affecting it. */
+    { v: '--star-twinkle',    label: 'twnk',    min: 0, max: 1.2, step: 0.02, unit: '',
+      file: 'css/star-bg.css' },
+    { v: '--star-twinkle-hi', label: 'twnk hi', min: 0, max: 1.5, step: 0.02, unit: '',
+      file: 'css/star-bg.css' },
+    { v: '--star-twinkle-ms', label: 'twnk ms', min: 800, max: 12000, step: 100, unit: 'ms',
+      file: 'css/star-bg.css' },
+    /* The soft glow on the nebula, separate from the star cores above. The stars
+       flare from their whitest points; the clouds only swell. */
+    { v: '--star-cloud',      label: 'cloud',   min: 0, max: 1.2, step: 0.02, unit: '',
+      file: 'css/star-bg.css' }
   ];
+  var HOME = 'css/spine-bg.css';
 
   var css = document.createElement('style');
   css.textContent =
@@ -157,7 +199,9 @@
   var build = getComputedStyle(document.documentElement).getPropertyValue('--spine-build').trim() || '?';
   var hasOldScrim = !!getComputedStyle(document.querySelector('.track-focus-panel') || document.body, '::before')
       .backgroundImage.match(/radial/);
+  var starBuild = getComputedStyle(document.documentElement).getPropertyValue('--star-build').trim();
   box.innerHTML = '<h6>Spine tuning &middot; css build ' + build +
+    (starBuild ? ' &middot; star ' + starBuild : ' <em style="color:#D8534F;font-style:normal">NO STAR CSS</em>') +
     (hasOldScrim ? ' <em style="color:#D8534F;font-style:normal">STALE CSS</em>' : '') + '</h6>' +
     '<p id="spine-jsck" style="margin:0 0 6px">checking js...</p>';
 
@@ -220,7 +264,21 @@
     ['cards hidden', '.track-card,.track-hero-layer{visibility:hidden!important}'],
     ['cards + panel hidden', '.track-card,.track-hero-layer{visibility:hidden!important}.track-focus-panel{visibility:hidden!important}'],
     ['spine only (all content off)', 'main,.footer,.nav{visibility:hidden!important}'],
+    /* MASK ONLY. Swaps the artwork for a flat white column, so what is on screen
+       is the MASK and nothing else — the band's top edge, the charge front and
+       both feathers are directly visible and directly measurable.
+       This exists because the previous attempt at a band was judged from the
+       composite page, where the profile is dominated by the artwork's vertebrae:
+       a change that did nothing looked like it was working, and a change that
+       worked looked like it did nothing. Judge band/soft/bias here first, then
+       switch back to "cards ghosted" to place it against the real cards. */
+    ['mask only (flat column)',
+      'main,.footer,.nav{visibility:hidden!important}' +
+      '.spine-bg__scan,.spine-bg__bloom{display:none!important}' +
+      '.spine-bg__art{background-image:linear-gradient(#FFF,#FFF)!important;' +
+      'background-size:var(--spine-w) 100%!important;background-position:50% 0!important}'],
     ['spine layer off', '.spine-bg{display:none!important}'],
+    ['stars off', 'body::before{display:none!important}'],
     ['scrims off', '.newsletter::before,main>.section::before,.track-experience::before{display:none!important}']
   ];
   var isoStyle = document.createElement('style');
@@ -243,9 +301,10 @@
   /* ---- Paste a saved block back in ---------------------------------------
      Copy CSS is only half a round trip. Without this, restoring an earlier
      setting means typing seven numbers back into seven sliders by hand and
-     getting one of them wrong. Accepts anything containing --spine-* lines, so
-     a whole :root block pasted straight out of the stylesheet works — comments,
-     braces and unrelated properties are ignored. */
+     getting one of them wrong. Accepts anything containing --spine-* or
+     --scroll-* / --star-* lines, so a whole :root block pasted straight out of
+     any of the three stylesheets works — comments, braces and unrelated properties are ignored,
+     including the "css/base.css" headings Copy CSS writes. */
   var pasteWrap = document.createElement('div');
   pasteWrap.style.cssText = 'margin-top:8px';
   var paste = document.createElement('textarea');
@@ -258,12 +317,20 @@
   apply.style.cssText = 'margin-top:4px';
   apply.addEventListener('click', function () {
     var found = 0, unknown = [];
-    var re = /(--spine-[a-z-]+)\s*:\s*([^;\n}]+)/g, m;
+    var re = /(--(?:spine|scroll|star)-[a-z-]+)\s*:\s*([^;\n}]+)/g, m;
     while ((m = re.exec(paste.value))) {
       var name = m[1], val = m[2].trim();
       var f = null;
       for (var i = 0; i < FIELDS.length; i++) if (FIELDS[i].v === name) f = FIELDS[i];
-      if (!f) { if (name !== '--spine-build' && name !== '--spine-contrast') unknown.push(name); continue; }
+      if (!f) {
+        /* Derived values, not controls — they are computed from the sliders and
+           would be overwritten by them anyway. Ignore silently rather than
+           reporting a paste of the real :root block as half-unrecognised. */
+        if (name !== '--spine-build' && name !== '--spine-contrast' &&
+            name !== '--star-build' && name !== '--star-twinkle-amp' && name !== '--star-cloud-amp' &&
+            name !== '--band-t0' && name !== '--band-t1') unknown.push(name);
+        continue;
+      }
       var num = parseFloat(val);
       if (isNaN(num)) continue;
       /* Clamp to the slider's own range, otherwise an out-of-range value applies
@@ -286,9 +353,21 @@
   copy.textContent = 'Copy CSS';
   var note = document.createElement('p');
   copy.addEventListener('click', function () {
-    var text = FIELDS.map(function (f) {
-      return '  ' + f.v + ': ' + f._input.value + f.unit + ';';
-    }).join('\n');
+    /* Grouped by destination file. Everything without a `file` belongs in
+       spine-bg.css's :root as before; anything with one gets its own heading,
+       because a value pasted into the wrong stylesheet here fails in a way that
+       looks like the slider not working: spine-bg.css is loaded by index.html
+       only, so a site-wide variable pasted into it silently applies to the front
+       page and to nothing else. */
+    var groups = {}, order = [];
+    FIELDS.forEach(function (f) {
+      var dest = f.file || HOME;
+      if (!groups[dest]) { groups[dest] = []; order.push(dest); }
+      groups[dest].push('  ' + f.v + ': ' + f._input.value + f.unit + ';');
+    });
+    var text = order.map(function (dest) {
+      return (order.length > 1 ? '/* ' + dest + ' */\n' : '') + groups[dest].join('\n');
+    }).join('\n\n');
     (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject())
       .then(function () { note.textContent = 'copied — paste into :root'; })
       .catch(function () { note.textContent = text; });

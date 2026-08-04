@@ -241,11 +241,72 @@ One methodological note for whoever repeats this: estimating the background by t
 
 * * *
 
+## NEXT SESSION — kick-reactive spine shake
+
+**The owner's stated goal, 2026-08-04:** make the spine shake / buzz while a sample is playing, driven by the kick drum, so it reads as a music visualiser rather than a loop.
+
+Nothing has been built. What follows is groundwork gathered while doing other work, recorded so the next session does not rediscover it.
+
+### The one that will bite: a transform here may be very expensive
+
+**This session measured a `transform: scale(1.06)` on a full-screen blended pseudo-element costing 28–40% of the page's frame rate** — see "The cloud layer's transform" above. A shake is a transform, and `.spine-bg` is a full-screen layer that screens over the star field: exactly the same shape of object.
+
+**Take a frame-time baseline BEFORE building anything** and measure the shake against it. If a transform on `.spine-bg` proves as costly as the cloud layer's was, the alternatives worth trying are:
+
+- move `--spine-offset` (or the mask position) instead of transforming — that path already runs every scroll frame and is known cheap
+- shake only `.spine-bg__art--lit` rather than the whole layer
+- accept the transform but only while playing, so an idle page pays nothing
+
+Do not assume it is free because it is "just a transform". That assumption is what cost a third of the frame rate for months.
+
+### Getting at the audio — the real constraint
+
+**HANDOFF 7:** "The sample is a detached `new Audio()` with no DOM node, so there is nothing to listen to directly; patching its prototype would be worse."
+
+Still true, and it is the crux. Frequency analysis needs `AudioContext.createMediaElementSource(el)`, which needs the element *reference* — but **not** a DOM node, so a detached `Audio()` is fine. The reference lives inside `js/track-experience.js` and is private. The clean move is for that file to expose it (an event, or a property on the section element) rather than for `spine-bg.js` to go hunting for it.
+
+Four traps, all classic, all cheap to avoid:
+
+1. **`createMediaElementSource` reroutes the audio.** Once called, output goes through the graph and **you must connect to `ctx.destination` or the samples go silent.** This is the most common way this goes wrong.
+2. **Call it exactly once per element.** A second call on the same element throws.
+3. **`AudioContext` starts suspended** and needs `resume()` inside a user gesture. Do it in the play-button click, not on page load where it is blocked.
+4. **Same-origin only.** The samples are local `assets/music/*-sample.mp3`, so fine — but if streaming links ever replace them with a CDN, `AnalyserNode` returns silence unless CORS allows it.
+
+### Detecting the kick
+
+`AnalyserNode` + `getByteFrequencyData`, summing roughly **40–120 Hz**. At `fftSize: 1024` and 44.1 kHz each bin is ~43 Hz — that is only bins 1–3, so use 2048 or larger for usable resolution.
+
+Onset detection needs an **adaptive threshold** (energy against a running average) plus a **refractory period**, or one kick fires on several consecutive frames. This record is slow — May 26th measured ~70 BPM when its sample was cut — so ~850 ms between beats, and a 120–200 ms refractory window is safe.
+
+Samples are 20.036 s, 128 kbps CBR, 44.1 kHz stereo, 28 of them. **Tune against several** — the low end varies a lot across this record.
+
+### How to reach the spine from the player
+
+Already solved and reusable. The spine layer is a body child, not a descendant of `.track-experience`, so no selector reaches it — `spine-bg.js` mirrors `is-playing` onto `<html>` with a `MutationObserver`. **Push the kick amplitude the same way: write a custom property on `<html>` once per frame.** Same mechanism `--charge` uses for scroll; triggers no layout.
+
+Note the playback pulse animates `filter` rather than the custom property, because a bare custom property cannot interpolate without `@property` registration. A JS-driven per-frame value needs no interpolation — do the decay envelope in JS and write the result.
+
+### Do not forget
+
+- **`prefers-reduced-motion` must disable it.** Every other motion feature here does.
+- **Put the controls in the tuner** (`/?tune`) — intensity, decay, threshold, frequency band. That is where every number on this page got tuned, and the owner tunes by eye.
+- **Bump `--spine-build`.** It caught three cache traps in one session.
+- **The stars currently do NOT react to playback** — the owner set `--star-twinkle` equal to `--star-twinkle-hi`. Worth asking whether the kick should drive the sky too, or whether the spine alone is the point.
+
+### Open design questions for the owner
+
+- Shake the whole column, or only the charged/lit section?
+- Displacement (a jolt), brightness (a flash), or both?
+- Does it drive the star twinkle as well, or is the spine deliberately the only reactive thing?
+
+* * *
+
 ## Still open
 
 Carried forward, minus what this session closed.
 
 - **The twinkle is CLOSED.** Rebuilt, measured, then tuned by the owner and shipped at the values above. If it is ever revisited: `desync` 0 renders the old lockstep sky exactly, and the `star bands only (amp 1)` view mode shows the four populations in isolation.
+- **Kick-reactive spine shake** — the owner's next request. Full brief in its own section above.
 - **The hero section was never checked for star legibility, and does not need to be** — the hero video is opaque and the sky sits at `z-index: -1` behind it, so no star layer is ever under hero text. Recorded so nobody re-checks it.
 - **DNS for `kundalinispines.com`** — unchanged, still the single blocker. Nothing on this site is reachable by anyone. Enable sequence in HANDOFF 5 under "Deployment"; do not enable Pages without the custom domain.
 - **Frame-time audit of the remaining always-on layers.** `.spine-bg` costs roughly 3ms/frame and was never looked at. The cloud finding suggests it is worth an hour.

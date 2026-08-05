@@ -42,8 +42,10 @@
   /* Bumped on every change, same reason as --spine-build: a browser sitting on
      a cached stylesheet is indistinguishable from a change that did not work.
      9 = --star-black, the sky's black point. 8 = four-band twinkle, plus the
-     cloud layer's transform replaced by a negative inset (worth 63 -> 88 fps,
-     see html::after below). 6 was the single lockstep cores layer. */
+     cloud layer's transform replaced by a negative inset (recorded at the time
+     as worth 63 -> 88 fps; that figure was taken on a software renderer and is
+     corrected under html::after below). 6 was the single lockstep cores
+     layer. */
   --star-build: 10;
 
   /* Brightness of the whole field. 0 is off — the layer still exists but adds
@@ -505,10 +507,35 @@ main::after   { animation-duration: calc(var(--star-twinkle-ms) * (1 + 1.31 * va
 
    THE OVERSCAN IS `inset: -3%`, NOT `transform: scale(1.06)`. Those two are
    algebraically identical — both give a fixed box 106% of the viewport in each
-   axis, centred, and the measured geometry matches to 0.1px — but on real
-   hardware they cost wildly different amounts.
+   axis, centred, and the measured geometry matches to 0.1px. Keep the inset:
+   it is free and it is identical, so it costs nothing to keep whatever the
+   numbers below turn out to mean.
 
-   MEASURED, 2026-08-04, real GPU, 1920x855 at dpr 1, 220 frames per run, each
+   >>> CORRECTION 2026-08-05 — EVERY FRAME-TIME NUMBER BELOW WAS TAKEN ON A
+   >>> SOFTWARE RENDERER. chrome://gpu on this machine read "Compositing:
+   >>> Software only", GL_RENDERER "Microsoft Basic Render Driver", "Software
+   >>> Rendering: Yes". The owner confirms hardware acceleration had been
+   >>> DISABLED IN CHROME THE ENTIRE TIME. So "real GPU" below is wrong: these
+   >>> are CPU compositing times through WARP, on a machine whose actual card is
+   >>> an RTX 3090 Ti. An 88fps ceiling is plausible for WARP on 24 threads and
+   >>> is a strange ceiling for a 3090 Ti — that ceiling was the tell and nobody
+   >>> read it.
+   >>>
+   >>> RE-MEASURED 2026-08-05 with acceleration ON, three ways, all null:
+   >>>   vsync-capped   all 11 conditions pinned at 4.2ms / 238fps, spread <0.1ms
+   >>>   uncapped       all 8 ANIMATING conditions at 1.8ms, identical — removing
+   >>>                  every blend mode, every filter, the blur, the clouds, or
+   >>>                  four of the six layers changed nothing measurable
+   >>>   traced         6 render surfaces from mix-blend-mode, 8 render passes per
+   >>>                  frame vs 2 without the field (Chromium 141, structural)
+   >>> The star field's cost on this GPU is below every floor that could be
+   >>> built for it. See HANDOFF 11 and scripts/measure-stars.js.
+   >>>
+   >>> WHAT THIS DOES NOT SAY: it does not say the transform was free. It says
+   >>> the transform-vs-inset gap has never been measured on a GPU. Treat the
+   >>> table below as WARP data, not as hardware data.
+
+   MEASURED ON WARP, 2026-08-04, 1920x855 at dpr 1, 220 frames per run, each
    configuration run twice:
 
        transform: scale(1.06)      63 fps    p95 frame 29.9ms
@@ -527,10 +554,12 @@ main::after   { animation-duration: calc(var(--star-twinkle-ms) * (1 + 1.31 * va
        transform removed           89 fps    full recovery
        display: none               88 fps    same as removing the transform
 
-   So it is not the 22px blur, not the animation and not the layer's existence —
-   a transform on this pseudo-element takes it off the cheap path and nothing
-   else does. DO NOT PUT A TRANSFORM BACK HERE. If the glow ever needs more
-   overscan, make the inset more negative.
+   So — under CPU compositing — it is not the 22px blur, not the animation and
+   not the layer's existence; a transform on this pseudo-element takes it off
+   the cheap path and nothing else does. DO NOT PUT A TRANSFORM BACK HERE
+   anyway: the inset is algebraically identical and provably free, so there is
+   no upside to the transform even if the gap turns out to be a WARP artifact.
+   If the glow ever needs more overscan, make the inset more negative.
 
    The same question is worth asking of any other always-on transformed layer on
    this page; this one was found only because the four-band work prompted a

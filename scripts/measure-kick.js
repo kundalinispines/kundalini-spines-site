@@ -1,6 +1,28 @@
 /* ==========================================================================
    FRAME-TIME MEASUREMENT FOR THE KICK-REACTIVE SPINE
 
+   >>> CORRECTION 2026-08-05. EVERY NUMBER THIS FILE HAS EVER PRODUCED, AND
+   >>> EVERY NUMBER QUOTED IN THIS HEADER, WAS MEASURED WITH CHROME RENDERING
+   >>> IN SOFTWARE. chrome://gpu read "Compositing: Software only" and
+   >>> GL_RENDERER "Microsoft Basic Render Driver"; the owner confirms hardware
+   >>> acceleration had been off in Chrome the whole time. The card is an RTX
+   >>> 3090 Ti and was never being used.
+   >>>
+   >>> Two consequences for this file specifically:
+   >>>   - "a ceiling of 38.7fps with the star field AND the spine both hidden,
+   >>>     which a near-blank page should never do" — a near-blank page does
+   >>>     exactly that on WARP. It was not a mystery, it was the renderer.
+   >>>   - "the tuner's backdrop-filter caps the page at 40fps" — backdrop-filter
+   >>>     is brutal on a CPU and cheap on a GPU. Still worth avoiding /?tune for
+   >>>     hygiene, but the 40fps figure is a WARP figure.
+   >>> The paint ratio of 0.998 for the shake and flash is a ratio taken under
+   >>> identical conditions, so it probably survives — but "background-position
+   >>> was the right call over a transform" was never tested on a GPU.
+   >>>
+   >>> BEFORE RUNNING THIS AGAIN: confirm chrome://gpu says "Compositing:
+   >>> Hardware accelerated". scripts/measure-stars.js aborts on a software
+   >>> renderer; this file does not yet. See HANDOFF 11.
+
    HANDOFF 9 says to take a baseline before trusting the shake, because the
    cloud layer's transform cost 28-40% of the frame rate on an object of
    exactly the same shape. This is that measurement.

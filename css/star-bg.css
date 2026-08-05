@@ -44,7 +44,7 @@
      9 = --star-black, the sky's black point. 8 = four-band twinkle, plus the
      cloud layer's transform replaced by a negative inset (worth 63 -> 88 fps,
      see html::after below). 6 was the single lockstep cores layer. */
-  --star-build: 9;
+  --star-build: 10;
 
   /* Brightness of the whole field. 0 is off — the layer still exists but adds
      no light, and under screen blending (see below) that is exactly the same
@@ -205,10 +205,49 @@
      is a single re-binding and the animation never restarts. */
   --star-twinkle-amp: var(--star-twinkle);
   --star-cloud-amp: var(--star-cloud);
+
+  /* HOW HARD THE SKY ANSWERS THE KICK DRUM, per unit of envelope.
+     The envelope itself (--kick) is written by js/spine-bg.js and declared in
+     css/spine-bg.css, which index.html alone loads — so this control lives
+     here, with the layers it acts on, but the value it multiplies arrives from
+     the other file. That is safe because the rule below is scoped to
+     .is-spine-kicking, and only js/spine-bg.js ever sets that class, on the one
+     page that loads both stylesheets. On the other four pages the rule can
+     never match and --kick is never referenced.
+
+     KEPT LOW ON PURPOSE. --star-twinkle and --star-twinkle-hi were set equal
+     on 2026-08-04, which means the play button deliberately does not move the
+     stars any more. This does not undo that decision: the idle sky and the
+     playing sky are still identical, and the only thing that moves the stars
+     now is an actual drum hit. 0 restores the current behaviour exactly.
+
+     IT SCALES THE WAVEFORM, IT DOES NOT ADD A FLASH ON TOP. The keyframes are
+     amp x coefficient, so at 0.25 a hit multiplies the whole twinkle by 1.25 at
+     every phase — MEASURED in Chrome with the animations paused and stepped
+     (the getAnimations() method HANDOFF 9 documents): a trough band went
+     0.376 -> 0.470 and a near-peak band 0.645 -> 0.807, both exactly x1.250.
+     The consequence to know about: --star-twinkle-hi is 1 and opacity cannot
+     exceed 1, so at the exact top of a band's cycle the hit is clipped and that
+     band alone does not answer. With four bands on four clocks that is a small
+     slice of the sky at any instant and it reads as scintillation rather than
+     as a gap — but if this is ever raised a long way, that ceiling is what it
+     will run into, and the fix is to lower --star-twinkle-hi, not to raise this
+     further. */
+  --kick-stars: 0.25;
 }
 :root.is-spine-pulsing {
   --star-twinkle-amp: var(--star-twinkle-hi);
   --star-cloud-amp: calc(var(--star-cloud) * 1.8);
+}
+/* MUST STAY BELOW the pulsing rule — same specificity, and both classes sit on
+   <html> at once while a sample plays, so source order is what decides. */
+:root.is-spine-kicking {
+  --star-twinkle-amp: calc(var(--star-twinkle-hi) + var(--kick) * var(--kick-stars));
+  /* The clouds get half as much. They are a 22px-blurred glow with no detail in
+     them, so they read as a slow swell whatever is done to them; a transient
+     there mostly just lifts the page's floor, which is the thing --star-black
+     exists to hold down. The star CORES are what can actually flick. */
+  --star-cloud-amp: calc(var(--star-cloud) * 1.8 + var(--kick) * var(--kick-stars) * 0.5);
 }
 
 /* A pseudo-element, so this file is the ENTIRE feature: one <link> and a page

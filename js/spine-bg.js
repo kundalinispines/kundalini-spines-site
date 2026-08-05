@@ -112,6 +112,318 @@
   }
 
   /* ========================================================================
+     KICK-REACTIVE SPINE
+     The pulse above is a fixed 5.3s loop that only knows whether audio is
+     playing. This follows the actual kick drum and writes a decaying envelope
+     to --kick once per frame, which css/spine-bg.css turns into a flash on the
+     lit column and a sideways throw on the artwork, and css/star-bg.css turns
+     into a flick on the star cores.
+
+     IT DOES NOT USE THE FFT, AND THAT IS THE WHOLE POINT — see the note on the
+     side chain in attach() below. The first version read
+     getByteFrequencyData and it was wrong in a way that had to be heard before
+     it could be measured.
+
+     THE SHAPE OF THIS CODE IS DEFENSIVE ON PURPOSE, because one step in it is
+     irreversible: createMediaElementSource(el) permanently reroutes that
+     element's output through the graph. Get it wrong and the samples go SILENT
+     — which is a far worse failure than no visualiser. So the order is:
+     build the context, confirm it is actually RUNNING, and only then route the
+     element. Every early return below leaves playback on the browser's own
+     path, untouched, and leaves the page rendering exactly as build 22 did.
+     ======================================================================== */
+  var reduceMotion = window.matchMedia
+    ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
+
+  /* Read by the tuner's meter further down. Null until the graph is running,
+     so the panel can say WHY nothing is moving rather than just showing 0. */
+  var kickMeter = null;
+
+  var AudioCtx = window.AudioContext || window.webkitAudioContext;
+
+  if (section && AudioCtx && window.WeakMap) (function () {
+    var root = document.documentElement;
+
+    var ctx = null, analyser = null, buf = null, filters = null;
+    /* Keyed by ELEMENT, because wireSamplePlayer() builds a fresh Audio() on
+       every panel change — 28 tracks, 28 elements over a session — and
+       createMediaElementSource THROWS on a second call for the same one. */
+    var sources = new WeakMap();
+    var dead = false;   /* something threw; stop trying, keep audio working */
+
+    /* Envelope state. `env` is the 0..1 decaying visual value; `sign` flips on
+       every onset so consecutive hits throw the column to opposite sides — a
+       shake, not a lean. `base` and `peak` are the streaming statistics the
+       threshold is built from; `armed` is the leading-edge latch. */
+    var env = 0, sign = 1, lastWritten = null;
+    var base = 0, peak = 0, prevLevel = 0, armed = true, level = 0;
+    var lastKick = -1e9, lastFrame = 0, startedAt = 0;
+    var running = false, kicks = 0;
+
+    /* MS between accepted onsets. MEASURED: with the reference rebuilt at a
+       musically sane minimum spacing, the median gap between real kicks on this
+       record is 827ms — 72.5 BPM, which is the tempo HANDOFF 4 recorded for
+       May 26th. 190 never truncates a real pattern and it stops one drum being
+       counted twice, once on its attack and once on its body. */
+    var REFRACTORY = 190;
+    /* Detection is suppressed for this long after the loop starts, so the
+       running statistics have something in them before they are trusted. */
+    var WARMUP = 300;
+    /* Time constant of the running average the threshold floats on. */
+    var BASE_MS = 900;
+    /* Time constant of the decaying running peak. This is what makes the
+       detector work in a quiet passage: the floor is a fraction of how loud
+       things have RECENTLY been, not of how loud they are overall. */
+    var PEAK_MS = 3000;
+    /* The floor, as a fraction of that running peak. Its job is only to stop
+       the detector chewing on near-silence, where a ratio against a tiny
+       average means nothing. */
+    var FLOOR_FRAC = 0.06;
+
+    /* The numbers JS reads out of CSS. Re-read on a throttle rather than per
+       frame — getComputedStyle 5x/sec is free, 60x/sec is not, and the only
+       thing that ever changes them is a human dragging a slider. */
+    var P = { gain: 1, decay: 260, sens: 1.8, freq: 90 };
+    var paramsAt = -1e9;
+    function readParams(now) {
+      if (now - paramsAt < 200) return;
+      paramsAt = now;
+      var cs = getComputedStyle(root);
+      var num = function (name, dflt) {
+        var v = parseFloat(cs.getPropertyValue(name));
+        return isNaN(v) ? dflt : v;
+      };
+      P.gain  = num('--kick-gain', 1);
+      P.decay = Math.max(30, num('--kick-decay', 260));
+      P.sens  = Math.max(1.01, num('--kick-sens', 1.8));
+      var f = Math.max(30, Math.min(400, num('--kick-freq', 90)));
+      if (f !== P.freq && filters) {
+        P.freq = f;
+        for (var i = 0; i < filters.length; i++) filters[i].frequency.value = f;
+      } else {
+        P.freq = f;
+      }
+    }
+
+    function frame(now) {
+      if (!running) return;
+
+      /* Clamped, because a backgrounded tab stops calling rAF while the audio
+         keeps playing — the first frame back can be seconds later, and an
+         unclamped dt would collapse the envelope or make the running average
+         jump to the current frame in one step. */
+      var dt = lastFrame ? Math.min(100, now - lastFrame) : 16;
+      lastFrame = now;
+      readParams(now);
+
+      /* THE LEVEL: plain RMS of the low-passed signal, in the TIME DOMAIN.
+         Linear amplitude, not decibels, so a factor here is a factor in the
+         actual signal — which is what makes --kick-sens mean something. */
+      analyser.getFloatTimeDomainData(buf);
+      var sum = 0;
+      for (var i = 0; i < buf.length; i++) sum += buf[i] * buf[i];
+      level = Math.sqrt(sum / buf.length);
+
+      base = base * Math.exp(-dt / BASE_MS) + level * (1 - Math.exp(-dt / BASE_MS));
+      peak = Math.max(peak * Math.exp(-dt / PEAK_MS), level);
+
+      var thr = Math.max(peak * FLOOR_FRAC, base * P.sens);
+      var rising = level > prevLevel;
+      prevLevel = level;
+
+      if (!startedAt) startedAt = now;
+      if (level > thr && rising && armed) {
+        /* Latch immediately, whether or not the refractory lets it through, so
+           one excursion above the threshold can only ever fire once. */
+        armed = false;
+        if (now - startedAt > WARMUP && now - lastKick > REFRACTORY) {
+          lastKick = now;
+          sign = -sign;
+          kicks++;
+          /* Size the flash against how big this hit is relative to the loudest
+             thing heard recently, so a soft kick reads smaller than a hard one
+             and the column has dynamics rather than a binary blink. */
+          var hit = peak > 0 ? 0.35 + 0.65 * Math.min(1, level / peak) : 0.6;
+          if (hit > env) env = hit;
+        }
+      } else if (level <= thr) {
+        armed = true;
+      }
+
+      env *= Math.exp(-dt / P.decay);
+      if (env < 0.002) env = 0;
+
+      /* Write only when the value moved. Writing a custom property on <html>
+         invalidates style for the whole document, so not writing an unchanged
+         one is worth a string compare.
+
+         DO NOT EXPECT THIS TO SAVE ANYTHING DURING PLAYBACK, and do not remove
+         it expecting a regression. MEASURED on the owner's machine 2026-08-05,
+         old behaviour against new, back to back: it skipped 0% of frames and
+         both read 62.5ms. The reason is arithmetic, not luck — the envelope
+         decays with a 260ms time constant and a hit lands every ~500-800ms, so
+         between hits it never reaches the 0.002 cut-off, at any frame rate, and
+         consecutive frames essentially never produce the same 4-decimal string.
+         What this does cover is a genuine silent passage, where it does settle.
+
+         --kick-sign is inside the same guard deliberately: it only ever changes
+         on a hit, and a hit always changes --kick, so it cannot be missed. */
+      var out = (env * P.gain).toFixed(4);
+      if (out !== lastWritten) {
+        root.style.setProperty('--kick', out);
+        root.style.setProperty('--kick-sign', sign < 0 ? '-1' : '1');
+        lastWritten = out;
+      }
+
+      requestAnimationFrame(frame);
+    }
+
+    function start() {
+      if (running || !analyser) return;
+      running = true;
+      lastFrame = 0; startedAt = 0; env = 0; lastWritten = null;
+      base = 0; peak = 0; prevLevel = 0; armed = true;
+      root.classList.add('is-spine-kicking');
+      requestAnimationFrame(frame);
+    }
+
+    /* THE STOP IS TWO-STEP, and the order matters.
+       --kick goes to 0 while .is-spine-kicking is still on, so the column lands
+       back on --spine-lit under `transition: none` — instantly. Only then is
+       the class dropped, which restores the 700ms filter transition with the
+       value already where it belongs, so nothing smears. Drop the class first
+       and the column falls from mid-flash over 700ms, which reads as the spine
+       sagging every time a sample is paused. */
+    function stop() {
+      if (!running) return;
+      running = false;
+      env = 0;
+      root.style.setProperty('--kick', '0');
+      lastWritten = '0';
+      requestAnimationFrame(function () {
+        if (!running) root.classList.remove('is-spine-kicking');
+      });
+    }
+
+    function attach(audio) {
+      if (dead) return;
+      if (reduceMotion && reduceMotion.matches) return;
+
+      try {
+        if (!ctx) {
+          ctx = new AudioCtx();
+
+          /* ---- THE SIDE CHAIN, and why it is not an FFT -------------------
+             MEASURED against a hand-built reference over all 28 samples
+             (scripts/kick-tuning.py):
+
+               getByteFrequencyData, 40-120Hz, rise threshold
+                                              precision 0.44   recall 0.54
+               this — biquad lowpass + RMS    precision 0.76   recall 0.79
+
+             The owner heard the difference before any of this was measured:
+             "it seems to only pick up when the audio level is at its peak and
+             not isolating the kick drum frequency." Three reasons he was right,
+             all structural rather than a matter of tuning:
+
+             1. AT fftSize 2048 A BIN IS 21.5Hz, so the whole kick band is FOUR
+                BINS. Every band setting tried — 30-90, 40-120, 45-95 — resolved
+                to the same four bins and scored identically. The band controls
+                were close to inert.
+             2. getByteFrequencyData IS DECIBELS. On a limited master a
+                sustained bass note holds those bins high, and a log scale
+                compresses the drum's transient on top of it to almost nothing.
+             3. The old version gated on `energy > runningAverage`, which is
+                literally "only when this passage is louder than usual" — the
+                exact symptom reported.
+
+             A BiquadFilterNode is a real filter with a real rolloff, and RMS of
+             the time domain is linear amplitude. Three lowpass stages at Q 1.0
+             give a 18dB/octave skirt, which actually rejects the bass line
+             instead of averaging four bins that contain it.
+
+             NOTE THE GRAPH SHAPE. The source goes to the destination DRY. The
+             filters are a branch off it, and the analyser's output is
+             deliberately connected to nothing — an AnalyserNode observes
+             without needing an onward connection. Put the filters in the path
+             to the destination and the visitor hears a kick drum and nothing
+             else. */
+          analyser = ctx.createAnalyser();
+          /* 1024 samples is 23ms at 44.1kHz, close to one frame at 60fps. This
+             is a TIME DOMAIN buffer length here, not a spectrum — bigger just
+             means a longer, laggier RMS window. */
+          analyser.fftSize = 1024;
+          buf = new Float32Array(analyser.fftSize);
+
+          filters = [];
+          for (var s = 0; s < 3; s++) {
+            var f = ctx.createBiquadFilter();
+            f.type = 'lowpass';
+            f.frequency.value = P.freq;
+            f.Q.value = 1.0;
+            filters.push(f);
+            if (s > 0) filters[s - 1].connect(f);
+          }
+          filters[filters.length - 1].connect(analyser);
+        }
+      } catch (err) { dead = true; return; }
+
+      var route = function () {
+        /* THE GUARD THIS WHOLE FUNCTION IS BUILT AROUND. An AudioContext starts
+           suspended and only a user gesture resumes it; if autoplay policy
+           refuses, routing the element into a suspended context makes the
+           sample silent with no way back — createMediaElementSource cannot be
+           undone. So: only route once the context is confirmed RUNNING.
+           Refused means no visualiser and perfectly normal playback. */
+        if (!ctx || ctx.state !== 'running') return;
+        try {
+          if (!sources.has(audio)) {
+            var src = ctx.createMediaElementSource(audio);
+            src.connect(ctx.destination);   /* DRY PATH — do this first */
+            src.connect(filters[0]);        /* side chain for analysis only */
+            sources.set(audio, src);
+          }
+        } catch (err) { dead = true; return; }
+        start();
+      };
+
+      if (ctx.state === 'suspended' && ctx.resume) {
+        var p;
+        try { p = ctx.resume(); } catch (err) { return; }
+        if (p && p.then) p.then(route, function () {}); else route();
+      } else {
+        route();
+      }
+    }
+
+    /* track-experience.js announces each sample element as it wires it. */
+    section.addEventListener('ks:sample-ready', function (e) {
+      var audio = e.detail && e.detail.audio;
+      if (!audio) return;
+      audio.addEventListener('play', function () { attach(audio); });
+      audio.addEventListener('pause', stop);
+      audio.addEventListener('ended', stop);
+    });
+
+    /* Reduced motion can be toggled without a reload. Honour it live — every
+       other motion feature on this page does. */
+    if (reduceMotion) {
+      var onMotionPref = function () { if (reduceMotion.matches) stop(); };
+      if (reduceMotion.addEventListener) reduceMotion.addEventListener('change', onMotionPref);
+      else if (reduceMotion.addListener) reduceMotion.addListener(onMotionPref);
+    }
+
+    kickMeter = function () {
+      return {
+        env: env, running: running, kicks: kicks,
+        state: ctx ? ctx.state : (dead ? 'failed' : 'not built'),
+        band: analyser ? '<' + Math.round(P.freq) + 'Hz' : '—',
+        level: level, thr: Math.max(peak * FLOOR_FRAC, base * P.sens),
+      };
+    };
+  })();
+
+  /* ========================================================================
      TUNING PANEL — only ever runs at /?tune
      Visitors never load it, so this is safe to leave in the repo: without the
      flag nothing below the guard executes and no markup is created.
@@ -142,6 +454,37 @@
     { v: '--spine-pulse-lo', label: 'puls lo', min: 0, max: 1.6, step: 0.02, unit: ''   },
     { v: '--spine-pulse-hi', label: 'puls hi', min: 0, max: 1.6, step: 0.02, unit: ''   },
     { v: '--spine-pulse-ms', label: 'puls ms', min: 600, max: 8000, step: 100, unit: 'ms' },
+    /* THE KICK. Two groups: what it LOOKS like, then what it LISTENS to.
+       Tune in that order — get the listening right against the meter below
+       first, with the look turned up high enough to be unmissable, then bring
+       the look back down to taste. Doing it the other way round means judging
+       a detector you cannot see the output of.
+         k fl   brightness added to the lit column per unit of envelope.
+         k px   how far the artwork throws sideways. WHOLE COLUMN, not just the
+                lit band — see the note in spine-bg.css for why it cannot be
+                lit-only. 0 leaves the flash alone, which is a complete look.
+         k amt  master multiplier on the envelope. 0 is off.
+         k ms   decay time constant. Short reads as a tick, long as a swell.
+         k sns  how far above the running average counts as a hit, as a
+                MULTIPLE of it. This is now a ratio of real amplitude, not of
+                decibels, so 1.8 means genuinely 1.8x. Come here FIRST if it
+                fires on everything (down) or on nothing (up). MEASURED against
+                a reference over all 28 samples: 1.8 gives precision 0.76 /
+                recall 0.79; 1.5 trades precision for recall (0.70 / 0.81);
+                past ~2.5 the quiet tracks start dropping out.
+         k hz   the lowpass cutoff of the side chain, in Hz — the actual
+                "isolate the kick" control. 90 measured best. Up towards 150
+                lets more of the bass line in; below ~60 you start losing the
+                drum's own fundamental on the lighter tracks.
+         k sky  how hard the star cores answer. Lives in star-bg.css. */
+    { v: '--kick-flash', label: 'k fl',  min: 0, max: 1.2, step: 0.02, unit: '' },
+    { v: '--kick-shake', label: 'k px',  min: 0, max: 40,  step: 1,    unit: '' },
+    { v: '--kick-gain',  label: 'k amt', min: 0, max: 3,   step: 0.05, unit: '' },
+    { v: '--kick-decay', label: 'k ms',  min: 60, max: 900, step: 10,  unit: '' },
+    { v: '--kick-sens',  label: 'k sns', min: 1.1, max: 3.5, step: 0.05, unit: '' },
+    { v: '--kick-freq',  label: 'k hz',  min: 40, max: 220, step: 5,   unit: '' },
+    { v: '--kick-stars', label: 'k sky', min: 0, max: 1,   step: 0.02, unit: '',
+      file: 'css/star-bg.css' },
     /* NOT A SPINE CONTROL. How heavy the page feels under a mouse wheel, read by
        js/scroll-weight.js. It is here because this is the only tuning panel on
        the site, but it lives in a different stylesheet — `file` below makes Copy
@@ -216,7 +559,34 @@
     '.spine-tune b{width:46px;text-align:right;color:#F2F2EE;font-weight:400}' +
     '.spine-tune button{margin-top:8px;width:100%;background:#D8D0BE;color:#050505;border:0;' +
     'padding:6px;font:inherit;letter-spacing:.12em;text-transform:uppercase;cursor:pointer}' +
-    '.spine-tune p{margin:6px 0 0;color:#6B6B6B;max-width:none}';
+    '.spine-tune p{margin:6px 0 0;color:#6B6B6B;max-width:none}' +
+    /* THE PANEL OUTGREW THE SCREEN. It is a fixed box pinned to the bottom
+       right, so when the control count passed about 20 the top of it went off
+       the top of the viewport and those rows became unreachable — silently,
+       because a fixed element does not scroll the page to reveal itself.
+       Two changes: the rows live in their own scroll area, and they are
+       grouped into collapsible sections so the common case is short enough not
+       to need scrolling at all.
+       min-height:0 on the scroller is load-bearing — a flex child defaults to
+       min-height:auto, which refuses to shrink below its content, and without
+       it the box grows past the viewport again and the overflow never engages. */
+    '.spine-tune{display:flex;flex-direction:column;max-height:calc(100vh - 24px)}' +
+    '.spine-tune__scroll{flex:1 1 auto;min-height:0;overflow-y:auto;' +
+      'overscroll-behavior:contain;margin:0 -2px;padding:0 2px}' +
+    '.spine-tune__scroll::-webkit-scrollbar{width:8px}' +
+    '.spine-tune__scroll::-webkit-scrollbar-thumb{background:#2E2E2E}' +
+    '.spine-tune__scroll::-webkit-scrollbar-track{background:transparent}' +
+    '.spine-tune details{border-top:1px solid #1C1C1C}' +
+    '.spine-tune summary{cursor:pointer;padding:5px 0;color:#8F8F8F;' +
+      'text-transform:uppercase;letter-spacing:.14em;list-style:none;' +
+      '-webkit-user-select:none;user-select:none}' +
+    '.spine-tune summary::-webkit-details-marker{display:none}' +
+    '.spine-tune summary::before{content:"+ ";color:#6B6B6B}' +
+    '.spine-tune details[open]>summary::before{content:"- "}' +
+    '.spine-tune details[open]>summary{color:#D8D0BE}' +
+    '.spine-tune details>label:last-child{margin-bottom:7px}' +
+    '.spine-tune__foot{flex:0 0 auto;border-top:1px solid #2E2E2E;' +
+      'margin-top:7px;padding-top:2px}';
   document.head.appendChild(css);
 
   var box = document.createElement('div');
@@ -266,10 +636,82 @@
       out.textContent = input.value + f.unit;
     });
     row.appendChild(input); row.appendChild(out);
-    box.appendChild(row);
+    f._row = row;
     f._input = input;
     f._out = out;
   });
+
+  /* ---- GROUPING ----------------------------------------------------------
+     Ordered by how often they get touched, not by which stylesheet they live
+     in — `kick` and `sky` both write to star-bg.css and sit in different
+     groups, because grouping is about the hand on the mouse and Copy CSS
+     already sorts by destination file independently.
+     Only `kick` opens by default: it is what is being tuned now, and the panel
+     fits without scrolling when the rest are shut. Which sections are open is
+     remembered across reloads, because the cache-busting workflow means a lot
+     of reloads and reopening four sections each time is its own small tax. */
+  var GROUPS = [
+    { title: 'kick', open: true, vars: ['--kick-flash', '--kick-shake', '--kick-gain',
+        '--kick-decay', '--kick-sens', '--kick-freq', '--kick-stars'] },
+    { title: 'column', vars: ['--spine-w', '--spine-dim', '--spine-lit', '--spine-glow',
+        '--spine-feather', '--spine-offset', '--spine-bias'] },
+    { title: 'band', vars: ['--spine-band', '--spine-band-feather'] },
+    { title: 'flare + scrim', vars: ['--spine-bloom', '--spine-beam', '--spine-scrim'] },
+    { title: 'breathing pulse', vars: ['--spine-pulse-lo', '--spine-pulse-hi',
+        '--spine-pulse-ms'] },
+    { title: 'sky', vars: ['--star-dim', '--star-sat', '--star-black', '--star-twinkle',
+        '--star-twinkle-hi', '--star-twinkle-ms', '--star-desync', '--star-cloud'] },
+    { title: 'page feel', vars: ['--scroll-weight'] }
+  ];
+
+  var scroll = document.createElement('div');
+  scroll.className = 'spine-tune__scroll';
+
+  var remember = function (title, open) {
+    try { localStorage.setItem('ks-tune-' + title, open ? '1' : '0'); } catch (e) {}
+  };
+  var recall = function (title, dflt) {
+    try {
+      var v = localStorage.getItem('ks-tune-' + title);
+      return v === null ? dflt : v === '1';
+    } catch (e) { return dflt; }
+  };
+
+  var placed = {};
+  GROUPS.forEach(function (g) {
+    var d = document.createElement('details');
+    if (recall(g.title, !!g.open)) d.open = true;
+    d.addEventListener('toggle', function () { remember(g.title, d.open); });
+    var sum = document.createElement('summary');
+    sum.textContent = g.title;
+    d.appendChild(sum);
+    g.vars.forEach(function (v) {
+      for (var i = 0; i < FIELDS.length; i++) {
+        if (FIELDS[i].v === v) { d.appendChild(FIELDS[i]._row); placed[v] = 1; }
+      }
+    });
+    scroll.appendChild(d);
+  });
+
+  /* SAFETY NET, and the reason this cannot rot. Anything added to FIELDS and
+     not listed in GROUPS lands here rather than vanishing from the panel — a
+     new control that is invisible reads as a control that does not work, and
+     that is a bug nobody would think to look for in a layout change. */
+  var orphans = FIELDS.filter(function (f) { return !placed[f.v]; });
+  if (orphans.length) {
+    var d2 = document.createElement('details');
+    d2.open = true;
+    var s2 = document.createElement('summary');
+    s2.textContent = 'ungrouped';
+    s2.style.color = '#D8534F';
+    d2.appendChild(s2);
+    orphans.forEach(function (f) { d2.appendChild(f._row); });
+    scroll.appendChild(d2);
+  }
+  box.appendChild(scroll);
+
+  var foot = document.createElement('div');
+  foot.className = 'spine-tune__foot';
 
   /* ---- ISOLATE: bisect the blob on the user's own hardware ----------------
      Everything above is measurable from a headless screenshot. This is not:
@@ -348,7 +790,54 @@
     isoBtn.style.color = isoAt ? '#F2F2EE' : '#D8D0BE';
   });
   isoRow.appendChild(isoBtn);
-  box.appendChild(isoRow);
+  foot.appendChild(isoRow);
+
+  /* ---- KICK METER --------------------------------------------------------
+     The detector is the one thing on this panel that cannot be judged by
+     looking at the page: if the column is not moving, that could be the
+     threshold, the band, the gain, a suspended AudioContext, or a browser that
+     refused the graph entirely, and those five want completely different
+     fixes. So say which.
+
+     `state` is the AudioContext's own — "running" is the only one that does
+     anything. "suspended" means the resume was refused and NOTHING was routed,
+     which is the safe failure: playback is normal, there is just no analysis.
+     "failed" means something threw and the feature switched itself off.
+
+     The bar is the live envelope. Watch it against the record rather than the
+     numbers: it should punch to full and fall back to nothing between hits. A
+     bar that never drops means --kick-decay is longer than the gap between
+     beats; a bar that twitches constantly means --kick-sens is too low. */
+  var meterRow = document.createElement('p');
+  meterRow.style.cssText = 'margin:6px 0 0;font-variant-numeric:tabular-nums';
+  foot.appendChild(meterRow);
+  setInterval(function () {
+    if (!kickMeter) {
+      meterRow.innerHTML = '<span style="color:#D8534F">kick: unavailable</span> ' +
+        '(no Web Audio, or no .track-experience on this page)';
+      return;
+    }
+    var m = kickMeter();
+    var n = Math.round(m.env * 20);
+    var bar = new Array(n + 1).join('|') + new Array(21 - n).join('·');
+    /* Second bar: live low-band level against the live threshold. The caret is
+       where the threshold sits, so a hit is the level crossing it. If the level
+       never reaches the caret, k sns is too high; if it sits past it, too low. */
+    var scale = Math.max(m.thr * 2, 1e-6);
+    var lv = Math.min(20, Math.round(m.level / scale * 20));
+    var tk = Math.min(20, Math.round(m.thr / scale * 20));
+    var lvl = '';
+    for (var i2 = 0; i2 < 20; i2++) lvl += (i2 === tk ? '^' : (i2 < lv ? '=' : '·'));
+    var colour = m.state === 'running' ? '#7FB37F'
+               : m.state === 'failed'  ? '#D8534F' : '#8F8F8F';
+    meterRow.innerHTML =
+      '<span style="color:' + colour + '">' + m.state + '</span> · ' +
+      m.band + ' · ' + m.kicks + ' hits' +
+      (m.running ? '' : ' · idle') +
+      '<br><span style="color:#D8D0BE;letter-spacing:0">' + bar + '</span> ' +
+      m.env.toFixed(2) +
+      '<br><span style="color:#6B8FB3;letter-spacing:0">' + lvl + '</span> lvl/thr';
+  }, 100);
 
   /* ---- Paste a saved block back in ---------------------------------------
      Copy CSS is only half a round trip. Without this, restoring an earlier
@@ -369,7 +858,7 @@
   apply.style.cssText = 'margin-top:4px';
   apply.addEventListener('click', function () {
     var found = 0, unknown = [];
-    var re = /(--(?:spine|scroll|star)-[a-z-]+)\s*:\s*([^;\n}]+)/g, m;
+    var re = /(--(?:spine|scroll|star|kick)-[a-z-]+)\s*:\s*([^;\n}]+)/g, m;
     while ((m = re.exec(paste.value))) {
       var name = m[1], val = m[2].trim();
       var f = null;
@@ -380,7 +869,9 @@
            reporting a paste of the real :root block as half-unrecognised. */
         if (name !== '--spine-build' && name !== '--spine-contrast' &&
             name !== '--star-build' && name !== '--star-twinkle-amp' && name !== '--star-cloud-amp' &&
-            name !== '--band-t0' && name !== '--band-t1') unknown.push(name);
+            name !== '--band-t0' && name !== '--band-t1' &&
+            /* Written every frame by the kick loop, never by a slider. */
+            name !== '--kick-sign') unknown.push(name);
         continue;
       }
       var num = parseFloat(val);
@@ -424,9 +915,10 @@
       .then(function () { note.textContent = 'copied — paste into :root'; })
       .catch(function () { note.textContent = text; });
   });
-  box.appendChild(copy);
-  box.appendChild(pasteWrap);
-  box.appendChild(note);
+  foot.appendChild(copy);
+  foot.appendChild(pasteWrap);
+  foot.appendChild(note);
+  box.appendChild(foot);
   document.body.appendChild(box);
 
   /* The mobile media query sets its own values. Anything dialled here is an

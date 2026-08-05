@@ -843,6 +843,23 @@
     btn.onclick = toggleSample;
 
     currentSample = { audio, fill, status, btn, icon };
+
+    /* HAND THE ELEMENT OVER — for js/spine-bg.js's kick detector.
+       Frequency analysis needs AudioContext.createMediaElementSource(el), which
+       needs the element REFERENCE. It does not need a DOM node, so a detached
+       Audio() is fine — but this one is private to this closure and there is no
+       selector that reaches it. Announce it rather than let another file go
+       hunting, which is what HANDOFF 7 ruled out ("patching its prototype would
+       be worse").
+
+       Fired on every panel change, so a listener sees one event per track and
+       must key its graph by element — createMediaElementSource throws on a
+       second call for the SAME element. Nothing here depends on anyone
+       listening; with no listener this is an event into the void and playback
+       is untouched. */
+    section.dispatchEvent(new CustomEvent('ks:sample-ready', {
+      detail: { audio: audio, title: track.title || null }
+    }));
   }
 
   function playSample() {

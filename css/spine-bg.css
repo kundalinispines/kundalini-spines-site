@@ -62,7 +62,7 @@
      actually loaded. python -m http.server serves Last-Modified only, and a
      browser sitting on a cached copy looks identical to a change that did not
      work — this makes the difference visible instead of arguable. */
-  --spine-build: 22;
+  --spine-build: 25;
 
   --charge: 0;          /* 0..1, written by js/spine-bg.js every scroll frame */
   --spine-w: 640px;     /* the width the COLUMN renders at, not the artwork */
@@ -187,6 +187,64 @@
   --spine-pulse-lo: 0.38;
   --spine-pulse-hi: 0.8;
   --spine-pulse-ms: 5300ms;
+
+  /* ---- THE KICK ---------------------------------------------------------
+     The breathing above is a fixed loop that only knows whether audio is
+     playing. These drive the column from the actual low end of the sample.
+     js/spine-bg.js writes --kick and --kick-sign once per frame while a sample
+     is playing and the analyser is running; everything else here is a control.
+
+     --kick is a 0..1 ENVELOPE, not a level: it is set on each detected onset
+     and decays exponentially, so it reads as a hit rather than as a VU meter.
+     --kick-sign flips +1/-1 on every onset so consecutive hits throw the column
+     to opposite sides and it reads as a shake rather than as a lean.
+
+     NOTHING BELOW APPLIES unless <html> carries .is-spine-kicking, which
+     js/spine-bg.js only adds once the Web Audio graph is actually running. If
+     Web Audio fails, or the browser blocks it, or reduced motion is on, the
+     class never appears and the page renders exactly as build 22 did. That is
+     the intended fallback, not a leftover — the breathing pulse stays as the
+     "audio is playing" cue whenever the kick cannot be read. */
+  --kick: 0;
+  --kick-sign: 1;
+
+  /* HOW IT LOOKS. Both are per-unit-of-envelope, so at --kick: 1 you get
+     exactly these. */
+  --kick-flash: 0.34;   /* brightness ADDED to the lit column on a hit */
+  --kick-shake: 6;      /* px the artwork throws sideways on a hit */
+
+  /* HOW IT LISTENS — read by js/spine-bg.js, not by any CSS rule. They live
+     here so they are in the tuner with everything else and Copy CSS emits them
+     into this file's :root along the way.
+       gain   multiplier on the envelope before it is written. 0 is off at the
+              source and stops the rAF loop entirely, so it is also the "cost
+              me nothing" setting.
+       decay  time constant in ms. The envelope falls to ~37% after this long,
+              so the visible tail is roughly 2-3x it. Below the refractory
+              window (150ms) hits read as separate ticks; well above it they
+              smear into each other and the column just sits bright.
+       sens   how far above the running average counts as a hit, as a MULTIPLE
+              of it. A ratio of real amplitude, not of decibels, so 1.8 means
+              1.8x. MEASURED against a hand-built reference across all 28
+              samples: 1.8 gives precision 0.76 / recall 0.79; 1.5 trades
+              precision for recall at 0.70 / 0.81; past ~2.5 the quiet tracks
+              drop out. Reach here first when it fires too much or too little.
+       freq   the lowpass cutoff of the analysis side chain, in Hz. THIS is the
+              "isolate the kick drum" control. 90 measured best. Toward 150
+              lets more of the bass line trigger it; below ~60 the drum's own
+              fundamental starts getting cut on the lighter tracks.
+
+     WHY THERE IS NO lo/hi PAIR ANY MORE. Build 23 summed FFT bins between two
+     frequencies. At fftSize 2048 a bin is 21.5Hz, so 40-120Hz was FOUR BINS,
+     and every band setting tried resolved to the same four and scored
+     identically — those two sliders were close to inert. The detector now uses
+     a real BiquadFilterNode instead of bins, so there is one honest control
+     (the cutoff) rather than two that did not do what they said. */
+  --kick-gain: 1;
+  --kick-decay: 260;
+  --kick-sens: 1.8;
+  --kick-freq: 90;
+
   --spine-bloom: 0;     /* the flare riding the charge front, 0 = off */
   --spine-glow: 0.48;      /* 1 = the bloom as generated, 0 = crushed to hard lines */
 
@@ -373,6 +431,57 @@ body { position: relative; }
 }
 :root.is-spine-pulsing .spine-bg__art--lit {
   animation: spine-pulse var(--spine-pulse-ms) ease-in-out infinite;
+}
+
+/* ==========================================================================
+   KICK-REACTIVE — replaces the breathing while the analyser is running.
+   Both classes are present while a sample plays, and both rules have the same
+   specificity, so THIS BLOCK MUST STAY BELOW the pulse rule above. Moving it
+   up silently gives the breathing loop back and the kick stops being visible.
+
+   The breathing is switched off rather than added to, deliberately. It is a
+   5.3s loop that says "audio is playing"; once the column is answering the
+   actual kick that message is already being sent, better, and the two together
+   read as the spine drifting under the hits.
+
+   The 700ms filter transition is also killed here. It exists to make the STOP
+   graceful when the class is removed; left in place it would smear a 200ms hit
+   across 700ms and turn every kick into a slow swell. The graceful stop still
+   happens — .is-spine-kicking is removed one frame AFTER --kick is zeroed, so
+   the column is already back at --spine-lit when the transition returns.
+   ========================================================================== */
+:root.is-spine-kicking .spine-bg__art--lit {
+  animation: none;
+  transition: none;
+  filter: brightness(calc(var(--spine-lit) + var(--kick) * var(--kick-flash)))
+          contrast(var(--spine-contrast));
+}
+
+/* THE SHAKE, and the one compromise in this feature.
+   It moves BOTH art layers, not just the lit one, and it has to.
+   The two layers are the same image under complementary masks: the lit one is
+   shown inside the band, the dim one everywhere else. Shifting only the lit
+   layer moves the artwork on one side of the seam and not the other — at the
+   band's top edge (--spine-band-feather: 0, a hard edge) that is a visible
+   tear, and at the charge front, where the two cross-fade over the full 220px
+   of --spine-feather, it is worse: the same vertebrae painted twice, a few px
+   apart, reading as a double image rather than as movement.
+   So the shake is whole-column by construction. The FLASH above is lit-only,
+   which is where the "only the lit section reacts" intent actually lives — the
+   dim layer sits at 0.38 brightness and a 6px sideways move on it is close to
+   invisible next to the lit band doing the same thing at 0.52 plus the flash.
+   If the whole-column movement reads wrong, --kick-shake: 0 removes it and
+   leaves the flash, which is a complete feature on its own.
+
+   background-position, not transform. A transform on this layer is the one
+   thing HANDOFF 9 says to measure before trusting: the same shape of object —
+   a full-screen screen-blended layer — cost 28-40% of the page's frame rate
+   for a transform: scale(1.06) on html::after. background-position repaints
+   and triggers no layout, and is the path --spine-offset already uses. */
+:root.is-spine-kicking .spine-bg__art {
+  background-position:
+    calc(50% + var(--kick) * var(--kick-sign) * var(--kick-shake) * 1px)
+    var(--spine-offset);
 }
 
 .spine-bg__art--lit {
@@ -757,6 +866,19 @@ main > .section .label {
      information in it. The column just holds at --spine-lit. */
   :root.is-spine-pulsing .spine-bg__art--lit { animation: none; }
   .spine-bg__art--lit { transition: none; }
+  /* THE KICK IS OFF HERE TOO. js/spine-bg.js checks the same media query and
+     returns before it ever builds the audio graph, so in practice neither of
+     these rules is reached — they exist so that toggling the OS setting
+     mid-session cannot leave a shake running against a stale class, and so
+     that this block reads as the complete statement of what reduced motion
+     turns off rather than as a list that quietly went out of date. */
+  :root.is-spine-kicking .spine-bg__art--lit {
+    animation: none;
+    filter: brightness(var(--spine-lit)) contrast(var(--spine-contrast));
+  }
+  :root.is-spine-kicking .spine-bg__art {
+    background-position: 50% var(--spine-offset);
+  }
   .spine-bg__art--lit {
     -webkit-mask-image: var(--mask-ends), var(--mask-sides);
             mask-image: var(--mask-ends), var(--mask-sides);

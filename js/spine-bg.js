@@ -45,9 +45,26 @@
   /* Measure where the layer starts and how tall it is, in DOCUMENT space.
      Called on resize, on font load, and — importantly — whenever the document
      changes height. */
+  /* --spine-from shifts the START of the layer off the anchor, in px, negative
+     being higher up the page. The anchor picks a landmark in the markup; this
+     picks how far before it the column begins, which is a thing you want to
+     drag rather than to guess and re-edit the HTML for.
+
+     It is read here rather than applied in CSS on purpose. The layer's top and
+     height are inline px set by this function — CSS cannot see the anchor, and
+     a transform would move the artwork without moving the region the charge
+     front is mapped over, so the front would finish in the wrong place. Read
+     off documentElement because that is where the tuner writes. */
+  function fromShift() {
+    var v = parseFloat(
+      getComputedStyle(document.documentElement).getPropertyValue('--spine-from')
+    );
+    return isFinite(v) ? v : 0;
+  }
+
   function measure() {
     var r = anchor.getBoundingClientRect();
-    var newTop = Math.round(r.top + window.scrollY);
+    var newTop = Math.max(0, Math.round(r.top + window.scrollY) + fromShift());
     var newHeight = Math.max(0, document.documentElement.scrollHeight - newTop);
     if (newTop === top && newHeight === height) return false;
     top = newTop;
@@ -455,6 +472,7 @@
     { v: '--spine-lit',   label: 'lit',    min: 0,   max: 1.6, step: 0.02, unit: ''   },
     { v: '--spine-glow',  label: 'glow',   min: 0,   max: 1,   step: 0.02, unit: ''   },
     { v: '--spine-feather', label: 'reach', min: 10, max: 900, step: 10,   unit: 'px' },
+    { v: '--spine-from',   label: 'start',  min: -2000, max: 1000, step: 10, unit: 'px' },
     { v: '--spine-offset', label: 'shift',  min: -900, max: 900, step: 10, unit: 'px' },
     { v: '--spine-bias',   label: 'bias',   min: -2, max: 5, step: 0.05, unit: ''   },
     /* THE GLOW BAND. `band` is the lit zone's height in px, measured up from the
@@ -605,6 +623,7 @@
     '--spine-lit': 'Brightness of the charged column. At 0.18 it is darker than dim at 0.22, presumed deliberate, so the names no longer describe the relationship',
     '--spine-glow': '1 keeps the halo baked into the artwork as generated, 0 crushes it to hard lines. Most of the effect is in the first notch below 1',
     '--spine-feather': 'Length in px of the ramp between lit and dark at the charge front. Very short lengths leave bias no ramp to move',
+    '--spine-from': 'Where the column STARTS, in px from its anchor section, negative being higher up the page. Moves the whole region, so the charge front remaps with it. This is the one to drag if the column begins too far down',
     '--spine-offset': 'Slides the artwork vertically inside the layer, negative moves it up. The charge front, beam and scrims all stay put',
     '--spine-bias': 'Where the ramp sits relative to the charge front. Travel is in card heights, so 2 to 3 parks the glow behind the hero card',
     /* band */
@@ -645,7 +664,17 @@
   css.textContent =
     '.spine-tune{position:fixed;right:12px;bottom:12px;z-index:9999;background:rgba(5,5,5,.94);' +
     'border:1px solid #2E2E2E;padding:10px 12px;font:11px/1.5 "IBM Plex Mono",monospace;' +
-    'color:#8F8F8F;letter-spacing:.08em;backdrop-filter:blur(8px);min-width:240px}' +
+    /* MAX-WIDTH IS LOAD-BEARING — do not remove it as redundant. The panel is
+       position:fixed with no width, so it shrink-to-fits: its width is its own
+       max-content, and a <p> contributes its ENTIRE text as one unwrapped line
+       to max-content regardless of white-space. On index.html the widest thing
+       is a slider row and the panel settles at 327px. On about.html the two
+       prose lines about the unavailable kick detector are ~70 and ~150 chars,
+       and the panel measured 1350px — over half a 2560px screen. Capping at
+       328px leaves index.html's natural width untouched (327 < 328, so nothing
+       about the home page changes) and forces the prose to wrap on every other
+       page. Any future long string in here is covered by the same cap. */
+    'color:#8F8F8F;letter-spacing:.08em;backdrop-filter:blur(8px);min-width:240px;max-width:328px}' +
     '.spine-tune h6{margin:0 0 8px;color:#D8D0BE;font:inherit;letter-spacing:.14em;text-transform:uppercase}' +
     '.spine-tune label{display:flex;align-items:center;gap:8px;margin:5px 0}' +
     /* 44px wrapped the two-word labels — `puls lo`, `puls hi`, `puls ms`,
@@ -801,6 +830,11 @@
     input.addEventListener('input', function () {
       document.documentElement.style.setProperty(f.v, input.value + f.unit);
       out.textContent = input.value + f.unit;
+      /* Most variables are consumed by CSS and repaint on their own. --spine-from
+         is not: it is read by measure(), which only runs on scroll, resize and
+         the ResizeObserver, none of which a slider drag fires. Without this the
+         slider would look dead until you happened to scroll. */
+      if (f.v === '--spine-from') remeasure();
     });
     row.appendChild(input); row.appendChild(out);
     f._row = row;
@@ -808,10 +842,33 @@
     f._out = out;
   });
 
+  /* ---- WHICH CONTROLS ARE LIVE ON THIS PAGE ------------------------------
+     The kick detector only attaches where .track-experience exists, which is
+     index.html and nowhere else — the IIFE far above is gated on exactly that,
+     and it assigns kickMeter as its last statement. So kickMeter being null IS
+     the gate condition, read back rather than restated here; restating it would
+     be a second copy of a condition that has to stay in step with the first.
+     Where it did not attach, the eight --kick-* sliders move nothing at all,
+     and a slider that does nothing reads as a slider that is broken. They are
+     hidden below rather than shown dead. They stay in FIELDS: their tips are
+     still checked, and Copy CSS still emits their current values, so nothing
+     downstream can tell the difference. */
+  var kickOK = !!kickMeter;
+  var hidden = kickOK ? [] : FIELDS.filter(function (f) {
+    return f.v.indexOf('--kick-') === 0;
+  });
+  var hiddenSet = {};
+  hidden.forEach(function (f) { hiddenSet[f.v] = 1; });
+
   /* COVERAGE CHECK. A missing tip is invisible — the label just does not react
      — so it would survive any number of sessions unnoticed. Both directions
      matter: an orphan TIPS key means a control was renamed or removed and the
-     copy was left behind, describing something that is no longer there. */
+     copy was left behind, describing something that is no longer there.
+     HIDDEN FIELDS STILL COUNT. The check is about TIPS covering FIELDS, which is
+     a property of the source and identical on every page; counting only the
+     visible rows would print a smaller number on about.html and read as eight
+     tips having gone missing, which is the one thing this check exists to
+     catch. The count stays 33 everywhere and the suffix says what is hidden. */
   (function () {
     var missing = FIELDS.filter(function (f) { return !TIPS[f.v]; })
                         .map(function (f) { return f.v; });
@@ -821,7 +878,9 @@
     if (missing.length) console.warn('[tune] no hover tip for:', missing.join(', '));
     if (orphan.length) console.warn('[tune] tip with no slider:', orphan.join(', '));
     if (!missing.length && !orphan.length) {
-      console.log('[tune] ' + FIELDS.length + ' sliders, all with hover tips');
+      console.log('[tune] ' + FIELDS.length + ' sliders, all with hover tips' +
+        (hidden.length ? ' — ' + hidden.length + ' kick sliders defined but HIDDEN on ' +
+          'this page (no Web Audio, or no .track-experience), tips still checked' : ''));
     }
   }());
 
@@ -838,7 +897,7 @@
     { title: 'kick', open: true, vars: ['--kick-flash', '--kick-shake', '--kick-gain',
         '--kick-decay', '--kick-sens', '--kick-freq', '--kick-stars', '--kick-cloud'] },
     { title: 'column', vars: ['--spine-w', '--spine-dim', '--spine-lit', '--spine-glow',
-        '--spine-feather', '--spine-offset', '--spine-bias'] },
+        '--spine-feather', '--spine-from', '--spine-offset', '--spine-bias'] },
     { title: 'band', vars: ['--spine-band', '--spine-band-feather'] },
     { title: 'flare + scrim', vars: ['--spine-bloom', '--spine-beam', '--spine-scrim'] },
     { title: 'breathing pulse', vars: ['--spine-pulse-lo', '--spine-pulse-hi',
@@ -864,6 +923,22 @@
 
   var placed = {};
   GROUPS.forEach(function (g) {
+    /* A GROUP WHOSE EVERY CONTROL IS INERT HERE IS DROPPED WHOLE, and says so
+       in its place — a section that simply vanished would read as the panel
+       having lost it. Driven off hiddenSet rather than off the title, so this
+       stays correct if the kick vars are ever regrouped, and marks them placed
+       so the ungrouped safety net below does not resurrect them in red. */
+    if (g.vars.length && g.vars.every(function (v) { return hiddenSet[v]; })) {
+      g.vars.forEach(function (v) { placed[v] = 1; });
+      var why = document.createElement('p');
+      why.style.cssText = 'margin:6px 0;color:#D8534F';
+      why.textContent = g.title.toUpperCase() + ': unavailable (no Web Audio, or ' +
+        'no .track-experience on this page). Its ' + g.vars.length + ' sliders are ' +
+        'hidden because they would move nothing here. Copy CSS still emits their ' +
+        'current values.';
+      scroll.appendChild(why);
+      return;
+    }
     var d = document.createElement('details');
     if (recall(g.title, !!g.open)) d.open = true;
     d.addEventListener('toggle', function () { remember(g.title, d.open); });
@@ -1030,7 +1105,11 @@
      getting one of them wrong. Accepts anything containing --spine-* or
      --scroll-* / --star-* lines, so a whole :root block pasted straight out of
      any of the three stylesheets works — comments, braces and unrelated properties are ignored,
-     including the "css/base.css" headings Copy CSS writes. */
+     including the "css/base.css" headings Copy CSS writes. The page-scoped
+     blocks Copy CSS now emits — html.page-home { … } / html.page-about { … } —
+     go through the same path for the same reason: the selector and the braces
+     are simply text the scan never matches. Paste ONE block at a time; two
+     blocks pasted together apply in order and the later one wins. */
   var pasteWrap = document.createElement('div');
   pasteWrap.style.cssText = 'margin-top:8px';
   var paste = document.createElement('textarea');
@@ -1043,7 +1122,14 @@
   apply.style.cssText = 'margin-top:4px';
   apply.addEventListener('click', function () {
     var found = 0, unknown = [];
-    var re = /(--(?:spine|scroll|star|kick)-[a-z-]+)\s*:\s*([^;\n}]+)/g, m;
+    /* DIGITS ARE PART OF A CUSTOM PROPERTY NAME. The old class was [a-z-]+,
+       which silently skipped every variable with a number in it while Copy CSS
+       emitted them happily — a numbered variant like --spine-lightning-2 would
+       have round-tripped one way only, and the failure is a value that quietly
+       does not come back rather than an error. The trailing [a-z0-9] is what
+       keeps the widened class from taking a stray hyphen with it: the name has
+       to end on a letter or a digit, never on punctuation. */
+    var re = /(--(?:spine|scroll|star|kick)-[a-z0-9-]*[a-z0-9])\s*:\s*([^;\n}]+)/g, m;
     while ((m = re.exec(paste.value))) {
       var name = m[1], val = m[2].trim();
       var f = null;
@@ -1069,6 +1155,11 @@
       f._out.textContent = num + f.unit;
       found++;
     }
+    /* Same reason as the slider handler: --spine-from is read by measure(), not
+       by CSS, so a paste that changes it needs the region recomputed. Called
+       unconditionally because it is cheap and idempotent, and because working
+       out whether the paste contained that one name is not worth the branch. */
+    remeasure();
     note.textContent = found
       ? 'applied ' + found + ' value' + (found === 1 ? '' : 's') +
         (unknown.length ? ' · ignored ' + unknown.join(', ') : '')
@@ -1082,7 +1173,8 @@
   var note = document.createElement('p');
   copy.addEventListener('click', function () {
     /* Grouped by destination file. Everything without a `file` belongs in
-       spine-bg.css's :root as before; anything with one gets its own heading,
+       spine-bg.css, under the page-scoped selector chosen below; anything with
+       a `file` goes to that stylesheet and gets its own heading,
        because a value pasted into the wrong stylesheet here fails in a way that
        looks like the slider not working: spine-bg.css is loaded by index.html
        only, so a site-wide variable pasted into it silently applies to the front
@@ -1093,11 +1185,56 @@
       if (!groups[dest]) { groups[dest] = []; order.push(dest); }
       groups[dest].push('  ' + f.v + ': ' + f._input.value + f.unit + ';');
     });
-    var text = order.map(function (dest) {
-      return (order.length > 1 ? '/* ' + dest + ' */\n' : '') + groups[dest].join('\n');
+    /* PAGE SCOPE. index.html carries html.page-home and about.html carries
+       html.page-about, with a block for each in the stylesheets beneath the
+       unchanged :root baseline — so a number dialled on one page lands in that
+       page's block instead of retuning the other page behind your back.
+
+       THE CLASS IS ON <html>, NOT <body>, AND THAT IS NOT A PREFERENCE.
+       Custom properties inherit DOWNWARD only, and two of the sky layers are
+       pseudo-elements of <html> itself: html::after is the nebula/cloud layer,
+       html::before is one of the four star bands. Neither can ever see a
+       variable set on <body>. MEASURED in the browser:
+
+         body.style.setProperty(--star-cloud-bright, 9)
+           -> getComputedStyle(body) reads 9      — body sees it
+           -> html::after stays brightness(2.2)   — the cloud does NOT
+         html.page-home { --star-cloud-bright: 9 }
+           -> html::after becomes brightness(9)   — correct
+
+       A body-scoped block would therefore have moved three of the four star
+       bands and left the cloud layer inert: a half-responding sky, which is far
+       harder to diagnose than one that plainly does not work at all. This only
+       surfaced because star-bg.css and base.css are scoped here too.
+
+       THE TUNER ITSELF NEEDS NO CHANGE for this. It writes inline styles on
+       documentElement, and an inline style outranks any class selector, so the
+       sliders still win over whichever block is on the page. Do not move those
+       writes to body — that would break them in exactly the way described
+       above.
+
+       Read the class off the live <html> rather than off the URL, which is what
+       a file:// path, a query string and a rewritten route all disagree about.
+       A page with neither class — a new page, or one not yet updated — falls
+       back to :root. That is the same element, so it still reaches the
+       pseudo-elements; it just applies to every page at once. The header says
+       so in the copied text itself, because a :root block and a scoped one look
+       identical once they are on the clipboard. */
+    var cls = document.documentElement.classList;
+    var scope = cls.contains('page-about') ? 'html.page-about'
+              : cls.contains('page-home')  ? 'html.page-home'
+              : ':root';
+    var header = scope === ':root'
+      ? '/* NO page-home or page-about class on <html> here, so this is NOT\n' +
+        '   page-scoped: :root applies SITE-WIDE. Paste it into a page block\n' +
+        '   instead if you only meant to change this page. */\n'
+      : '/* scoped to ' + scope + ' — paste over that block, not into :root */\n';
+    var text = header + order.map(function (dest) {
+      return (order.length > 1 ? '/* ' + dest + ' */\n' : '') +
+        scope + ' {\n' + groups[dest].join('\n') + '\n}';
     }).join('\n\n');
     (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject())
-      .then(function () { note.textContent = 'copied — paste into :root'; })
+      .then(function () { note.textContent = 'copied — paste into ' + scope; })
       .catch(function () { note.textContent = text; });
   });
   foot.appendChild(copy);

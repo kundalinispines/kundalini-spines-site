@@ -72,7 +72,7 @@
      actually loaded. python -m http.server serves Last-Modified only, and a
      browser sitting on a cached copy looks identical to a change that did not
      work — this makes the difference visible instead of arguable. */
-  --spine-build: 29;
+  --spine-build: 32;
 
   --charge: 0;          /* 0..1, written by js/spine-bg.js every scroll frame */
   --spine-w: 120px;     /* the width the COLUMN renders at, not the artwork */
@@ -107,12 +107,28 @@
      becomes almost inert, because there is no ramp left for it to move. */
   --spine-feather: 430px;
 
+  /* WHERE THE LAYER ITSELF STARTS, in px from its anchor element, negative
+     being higher up the page. This is the one to reach for when the column
+     begins too far down — it moves the REGION, so the charge front is remapped
+     over the new span and still finishes when the document bottoms out.
+
+     Read by measure() in js/spine-bg.js, not by any rule in this file: the
+     layer's top and height are inline px, because CSS cannot see where the
+     anchor element sits. Declaring it here is still correct — it is where the
+     tuner reads its starting value from, and an undeclared custom property
+     reads back as empty, which measure() would take as 0 without complaint.
+
+     Do not confuse it with --spine-offset directly below. This moves the region
+     AND the front; that moves only the artwork inside a region that stays put.
+     Both are useful and they are not substitutes. */
+  --spine-from: 0px;
+
   /* Vertical offset of the artwork inside the layer. Negative moves the column
      UP, so the spine can start level with the MUSIC eyebrow instead of below
-     it. The layer itself does not move — it is still pinned to #tracks and still
-     runs to the bottom of the document — only the artwork slides within it, so
-     the charge front, the scan line and the section scrims all stay where they
-     are. With repeat-y this shifts the whole tiled run together. */
+     it. The layer itself does not move — it is still pinned to its anchor and
+     still runs to the bottom of the document — only the artwork slides within
+     it, so the charge front, the scan line and the section scrims all stay
+     where they are. With repeat-y this shifts the whole tiled run together. */
   --spine-offset: 140px;
 
   /* Where the ramp sits RELATIVE to the charge front, -2 .. 5.
@@ -349,6 +365,117 @@
      mean — it just stops the seam. */
   --band-t0: calc(var(--charge) * 100% + var(--spine-feather) * (var(--spine-bias) + 0.16)
              - var(--spine-band) - max(1px, var(--spine-band-feather)));
+}
+
+/* ---- PER-PAGE OVERRIDES -------------------------------------------------
+   :root above is the SHARED BASELINE and both pages read it. These two blocks
+   exist so one page can be retuned without retuning the other, which a single
+   :root made impossible: index.html and about.html carry the same column but
+   not the same content behind it, and a brightness that reads as background on
+   one page can read as competition on the other.
+
+   THEY ARE EMPTY ON PURPOSE. A variable appears here only when that page should
+   actually differ; anything absent inherits the baseline, so the resting state
+   is "both pages agree" and every line that ever lands in one of these blocks
+   is a deliberate divergence somebody can account for. Do not seed them with
+   copies of the baseline numbers. A copy is drift waiting to happen — this
+   project has already lost sessions to overrides that were scaled off a value
+   which then moved underneath them, and a page block full of duplicates is that
+   same trap with two more places to forget.
+
+   THE CLASS IS ON <html>, NOT ON <body>, AND MOVING IT IS A REGRESSION. This
+   looks like a tidy-up waiting to happen — a page class conventionally lives on
+   body — so here is the measurement that says otherwise, taken on the live page
+   rather than reasoned about:
+
+     body.style.setProperty('--star-cloud-bright', '9')
+       -> getComputedStyle(body) reads 9            (body sees it)
+       -> html::after filter stays brightness(2.2)  (the cloud layer does NOT)
+
+   Custom properties inherit DOWNWARD. `html::before` and `html::after` are
+   pseudo-elements OF html, so they resolve their variables against html and can
+   never see anything declared on body. In this codebase html::after IS the
+   nebula/cloud layer and html::before is one of the four star bands. Anchored on
+   body, a page block would therefore HALF work: the three bands that hang off
+   body and main would follow it and the cloud layer and the fourth band would
+   not. A sky where some layers moved and some did not is a far nastier thing to
+   debug than one that plainly ignored you. Anchored on html, the same test gives
+   html::after filter brightness(9) — it reaches everything.
+
+   THE ANCHOR ALSO KEEPS THE TUNER WORKING. js/spine-bg.js writes slider values,
+   and --charge and --kick every frame, as INLINE STYLE ON document.documentElement
+   — that is, on html. Inline style beats a class selector on the same element,
+   so these blocks never shadow a slider and no JS change is needed; verified
+   live, a tuner write of 4.4 overrode the class value. Had the class sat on body
+   instead, the body declaration would have beaten the value inherited from html
+   and every variable named in a page block would have gone dead to its slider,
+   --charge included, which stops the charge front outright.
+
+   SPECIFICITY, AND WHY THE MEDIA QUERY AT THE BOTTOM OF THIS FILE LOOKS THE WAY
+   IT DOES. `:root` is (0,1,0). `html.page-home` is (0,2,0) — the same element,
+   one class higher — and a media query adds NOTHING to specificity. So the
+   moment a variable lands in one of these blocks it would outrank the
+   @media (max-width: 600px) block and the phone value would silently stop
+   applying: the desktop number would ride all the way down to 390px with no
+   error and nothing in the console. That is why the mobile block's selector is
+   `:root, html.page-home, html.page-about` rather than a bare `:root`. Naming
+   the page classes there puts them at equal specificity and later in source
+   order, so the phone values win the way they read as if they do. IF A THIRD
+   PAGE CLASS IS EVER ADDED, ADD IT TO THAT SELECTOR LIST IN THE SAME COMMIT —
+   and to the matching list in css/star-bg.css, which carries the identical
+   mobile block for the sky.
+   -------------------------------------------------------------------------- */
+html.page-home {
+  /* index.html. Empty = index.html renders on the baseline above, unchanged. */
+}
+
+html.page-about {
+  /* about.html, tuned Aug 5 2026 against the live page.
+
+     ONLY THE VALUES THAT DIFFER ARE HERE. The tuner's Copy CSS emits all 34
+     sliders; 25 of those were byte-identical to the baseline above and were
+     deliberately left out, so that a later improvement to the baseline — a
+     retuned nebula, a different kick envelope — reaches this page too instead
+     of being silently overridden by a copy of an old number. If you paste a
+     fresh Copy CSS block over this one, diff it against :root first and drop
+     the lines that match. That check is the whole reason this block is short.
+
+     Nothing sky-side changed: star-bg.css and base.css deliberately have no
+     html.page-about block at all. If you ever add one, put it ABOVE that
+     file's @media (max-width: 600px) block or it will outrank the phone
+     values by source order. */
+
+  /* The column is thinner and much dimmer than the home page, and the ramp is
+     nearly hard-edged at 10px against the home page's 430px. */
+  --spine-dim: 0.13;
+
+  /* POLARITY IS INVERTED RELATIVE TO THE HOME PAGE, ON PURPOSE. On index.html
+     --spine-lit is 0, which is DARKER than --spine-dim: the charge front
+     darkens the column so the charged region sits invisible until a drum hit
+     flashes it out of black at --kick-flash: 0.72. There is no drum on
+     about.html — no .track-experience, so the detector never attaches and
+     --kick is never written — which means a flash-out-of-black design can
+     never fire here and the charged region would simply stay dark forever.
+     So this page runs the front the other way: 1.48 is well above dim, and
+     the front BRIGHTENS as it passes. Do not "restore" this to 0 to match the
+     home page. The two pages want opposite polarities because only one of
+     them has a kick. */
+  --spine-lit: 1.48;
+  --spine-glow: 0.58;
+  --spine-feather: 10px;
+
+  /* Starts 690px down, below the h1 and its opening paragraph, and the artwork
+     then sits 680px further down inside that region. See the notes on
+     --spine-from and --spine-offset in the baseline block: the first moves the
+     region and remaps the charge front, the second moves only the artwork. */
+  --spine-from: 690px;
+  --spine-offset: 680px;
+  --spine-bias: -0.7;
+
+  /* Band length 0 with an 800px feather is all falloff and no plateau — the
+     inverse of the home page's 800px band against a 600px feather. */
+  --spine-band: 0px;
+  --spine-band-feather: 800px;
 }
 
 /* The layer is a direct child of body and is positioned in DOCUMENT space, so
@@ -935,7 +1062,17 @@ main > .section .label {
    did not fix that — the footer links were still unreadable over a lit
    vertebra. Do not raise these back to the desktop values. */
 @media (max-width: 600px) {
-  :root {
+  /* THE SELECTOR LIST IS LOAD-BEARING — do not shorten it back to `:root`.
+     `:root` IS html, so the per-page blocks near the top of this file select the
+     very same element with one class more: (0,2,0) against (0,1,0). Media
+     queries add nothing to specificity. With a bare `:root` here, the first
+     variable anyone put in html.page-home or html.page-about would outrank its
+     phone value and the desktop number would apply at 390px, with balanced
+     braces and nothing in the console to say so. Naming the page classes here
+     puts them at equal specificity and later in source order, so the phone
+     values win the way they read as if they do. Add any new page class to this
+     list at the same time you add its block above. */
+  :root, html.page-home, html.page-about {
     /* Scaled from the desktop values by the same ratios the first pass used
        (0.61x width, 0.57x lit, 0.61x dim). Re-derive these whenever the desktop
        numbers change: the previous block was scaled off --spine-lit: 1.06, so

@@ -1,5 +1,12 @@
 <!DOCTYPE html>
-<html lang="en">
+<!-- page-about selects the per-page override block in css/spine-bg.css. The block
+     is empty today, so this class changes nothing on its own; it is the hook that
+     lets the spine be tuned here without also retuning index.html.
+     IT BELONGS ON <html>, NOT ON <body>. html::before and html::after are the
+     cloud layer and one of the star bands, and a pseudo-element of html resolves
+     its variables from html — it can never see a value set on body. Moving this
+     to <body> makes the sky half-respond, which is worse than not responding. -->
+<html lang="en" class="page-about">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -49,7 +56,14 @@
 
 <main id="main">
 
-  <section class="section container" style="padding-top: calc(var(--space-24) + 3rem);">
+  <!-- data-spine-from starts the spine layer HERE, at the top of the page's
+       first section. It used to sit on the Messengers section below, which put
+       the column's start between the two headings and left the whole intro
+       clear; the owner wanted it higher. Fine-tune the exact start with the
+       `start` slider in /?tune (--spine-from, px, negative is higher) rather
+       than by moving this attribute again — that variable moves the region and
+       remaps the charge front with it. -->
+  <section class="section container" data-spine-from style="padding-top: calc(var(--space-24) + 3rem);">
     <div class="section-header">
       <span class="label">About</span>
       <h1>About Kundalini Spines</h1>
@@ -59,12 +73,11 @@
     </p>
   </section>
 
-  <!-- Messengers.
-       data-spine-from starts the spine layer HERE rather than at the top of the
-       document, mirroring index.html where it begins at #tracks below the hero.
-       The intro section above it stays clear, so the h1 and the opening
-       paragraph are never read against a lit vertebra. -->
-  <section class="section container" data-spine-from aria-labelledby="messengers-heading">
+  <!-- Messengers. The spine layer used to be anchored here; it now starts at the
+       section above. Only ONE element should carry data-spine-from — the JS
+       takes the first match in document order, so a second one is dead markup
+       that reads as if it were doing something. -->
+  <section class="section container" aria-labelledby="messengers-heading">
     <div class="section-header">
       <span class="label">The Messengers</span>
       <h2 id="messengers-heading">Two Messengers. One Signal.</h2>

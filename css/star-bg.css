@@ -782,7 +782,21 @@ html::after {
 }
 
 @media (max-width: 600px) {
-  :root {
+  /* THE SELECTOR LIST IS LOAD-BEARING — do not shorten it back to `:root`.
+     index.html and about.html carry a page class on <html> (page-home /
+     page-about) selecting per-page override blocks; see the long note beside
+     those blocks in css/spine-bg.css for why the class sits on html and not on
+     body. `:root` IS html, so `html.page-home` selects the same element one
+     class higher — (0,2,0) against (0,1,0) — and a media query adds NOTHING to
+     specificity. With a bare `:root` here, the first star variable anyone put
+     in a page block would outrank its phone value and the desktop number would
+     apply at 390px, with balanced braces and nothing in the console to say so.
+     That is the trap the re-derivation note below records, arriving by a new
+     route. The /?tune panel's Copy CSS emits page-scoped blocks for this file
+     too, so star variables WILL land in them. Naming the page classes here puts
+     them at equal specificity and later in source order, so the phone values
+     win. Add any new page class to this list in the same commit. */
+  :root, html.page-home, html.page-about {
     /* cover on a 390px-wide viewport crops to the middle 20% of the frame,
        which is the densest part of the nebula band — so the phone gets MORE
        nebula per screen than the desktop does, not less. Down, not up. */

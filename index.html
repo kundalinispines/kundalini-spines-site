@@ -1,5 +1,12 @@
 <!DOCTYPE html>
-<html lang="en">
+<!-- page-home selects the per-page override block in css/spine-bg.css. The block
+     is empty today, so this class changes nothing on its own; it is the hook that
+     lets the spine be tuned here without also retuning about.html.
+     IT BELONGS ON <html>, NOT ON <body>. html::before and html::after are the
+     cloud layer and one of the star bands, and a pseudo-element of html resolves
+     its variables from html — it can never see a value set on body. Moving this
+     to <body> makes the sky half-respond, which is worse than not responding. -->
+<html lang="en" class="page-home">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">

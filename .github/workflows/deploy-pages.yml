@@ -6,10 +6,13 @@ name: Deploy site to GitHub Pages
 # IMPORTANT: it does NOT publish the whole repo. The handoffs contain local
 # Windows paths, internal notes and Higgsfield element IDs; docs/ holds
 # planning material; the raster-test and transmissions-option* files are
-# internal design harnesses. All of that is fine in a private repo and none of
-# it should be readable at a public URL. The rsync excludes below are the only
-# thing standing between those files and the open web — if you add another
-# internal document, add it here too.
+# internal design harnesses; reference/ holds art-direction images and generated
+# candidates that are inputs to the work, not assets the site serves. All of that
+# is fine in a private repo and none of it should be readable at a public URL.
+# The excludes below are the only thing standing between those files and the open
+# web — if you add another internal document, add it here too, AND to the
+# leak-check guard further down. Both, not one: the exclude keeps it out, the
+# guard is what fails the build if a future edit drops the exclude.
 
 on:
   push:
@@ -52,6 +55,7 @@ jobs:
             --exclude='./README.md' \
             --exclude='./docs' \
             --exclude='./setup' \
+            --exclude='./reference' \
             --exclude='./raster-test.html' \
             --exclude='./raster-test-2.html' \
             --exclude='./transmissions-options.html' \
@@ -72,7 +76,8 @@ jobs:
             -name '.gitignore' -o \
             -name '.gitattributes' -o \
             -path '_site/docs*' -o \
-            -path '_site/setup*' \) )
+            -path '_site/setup*' -o \
+            -path '_site/reference*' \) )
           if [ -n "$LEAKED" ]; then
             echo "::error::Internal files reached the publish directory. Fix the excludes above."
             echo "$LEAKED"

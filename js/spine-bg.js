@@ -10,7 +10,23 @@
 (function () {
   'use strict';
 
-  var anchor = document.getElementById('tracks');
+  /* WHERE THE COLUMN STARTS. Was hard-bound to #tracks, which is why this file
+     could only ever run on the front page — the guard below returned on every
+     other page before anything was built.
+
+     `data-spine-from` is the general form: put it on the element the column
+     should begin at, and the layer spans from there to the bottom of the
+     document. index.html keeps working with no markup change because #tracks
+     is still the fallback, and that ordering matters — a page that has BOTH
+     should honour the explicit attribute rather than the historical id.
+
+     Do NOT fall back to <main> or <body> if neither is present. Returning is
+     correct: a page that has not opted in should not get a spine because it
+     happens to have a main element, and silently anchoring to the top of the
+     document would put the charge front behind the header on every page in the
+     site the moment someone adds the script tag. */
+  var anchor = document.querySelector('[data-spine-from]')
+            || document.getElementById('tracks');
   if (!anchor) return;
 
   /* ---- build the layer ---- */
@@ -485,6 +501,14 @@
     { v: '--kick-freq',  label: 'k hz',  min: 40, max: 220, step: 5,   unit: '' },
     { v: '--kick-stars', label: 'k sky', min: 0, max: 1,   step: 0.02, unit: '',
       file: 'css/star-bg.css' },
+    /* k neb — the nebula's own kick, split off --kick-stars on 2026-08-05.
+       The cores and the clouds clip at different places, so a single knob could
+       not drive both: filling the cloud headroom through the old `* 0.5` needed
+       --kick-stars at 1.0, which puts the cores at 1.46 against a ceiling of 1.
+       Max 1 because --star-cloud * 1.8 is 0.486 while playing, so much past 0.5
+       is spent against the clamp and the top of this slider does nothing. */
+    { v: '--kick-cloud', label: 'k neb', min: 0, max: 1,   step: 0.02, unit: '',
+      file: 'css/star-bg.css' },
     /* NOT A SPINE CONTROL. How heavy the page feels under a mouse wheel, read by
        js/scroll-weight.js. It is here because this is the only tuning panel on
        the site, but it lives in a different stylesheet — `file` below makes Copy
@@ -543,9 +567,79 @@
     /* The soft glow on the nebula, separate from the star cores above. The stars
        flare from their whitest points; the clouds only swell. */
     { v: '--star-cloud',      label: 'cloud',   min: 0, max: 1.2, step: 0.02, unit: '',
+      file: 'css/star-bg.css' },
+    /* cloud b — the nebula's brightness, which lives in the cloud filter rather
+       than in `cloud` above. Hard-coding it in build 13 quietly removed the
+       nebula's brightness control from this panel, since `cloud` had been that
+       control until the kick work moved the brightness into the filter.
+       Max 3 because the two are a pair: at the shipped cloud 0.27 the useful
+       range is roughly 1.0 to 2.6, and past 3 the glow is the dominant light
+       source on the page, which HANDOFF 8 already tried and rejected at 0.92.
+       Drag this one for "more nebula". Dragging `cloud` for it works, and it
+       spends the headroom the kick needs, which is the trap. */
+    { v: '--star-cloud-bright', label: 'cloud b', min: 0.2, max: 3, step: 0.05, unit: '',
       file: 'css/star-bg.css' }
   ];
   var HOME = 'css/spine-bg.css';
+
+  /* ---- HOVER TIPS --------------------------------------------------------
+     Kept as a lookup rather than a `tip` key on each FIELDS entry, because
+     FIELDS is already carrying prose comments between its rows and threading a
+     third string through each literal made it unreadable. One object also
+     means the coverage check below is a single loop rather than an eyeball.
+
+     These are DISTILLED FROM THE STYLESHEET COMMENTS, which stay the long form
+     — a tip is the thing you read mid-drag, not the documentation. Where a
+     control is inverted, vestigial or does not do what its name says, that is
+     what the second clause is for; it is the only reason several of these are
+     worth hovering at all.
+
+     No apostrophes anywhere in these strings. They are single-quoted literals
+     and a stray one is a syntax error that takes the whole panel with it, on a
+     file where the panel is the only way to see what you just changed. The
+     check below enforces it rather than trusting the next edit. */
+  var TIPS = {
+    /* column */
+    '--spine-w': 'Width the column renders at, not the artwork width. The phone override is stale, still 390px against 130px here',
+    '--spine-dim': 'Brightness of the uncharged column. Shipped at 0.22, which is BRIGHTER than lit at 0.18, so judge the pair by eye, not by name',
+    '--spine-lit': 'Brightness of the charged column. At 0.18 it is darker than dim at 0.22, presumed deliberate, so the names no longer describe the relationship',
+    '--spine-glow': '1 keeps the halo baked into the artwork as generated, 0 crushes it to hard lines. Most of the effect is in the first notch below 1',
+    '--spine-feather': 'Length in px of the ramp between lit and dark at the charge front. Very short lengths leave bias no ramp to move',
+    '--spine-offset': 'Slides the artwork vertically inside the layer, negative moves it up. The charge front, beam and scrims all stay put',
+    '--spine-bias': 'Where the ramp sits relative to the charge front. Travel is in card heights, so 2 to 3 parks the glow behind the hero card',
+    /* band */
+    '--spine-band': 'Height in px of the lit band. INVERTED at the top: 3000 means no band rather than a huge one, and 0 lights nothing at all',
+    '--spine-band-feather': 'Softness of the band top edge only. Inert while band sits at its 3000px off value, because there is no edge to soften',
+    /* flare + scrim */
+    '--spine-bloom': 'Flare riding the charge front, off at 0. This and beam are the only layers that blend normally, so layer order matters only while one is on',
+    '--spine-beam': 'Crimson scan line at the charge front, off at 0. Past 1 the opacity is capped and it drives brightness instead',
+    '--spine-scrim': 'Multiplier on every section scrim. Shipped at 0 but fully live; it attenuates the backdrop rather than painting, so there is no shape to look for',
+    /* breathing pulse */
+    '--spine-pulse-lo': 'Low point of the breathing while a sample plays. Shipped at 0, so the column dips all the way to black each cycle',
+    '--spine-pulse-hi': 'High point of the breathing while a sample plays. 0.1 sits below lit at 0.18, so pressing play visibly DARKENS the column',
+    '--spine-pulse-ms': 'Length of one full breath while a sample plays. The kick detector overrides this loop whenever the analyser is running',
+    /* kick */
+    '--kick-flash': 'Brightness added to the lit column per unit of envelope. Lit band only, unlike the shake, which moves everything',
+    '--kick-shake': 'How far a hit throws the artwork sideways in px. Moves the WHOLE column, not just the lit band. 0 leaves the flash, a complete look',
+    '--kick-gain': 'Master multiplier on the envelope at the output. 0 silences the effect but the detector and the meter below keep running',
+    '--kick-decay': 'Decay time constant in ms, short reads as a tick and long as a swell. The detector will not refire inside 190ms whatever this says',
+    '--kick-sens': 'Hit threshold as a MULTIPLE of the running average, not decibels. Come here first if it fires on everything, down, or nothing, up',
+    '--kick-freq': 'Lowpass cutoff of the side chain in Hz, the actual isolate the kick control. 90 measured best; toward 150 lets the bass line in',
+    '--kick-stars': 'How hard the star cores answer a hit. Scales the twinkle waveform rather than adding a flash, and lives in the star stylesheet',
+    '--kick-cloud': 'How hard the nebula brightens on a hit. MEASURED dead above 0.51 at the shipped cloud, and that limit moves when cloud moves',
+    /* page feel */
+    '--scroll-weight': 'How heavy the page feels under a mouse wheel, 0 is genuinely native. Wheel only, and reduced motion disables it',
+    /* sky */
+    '--star-dim': 'Brightness of the whole sky field, 0 is off. For the milky wash reach for black instead, this dims the stars along with the dust',
+    '--star-sat': 'Saturation. 1 is the hero footage as shot, deep blue; 0 is the colourless grade the spine artwork was made to match',
+    '--star-black': 'Levels out of 255 subtracted before the sky screens, the right lever for the wash. 0 is an exact identity, above 14 the nebula reads cut out',
+    '--star-twinkle': 'Idle twinkle amplitude across the four bands, 0 gives a dead static sky. Ships equal to the playing value, so the player changes nothing',
+    '--star-twinkle-hi': 'Twinkle amplitude while a sample plays. Ships identical to the idle value, so the play button deliberately no longer moves the stars',
+    '--star-twinkle-ms': 'Length of one twinkle cycle. The cloud breath runs at 2.7x this, so it is the clock for the whole sky, not just the stars',
+    '--star-desync': 'Spread of the four band clocks. 1 is the shipped 1x/1.37x/1.79x/2.31x, 0 renders build 6 exactly. Too busy, come down here, not the amplitude',
+    '--star-cloud': 'Headroom split for the nebula, not its brightness. Keep it low so the kick has room; for a brighter glow drag cloud b instead',
+    '--star-cloud-bright': 'How bright the nebula is, carried in the cloud filter so it is not clamped. THIS is the one to drag for more or less glow'
+  };
 
   var css = document.createElement('style');
   css.textContent =
@@ -554,7 +648,24 @@
     'color:#8F8F8F;letter-spacing:.08em;backdrop-filter:blur(8px);min-width:240px}' +
     '.spine-tune h6{margin:0 0 8px;color:#D8D0BE;font:inherit;letter-spacing:.14em;text-transform:uppercase}' +
     '.spine-tune label{display:flex;align-items:center;gap:8px;margin:5px 0}' +
-    '.spine-tune span:first-child{width:44px;text-transform:uppercase}' +
+    /* 44px wrapped the two-word labels — `puls lo`, `puls hi`, `puls ms`,
+       `twnk hi`, `twnk ms` — onto a second line, which made those five rows
+       taller than the rest and split the hover underline across both lines.
+       MEASURED in the browser: the wrap clears at 54px and not at 52. The
+       longest label is 7 characters, and canvas measureText puts those at
+       46.36px, but it does NOT count letter-spacing, and .08em at 11px adds
+       0.88px per character — so the real cost is 46.36 + 7*0.88 = 52.5px.
+       56 is that plus headroom. Checked against "IBM Plex Mono", the generic
+       monospace fallback and DejaVu Sans Mono: all three measure identically,
+       so this does not depend on the webfont having loaded.
+       The panel does not get wider, it stays 328px: the 12px comes out of the
+       slider, 192px -> 180px. Worth knowing what that costs at the tightest
+       control rather than assuming it is free — `band` is the worst, 150 steps
+       across the track, so it goes from 1.28px per step to 1.20px. Every other
+       field is 60 steps or fewer and has 3px or more. If a slider ever does
+       need finer travel, widen the panel rather than narrowing this column
+       back; the wrap is the thing that was actually costing a row of height. */
+    '.spine-tune span:first-child{width:56px;text-transform:uppercase}' +
     '.spine-tune input{flex:1;accent-color:#D8D0BE}' +
     '.spine-tune b{width:46px;text-align:right;color:#F2F2EE;font-weight:400}' +
     '.spine-tune button{margin-top:8px;width:100%;background:#D8D0BE;color:#050505;border:0;' +
@@ -586,7 +697,27 @@
     '.spine-tune details[open]>summary{color:#D8D0BE}' +
     '.spine-tune details>label:last-child{margin-bottom:7px}' +
     '.spine-tune__foot{flex:0 0 auto;border-top:1px solid #2E2E2E;' +
-      'margin-top:7px;padding-top:2px}';
+      'margin-top:7px;padding-top:2px}' +
+    /* THE TIP IS position:fixed AND A CHILD OF <body>, NOT OF THE ROW.
+       .spine-tune__scroll is overflow-y:auto, and an overflow container clips
+       its descendants whatever their position — absolute included, since the
+       scroller is itself the containing block once it is positioned. A tip
+       parented to the row would be cut off at the panel edge, which is exactly
+       the direction it needs to open in. Fixed + body sidesteps the clip
+       entirely, at the cost of having to place it by hand on hover.
+
+       Left of the panel by preference, flipped to the right only if there is
+       no room, and clamped into the viewport vertically so a row near the top
+       or bottom does not push it off screen. */
+    '.spine-tune__name{cursor:help;border-bottom:1px dotted #3A3A3A}' +
+    '.spine-tune label:hover .spine-tune__name{color:#D8D0BE;border-bottom-color:#6B6B6B}' +
+    '.spine-tune__tip{position:fixed;z-index:10000;display:none;max-width:270px;' +
+      'background:rgba(5,5,5,.97);border:1px solid #2E2E2E;padding:7px 9px;' +
+      'font:11px/1.45 "IBM Plex Mono",monospace;color:#B4B4B4;letter-spacing:.04em;' +
+      'backdrop-filter:blur(8px);pointer-events:none;box-shadow:0 2px 14px rgba(5,5,5,.7)}' +
+    '.spine-tune__tip i{display:block;font-style:normal;letter-spacing:.08em}' +
+    '.spine-tune__tip i.v{color:#D8D0BE}' +
+    '.spine-tune__tip i.f{color:#6B6B6B;margin-bottom:4px}';
   document.head.appendChild(css);
 
   var box = document.createElement('div');
@@ -622,10 +753,46 @@
     return parseFloat(getComputedStyle(document.documentElement).getPropertyValue(name));
   };
 
+  /* One tip element reused by every row, parented to <body> — see the CSS note
+     on why it cannot live inside the scroller. Hiding is on a short timer so
+     that sliding the mouse from one label to the next does not flicker. */
+  var tipEl = document.createElement('div');
+  tipEl.className = 'spine-tune__tip';
+  tipEl.setAttribute('role', 'tooltip');
+  document.body.appendChild(tipEl);
+  var tipTimer;
+
+  var showTip = function (anchor, f) {
+    clearTimeout(tipTimer);
+    var text = TIPS[f.v];
+    if (!text) return;
+    tipEl.innerHTML = '<i class="v">' + f.v + '</i>' +
+      '<i class="f">' + (f.file || HOME) + '</i>' + text;
+    /* Measure before placing: offsetWidth is 0 while display is none, so the
+       first frame would otherwise be positioned against a zero-sized box. */
+    tipEl.style.visibility = 'hidden';
+    tipEl.style.display = 'block';
+    var r = anchor.getBoundingClientRect();
+    var w = tipEl.offsetWidth, h = tipEl.offsetHeight;
+    var left = r.left - w - 10;
+    if (left < 8) left = Math.min(r.right + 10, window.innerWidth - w - 8);
+    var top = r.top + r.height / 2 - h / 2;
+    top = Math.max(8, Math.min(top, window.innerHeight - h - 8));
+    tipEl.style.left = left + 'px';
+    tipEl.style.top = top + 'px';
+    tipEl.style.visibility = 'visible';
+  };
+  var hideTip = function () {
+    tipTimer = setTimeout(function () { tipEl.style.display = 'none'; }, 90);
+  };
+
   FIELDS.forEach(function (f) {
     var start = read(f.v);
     var row = document.createElement('label');
-    row.innerHTML = '<span>' + f.label + '</span>';
+    row.innerHTML = '<span class="spine-tune__name">' + f.label + '</span>';
+    var name = row.firstChild;
+    name.addEventListener('mouseenter', function () { showTip(name, f); });
+    name.addEventListener('mouseleave', hideTip);
     var input = document.createElement('input');
     input.type = 'range';
     input.min = f.min; input.max = f.max; input.step = f.step; input.value = start;
@@ -641,6 +808,23 @@
     f._out = out;
   });
 
+  /* COVERAGE CHECK. A missing tip is invisible — the label just does not react
+     — so it would survive any number of sessions unnoticed. Both directions
+     matter: an orphan TIPS key means a control was renamed or removed and the
+     copy was left behind, describing something that is no longer there. */
+  (function () {
+    var missing = FIELDS.filter(function (f) { return !TIPS[f.v]; })
+                        .map(function (f) { return f.v; });
+    var known = {};
+    FIELDS.forEach(function (f) { known[f.v] = 1; });
+    var orphan = Object.keys(TIPS).filter(function (k) { return !known[k]; });
+    if (missing.length) console.warn('[tune] no hover tip for:', missing.join(', '));
+    if (orphan.length) console.warn('[tune] tip with no slider:', orphan.join(', '));
+    if (!missing.length && !orphan.length) {
+      console.log('[tune] ' + FIELDS.length + ' sliders, all with hover tips');
+    }
+  }());
+
   /* ---- GROUPING ----------------------------------------------------------
      Ordered by how often they get touched, not by which stylesheet they live
      in — `kick` and `sky` both write to star-bg.css and sit in different
@@ -652,7 +836,7 @@
      of reloads and reopening four sections each time is its own small tax. */
   var GROUPS = [
     { title: 'kick', open: true, vars: ['--kick-flash', '--kick-shake', '--kick-gain',
-        '--kick-decay', '--kick-sens', '--kick-freq', '--kick-stars'] },
+        '--kick-decay', '--kick-sens', '--kick-freq', '--kick-stars', '--kick-cloud'] },
     { title: 'column', vars: ['--spine-w', '--spine-dim', '--spine-lit', '--spine-glow',
         '--spine-feather', '--spine-offset', '--spine-bias'] },
     { title: 'band', vars: ['--spine-band', '--spine-band-feather'] },
@@ -660,7 +844,8 @@
     { title: 'breathing pulse', vars: ['--spine-pulse-lo', '--spine-pulse-hi',
         '--spine-pulse-ms'] },
     { title: 'sky', vars: ['--star-dim', '--star-sat', '--star-black', '--star-twinkle',
-        '--star-twinkle-hi', '--star-twinkle-ms', '--star-desync', '--star-cloud'] },
+        '--star-twinkle-hi', '--star-twinkle-ms', '--star-desync', '--star-cloud',
+        '--star-cloud-bright'] },
     { title: 'page feel', vars: ['--scroll-weight'] }
   ];
 

@@ -72,13 +72,28 @@
      actually loaded. python -m http.server serves Last-Modified only, and a
      browser sitting on a cached copy looks identical to a change that did not
      work — this makes the difference visible instead of arguable. */
-  --spine-build: 28;
+  --spine-build: 29;
 
   --charge: 0;          /* 0..1, written by js/spine-bg.js every scroll frame */
-  --spine-w: 130px;     /* the width the COLUMN renders at, not the artwork */
+  --spine-w: 120px;     /* the width the COLUMN renders at, not the artwork */
   --spine-frac: 0.2565; /* measured: column width / artwork width */
-  --spine-dim: 0.22;    /* brightness of the uncharged column */
-  --spine-lit: 0.18;    /* brightness of the charged column */
+  /* THESE TWO NAMES NOW DESCRIBE THE OPPOSITE OF WHAT THEY DO. Read this before
+     touching either. As of build 29 the CHARGED column is 0 — fully black — and
+     the UNCHARGED column is 0.22. So the charge front DARKENS the spine as it
+     travels rather than lighting it, and `lit` is the dark state.
+
+     That is deliberate and it pairs with --kick-flash, which went 0.34 -> 0.72
+     in the same pass. --kick-flash adds brightness to the LIT region, so the
+     charged column is invisible until a drum hit and then flashes hard out of
+     black. The column is no longer a thing that glows; it is a thing that only
+     exists on the beat. Setting --spine-lit back above --spine-dim restores the
+     old reading and breaks that effect.
+
+     The names are kept rather than swapped because every mask, every coefficient
+     and five handoffs of measurements refer to them, and renaming would silently
+     invert all of it. */
+  --spine-dim: 0.22;    /* brightness of the UNCHARGED column — the visible one */
+  --spine-lit: 0;       /* brightness of the CHARGED column — black, see above */
   --spine-beam: 0;      /* crimson scan line, 0..1.5 — tuned off 2026-08-04 */
   --spine-scrim: 0;     /* multiplier on every scrim below, 0 = none */
 
@@ -90,7 +105,7 @@
      The shipped 220px is a swell rather than a line, tuned by eye. It replaced
      10px, which was effectively a hard travelling edge; at that end --spine-bias
      becomes almost inert, because there is no ramp left for it to move. */
-  --spine-feather: 330px;
+  --spine-feather: 430px;
 
   /* Vertical offset of the artwork inside the layer. Negative moves the column
      UP, so the spine can start level with the MUSIC eyebrow instead of below
@@ -147,14 +162,27 @@
      mask, so its two stops only ever have to be ordered against EACH OTHER.
      That holds for any --spine-band-feather >= 0, unconditionally.
 
-     THE SHIPPED VALUES ARE 1260px WITH A FEATHER OF 0. A zero feather puts the
-     band's two stops at the same position, which is a legal hard step, not an
+     SHIPPED AT 800px WITH A FEATHER OF 600px, build 29. THE BAND IS ON.
+     It shipped OFF (3000px) from build 25 through 28, so anything written about
+     this layer in HANDOFF 8 through 12 describes a mask that was not doing
+     anything. The 800/600 pair is close to fully soft — the feather is three
+     quarters of the band's own height — so the top of the lit zone is a long
+     ramp rather than the hard travelling edge the paragraph below was written
+     about. Both edges are now swells.
+
+     HISTORICAL, for the earlier setting: 1260px with a feather of 0 put the
+     band's two stops at the same position, which is a legal hard step and not an
      ordering violation — that is the property the separate-mask-layer design
-     guarantees for any feather >= 0. So the top of the lit zone is now a HARD
-     EDGE travelling down the column, while the charge front below it stays a
-     220px ramp. The band is deliberately asymmetric: a line arriving, a swell
-     leaving. Raise --spine-band-feather if a soft top is ever wanted back.
-     For reference, anything at or above 3000px switches the band off outright.
+     guarantees for any feather >= 0. That gave a HARD EDGE travelling down the
+     column against a soft charge front below it, deliberately asymmetric: a line
+     arriving, a swell leaving. Drop --spine-band-feather back toward 0 to get it.
+     Anything at or above 3000px switches the band off outright.
+
+     NOT RE-DERIVED FOR MOBILE. 3000px was only the off value at desktop layout
+     heights, and now that the band is on at 800px the phone needs its own number
+     for a different reason: the mobile document is roughly twice as tall, so the
+     same band covers half as much of it. Filed with the rest of the stale
+     overrides at the foot of css/star-bg.css.
 
      MEASURED at 1440x900 with the LIT LAYER IN ISOLATION — dim 0, page content
      hidden, and the artwork swapped for a flat white column so the profile reads
@@ -186,13 +214,13 @@
      Note also that the plateau brightness varies about +/-15% run to run in
      headless Chromium at identical settings — that noise predates this and is
      not the band. Judge the EDGE POSITIONS, which are stable. */
-  --spine-band: 3000px;
+  --spine-band: 800px;
   /* NOTE 2026-08-05: the band is at its OFF value above, so its top edge sits
      off-layer at every desktop layout and this feather has no edge to soften.
      Inert, not wrong — it is carried so the number survives if the band is
      switched back on. The mobile override below still runs the band at 880px,
      where its own feather DOES apply. */
-  --spine-band-feather: 800px;
+  --spine-band-feather: 600px;
 
 
   /* While a sample is playing the charged column breathes between these two
@@ -200,8 +228,8 @@
      class track-experience.js already sets, mirrored onto <html> by
      js/spine-bg.js — no change to the player itself. */
   --spine-pulse-lo: 0;
-  --spine-pulse-hi: 0.1;
-  --spine-pulse-ms: 3400ms;
+  --spine-pulse-hi: 0.2;
+  --spine-pulse-ms: 4100ms;
 
   /* ---- THE KICK ---------------------------------------------------------
      The breathing above is a fixed loop that only knows whether audio is
@@ -225,8 +253,8 @@
 
   /* HOW IT LOOKS. Both are per-unit-of-envelope, so at --kick: 1 you get
      exactly these. */
-  --kick-flash: 0.34;   /* brightness ADDED to the lit column on a hit */
-  --kick-shake: 6;      /* px the artwork throws sideways on a hit */
+  --kick-flash: 0.72;   /* brightness ADDED to the lit column on a hit */
+  --kick-shake: 15;      /* px the artwork throws sideways on a hit */
 
   /* HOW IT LISTENS — read by js/spine-bg.js, not by any CSS rule. They live
      here so they are in the tuner with everything else and Copy CSS emits them
@@ -256,12 +284,21 @@
      a real BiquadFilterNode instead of bins, so there is one honest control
      (the cutoff) rather than two that did not do what they said. */
   --kick-gain: 1;
+  /* 260 -> 320 on 2026-08-05, for the nebula rather than for the spine. The
+     cloud layer is blurred 22px and has no detail left in it, so a fall as fast
+     as the column's reads there as a flicker rather than as a swell. 320 still
+     clears the beat: at 140bpm the envelope is down to 0.14 by the next hit, so
+     hits stay separate rather than smearing into a sustain.
+     ONE ENVELOPE FEEDS EVERYTHING — this moves the spine flash and the shake
+     too. If the column starts feeling sluggish, that is this, not --kick-flash,
+     and the two layers cannot be given different decays without a second
+     envelope in js/spine-bg.js. */
   --kick-decay: 260;
   --kick-sens: 1.8;
   --kick-freq: 90;
 
   --spine-bloom: 0;     /* the flare riding the charge front, 0 = off */
-  --spine-glow: 0.46;      /* 1 = the bloom as generated, 0 = crushed to hard lines */
+  --spine-glow: 0;      /* 1 = the bloom as generated, 0 = crushed to hard lines */
 
   /* The glow is BAKED INTO the artwork — a soft halo painted around each bright
      line, not something CSS added — so it cannot be switched off. It can be

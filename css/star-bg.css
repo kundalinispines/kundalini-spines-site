@@ -46,12 +46,12 @@
      as worth 63 -> 88 fps; that figure was taken on a software renderer and is
      corrected under html::after below). 6 was the single lockstep cores
      layer. */
-  --star-build: 12;
+  --star-build: 15;
 
   /* Brightness of the whole field. 0 is off — the layer still exists but adds
      no light, and under screen blending (see below) that is exactly the same
      as not being there. */
-  --star-dim: 0.8;
+  --star-dim: 1.4;
 
   /* 1 = the footage as shot, deep blue. 0 = colourless, matching the grade the
      spine artwork was generated to.
@@ -128,13 +128,16 @@
      deliberately on 2026-08-04 that the sky is the footage as shot. The black
      point is strictly better at this job on every axis. Leave hue at 1.
 
-     SHIPPED AT 12. Not a taste call — it is the value the table supports for
+     SHIPPED AT 13 as of build 15 (16 in builds 13-14, 12 when this table was
+     written — the reasoning below still holds, only the number has drifted).
+     The paragraph was written for 12. Not a taste call — it is the value the
+     table supports for
      the stated goal, and it puts 28.1% of the frame at exactly page black
      against 1.1% at k=6. Come down toward 6 if the faint dust is missed; 6 is
      also the level HANDOFF 8 clamped the SPINE artwork by, so the two
      photographs would then be graded alike. Above ~14 the nebula starts to read
      as cut out rather than fading. */
-  --star-black: 16;
+  --star-black: 13;
 
   /* ---- TWINKLE ----------------------------------------------------------
      Amplitude of the twinkle layers, 0 = off (dead static sky).
@@ -164,8 +167,21 @@
      reads as scintillation rather than as the sky breathing, and it takes far
      more amplitude before it registers at all. */
   --star-twinkle: 0.46;
-  --star-twinkle-hi: 0.46;
-  --star-twinkle-ms: 4600ms;
+
+  /* THE PLAYING AMPLITUDE, AND IT CLIPS TWO OF THE WAVEFORM'S PEAKS.
+     Build 15 ships 1.5 against an idle 0.46, so the play button now moves the
+     stars a great deal — reversing the 2026-08-04 decision to hold the two
+     equal. Note what happens above 1.0: the keyframe stops are
+     0.10 / 0.66 / 0.28 / 1.00 / 0.38 / 0.80 / 0.20, so at amp 1.5 the 46% stop
+     resolves to 1.50 and the 78% stop to 1.20, and BOTH clamp to opacity 1.0.
+     The cycle's two brightest moments become the same value and the shape of the
+     top of the waveform is lost — what should be a peak and a lesser peak reads
+     as a plateau.
+     That may be the intent, since a flattened top holds the sky bright for
+     longer. If not, ~0.95 keeps nearly all of the liveliness with the waveform
+     intact. Nothing clips at or below 1.0. */
+  --star-twinkle-hi: 1.5;
+  --star-twinkle-ms: 8200ms;
 
   /* ---- DESYNC -----------------------------------------------------------
      HOW FAR APART THE FOUR STAR BANDS RUN. This is the control the whole
@@ -175,15 +191,34 @@
            images are an exact PARTITION of the old single cores layer (see
            "THE FOUR BANDS" below), desync 0 renders pixel-for-pixel what
            --star-build 6 rendered. Not approximately. Identically.
-       1 = the shipped spread — periods 1x / 1.37x / 1.79x / 2.31x and four
+       1 = the full spread — periods 1x / 1.37x / 1.79x / 2.31x and four
            different start phases, so neighbouring stars are almost never doing
            the same thing at the same time.
 
      Anything between is a linear interpolation of both the periods and the
      phases. If the sky ever reads as too busy, come down this slider rather
      than reaching for the amplitude: amplitude changes how bright the twinkle
-     is, desync changes whether it reads as a sky or as one object breathing. */
-  --star-desync: 1;
+     is, desync changes whether it reads as a sky or as one object breathing.
+
+     >>> SHIPPED AT 0 FROM BUILD 15, AND THAT IS A REVERSAL. Builds 7-14 shipped
+     >>> 1 and the four-band rebuild exists specifically to make lockstep stars
+     >>> impossible. Setting this to 0 puts all four bands back on one clock and
+     >>> renders build 6 exactly — the "one object breathing" state the rebuild
+     >>> was built to remove.
+     >>>
+     >>> It is the owner's call and there is a reading behind it: the drum
+     >>> response moved off the stars entirely this session (--kick-stars is 0)
+     >>> and onto the nebula (--kick-cloud), so the sky is now backdrop rather
+     >>> than the thing carrying the rhythm, and a backdrop breathing as one
+     >>> object is defensible. MEASURED while it was at 1: the four bands moved
+     >>> light on 0.66% of the frame against the cloud layer's 50.6%, so the
+     >>> desync was governing a fifteenth of the page's motion anyway.
+     >>>
+     >>> What this does NOT mean is that the four band images are dead weight.
+     >>> They still render, still cost four layers, and setting this back to 1 is
+     >>> a one-character change. Do not "tidy away" starfield-cores-1..4.webp on
+     >>> the grounds that desync is 0. */
+  --star-desync: 0;
 
   /* The soft glow on the nebula, independent of the star twinkle above so each
      slider does one thing: turning the stars off leaves the clouds breathing,
@@ -199,8 +234,76 @@
      LEGIBILITY WAS RE-MEASURED AT THIS VALUE, not assumed. See the note under
      --star-black; worst case on the page is 5.45:1 against a 4.5:1
      requirement, and that worst case is text over a lit spine vertebra rather
-     than over the sky. */
-  --star-cloud: 1.2;
+     than over the sky.
+
+     RETUNED 1.2 -> 0.27 on 2026-08-05, and the number went DOWN so the layer
+     could do MORE. Read the next paragraph before touching it, because 0.27
+     against the old 1.2 looks like the glow was turned off and it was not.
+
+     THIS FEEDS A CSS OPACITY, WHICH CLAMPS AT 1.0. At 1.2 the layer was past
+     that ceiling and three separate things were wrong with it, all measured:
+       - 1.2 and 1.0 rendered IDENTICALLY at the peak of the breath.
+       - 1.2 was actually WORSE than 1.0. The keyframe floor still scales with
+         the value while the ceiling does not, so 1.0 swings 0.40 -> 1.00 and
+         1.2 swings only 0.48 -> 1.00. A brighter floor and 13% less breath.
+       - While a sample plays the 1.8x below took it to 2.16, so the kick had
+         NOWHERE to push. Measured at the breath peak: a drum hit moved the
+         nebula by +0.000. Not subtly, not a little. Zero.
+     The brightness that used to live in this opacity now lives in the
+     brightness() at the end of the cloud filter, which is not clamped. Same
+     nebula, verified by bisecting for equal rendered luminance in the band, but
+     with 0.51 of headroom left under the ceiling for the kick to work in.
+
+     SO THE PAIRING IS LOAD-BEARING. Build 15 ships --star-cloud 0.2 against
+     --star-cloud-bright 2.2; build 13-14 shipped 0.27 against 1.75, which was
+     the calibrated match for the old 1.2 x brightness(0.85). Move one without
+     the other and the nebula changes brightness. To make the nebula brighter,
+     raise the brightness and leave this alone; raising this instead spends the
+     headroom the kick needs — at 0.2 the ceiling for --kick-cloud is 0.64, and
+     every 0.05 added here costs 0.09 of it. */
+  --star-cloud: 0.2;
+
+  /* HOW BRIGHT THE NEBULA IS, carried in the cloud filter rather than in the
+     opacity above. THIS IS THE ONE TO REACH FOR when the glow is too weak or
+     too strong; --star-cloud is the headroom split, not the brightness.
+
+     WHY THE BRIGHTNESS AND THE KICK ARE ON DIFFERENT CHANNELS, because it looks
+     like an inconsistency and it is not. A filter is not clamped, so brightness
+     can go as high as it likes and there is no ceiling to run into. But a
+     filter change REPAINTS the layer, and this layer carries a 22px blur across
+     the whole viewport, so re-running the chain every frame would mean
+     re-blurring every frame. The kick therefore drives the OPACITY, which the
+     compositor handles without repainting anything, and pays for that with the
+     1.0 ceiling that --star-cloud exists to stay under. Static brightness in
+     the filter, per-frame movement in the opacity.
+     DO NOT "simplify" this by moving the kick onto the brightness. It would
+     remove the clamp and look correct in a still frame, and it would put a
+     full-screen gaussian blur on the every-frame path. */
+  --star-cloud-bright: 2.2;
+
+  /* HOW HARD THE NEBULA ANSWERS THE KICK, per unit of envelope. Its own control
+     rather than a share of --kick-stars, because one knob genuinely could not
+     serve both layers: the cores clip at --star-twinkle-hi + --kick-stars, so
+     filling the cloud headroom through the old `* 0.5` would have needed
+     --kick-stars at 1.0, which puts the cores at 1.46 and hard against their
+     own ceiling. Two layers, two ceilings, two knobs.
+     0 restores a nebula that does not answer the drum at all.
+
+     THE USEFUL RANGE ENDS BEFORE THE SLIDER DOES, AND IT MOVES WITH --star-cloud.
+     Opacity while playing is --star-cloud * 1.8 + kick * this, and CSS clamps
+     opacity at 1.0, so the ceiling arrives at 1 - 1.8 * --star-cloud. At the
+     build-15 --star-cloud of 0.2 that is 0.64. MEASURED at the previous pairing
+     (cloud 0.27, limit 0.514) by sweeping against the rendered frame: 0.50, 0.75
+     and 1.00 all landed within 0.05/255 of each other.
+
+     >>> SHIPPED AT 1, WHICH IS PAST THAT LIMIT, AND IT IS A CHOICE. Everything
+     >>> above kick 0.64 lands on the same brightness, so the hardest drum hits
+     >>> are compressed to a common peak — the nebula flash acts as a soft
+     >>> limiter rather than tracking the envelope linearly. It only bites near
+     >>> the top of the breath cycle: at the keyframe trough the opacity is
+     >>> (0.36 + kick) * 0.40, which maxes at 0.544 and never clamps.
+     >>> Set it to 0.64 if the loudest hits should stay proportional. */
+  --kick-cloud: 1;
 
   /* The amplitude actually in force. Indirection rather than two copies of the
      animation: the keyframes below read this one property, so the playing state
@@ -217,11 +320,21 @@
      page that loads both stylesheets. On the other four pages the rule can
      never match and --kick is never referenced.
 
-     KEPT LOW ON PURPOSE. --star-twinkle and --star-twinkle-hi were set equal
-     on 2026-08-04, which means the play button deliberately does not move the
-     stars any more. This does not undo that decision: the idle sky and the
-     playing sky are still identical, and the only thing that moves the stars
-     now is an actual drum hit. 0 restores the current behaviour exactly.
+     >>> SHIPPED AT 0 FROM BUILD 15. The star cores no longer answer the drum at
+     >>> all; the whole kick response now lives in the nebula via --kick-cloud.
+     >>> Everything below this line describes what the control DOES when it is
+     >>> raised, and is kept because it is the map for turning it back on. It is
+     >>> not describing the shipped page.
+     >>>
+     >>> Note also that the paragraph after next is now out of date in the other
+     >>> direction: --star-twinkle and --star-twinkle-hi are NO LONGER equal.
+     >>> They are 0.46 idle against 1.5 playing, so the play button moves the
+     >>> stars a great deal — see the clipping note on --star-twinkle-hi.
+
+     HISTORICAL — KEPT LOW ON PURPOSE. --star-twinkle and --star-twinkle-hi were
+     set equal on 2026-08-04, which meant the play button deliberately did not
+     move the stars. At that time the idle sky and the playing sky were identical
+     and the only thing that moved the stars was an actual drum hit.
 
      IT SCALES THE WAVEFORM, IT DOES NOT ADD A FLASH ON TOP. The keyframes are
      amp x coefficient, so at 0.25 a hit multiplies the whole twinkle by 1.25 at
@@ -235,7 +348,7 @@
      as a gap — but if this is ever raised a long way, that ceiling is what it
      will run into, and the fix is to lower --star-twinkle-hi, not to raise this
      further. */
-  --kick-stars: 0.26;
+  --kick-stars: 0;
 }
 :root.is-spine-pulsing {
   --star-twinkle-amp: var(--star-twinkle-hi);
@@ -249,7 +362,7 @@
      them, so they read as a slow swell whatever is done to them; a transient
      there mostly just lifts the page's floor, which is the thing --star-black
      exists to hold down. The star CORES are what can actually flick. */
-  --star-cloud-amp: calc(var(--star-cloud) * 1.8 + var(--kick) * var(--kick-stars) * 0.5);
+  --star-cloud-amp: calc(var(--star-cloud) * 1.8 + var(--kick) * var(--kick-cloud));
 }
 
 /* A pseudo-element, so this file is the ENTIRE feature: one <link> and a page
@@ -582,7 +695,20 @@ html::after {
   filter:
     contrast(calc(1 / (1 - 2 * var(--star-black) / 255)))
     brightness(calc(1 - 2 * var(--star-black) / 255))
-    saturate(var(--star-sat)) blur(22px) brightness(0.85);
+    /* brightness 0.85 -> 1.75 on 2026-08-05. THIS IS WHERE THE NEBULA'S
+       BRIGHTNESS LIVES NOW, and the move was the whole point rather than a
+       taste change: a filter is not clamped, an opacity is. Carrying the
+       brightness here instead of in --star-cloud leaves the opacity free to be
+       the kick channel, which is the only way the drum can reach this layer at
+       all. See the long note on --star-cloud.
+       CALIBRATED, not picked: bisected for equal mean luminance over the top
+       decile of cloud light, so 0.27 x brightness(1.75) renders the nebula the
+       same as the old 1.2 x brightness(0.85) did at its playing peak.
+       PAIRED WITH --star-cloud. Changing either alone changes the nebula.
+       On a slider as `cloud b`, since hard-coding it took the nebula's
+       brightness off the tuning panel entirely, which --star-cloud used to be
+       the control for. */
+    saturate(var(--star-sat)) blur(22px) brightness(var(--star-cloud-bright));
 
   /* ---- THE CLOUD MASK, hand-painted 2026-08-05 -------------------------------
      The owner's call: the glow spreading out into the empty sky read as haze
@@ -681,7 +807,22 @@ html::after {
        of this comment left: "re-introduce it if --star-cloud ever goes back
        above ~0.3." It is now 0.36. Scaled by the same 0.575 the dim override
        uses (0.46/0.8), giving 0.21 — the phone crop is mostly nebula, so an
-       unscaled cloud glow would be far heavier there than on the desktop. */
+       unscaled cloud glow would be far heavier there than on the desktop.
+
+       >>> STALE AS OF 2026-08-05, AND IN A NEW WAY. THIS BLOCK CANNOT FIX IT.
+       >>> 0.21 was scaled off a desktop 0.36 that is now 0.27, so the ratio has
+       >>> inverted: the phone is now BRIGHTER than the desktop, 0.21 against
+       >>> 0.27, which is exactly the HANDOFF 7 trap the comment above warns
+       >>> about, arrived at from the other direction. The prescribed 0.575 gives
+       >>> 0.155.
+       >>> WORSE, AND THE PART A NUMBER HERE WILL NOT REACH: brightness() on the
+       >>> cloud filter went 0.85 -> 1.75, and that declaration is NOT inside any
+       >>> media query, so the phone took the full 2.06x lift with none of the
+       >>> compensating opacity cut. Scaling this value alone will not undo it.
+       >>> The phone needs its own brightness() override, or this pair needs
+       >>> re-deriving against the new filter. Left as-is rather than guessed at,
+       >>> because no one has looked at this on a phone and a wrong number here
+       >>> reads as a decision. Filed with the rest of the stale overrides. */
     --star-cloud: 0.21;
     /* --star-black is deliberately NOT overridden. It is a property of the
        photograph, not of the viewport, and the crop does not change where the

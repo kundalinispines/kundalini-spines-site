@@ -24,7 +24,9 @@
 
 <link rel="stylesheet" href="css/tokens.css">
 <link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/star-bg.css">
 <link rel="stylesheet" href="css/components.css">
+<link rel="stylesheet" href="css/spine-bg.css">
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to content</a>
@@ -57,8 +59,12 @@
     </p>
   </section>
 
-  <!-- Messengers -->
-  <section class="section container" aria-labelledby="messengers-heading">
+  <!-- Messengers.
+       data-spine-from starts the spine layer HERE rather than at the top of the
+       document, mirroring index.html where it begins at #tracks below the hero.
+       The intro section above it stays clear, so the h1 and the opening
+       paragraph are never read against a lit vertebra. -->
+  <section class="section container" data-spine-from aria-labelledby="messengers-heading">
     <div class="section-header">
       <span class="label">The Messengers</span>
       <h2 id="messengers-heading">Two Messengers. One Signal.</h2>
@@ -138,6 +144,11 @@
 </footer>
 
 <script src="js/nav.js"></script>
+<script src="js/scroll-weight.js"></script>
+<!-- spine-bg.js also carries the kick detector and the /?tune panel. Both are
+     self-guarding: the audio graph needs a .track-experience section, which this
+     page does not have, so it is never built; the panel needs ?tune. -->
+<script src="js/spine-bg.js"></script>
 <script>document.getElementById('year').textContent = new Date().getFullYear();</script>
 </body>
 </html>

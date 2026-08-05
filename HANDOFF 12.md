@@ -107,6 +107,22 @@ Recorded so nobody re\-derives it:
 
 * * *
 
+### 6\. SHIPPED: a hand\-painted mask on the cloud glow
+
+The owner's judgement, not a measurement: the glow spreading out into the empty sky read as haze rather than as nebula. The fix is a mask on `html::after` that keeps the swell on the nebula's own diagonal band and removes it everywhere else. **`body::before` is deliberately NOT masked** — the full photograph still paints, so what went away is the glow and the breathing, not the structure.
+
+The mask was painted by the owner over a graded reference of the cloud layer's actual contribution. Three things about it are worth keeping:
+
+- **It is an ALPHA mask, white throughout with everything in the alpha channel**, so the default `mask-mode` is correct. Do not "simplify" it to a greyscale file without adding `mask-mode: luminance` — an opaque greyscale image under the default alpha mode is a **no\-op**, and a no\-op mask is indistinguishable from a mask that failed to load.
+- **1920×1072 is EXACTLY half of the sky's 3840×2144, and that is the whole point of the number.** Identical aspect means `cover` crops the mask and the photograph to the same rectangle at every window shape, so registration is structural rather than lucky. VERIFIED at 820×1180 portrait and 2560×1080 ultrawide, where `cover` crops width and height respectively. Halve or double it; do not eyeball a resize.
+- **The feather had to be wide and it is.** CSS applies the mask AFTER the filter, so the 22px blur is already baked in when the mask cuts, and 22 CSS px is about 52 px in the source file at a 900px\-tall viewport. MEASURED on the painted file: feather 361px at the median and 73px at its sharpest tenth, so it clears the blur everywhere and no edge reads as a punched hole.
+
+The painted PNG was 3840×2144 and hugely oversampled for a mask whose gradients are 361px wide. Downscaling to 1920 costs a maximum alpha error of **5/255** and takes it from 587 KB to **158 KB**. Lossless webp — a long soft gradient is exactly where lossy alpha bands.
+
+One thing left as painted: the kept region tops out at **alpha 251, not 255**, so the surviving clouds sit at about 98.4% strength. A brush artifact rather than a decision, and below anything `--star-cloud` can resolve.
+
+* * *
+
 ## The mistake, and it is not the one anyone was looking for
 
 Applying a pasted block of tuner values, I used a regex to find each declaration. It matched **inside a comment**. `css/spine-bg.css` documents its variables in prose constantly, and the band section contains the line
@@ -147,11 +163,12 @@ The ratios the comments themselves prescribe (0.61× width, 0.57× lit, 0.61× d
 
 - `assets/hero/spine-column-mirror-4k.webp` — 3072×8890, WebP q84, 381 KB. Rows 491..4936 of `spine-column-moonlight-4k.webp` plus a vertical mirror. 27.3 MP against the source's 16.9 MP; **decoded memory is roughly 116 MB against the old 68 MB, and that is UNMEASURED on a phone.**
 - `assets/hero/spine-column-mirror.webp` — 2048×5927, 248 KB, same crop and mirror, LANCZOS to 2/3 width. 12.9 MP, \~51 MB decoded, which is *less* than what shipped before. **Cut for the mobile breakpoint and NOT wired up** — the media\-query line is written out in the session log but was never added.
+- `assets/hero/cloud-mask.webp` — 1920×1072, lossless webp with alpha, 158 KB. Hand\-painted by the owner; masks the cloud glow only. See section 6.
 
 **Changed:**
 
 - `css/spine-bg.css` — `.spine-bg__art` points at the mirror asset; the full tuning pass; the header and the `.spine-bg__art` comment rewritten with the crop reasoning. `--spine-build` 25 → 28.
-- `css/star-bg.css` — the tuning pass. `--star-build` 10 → 11.
+- `css/star-bg.css` — the tuning pass, then the cloud mask on `html::after`. `--star-build` 10 → 12.
 - `css/base.css` — `--scroll-weight` 0.5 → 0.15.
 - `js/track-experience.js` — the blur ring gate.
 
@@ -168,7 +185,7 @@ The ratios the comments themselves prescribe (0.61× width, 0.57× lit, 0.61× d
     base    scroll-weight 0.15
 ```
 
-**Not changed:** the source artwork is untouched and still in the repo. No JS behaviour outside the one blur expression.
+**Not changed:** the source artwork is untouched and still in the repo. `body::before` carries no mask. No JS behaviour outside the one blur expression.
 
 * * *
 
@@ -178,9 +195,10 @@ The ratios the comments themselves prescribe (0.61× width, 0.57× lit, 0.61× d
 - **Do not give `.spine-bg` a z\-index.** Unchanged instruction, now with a measurement behind it.
 - **Do not find\-and\-replace variables in these stylesheets with a loose regex.** The comments read as declarations. Anchor to start\-of\-line and a real semicolon, and exclude `@media` blocks or a desktop paste will silently rewrite the mobile overrides.
 - **Do not recut the mirror tile without reading the "WHY 491 AND 4936" paragraph** in `css/spine-bg.css`. The natural gap is 28 rows; a crop that misses by 200 puts a black rectangle on the page and it is not obvious from the numbers why.
+- **Do not resize `cloud-mask.webp` to a non\-halving size**, and do not convert it to greyscale without adding `mask-mode: luminance`. The first makes it slide against the nebula as the window resizes; the second is a silent no\-op that looks exactly like a missing file.
 - **Do not treat `--spine-lit` as brighter than `--spine-dim` any more.** It is 0.18 against 0.22 — the charged column is now DARKER than the uncharged one, and with `--spine-pulse-lo: 0` the playing state is darker still. Flagged to the owner and kept, so it is presumed deliberate, but the variable names no longer describe the relationship.
 - **Do not raise the blur base of 2 to bring the far cards back.** Raise the `/220` divisor. See the blur section.
-- **Do not quote 2.62% as the page's legibility figure.** It is the sky alone; the spine got much dimmer in the same pass and the combined case was never measured.
+- **Do not quote 2.62% as the page's legibility figure.** It is the sky alone; the spine got much dimmer in the same pass and the combined case was never measured — and the cloud mask has since removed glow from a large part of the frame, which moves it again in the safe direction.
 - **Do not scale the mobile blocks from memory.** Re\-derive from the ratios in their own comments, and give `--spine-band` a mobile off value rather than a scaled one.
 - Everything in HANDOFF 7's, 8's, 9's, 10's and 11's "do not" lists still stands.
 
@@ -189,9 +207,10 @@ The ratios the comments themselves prescribe (0.61× width, 0.57× lit, 0.61× d
 ## Still open
 
 - **THE MOBILE OVERRIDES ARE STALE.** Five values, three pointing the wrong way, `--spine-w` at 390px against a 130px desktop. Largest item in the file and the cheapest to fix. Table and prescribed ratios above.
-- **THE COMBINED LEGIBILITY CASE AT THE NEW VALUES.** Sky measured, spine not. Needs the real page with its text on it.
+- **THE COMBINED LEGIBILITY CASE AT THE NEW VALUES.** Sky measured, spine not, and the cloud mask has since removed glow from a large part of the frame — which moves the number in the safe direction but leaves it unknown. Needs the real page with its text on it.
 - **THE STAR FIELD ON A PHONE**, unchanged from HANDOFF 11, and now with a second unmeasured mobile question beside it: the mirror asset's decoded memory. The 2048 cut exists precisely for this and is one media\-query line from being wired.
 - **`--kick-shake` is a px value that has never been seen on a phone.** Every mobile value in the project is still inferred.
+- **Whether the base sky wants the cloud mask too.** `cloud-mask.webp` drops onto `body::before` with no repainting if the nebula's shape — rather than its glow — turns out to be the thing that reads wrong. Not tried; the owner judged the glow\-only version enough.
 - **DNS for `kundalinispines.com`** — unchanged, still the single blocker on anything being reachable. Enable sequence in HANDOFF 5; do not enable Pages without the custom domain.
 - **The spine and the star field are on `index.html` only** — the other four pages are flat black, so the site still reads as two different sites.
 - **Pre\-existing mobile nav bug.** Closed menu panel not fully off\-screen, bleeding behind the fixed header on every page.
@@ -210,6 +229,7 @@ The ratios the comments themselves prescribe (0.61× width, 0.57× lit, 0.61× d
 
 - **The spine tiling gap.** Twice — the \~570px seam band, then the mirror\-point rectangle the first fix introduced.
 - **The spine\-behind\-the\-star\-field idea.** Answered with a proof, not deferred. Trap 3's withdrawal in HANDOFF 11 stands: there is no 20fps problem, drive the clouds as hard as it looks good — and `--star-cloud` is 1.2 now, so somebody did.
+- **The clouds that read as out of place.** Masked, not re\-tuned. Worth noting *why* that was the right lever: `--star-cloud` is one global number, and the complaint was about particular regions, so turning the slider down would have cost the nebula the owner wanted to keep in order to lose the haze he did not.
 - **"Side\-card blur is too heavy"** — partially. The ±1 cards are sharp and everything from ring 2 out is softer, but that was a side effect rather than a decision, so re\-judge it rather than assuming it is done.
 
 * * *

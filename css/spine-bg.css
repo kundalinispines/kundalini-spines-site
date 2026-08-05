@@ -2,7 +2,17 @@
    SPINE BACKGROUND — the charged column behind everything below the hero.
    Loaded by index.html only. Pairs with js/spine-bg.js.
 
-   ARTWORK: assets/hero/spine-column-moonlight-4k.webp — 3072x5504, WebP q84,
+   ARTWORK: assets/hero/spine-column-mirror-4k.webp — 3072x8890, WebP q84,
+   381 KB. Added 2026-08-05, and it is a derivative of the file described below,
+   not a new drawing: rows 491..4936 of spine-column-moonlight-4k.webp plus a
+   vertical mirror of that crop, so the layer tiles with no seam and no gap at
+   the mirror point. Full reasoning and the measurements are at .spine-bg__art —
+   read the "WHY 491 AND 4936" paragraph before recutting it, because the first
+   attempt cropped 200 rows too far out and that is exactly what the gap was.
+   A 2048-wide cut, spine-column-mirror.webp (2048x5927, 248 KB), sits beside it
+   for the mobile breakpoint and is NOT wired up yet.
+
+   THE SOURCE: assets/hero/spine-column-moonlight-4k.webp — 3072x5504, WebP q84,
    212 KB. Replaced the 1536x2752 original on 2026-08-04: same image, twice the
    linear resolution, with Metatron's Cube and all the background geometry
    removed. Made by feeding the old file back through nano_banana as an EDIT,
@@ -62,13 +72,13 @@
      actually loaded. python -m http.server serves Last-Modified only, and a
      browser sitting on a cached copy looks identical to a change that did not
      work — this makes the difference visible instead of arguable. */
-  --spine-build: 25;
+  --spine-build: 28;
 
   --charge: 0;          /* 0..1, written by js/spine-bg.js every scroll frame */
-  --spine-w: 640px;     /* the width the COLUMN renders at, not the artwork */
+  --spine-w: 130px;     /* the width the COLUMN renders at, not the artwork */
   --spine-frac: 0.2565; /* measured: column width / artwork width */
-  --spine-dim: 0.38;    /* brightness of the uncharged column */
-  --spine-lit: 0.52;    /* brightness of the charged column */
+  --spine-dim: 0.22;    /* brightness of the uncharged column */
+  --spine-lit: 0.18;    /* brightness of the charged column */
   --spine-beam: 0;      /* crimson scan line, 0..1.5 — tuned off 2026-08-04 */
   --spine-scrim: 0;     /* multiplier on every scrim below, 0 = none */
 
@@ -80,7 +90,7 @@
      The shipped 220px is a swell rather than a line, tuned by eye. It replaced
      10px, which was effectively a hard travelling edge; at that end --spine-bias
      becomes almost inert, because there is no ramp left for it to move. */
-  --spine-feather: 220px;
+  --spine-feather: 330px;
 
   /* Vertical offset of the artwork inside the layer. Negative moves the column
      UP, so the spine can start level with the MUSIC eyebrow instead of below
@@ -88,7 +98,7 @@
      runs to the bottom of the document — only the artwork slides within it, so
      the charge front, the scan line and the section scrims all stay where they
      are. With repeat-y this shifts the whole tiled run together. */
-  --spine-offset: -520px;
+  --spine-offset: 140px;
 
   /* Where the ramp sits RELATIVE to the charge front, -2 .. 5.
      --spine-feather is the ramp's LENGTH; this is its position. At 0 the ramp
@@ -176,17 +186,22 @@
      Note also that the plateau brightness varies about +/-15% run to run in
      headless Chromium at identical settings — that noise predates this and is
      not the band. Judge the EDGE POSITIONS, which are stable. */
-  --spine-band: 1260px;
-  --spine-band-feather: 0px;
+  --spine-band: 3000px;
+  /* NOTE 2026-08-05: the band is at its OFF value above, so its top edge sits
+     off-layer at every desktop layout and this feather has no edge to soften.
+     Inert, not wrong — it is carried so the number survives if the band is
+     switched back on. The mobile override below still runs the band at 880px,
+     where its own feather DOES apply. */
+  --spine-band-feather: 800px;
 
 
   /* While a sample is playing the charged column breathes between these two
      brightnesses instead of sitting at --spine-lit. Driven by the is-playing
      class track-experience.js already sets, mirrored onto <html> by
      js/spine-bg.js — no change to the player itself. */
-  --spine-pulse-lo: 0.38;
-  --spine-pulse-hi: 0.8;
-  --spine-pulse-ms: 5300ms;
+  --spine-pulse-lo: 0;
+  --spine-pulse-hi: 0.1;
+  --spine-pulse-ms: 3400ms;
 
   /* ---- THE KICK ---------------------------------------------------------
      The breathing above is a fixed loop that only knows whether audio is
@@ -246,7 +261,7 @@
   --kick-freq: 90;
 
   --spine-bloom: 0;     /* the flare riding the charge front, 0 = off */
-  --spine-glow: 0.48;      /* 1 = the bloom as generated, 0 = crushed to hard lines */
+  --spine-glow: 0.46;      /* 1 = the bloom as generated, 0 = crushed to hard lines */
 
   /* The glow is BAKED INTO the artwork — a soft halo painted around each bright
      line, not something CSS added — so it cannot be switched off. It can be
@@ -324,7 +339,53 @@ body { position: relative; }
 .spine-bg__art {
   position: absolute;
   inset: 0;
-  background-image: url("../assets/hero/spine-column-moonlight-4k.webp");
+  /* MIRROR-TILED, 2026-08-05. Revert by putting spine-column-moonlight-4k.webp
+     back on this one line; nothing else changed.
+
+     The moonlight artwork could not tile. Two separate reasons, both MEASURED:
+       1. It fades to black at both ends — rows 0..160 and 5368..5503 carry no
+          lit pixel at all, with a ~200-row ramp inside each. At --spine-w: 640px
+          the artwork renders at scale 0.812, so those two dead ends stack into a
+          ~570px black band at every seam. That is the gap.
+       2. The ends do not match in SHAPE either, so cropping the fade off would
+          not have been enough: across the top 400 rows of content the lit column
+          is 919px wide, across the bottom 400 it is 1361px. The artwork is a
+          tapered spine, so a seam butts a lumbar vertebra against a cervical one
+          and reads as a size step even with zero gap.
+
+     THE TILE: rows 491..4936 of the 4K artwork, then a vertical mirror of that
+     crop with the two shared rows dropped. Both seams therefore join a row to
+     its own neighbour, and MEASURED max |delta| across each is 31/255 against a
+     median of 60 for adjacent rows elsewhere in the artwork — the seams are
+     smoother than the artwork's own texture. 3072x8890, 381 KB, 27.3 MP against
+     the source's 16.9 MP.
+
+     WHY 491 AND 4936 SPECIFICALLY, because the first cut got this wrong.
+     It used 451..5162, chosen as inter-vertebral minima, and left a visible
+     black rectangle at the mirror point: 5162 sits 226 rows past the last STRONG
+     vertebra, inside the bottom fade, so mirroring there doubled that dead run
+     into a ~450-row gap. MEASURED on the resulting tile, the mirror point held a
+     12-row band below 60% of the median profile where no other gap in the tile
+     did. 491 and 4936 are the exact edges of the strong content run — the
+     vertebra touches its own reflection and the seam gap is zero rows. The
+     profile reads 441 at the mirror point against a tile median of 630 and a
+     minimum of 186, so the join is now denser than the artwork's own quietest
+     inter-vertebral space. Cutting anywhere further out re-opens the gap; the
+     natural spacing between vertebrae here is only 28 rows, which is why a crop
+     that misses by 200 is so obvious.
+
+     THE COLUMN REVERSES DIRECTION at the mirror point. That is a reflection, not
+     more vertebrae. It is the price of a seamless tile from a tapered drawing.
+
+     --spine-frac AND --spine-w: the tighter crop drops the widest genuinely LIT
+     row from 1125px to 1098px, so the column renders 2.4% narrower for the same
+     --spine-w — about 3px at the tuned 130px. Left alone as below the threshold
+     of anything; nudge --spine-w to 133px if it ever matters.
+
+     --spine-offset IS affected. The tile renders 7225px tall at --spine-w: 640px
+     against the source's 4470, so any previously tuned shift lands at a
+     different phase. It is a pure phase control now, with no seam to expose. */
+  background-image: url("../assets/hero/spine-column-mirror-4k.webp");
   background-position: 50% var(--spine-offset);
   /* repeat-y is LOAD-BEARING on narrow screens. At 1440x900 one copy is taller
      than the region so it never tiles and this looks like a no-op. At 390x844
@@ -462,13 +523,15 @@ body { position: relative; }
    The two layers are the same image under complementary masks: the lit one is
    shown inside the band, the dim one everywhere else. Shifting only the lit
    layer moves the artwork on one side of the seam and not the other — at the
-   band's top edge (--spine-band-feather: 0, a hard edge) that is a visible
-   tear, and at the charge front, where the two cross-fade over the full 220px
-   of --spine-feather, it is worse: the same vertebrae painted twice, a few px
-   apart, reading as a double image rather than as movement.
+   band's top edge that is a visible tear — written when --spine-band-feather
+   was 0 and the edge was hard; it is 800px now, which softens the tear but does
+   not remove the reason — and at the charge front, where the two cross-fade
+   over the full length of --spine-feather, it is worse: the same vertebrae
+   painted twice, a few px apart, reading as a double image rather than as
+   movement.
    So the shake is whole-column by construction. The FLASH above is lit-only,
    which is where the "only the lit section reacts" intent actually lives — the
-   dim layer sits at 0.38 brightness and a 6px sideways move on it is close to
+   dim layer sits at --spine-dim brightness and a 6px sideways move on it is close to
    invisible next to the lit band doing the same thing at 0.52 plus the flash.
    If the whole-column movement reads wrong, --kick-shake: 0 removes it and
    leaves the flash, which is a complete feature on its own.

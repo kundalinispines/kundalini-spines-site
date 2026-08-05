@@ -21,7 +21,7 @@ html { scroll-behavior: smooth; }
      Wheel only. Touch keeps the OS's own momentum, the keyboard and every
      in-page anchor keep the smooth scroll-behavior above, and
      prefers-reduced-motion disables it outright. */
-  --scroll-weight: 0.5;
+  --scroll-weight: 0.15;
 }
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }

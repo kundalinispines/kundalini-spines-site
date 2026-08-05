@@ -46,7 +46,7 @@
      as worth 63 -> 88 fps; that figure was taken on a software renderer and is
      corrected under html::after below). 6 was the single lockstep cores
      layer. */
-  --star-build: 10;
+  --star-build: 11;
 
   /* Brightness of the whole field. 0 is off — the layer still exists but adds
      no light, and under screen blending (see below) that is exactly the same
@@ -61,7 +61,7 @@
      and the sky is now deliberately not held to it. The two are allowed to
      disagree; they are different objects at different depths. Do not "fix" this
      to match the spine without asking. */
-  --star-sat: 1;
+  --star-sat: 0.7;
 
   /* ---- BLACK POINT ------------------------------------------------------
      HOW MANY LEVELS (out of 255) TO SUBTRACT FROM THE SKY BEFORE IT SCREENS.
@@ -134,7 +134,7 @@
      also the level HANDOFF 8 clamped the SPINE artwork by, so the two
      photographs would then be graded alike. Above ~14 the nebula starts to read
      as cut out rather than fading. */
-  --star-black: 12;
+  --star-black: 16;
 
   /* ---- TWINKLE ----------------------------------------------------------
      Amplitude of the twinkle layers, 0 = off (dead static sky).
@@ -163,9 +163,9 @@
      a long way. Spread across four independent bands, the same total light
      reads as scintillation rather than as the sky breathing, and it takes far
      more amplitude before it registers at all. */
-  --star-twinkle: 1;
-  --star-twinkle-hi: 1;
-  --star-twinkle-ms: 5400ms;
+  --star-twinkle: 0.46;
+  --star-twinkle-hi: 0.46;
+  --star-twinkle-ms: 4600ms;
 
   /* ---- DESYNC -----------------------------------------------------------
      HOW FAR APART THE FOUR STAR BANDS RUN. This is the control the whole
@@ -200,7 +200,7 @@
      --star-black; worst case on the page is 5.45:1 against a 4.5:1
      requirement, and that worst case is text over a lit spine vertebra rather
      than over the sky. */
-  --star-cloud: 0.36;
+  --star-cloud: 1.2;
 
   /* The amplitude actually in force. Indirection rather than two copies of the
      animation: the keyframes below read this one property, so the playing state
@@ -235,7 +235,7 @@
      as a gap — but if this is ever raised a long way, that ceiling is what it
      will run into, and the fix is to lower --star-twinkle-hi, not to raise this
      further. */
-  --kick-stars: 0.25;
+  --kick-stars: 0.26;
 }
 :root.is-spine-pulsing {
   --star-twinkle-amp: var(--star-twinkle-hi);

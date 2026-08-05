@@ -451,7 +451,32 @@
       const yPos = (isHero ? -30 : (-30 + archDrop)) - boxOffsetY;
       const brightness = isHero ? 1 : Math.max(0.4, 1.05 - abs / 900);
       const scale = isHero ? HERO_SCALE : Math.max(0.52, 0.9 - abs / 1000) / BOX_K;
-      const blur = isHero ? 0 : Math.min(6, 2 + abs / 220) * BOX_K;
+      // BLUR — the two cards either side of the hero are SHARP.
+      //
+      // Ring is measured in layout steps, not px, so it survives the --card-w
+      // breakpoints: 250px desktop, 190px at 900, min(42vw,190px) at 600.
+      // |stepUnits| < 0.5 is the hero; 0.5..1.5 is the immediate neighbour on
+      // either side. Both stay at blur 0, so the three centre cards read as one
+      // sharp group and the arch falls away behind them.
+      //
+      // WHY THIS IS A RAMP AND NOT AN `if`. The row translates continuously
+      // under a drag or a hover-pan, so a card crosses the 1.5-step line mid
+      // gesture. A hard cut there would snap it from 0 to ~4.7px of blur in one
+      // frame — the same class of visible pop the arch geometry avoids by
+      // easing rotation, drop and recede off one shared angle. `gate` fades the
+      // blur in across 1.5..2.0 steps and is exactly 0 at the boundary, so the
+      // neighbour is sharp for its whole ring and the card behind it arrives
+      // already blurred.
+      //
+      // The 2 + abs/220 curve and the 6px cap are unchanged; only its ORIGIN
+      // moved outward by 1.5 steps. So ring 2 lands at 4.7px where it used to
+      // be 7.9px, and the cap is now reached around ring 6 instead of ring 4.
+      // That also walks back some of the "side-card blur is too heavy" note in
+      // the handoffs, but it was not the goal here — if the far cards now read
+      // as too soft, raise the /220, not the base.
+      const ringGate = Math.min(1, Math.max(0, (Math.abs(stepUnits) - 1.5) / 0.5));
+      const blurAbs = Math.max(0, abs - 1.5 * step);
+      const blur = isHero ? 0 : ringGate * Math.min(6, 2 + blurAbs / 220) * BOX_K;
       // NO CARD SHADOWS. This was two rounds of wrong before it was right, so
       // the reasoning is here in full — do not reinstate them without reading it.
       //

@@ -46,7 +46,7 @@
      as worth 63 -> 88 fps; that figure was taken on a software renderer and is
      corrected under html::after below). 6 was the single lockstep cores
      layer. */
-  --star-build: 11;
+  --star-build: 12;
 
   /* Brightness of the whole field. 0 is off — the layer still exists but adds
      no light, and under screen blending (see below) that is exactly the same
@@ -583,6 +583,51 @@ html::after {
     contrast(calc(1 / (1 - 2 * var(--star-black) / 255)))
     brightness(calc(1 - 2 * var(--star-black) / 255))
     saturate(var(--star-sat)) blur(22px) brightness(0.85);
+
+  /* ---- THE CLOUD MASK, hand-painted 2026-08-05 -------------------------------
+     The owner's call: the glow spreading out into the empty sky read as haze
+     rather than as nebula. This keeps the swell on the nebula's own diagonal
+     band and removes it everywhere else. THE BASE SKY IS DELIBERATELY NOT
+     MASKED — body::before still paints the full photograph, so what goes away
+     is the glow and the breathing, not the structure. If the shape itself ever
+     needs to go, the same file drops onto body::before with no repainting.
+
+     ALPHA, NOT LUMINANCE. The file is white everywhere with the mask carried
+     entirely in its alpha channel, so the default mask-mode is correct and no
+     mask-mode declaration is needed. Do not "simplify" it to a greyscale image
+     without adding mask-mode: luminance — an opaque greyscale file under the
+     default alpha mode is a no-op, and a no-op mask looks exactly like a mask
+     that failed to load.
+
+     1920x1072 IS EXACTLY HALF THE SKY'S 3840x2144, and that is the whole reason
+     for the number. Identical aspect means `cover` crops the mask and the
+     photograph to the same rectangle at EVERY window shape, so registration is
+     structural rather than lucky — VERIFIED at 820x1180 portrait and 2560x1080
+     ultrawide, where cover crops width and height respectively. Any resize that
+     changes the aspect, even by a rounding error, makes the mask slide against
+     the nebula as the window is resized. Halve or double; do not eyeball it.
+
+     THE PAINTED FILE WAS 3840x2144 AND IS MASSIVELY OVERSAMPLED FOR THIS JOB.
+     MEASURED on the source: the feather is 361px wide at the median and 73px at
+     its sharpest tenth. Downscaling to 1920 costs a maximum alpha error of
+     5/255 and takes the file from 587 KB to 158 KB. Lossless webp, because the
+     mask is one long soft gradient and that is exactly where lossy alpha bands.
+
+     WHY THE FEATHER HAD TO BE THAT WIDE. CSS applies the mask AFTER the filter,
+     so the 22px blur above is already baked in when the mask cuts. 22 CSS px is
+     about 52 px in the source file at a 900px-tall viewport, so a mask edge
+     tighter than roughly 3x that reads as a hole punched in a soft glow rather
+     than as the nebula thinning out. The painted edges clear it everywhere.
+
+     The kept region tops out at alpha 251, not 255 — a brush artifact, left as
+     painted. It costs the surviving clouds about 1.6% of their strength, which
+     is below anything --star-cloud can resolve. */
+  -webkit-mask-image: url("../assets/hero/cloud-mask.webp");
+          mask-image: url("../assets/hero/cloud-mask.webp");
+  -webkit-mask-size: cover;      mask-size: cover;
+  -webkit-mask-position: 50% 50%; mask-position: 50% 50%;
+  -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
+
   mix-blend-mode: screen;
   opacity: 0;
   animation: cloud-glow calc(var(--star-twinkle-ms) * 2.7) ease-in-out infinite;

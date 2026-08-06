@@ -50,13 +50,40 @@
      (:root.is-spine-kicking .star-bolt) ever raises it — so on a page where
      the detector cannot attach the div simply sits invisible. That is a
      stated decision, not an accident; the long note sits with the CSS.
-     Nothing else in this file touches it: no size, no position, no listeners.
-     If star-bg.css is not linked the div is an empty, unstyled, zero-height
-     element — inert, same as the sky being absent. */
-  var bolt = document.createElement('div');
-  bolt.className = 'star-bolt';
-  bolt.setAttribute('aria-hidden', 'true');
-  document.body.insertBefore(bolt, layer);
+     Nothing else in this file touches it except the strike rotation below:
+     no size, no position, no listeners. If star-bg.css is not linked the
+     divs are empty, unstyled, zero-height elements — inert, same as the sky
+     being absent.
+
+     TWO OF THEM SINCE BUILD 19 — one per strike pattern (a = the HANDOFF
+     14 asset, c = the outer wing, HANDOFF 16). There is no b: a second
+     diagonal pattern was built, tuned through four containment rounds and
+     removed by the owner's eye ("it just doesn't look right") — the slot
+     letter is retired with it so the handoffs' history stays readable.
+     Both divs carry the same .star-bolt class ON PURPOSE: STAR_LAYERS, the
+     view modes and the reduced-motion rule all address the lightning by
+     that class, and divs sharing it inherit every one of those
+     registrations for free — a variant div with its own class name would
+     silently drop out of all of them. Only the div with .is-struck lights
+     on a strike; the snare machine moves that class at the moment a strike
+     is accepted. With two patterns, "never the same twice in a row" (the
+     owner's call) IS strict alternation — the random pick the three-pattern
+     build used reduces to this, it is not a design change. Both images
+     decode at injection (~100 KB total, once) so the first strike of
+     either pattern never waits on the network. */
+  var BOLT_VARIANTS = ['a', 'c'];
+  var bolts = [];
+  for (var bi = 0; bi < BOLT_VARIANTS.length; bi++) {
+    var bolt = document.createElement('div');
+    bolt.className = 'star-bolt star-bolt--' + BOLT_VARIANTS[bi];
+    bolt.setAttribute('aria-hidden', 'true');
+    document.body.insertBefore(bolt, layer);
+    bolts.push(bolt);
+  }
+  /* Which pattern the NEXT strike lights. Random per page load, so reloads
+     do not all open on the same filaments. */
+  var boltAt = Math.floor(Math.random() * bolts.length);
+  bolts[boltAt].className += ' is-struck';
 
   var top = 0, height = 0;
 
@@ -382,6 +409,19 @@
           lastSnare = pendingSnare;
           pendingSnare = -1;
           snares++;
+          /* Move .is-struck BEFORE the envelope jump below, so this strike
+             lights the pattern it lands on. Advancing by one modulo the
+             pattern count is "never the same twice in a row", which at two
+             patterns is plain alternation (see the injection note — the
+             three-pattern build picked randomly among the others; this is
+             that rule's two-pattern reduction, not a redesign). The
+             previous pattern's decay tail is cut mid-fade when this fires
+             inside it; at REFRACTORY_S 150ms and s ms 260 that read as the
+             new strike replacing the old on real hardware, not as a
+             glitch — and it is exactly how a fresh strike should behave. */
+          bolts[boltAt].classList.remove('is-struck');
+          boltAt = (boltAt + 1) % bolts.length;
+          bolts[boltAt].classList.add('is-struck');
           if (pendingHit > envS) envS = pendingHit;
         }
       }
@@ -649,8 +689,11 @@
         state: ctx ? ctx.state : (dead ? 'failed' : 'not built'),
         band: analyser ? '<' + Math.round(P.freq) + 'Hz' : '—',
         level: level, thr: Math.max(peak * FLOOR_FRAC, base * P.sens),
-        /* The snare machine's readout, same fields one letter over. */
-        envS: envS, snares: snares,
+        /* The snare machine's readout, same fields one letter over. `bolt`
+           is which pattern the NEXT strike lights (a/c) — it advances the
+           moment a strike is accepted, so mid-flash it names the pattern
+           currently lit. */
+        envS: envS, snares: snares, bolt: BOLT_VARIANTS[boltAt],
         bandS: analyserS ? '>' + (P.sfreq / 1000) + 'kHz' : '—',
         levelS: levelS, thrS: Math.max(peakS * FLOOR_FRAC, baseS * P.ssens),
       };
@@ -1390,7 +1433,7 @@
     meterRow.innerHTML =
       '<span style="color:' + colour + '">' + m.state + '</span> · ' +
       m.band + ' ' + m.kicks + ' kicks · ' +
-      m.bandS + ' ' + m.snares + ' snares' +
+      m.bandS + ' ' + m.snares + ' snares · bolt ' + (m.bolt || '—') +
       (m.running ? '' : ' · idle') +
       '<br><span style="color:#D8D0BE;letter-spacing:0">' + bar + '</span> ' +
       m.env.toFixed(2) + ' k' +

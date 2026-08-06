@@ -41,12 +41,15 @@
 :root {
   /* Bumped on every change, same reason as --spine-build: a browser sitting on
      a cached stylesheet is indistinguishable from a change that did not work.
-     9 = --star-black, the sky's black point. 8 = four-band twinkle, plus the
+     17 = the lightning rewired from the kick to the snare envelope
+     (--kick-bolt renamed --snare-bolt; --snare itself lives in spine-bg.css).
+     16 = the lightning layer (.star-bolt, end of this file). 9 = --star-black,
+     the sky's black point. 8 = four-band twinkle, plus the
      cloud layer's transform replaced by a negative inset (recorded at the time
      as worth 63 -> 88 fps; that figure was taken on a software renderer and is
      corrected under html::after below). 6 was the single lockstep cores
      layer. */
-  --star-build: 15;
+  --star-build: 17;
 
   /* Brightness of the whole field. 0 is off — the layer still exists but adds
      no light, and under screen blending (see below) that is exactly the same
@@ -304,6 +307,32 @@
      >>> (0.36 + kick) * 0.40, which maxes at 0.544 and never clamps.
      >>> Set it to 0.64 if the loudest hits should stay proportional. */
   --kick-cloud: 1;
+
+  /* ---- LIGHTNING (.star-bolt, end of this file) --------------------------
+     STATIC BRIGHTNESS of the lightning filaments, carried in the layer's
+     filter — unclamped, the same filter/opacity split the cloud layer uses:
+     brightness in the filter (repaints, so it must be static), per-frame
+     movement in the opacity (compositor-only). THIS is the one to raise if
+     the strikes read too faint. Do NOT raise --snare-bolt for brightness —
+     that is the envelope's RANGE, and spending range on brightness is how
+     --star-cloud ended up parked in its dead zone.
+     For scale (HANDOFF 14): at envelope 0.35 the asset adds 0.351/255 mean
+     and moves light on ~3% of the frame, against the cloud layer's ~1.94/255
+     on ~50%. The layer is cheap; there is room here. */
+  --star-bolt-bright: 1;
+
+  /* HOW HARD THE LIGHTNING ANSWERS THE SNARE, per unit of --snare — the
+     lightning is side-chained to the SNARE, not to the kick. Two separate
+     envelopes on two separate instruments: --kick moves the column, the
+     shake and the nebula (--kick-cloud above); --snare strikes the
+     lightning, and strikes it alone. See the snare block in css/spine-bg.css
+     for how --snare is detected and the measurements behind it.
+     Unlike --kick-cloud there is NO ceiling short of the slider: the layer
+     idles at opacity 0 — lightning has no resting state — so nothing is
+     spent on a baseline and the full 0..1 envelope range is usable. 0 is
+     off; the layer stays in the tree and adds no light, which under screen
+     is identical to not being there. */
+  --snare-bolt: 1;
 
   /* The amplitude actually in force. Indirection rather than two copies of the
      animation: the keyframes below read this one property, so the playing state
@@ -759,6 +788,85 @@ html::after {
   animation: cloud-glow calc(var(--star-twinkle-ms) * 2.7) ease-in-out infinite;
 }
 
+/* ==========================================================================
+   LIGHTNING — filaments discharging in the nebula on the SNARE.
+
+   ARTWORK: assets/hero/nebula-lightning-4k.webp — 3840x2144, 52 KB, built in
+   HANDOFF 14 as a FILAMENT-ONLY DELTA, not a nebula+filaments composite: the
+   owner's target image registered to this site's own sky (scale 0.60650,
+   offset (28, 326), NCC 0.76-0.82), the sky subtracted out, and only the
+   filaments kept. 96.72% of the frame is exact black, residual floor 0.000
+   per channel, so no --star-black treatment is needed — there is no floor to
+   subtract, same as the four band images. It was multiplied by
+   cloud-mask.webp at build time, so it is PRE-CONTAINED: it cannot leak
+   light outside the nebula whatever the opacity does. Filament hue
+   211.6-213.5 against the cloud layer's post-filter 212.9 — the nebula's own
+   cold blue. KNOWN GAP: the target image covered ~70% of the nebula's mask
+   weight, so the fainter outer wing has no filaments yet; a v2 second pass
+   is filed in HANDOFF 14, wired-in-first on purpose.
+
+   A REAL ELEMENT, NOT A PSEUDO-ELEMENT. All six full-viewport pseudo slots
+   are taken — base sky, four bands, nebula (see "TWO LAYERS PER ELEMENT IS
+   THE CEILING" above). The <div class="star-bolt"> is injected as a body
+   child by js/spine-bg.js, beside the .spine-bg build, so this file stays
+   one <link> with no markup. PROVEN ON REAL HARDWARE (HANDOFF 14 §4): a
+   fixed body child at z-index -1 with mix-blend-mode screen composites
+   identically to body::before — no grey rectangle, blacks held. Do NOT
+   borrow a section's pseudo-element instead: .track-experience, .newsletter,
+   .footer and main > .section are real stacking contexts, and a screened
+   pseudo inside one blends against that box's transparent backdrop and
+   renders as a faint grey rectangle — the HANDOFF 7 trap.
+
+   3840x2144 EXACTLY MATCHES starfield-deep-4k.webp, and that is structural,
+   not a coincidence — identical aspect means `cover` crops both to the same
+   rectangle at every window shape, so the filaments cannot slide against the
+   nebula on resize. Same rule as cloud-mask.webp: halve or double, never
+   resize to anything else. If overscan is ever needed, make the inset
+   negative like the cloud layer's — never a transform.
+
+   IDLE IS OPACITY 0, AND ONLY THE KICK RULE BELOW EVER RAISES IT. The
+   opacity is the kick channel (compositor-only, clamped at 1.0, which idle-0
+   leaves entirely free); the brightness is static in the filter (unclamped,
+   but a change repaints). Same discipline as the cloud layer — this one
+   carries no blur so the repaint would be cheaper, but keep the split. */
+.star-bolt {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image: url("../assets/hero/nebula-lightning-4k.webp");
+  background-position: 50% 50%;
+  background-size: cover;
+  background-repeat: no-repeat;
+  filter: brightness(var(--star-bolt-bright));
+  mix-blend-mode: screen;
+  opacity: 0;
+}
+
+/* THE LIGHTNING ANSWERS THE SNARE — var(--snare), a SECOND envelope written
+   by the same frame loop that writes --kick, with its own detector (2.5kHz
+   noise + 200Hz body coincidence, ±45ms kick veto — the long note lives with
+   the --snare declarations in css/spine-bg.css). Do not "unify" this with
+   --kick: the kick moves the column, the shake and the nebula; the snare
+   strikes the lightning. Two instruments, two channels, on purpose.
+
+   SCOPED TO :root.is-spine-kicking ON PURPOSE — a stated decision, not an
+   accident. The class means "the detector loop is running" (one loop runs
+   both machines; there is no separate is-snare class, deliberately — the two
+   envelopes start and stop together). It only ever appears on index.html:
+   the detector attaches to .track-experience, which no other page has, so an
+   unscoped rule would read an undefined --snare everywhere else. Scoped, the
+   rule can never match there, --snare is never referenced, and with idle
+   opacity 0 the layer is simply invisible on the other pages (about.html
+   injects the div too — spine-bg.js runs wherever data-spine-from exists —
+   and it stays black).
+   No 1.8x pulsing baseline and no resting term here, unlike the cloud rule
+   above: lightning has no resting state, which is exactly why the full
+   envelope range is usable. */
+:root.is-spine-kicking .star-bolt {
+  opacity: calc(var(--snare) * var(--snare-bolt));
+}
+
 /* Uneven keyframe spacing, so one cycle does not read as a sine wave. Nothing
    here touches background-position: drifting stars look like a moving camera,
    not like atmosphere. Opacity only, which the compositor handles without
@@ -849,6 +957,15 @@ html::after {
      the same call css/spine-bg.css makes for the playback pulse. The layers are
      left in the tree at opacity 0 rather than display:none so that turning
      reduced motion off does not require a reload. */
+  /* .star-bolt carries no animation — its opacity is driven by the snare
+     envelope, whose detector loop js/spine-bg.js already refuses to attach
+     under reduced motion and stops live if the preference flips mid-session.
+     It is named
+     here anyway, with !important against the kick rule above, so the CSS
+     states the decision on its own: a view mode or a future rule that lit the
+     bolt would otherwise leave it as the one moving layer on a page where
+     every other motion feature has shut itself off. */
   body::after, html::before, main::before, main::after,
   html::after { animation: none; opacity: 0; }
+  .star-bolt { opacity: 0 !important; }
 }

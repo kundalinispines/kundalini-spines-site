@@ -1,6 +1,7 @@
 /* ==========================================================================
    SPINE BACKGROUND — scroll-linked charge front.
-   Pairs with css/spine-bg.css. Loaded by index.html only.
+   Pairs with css/spine-bg.css. Loaded by index.html and about.html — any page
+   with a [data-spine-from] anchor; the guard below returns everywhere else.
 
    The layer spans from the top of #tracks to the bottom of the document and is
    built here rather than in the HTML, so index.html carries one script tag and
@@ -39,6 +40,23 @@
     '<div class="spine-bg__bloom"></div>' +
     '<div class="spine-bg__scan"></div>';
   document.body.insertBefore(layer, document.body.firstChild);
+
+  /* THE LIGHTNING LAYER — a real element because all six full-viewport pseudo
+     slots are spoken for (base sky, four bands, nebula; see "TWO LAYERS PER
+     ELEMENT IS THE CEILING" in css/star-bg.css). Injected here rather than
+     written into the HTML so star-bg.css stays one <link> with no markup, and
+     injected UNCONDITIONALLY beside the spine build: it is styled entirely by
+     css/star-bg.css, idles at opacity 0, and only the snare rule
+     (:root.is-spine-kicking .star-bolt) ever raises it — so on a page where
+     the detector cannot attach the div simply sits invisible. That is a
+     stated decision, not an accident; the long note sits with the CSS.
+     Nothing else in this file touches it: no size, no position, no listeners.
+     If star-bg.css is not linked the div is an empty, unstyled, zero-height
+     element — inert, same as the sky being absent. */
+  var bolt = document.createElement('div');
+  bolt.className = 'star-bolt';
+  bolt.setAttribute('aria-hidden', 'true');
+  document.body.insertBefore(bolt, layer);
 
   var top = 0, height = 0;
 
@@ -145,12 +163,21 @@
   }
 
   /* ========================================================================
-     KICK-REACTIVE SPINE
+     KICK-REACTIVE SPINE, AND THE SNARE-REACTIVE LIGHTNING
      The pulse above is a fixed 5.3s loop that only knows whether audio is
      playing. This follows the actual kick drum and writes a decaying envelope
      to --kick once per frame, which css/spine-bg.css turns into a flash on the
      lit column and a sideways throw on the artwork, and css/star-bg.css turns
      into a flick on the star cores.
+
+     SINCE 2026-08-06 THE SAME LOOP RUNS A SECOND DETECTOR — the snare — and
+     writes a SECOND envelope, --snare, which css/star-bg.css turns into the
+     lightning strike on .star-bolt. Two instruments, two channels: the kick
+     never touches the lightning and the snare touches nothing else. The
+     snare's numbers were proven OFFLINE FIRST against all 28 samples
+     (scripts/snare-tuning.py, HANDOFF 13's sequencing rule) — the proof
+     killed one wrong gate before it got here; read the harness header before
+     re-tuning the constants below.
 
      IT DOES NOT USE THE FFT, AND THAT IS THE WHOLE POINT — see the note on the
      side chain in attach() below. The first version read
@@ -178,6 +205,11 @@
     var root = document.documentElement;
 
     var ctx = null, analyser = null, buf = null, filters = null;
+    /* The snare side chain: three highpass stages -> analyserS (the noise
+       burst), and one 200Hz bandpass -> analyserB (the body corroborator).
+       Built beside the kick chain in attach(), routed in route(). */
+    var analyserS = null, bufS = null, hpFilters = null;
+    var analyserB = null, bufB = null, bodyFilter = null;
     /* Keyed by ELEMENT, because wireSamplePlayer() builds a fresh Audio() on
        every panel change — 28 tracks, 28 elements over a session — and
        createMediaElementSource THROWS on a second call for the same one. */
@@ -192,6 +224,18 @@
     var base = 0, peak = 0, prevLevel = 0, armed = true, level = 0;
     var lastKick = -1e9, lastFrame = 0, startedAt = 0;
     var running = false, kicks = 0;
+
+    /* Snare state — the same machine three more times over: one for the
+       2.5kHz noise band, one for the 200Hz body band, and the envelope. All
+       of it mirrors scripts/snare-tuning.py line for line; if the two ever
+       disagree, the Python is the specification and this is the bug. */
+    var envS = 0, lastWrittenS = null;
+    var baseS = 0, peakS = 0, prevS = 0, armedS = true, levelS = 0;
+    var baseB = 0, peakB = 0, prevB = 0, armedB = true, levelB = 0;
+    var lastSnare = -1e9, lastBody = -1e9, snares = 0;
+    /* A candidate strike waits here for VETO ms before it flashes, so a kick
+       landing just after it can still cancel it. -1 = nothing pending. */
+    var pendingSnare = -1, pendingHit = 0;
 
     /* MS between accepted onsets. MEASURED: with the reference rebuilt at a
        musically sane minimum spacing, the median gap between real kicks on this
@@ -213,10 +257,39 @@
        average means nothing. */
     var FLOOR_FRAC = 0.06;
 
+    /* ---- SNARE CONSTANTS, all measured in scripts/snare-tuning.py ---------
+       REFRACTORY_S  ms between accepted strikes. 150 against the kick's 190:
+                     snares sit on the backbeat and 150 never truncated a real
+                     pattern in the offline run.
+       VETO          the ±ms around a live kick inside which nothing counts.
+                     SYMMETRIC, which is why pendingSnare exists: the kick's
+                     own beater click crosses 2.5kHz a few ms BEFORE the low
+                     band trips, so "no kick recently" alone still fires on
+                     the kick. A candidate therefore WAITS 45ms and a kick
+                     arriving in that window cancels it. The cost is a ~3
+                     frame delay on the flash, well inside the window where
+                     sound and light read as simultaneous; the win is a
+                     failure mode removed, not a tuning preference.
+       COINC         how recent the 200Hz body onset must be for a noise-band
+                     onset to count as a snare. The gate is a coincidence of
+                     ONSETS, not of derivatives — the first offline attempt
+                     gated on "body RMS rising", which is true half the time
+                     regardless, fired 26 times per 20s and scored 0.30 phase
+                     concentration. Two full threshold machines, 0.66.
+       BODY_HZ/SENS  the body band. Fixed, not sliders: the sweep moved them
+                     an entire step (1.3 -> 2.0) for 0.05 of concentration,
+                     and a slider that does nothing reads as broken. */
+    var REFRACTORY_S = 150;
+    var VETO = 45;
+    var COINC = 45;
+    var BODY_HZ = 200;
+    var BODY_SENS = 1.5;
+
     /* The numbers JS reads out of CSS. Re-read on a throttle rather than per
        frame — getComputedStyle 5x/sec is free, 60x/sec is not, and the only
        thing that ever changes them is a human dragging a slider. */
-    var P = { gain: 1, decay: 260, sens: 1.8, freq: 90 };
+    var P = { gain: 1, decay: 260, sens: 1.8, freq: 90,
+              sdecay: 260, ssens: 2.2, sfreq: 2500 };
     var paramsAt = -1e9;
     function readParams(now) {
       if (now - paramsAt < 200) return;
@@ -235,6 +308,19 @@
         for (var i = 0; i < filters.length; i++) filters[i].frequency.value = f;
       } else {
         P.freq = f;
+      }
+      /* The snare's three live controls; the body band is fixed (see the
+         constants above). NOT scaled by --kick-gain anywhere — the kick and
+         the snare are separate channels, and coupling their outputs through
+         one master would retune the lightning every time the column is. */
+      P.sdecay = Math.max(30, num('--snare-decay', 260));
+      P.ssens  = Math.max(1.01, num('--snare-sens', 2.2));
+      var sf = Math.max(500, Math.min(8000, num('--snare-freq', 2500)));
+      if (sf !== P.sfreq && hpFilters) {
+        P.sfreq = sf;
+        for (var j = 0; j < hpFilters.length; j++) hpFilters[j].frequency.value = sf;
+      } else {
+        P.sfreq = sf;
       }
     }
 
@@ -283,8 +369,72 @@
         armed = true;
       }
 
+      /* ---- THE SNARE, in the same order as scripts/snare-tuning.py: the
+         kick machine above ran first so a same-frame kick can cancel the
+         pending strike below. ---- */
+
+      /* A candidate waiting out the ±VETO window: cancelled if a kick landed
+         inside it, accepted — and only then flashed — once it closes. */
+      if (pendingSnare >= 0) {
+        if (lastKick > pendingSnare - VETO) {
+          pendingSnare = -1;
+        } else if (now - pendingSnare >= VETO) {
+          lastSnare = pendingSnare;
+          pendingSnare = -1;
+          snares++;
+          if (pendingHit > envS) envS = pendingHit;
+        }
+      }
+
+      /* The 200Hz body machine. It fires no visual — its onset times are the
+         gate the noise band must coincide with. */
+      analyserB.getFloatTimeDomainData(bufB);
+      var sumB = 0;
+      for (var ib = 0; ib < bufB.length; ib++) sumB += bufB[ib] * bufB[ib];
+      levelB = Math.sqrt(sumB / bufB.length);
+      baseB = baseB * Math.exp(-dt / BASE_MS) + levelB * (1 - Math.exp(-dt / BASE_MS));
+      peakB = Math.max(peakB * Math.exp(-dt / PEAK_MS), levelB);
+      var thrB = Math.max(peakB * FLOOR_FRAC, baseB * BODY_SENS);
+      var risingB = levelB > prevB;
+      prevB = levelB;
+      if (levelB > thrB && risingB && armedB) {
+        armedB = false;
+        if (now - startedAt > WARMUP) lastBody = now;
+      } else if (levelB <= thrB) {
+        armedB = true;
+      }
+
+      /* The 2.5kHz noise machine. An onset here is a snare only if the body
+         band produced its own onset within COINC ms AND no kick sits inside
+         the ±VETO window — the second half of which is what pendingSnare is
+         waiting to find out. */
+      analyserS.getFloatTimeDomainData(bufS);
+      var sumS = 0;
+      for (var is2 = 0; is2 < bufS.length; is2++) sumS += bufS[is2] * bufS[is2];
+      levelS = Math.sqrt(sumS / bufS.length);
+      baseS = baseS * Math.exp(-dt / BASE_MS) + levelS * (1 - Math.exp(-dt / BASE_MS));
+      peakS = Math.max(peakS * Math.exp(-dt / PEAK_MS), levelS);
+      var thrS = Math.max(peakS * FLOOR_FRAC, baseS * P.ssens);
+      var risingS = levelS > prevS;
+      prevS = levelS;
+      if (levelS > thrS && risingS && armedS) {
+        armedS = false;
+        if (now - startedAt > WARMUP && now - lastSnare > REFRACTORY_S &&
+            pendingSnare < 0 && now - lastBody <= COINC &&
+            now - lastKick >= VETO) {
+          pendingSnare = now;
+          /* Sized now, against the band's stats at the moment of the onset,
+             not at acceptance 45ms later when the transient has passed. */
+          pendingHit = peakS > 0 ? 0.35 + 0.65 * Math.min(1, levelS / peakS) : 0.6;
+        }
+      } else if (levelS <= thrS) {
+        armedS = true;
+      }
+
       env *= Math.exp(-dt / P.decay);
       if (env < 0.002) env = 0;
+      envS *= Math.exp(-dt / P.sdecay);
+      if (envS < 0.002) envS = 0;
 
       /* Write only when the value moved. Writing a custom property on <html>
          invalidates style for the whole document, so not writing an unchanged
@@ -307,6 +457,13 @@
         root.style.setProperty('--kick-sign', sign < 0 ? '-1' : '1');
         lastWritten = out;
       }
+      /* Same guard, separate channel. NOT multiplied by --kick-gain — the
+         snare's own amount lives in --snare-bolt, where the layer is. */
+      var outS = envS.toFixed(4);
+      if (outS !== lastWrittenS) {
+        root.style.setProperty('--snare', outS);
+        lastWrittenS = outS;
+      }
 
       requestAnimationFrame(frame);
     }
@@ -316,6 +473,10 @@
       running = true;
       lastFrame = 0; startedAt = 0; env = 0; lastWritten = null;
       base = 0; peak = 0; prevLevel = 0; armed = true;
+      envS = 0; lastWrittenS = null;
+      baseS = 0; peakS = 0; prevS = 0; armedS = true;
+      baseB = 0; peakB = 0; prevB = 0; armedB = true;
+      lastBody = -1e9; lastSnare = -1e9; pendingSnare = -1;
       root.classList.add('is-spine-kicking');
       requestAnimationFrame(frame);
     }
@@ -331,8 +492,11 @@
       if (!running) return;
       running = false;
       env = 0;
+      envS = 0; pendingSnare = -1;
       root.style.setProperty('--kick', '0');
+      root.style.setProperty('--snare', '0');
       lastWritten = '0';
+      lastWrittenS = '0';
       requestAnimationFrame(function () {
         if (!running) root.classList.remove('is-spine-kicking');
       });
@@ -398,6 +562,37 @@
             if (s > 0) filters[s - 1].connect(f);
           }
           filters[filters.length - 1].connect(analyser);
+
+          /* ---- THE SNARE SIDE CHAINS, same shape, same rules ------------
+             Two more branches off the dry source, observing and connecting
+             onward to nothing. Three highpass stages mirror the kick's three
+             lowpass — an 18dB/octave skirt at 2.5kHz that actually rejects
+             the mids instead of averaging them — and the single 200Hz
+             bandpass is the body corroborator, one stage because it gates
+             rather than measures. Same fftSize for the same reason: this is
+             a time-domain RMS window, not a spectrum. */
+          analyserS = ctx.createAnalyser();
+          analyserS.fftSize = 1024;
+          bufS = new Float32Array(analyserS.fftSize);
+          hpFilters = [];
+          for (var s2 = 0; s2 < 3; s2++) {
+            var f2 = ctx.createBiquadFilter();
+            f2.type = 'highpass';
+            f2.frequency.value = P.sfreq;
+            f2.Q.value = 1.0;
+            hpFilters.push(f2);
+            if (s2 > 0) hpFilters[s2 - 1].connect(f2);
+          }
+          hpFilters[hpFilters.length - 1].connect(analyserS);
+
+          analyserB = ctx.createAnalyser();
+          analyserB.fftSize = 1024;
+          bufB = new Float32Array(analyserB.fftSize);
+          bodyFilter = ctx.createBiquadFilter();
+          bodyFilter.type = 'bandpass';
+          bodyFilter.frequency.value = BODY_HZ;
+          bodyFilter.Q.value = 1.0;
+          bodyFilter.connect(analyserB);
         }
       } catch (err) { dead = true; return; }
 
@@ -413,7 +608,9 @@
           if (!sources.has(audio)) {
             var src = ctx.createMediaElementSource(audio);
             src.connect(ctx.destination);   /* DRY PATH — do this first */
-            src.connect(filters[0]);        /* side chain for analysis only */
+            src.connect(filters[0]);        /* kick side chain, analysis only */
+            src.connect(hpFilters[0]);      /* snare noise band, analysis only */
+            src.connect(bodyFilter);        /* snare body band, analysis only */
             sources.set(audio, src);
           }
         } catch (err) { dead = true; return; }
@@ -452,6 +649,10 @@
         state: ctx ? ctx.state : (dead ? 'failed' : 'not built'),
         band: analyser ? '<' + Math.round(P.freq) + 'Hz' : '—',
         level: level, thr: Math.max(peak * FLOOR_FRAC, base * P.sens),
+        /* The snare machine's readout, same fields one letter over. */
+        envS: envS, snares: snares,
+        bandS: analyserS ? '>' + (P.sfreq / 1000) + 'kHz' : '—',
+        levelS: levelS, thrS: Math.max(peakS * FLOOR_FRAC, baseS * P.ssens),
       };
     };
   })();
@@ -467,6 +668,13 @@
   if (!/[?&]tune\b/.test(location.search)) return;
 
   var FIELDS = [
+    /* THE WHOLE-COLUMN TOGGLE. step 1 so it snaps 0/1 — intermediate values
+       are safe (it multiplies the children's opacities, never the parent's)
+       but the control MEANS on/off, and a column at 0.4 reads as a bug.
+       Page-scoped like everything else: html.page-home ships it at 0, so on
+       the home page this slider starts at 0 and dragging it to 1 shows the
+       column exactly as tuned. Copy CSS lands it in the page's own block. */
+    { v: '--spine-on',    label: 'on',     min: 0,   max: 1,   step: 1,    unit: '' },
     { v: '--spine-w',     label: 'width',  min: 120, max: 640, step: 5,    unit: 'px' },
     { v: '--spine-dim',   label: 'dim',    min: 0,   max: 0.6, step: 0.01, unit: ''   },
     { v: '--spine-lit',   label: 'lit',    min: 0,   max: 1.6, step: 0.02, unit: ''   },
@@ -527,6 +735,30 @@
        is spent against the clamp and the top of this slider does nothing. */
     { v: '--kick-cloud', label: 'k neb', min: 0, max: 1,   step: 0.02, unit: '',
       file: 'css/star-bg.css' },
+    /* THE SNARE — the lightning's channel, separate from the kick on purpose:
+       the kick moves the column, the shake and the nebula; the snare strikes
+       the lightning and strikes nothing else. Defaults proven offline against
+       all 28 samples in scripts/snare-tuning.py before any of this was
+       written — read its header before re-tuning, especially before lowering
+       s sns, which is stricter than the kick's sens because the high band is
+       busier and everything below ~2.0 bled onto the hats in the sweep.
+         s bolt  how hard a strike lands, per unit of envelope. Max 1 and the
+                 WHOLE range is real, unlike k neb: the layer idles at
+                 opacity 0, so no resting baseline spends the headroom. For
+                 brightness reach for `bolt b` in the sky group — this is the
+                 envelope's range, and spending range on brightness is the
+                 --star-cloud trap again.
+         s ms    the strike's decay. Its own envelope, not the kick's — the
+                 two decays are independent.
+         s sns   threshold multiple on the 2.5kHz noise band.
+         s hz    the noise band's highpass cutoff. The 200Hz body gate and
+                 the ±45ms kick veto are fixed in code, measured, not
+                 sliders. */
+    { v: '--snare-bolt', label: 's bolt', min: 0, max: 1,   step: 0.02, unit: '',
+      file: 'css/star-bg.css' },
+    { v: '--snare-decay', label: 's ms', min: 60, max: 900, step: 10, unit: '' },
+    { v: '--snare-sens', label: 's sns', min: 1.5, max: 3.5, step: 0.05, unit: '' },
+    { v: '--snare-freq', label: 's hz', min: 1000, max: 5000, step: 100, unit: '' },
     /* NOT A SPINE CONTROL. How heavy the page feels under a mouse wheel, read by
        js/scroll-weight.js. It is here because this is the only tuning panel on
        the site, but it lives in a different stylesheet — `file` below makes Copy
@@ -596,6 +828,14 @@
        Drag this one for "more nebula". Dragging `cloud` for it works, and it
        spends the headroom the kick needs, which is the trap. */
     { v: '--star-cloud-bright', label: 'cloud b', min: 0.2, max: 3, step: 0.05, unit: '',
+      file: 'css/star-bg.css' },
+    /* bolt b — static brightness of the lightning filaments, in the layer's
+       filter so it is unclamped, same split as cloud b. THIS is the lever if
+       the strikes read faint. Max 4 rather than cloud b's 3 because the asset
+       is far cheaper than the cloud: 0.351/255 mean on ~3% of frame at
+       envelope 0.35, against the cloud's ~1.94/255 on ~50% — there is real
+       headroom before it dominates the page. 0 is off. */
+    { v: '--star-bolt-bright', label: 'bolt b', min: 0, max: 4, step: 0.05, unit: '',
       file: 'css/star-bg.css' }
   ];
   var HOME = 'css/spine-bg.css';
@@ -618,6 +858,7 @@
      check below enforces it rather than trusting the next edit. */
   var TIPS = {
     /* column */
+    '--spine-on': 'The whole spine layer, 1 on or 0 off — art, flare and beam together. Page scoped: the home page ships 0, about ships the baseline 1',
     '--spine-w': 'Width the column renders at, not the artwork width. The phone override is stale, still 390px against 130px here',
     '--spine-dim': 'Brightness of the uncharged column. Shipped at 0.22, which is BRIGHTER than lit at 0.18, so judge the pair by eye, not by name',
     '--spine-lit': 'Brightness of the charged column. At 0.18 it is darker than dim at 0.22, presumed deliberate, so the names no longer describe the relationship',
@@ -646,6 +887,11 @@
     '--kick-freq': 'Lowpass cutoff of the side chain in Hz, the actual isolate the kick control. 90 measured best; toward 150 lets the bass line in',
     '--kick-stars': 'How hard the star cores answer a hit. Scales the twinkle waveform rather than adding a flash, and lives in the star stylesheet',
     '--kick-cloud': 'How hard the nebula brightens on a hit. MEASURED dead above 0.51 at the shipped cloud, and that limit moves when cloud moves',
+    /* snare */
+    '--snare-bolt': 'How hard the lightning strikes per unit of SNARE envelope, its own channel, never the kick. Whole 0 to 1 range is real. Brightness is bolt b',
+    '--snare-decay': 'Decay of the strike in ms, tail reads about 2 to 3x this. Independent of k ms — the snare is a second envelope',
+    '--snare-sens': 'Snare threshold as a MULTIPLE of the 2.5kHz band average. Stricter than the kick on purpose; below about 2 it starts firing on hats',
+    '--snare-freq': 'Highpass cutoff of the snare noise band in Hz. 2500 measured best over all 28 samples. The 200Hz body gate is fixed and separate',
     /* page feel */
     '--scroll-weight': 'How heavy the page feels under a mouse wheel, 0 is genuinely native. Wheel only, and reduced motion disables it',
     /* sky */
@@ -657,7 +903,8 @@
     '--star-twinkle-ms': 'Length of one twinkle cycle. The cloud breath runs at 2.7x this, so it is the clock for the whole sky, not just the stars',
     '--star-desync': 'Spread of the four band clocks. 1 is the shipped 1x/1.37x/1.79x/2.31x, 0 renders build 6 exactly. Too busy, come down here, not the amplitude',
     '--star-cloud': 'Headroom split for the nebula, not its brightness. Keep it low so the kick has room; for a brighter glow drag cloud b instead',
-    '--star-cloud-bright': 'How bright the nebula is, carried in the cloud filter so it is not clamped. THIS is the one to drag for more or less glow'
+    '--star-cloud-bright': 'How bright the nebula is, carried in the cloud filter so it is not clamped. THIS is the one to drag for more or less glow',
+    '--star-bolt-bright': 'Brightness of the lightning filaments, in the layer filter so it is not clamped. Faint strikes, drag this up, not the kick range'
   };
 
   var css = document.createElement('style');
@@ -675,7 +922,9 @@
        about the home page changes) and forces the prose to wrap on every other
        page. Any future long string in here is covered by the same cap. */
     'color:#8F8F8F;letter-spacing:.08em;backdrop-filter:blur(8px);min-width:240px;max-width:328px}' +
-    '.spine-tune h6{margin:0 0 8px;color:#D8D0BE;font:inherit;letter-spacing:.14em;text-transform:uppercase}' +
+    /* padding-right clears the minimize button pinned to the panel corner —
+       the build line can run the full width on about.html. */
+    '.spine-tune h6{margin:0 0 8px;padding-right:26px;color:#D8D0BE;font:inherit;letter-spacing:.14em;text-transform:uppercase}' +
     '.spine-tune label{display:flex;align-items:center;gap:8px;margin:5px 0}' +
     /* 44px wrapped the two-word labels — `puls lo`, `puls hi`, `puls ms`,
        `twnk hi`, `twnk ms` — onto a second line, which made those five rows
@@ -746,7 +995,25 @@
       'backdrop-filter:blur(8px);pointer-events:none;box-shadow:0 2px 14px rgba(5,5,5,.7)}' +
     '.spine-tune__tip i{display:block;font-style:normal;letter-spacing:.08em}' +
     '.spine-tune__tip i.v{color:#D8D0BE}' +
-    '.spine-tune__tip i.f{color:#6B6B6B;margin-bottom:4px}';
+    '.spine-tune__tip i.f{color:#6B6B6B;margin-bottom:4px}' +
+    /* MINIMIZE. The panel is a third of the viewport and sits exactly where
+       the nebula does its work, so judging the page means getting it out of
+       the way — and closing the tab loses every undialed slider, which is
+       the wrong price. Minimized, the box keeps its identity (same element,
+       same inline state, same listeners) and collapses to a corner chip:
+       every child hides except the button, and the fixed box with no width
+       shrink-to-fits the chip. Nothing is torn down, so restore is a class
+       toggle, not a rebuild. */
+    /* button.spine-tune__min, not bare .spine-tune__min: the shared
+       `.spine-tune button` rule above is (0,1,1) and paints every button
+       cream — a bare class at (0,1,0) loses to it and the chip renders as a
+       big light block. The element name lifts these to (0,1,2)/(0,2,2). */
+    '.spine-tune button.spine-tune__min{position:absolute;top:8px;right:10px;width:auto;margin:0;' +
+      'padding:0 6px 1px;line-height:15px;background:#1F1F1F;color:#8F8F8F;cursor:pointer}' +
+    '.spine-tune button.spine-tune__min:hover{color:#D8D0BE}' +
+    '.spine-tune--min{min-width:0;padding:5px 6px}' +
+    '.spine-tune--min>*{display:none}' +
+    '.spine-tune--min>button.spine-tune__min{display:block;position:static;padding:2px 9px}';
   document.head.appendChild(css);
 
   var box = document.createElement('div');
@@ -848,14 +1115,17 @@
      and it assigns kickMeter as its last statement. So kickMeter being null IS
      the gate condition, read back rather than restated here; restating it would
      be a second copy of a condition that has to stay in step with the first.
-     Where it did not attach, the eight --kick-* sliders move nothing at all,
-     and a slider that does nothing reads as a slider that is broken. They are
-     hidden below rather than shown dead. They stay in FIELDS: their tips are
-     still checked, and Copy CSS still emits their current values, so nothing
-     downstream can tell the difference. */
+     Where it did not attach, the --kick-* sliders — and the --snare-* ones,
+     which ride the same loop — move nothing at all, and a slider that does
+     nothing reads as a slider that is broken. They are hidden below rather
+     than shown dead. They stay in FIELDS: their tips are still checked, and
+     Copy CSS still emits their current values, so nothing downstream can
+     tell the difference. */
   var kickOK = !!kickMeter;
   var hidden = kickOK ? [] : FIELDS.filter(function (f) {
-    return f.v.indexOf('--kick-') === 0;
+    /* The snare sliders ride the same gate: one loop runs both detectors, so
+       where the kick cannot attach the snare cannot either. */
+    return f.v.indexOf('--kick-') === 0 || f.v.indexOf('--snare-') === 0;
   });
   var hiddenSet = {};
   hidden.forEach(function (f) { hiddenSet[f.v] = 1; });
@@ -868,7 +1138,8 @@
      a property of the source and identical on every page; counting only the
      visible rows would print a smaller number on about.html and read as eight
      tips having gone missing, which is the one thing this check exists to
-     catch. The count stays 33 everywhere and the suffix says what is hidden. */
+     catch. The count stays FIELDS.length — 40 as of --spine-on — everywhere,
+     and the suffix says what is hidden. */
   (function () {
     var missing = FIELDS.filter(function (f) { return !TIPS[f.v]; })
                         .map(function (f) { return f.v; });
@@ -879,7 +1150,7 @@
     if (orphan.length) console.warn('[tune] tip with no slider:', orphan.join(', '));
     if (!missing.length && !orphan.length) {
       console.log('[tune] ' + FIELDS.length + ' sliders, all with hover tips' +
-        (hidden.length ? ' — ' + hidden.length + ' kick sliders defined but HIDDEN on ' +
+        (hidden.length ? ' — ' + hidden.length + ' kick/snare sliders defined but HIDDEN on ' +
           'this page (no Web Audio, or no .track-experience), tips still checked' : ''));
     }
   }());
@@ -896,15 +1167,23 @@
   var GROUPS = [
     { title: 'kick', open: true, vars: ['--kick-flash', '--kick-shake', '--kick-gain',
         '--kick-decay', '--kick-sens', '--kick-freq', '--kick-stars', '--kick-cloud'] },
-    { title: 'column', vars: ['--spine-w', '--spine-dim', '--spine-lit', '--spine-glow',
-        '--spine-feather', '--spine-from', '--spine-offset', '--spine-bias'] },
+    /* Its own group, not four more rows in `kick`: the two are separate
+       instruments driving separate layers, and the grouping should say so.
+       Open by default for the same reason kick is — it is what is being
+       tuned now. Hidden with the kick group on pages without the detector
+       (the filter below catches the --snare- prefix too). */
+    { title: 'snare', open: true, vars: ['--snare-bolt', '--snare-decay',
+        '--snare-sens', '--snare-freq'] },
+    { title: 'column', vars: ['--spine-on', '--spine-w', '--spine-dim', '--spine-lit',
+        '--spine-glow', '--spine-feather', '--spine-from', '--spine-offset',
+        '--spine-bias'] },
     { title: 'band', vars: ['--spine-band', '--spine-band-feather'] },
     { title: 'flare + scrim', vars: ['--spine-bloom', '--spine-beam', '--spine-scrim'] },
     { title: 'breathing pulse', vars: ['--spine-pulse-lo', '--spine-pulse-hi',
         '--spine-pulse-ms'] },
     { title: 'sky', vars: ['--star-dim', '--star-sat', '--star-black', '--star-twinkle',
         '--star-twinkle-hi', '--star-twinkle-ms', '--star-desync', '--star-cloud',
-        '--star-cloud-bright'] },
+        '--star-cloud-bright', '--star-bolt-bright'] },
     { title: 'page feel', vars: ['--scroll-weight'] }
   ];
 
@@ -985,10 +1264,12 @@
      screen, so the glow can be judged against where they actually sit instead of
      from memory. The last two entries are the old diagnostic modes, kept because
      they cost nothing and found a real bug once. */
-  /* The six full-screen layers css/star-bg.css owns: base sky, four twinkle
-     bands, clouds. Kept as one string so a mode cannot hide five of six by
-     accident, which is how the old 'stars off' entry drifted. */
-  var STAR_LAYERS = 'body::before,body::after,html::before,html::after,main::before,main::after';
+  /* The seven full-screen layers css/star-bg.css owns: base sky, four twinkle
+     bands, clouds, and the .star-bolt lightning div this file injects. Kept as
+     one string so a mode cannot hide six of seven by accident, which is how
+     the old 'stars off' entry drifted — and which the bolt would repeat as
+     "one layer left lit" if it were ever dropped from this list. */
+  var STAR_LAYERS = 'body::before,body::after,html::before,html::after,main::before,main::after,.star-bolt';
   var KEEP_BANDS  = 'main::before,main::after{visibility:visible!important}';
 
   var ISOLATE = [
@@ -1030,7 +1311,10 @@
        Forced with !important because the sliders write inline styles on <html>,
        which would otherwise win. */
     ['star bands only (amp 1)',
-      'body::before,html::after{display:none!important}' +
+      /* .star-bolt is hidden here too: it is not a band, and with a sample
+         playing its kick flash would otherwise be the brightest thing in a
+         view that exists to isolate the four band clocks. */
+      'body::before,html::after,.star-bolt{display:none!important}' +
       'main,.footer,.nav,.spine-bg{visibility:hidden!important}' + KEEP_BANDS +
       ':root{--star-twinkle:1!important;--star-twinkle-hi:1!important}'],
     ['scrims off', '.newsletter::before,main>.section::before,.track-experience::before{display:none!important}']
@@ -1072,6 +1356,9 @@
   meterRow.style.cssText = 'margin:6px 0 0;font-variant-numeric:tabular-nums';
   foot.appendChild(meterRow);
   setInterval(function () {
+    /* Minimized, the meter row is display:none — skip building four bars of
+       innerHTML 10x a second for an element nobody can see. */
+    if (box.classList.contains('spine-tune--min')) return;
     if (!kickMeter) {
       meterRow.innerHTML = '<span style="color:#D8534F">kick: unavailable</span> ' +
         '(no Web Audio, or no .track-experience on this page)';
@@ -1088,15 +1375,29 @@
     var tk = Math.min(20, Math.round(m.thr / scale * 20));
     var lvl = '';
     for (var i2 = 0; i2 < 20; i2++) lvl += (i2 === tk ? '^' : (i2 < lv ? '=' : '·'));
+    /* The snare's pair of bars, same encodings: its envelope (the lightning),
+       then its 2.5kHz level against its own threshold. Tune s sns against the
+       caret exactly as k sns is tuned against the one above. */
+    var nS = Math.round(m.envS * 20);
+    var barS = new Array(nS + 1).join('|') + new Array(21 - nS).join('·');
+    var scaleS = Math.max(m.thrS * 2, 1e-6);
+    var lvS = Math.min(20, Math.round(m.levelS / scaleS * 20));
+    var tkS = Math.min(20, Math.round(m.thrS / scaleS * 20));
+    var lvlS = '';
+    for (var i3 = 0; i3 < 20; i3++) lvlS += (i3 === tkS ? '^' : (i3 < lvS ? '=' : '·'));
     var colour = m.state === 'running' ? '#7FB37F'
                : m.state === 'failed'  ? '#D8534F' : '#8F8F8F';
     meterRow.innerHTML =
       '<span style="color:' + colour + '">' + m.state + '</span> · ' +
-      m.band + ' · ' + m.kicks + ' hits' +
+      m.band + ' ' + m.kicks + ' kicks · ' +
+      m.bandS + ' ' + m.snares + ' snares' +
       (m.running ? '' : ' · idle') +
       '<br><span style="color:#D8D0BE;letter-spacing:0">' + bar + '</span> ' +
-      m.env.toFixed(2) +
-      '<br><span style="color:#6B8FB3;letter-spacing:0">' + lvl + '</span> lvl/thr';
+      m.env.toFixed(2) + ' k' +
+      '<br><span style="color:#6B8FB3;letter-spacing:0">' + lvl + '</span> lvl/thr' +
+      '<br><span style="color:#D8D0BE;letter-spacing:0">' + barS + '</span> ' +
+      m.envS.toFixed(2) + ' s' +
+      '<br><span style="color:#B38F6B;letter-spacing:0">' + lvlS + '</span> lvl/thr';
   }, 100);
 
   /* ---- Paste a saved block back in ---------------------------------------
@@ -1129,7 +1430,7 @@
        does not come back rather than an error. The trailing [a-z0-9] is what
        keeps the widened class from taking a stray hyphen with it: the name has
        to end on a letter or a digit, never on punctuation. */
-    var re = /(--(?:spine|scroll|star|kick)-[a-z0-9-]*[a-z0-9])\s*:\s*([^;\n}]+)/g, m;
+    var re = /(--(?:spine|scroll|star|kick|snare)-[a-z0-9-]*[a-z0-9])\s*:\s*([^;\n}]+)/g, m;
     while ((m = re.exec(paste.value))) {
       var name = m[1], val = m[2].trim();
       var f = null;
@@ -1141,7 +1442,7 @@
         if (name !== '--spine-build' && name !== '--spine-contrast' &&
             name !== '--star-build' && name !== '--star-twinkle-amp' && name !== '--star-cloud-amp' &&
             name !== '--band-t0' && name !== '--band-t1' &&
-            /* Written every frame by the kick loop, never by a slider. */
+            /* Written every frame by the detector loop, never by a slider. */
             name !== '--kick-sign') unknown.push(name);
         continue;
       }
@@ -1241,6 +1542,28 @@
   foot.appendChild(pasteWrap);
   foot.appendChild(note);
   box.appendChild(foot);
+
+  /* ---- MINIMIZE ----------------------------------------------------------
+     See the CSS note above. Remembered across reloads through the same
+     localStorage helper the group sections use, because the cache-busting
+     workflow reloads constantly and a panel that reopens over the sky on
+     every one of them defeats its own button. Stored as an OPEN flag so the
+     default (nothing stored) is open, matching every session before this. */
+  var minBtn = document.createElement('button');
+  minBtn.className = 'spine-tune__min';
+  var setMin = function (min) {
+    box.classList.toggle('spine-tune--min', min);
+    minBtn.textContent = min ? '+ tune' : '−';
+    minBtn.title = min ? 'restore the tuning panel' : 'minimize to a corner chip';
+    minBtn.setAttribute('aria-label', minBtn.title);
+    remember('panel', !min);
+  };
+  minBtn.addEventListener('click', function () {
+    setMin(!box.classList.contains('spine-tune--min'));
+  });
+  box.appendChild(minBtn);
+  setMin(!recall('panel', true));
+
   document.body.appendChild(box);
 
   /* The mobile media query sets its own values. Anything dialled here is an

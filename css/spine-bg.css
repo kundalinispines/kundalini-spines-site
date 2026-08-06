@@ -1,6 +1,6 @@
 /* ==========================================================================
    SPINE BACKGROUND — the charged column behind everything below the hero.
-   Loaded by index.html only. Pairs with js/spine-bg.js.
+   Loaded by index.html AND about.html. Pairs with js/spine-bg.js.
 
    ARTWORK: assets/hero/spine-column-mirror-4k.webp — 3072x8890, WebP q84,
    381 KB. Added 2026-08-05, and it is a derivative of the file described below,
@@ -71,10 +71,36 @@
   /* Bumped on every change so the tuner can report which stylesheet the browser
      actually loaded. python -m http.server serves Last-Modified only, and a
      browser sitting on a cached copy looks identical to a change that did not
-     work — this makes the difference visible instead of arguable. */
-  --spine-build: 32;
+     work — this makes the difference visible instead of arguable.
+     35 = --spine-on, the whole-column toggle, and the home page turning its
+     spine OFF via the first value ever to land in html.page-home.
+     34 = the snare detector (--snare envelope + listening controls below) and
+     the lightning rewired onto it — the lightning answers the SNARE, not the
+     kick. 33 = the lightning layer wired in (js injection + tuner rows; the
+     layer itself lives in css/star-bg.css) and the stale "loaded by
+     index.html only" header line above corrected. */
+  --spine-build: 35;
 
   --charge: 0;          /* 0..1, written by js/spine-bg.js every scroll frame */
+
+  /* THE WHOLE COLUMN, ON OR OFF. 1 = the layer as tuned; 0 = no spine at all —
+     art, bloom and scan all go to opacity 0. A page turns its spine off by
+     setting this in its page block (html.page-home does, below), which is the
+     point of the control: the layer, the script, the detectors and the tuner
+     all keep running, so the kick still reaches the nebula and the snare still
+     reaches the lightning on a page whose column is off.
+     CONSUMED ON THE CHILDREN, NEVER ON .spine-bg ITSELF. Opacity below 1 on
+     the parent creates a stacking context, and the children's screen blend
+     would then resolve against the group's transparent backdrop instead of
+     the page — the same grey-rectangle trap as the z-index note at .spine-bg,
+     arriving through a different property. On the children it is just a
+     multiplier on each blended layer and intermediate values merely dim, so
+     the slider's 0/1 step is a choice of meaning ("a toggle"), not a safety
+     rail. The section scrims are deliberately NOT included: they attenuate
+     content backdrops rather than painting the column, they ship at 0, and
+     --spine-scrim is already their own control. */
+  --spine-on: 1;
+
   --spine-w: 120px;     /* the width the COLUMN renders at, not the artwork */
   --spine-frac: 0.2565; /* measured: column width / artwork width */
   /* THESE TWO NAMES NOW DESCRIBE THE OPPOSITE OF WHAT THEY DO. Read this before
@@ -305,13 +331,65 @@
      as the column's reads there as a flicker rather than as a swell. 320 still
      clears the beat: at 140bpm the envelope is down to 0.14 by the next hit, so
      hits stay separate rather than smearing into a sustain.
-     ONE ENVELOPE FEEDS EVERYTHING — this moves the spine flash and the shake
-     too. If the column starts feeling sluggish, that is this, not --kick-flash,
-     and the two layers cannot be given different decays without a second
-     envelope in js/spine-bg.js. */
+     ONE ENVELOPE FEEDS EVERYTHING KICK-DRIVEN — this moves the spine flash,
+     the shake and the nebula together, and those three cannot be given
+     different decays without another envelope in js/spine-bg.js. The snare
+     envelope below IS another envelope, with its own decay — but it drives
+     only the lightning, so this coupling note still stands for the kick's
+     three consumers. */
   --kick-decay: 260;
   --kick-sens: 1.8;
   --kick-freq: 90;
+
+  /* ---- THE SNARE, added 2026-08-06 --------------------------------------
+     A SECOND envelope, same shape as --kick — 0..1, set on each detected
+     onset, exponential decay, written by js/spine-bg.js once per frame under
+     the same .is-spine-kicking class (the class means "the detector loop is
+     running", and one loop runs both machines) — driving exactly ONE thing:
+     the lightning layer, .star-bolt in css/star-bg.css. The kick and the
+     snare are two separate instruments and two separate channels: the kick
+     moves the column, the shake and the nebula; the snare strikes the
+     lightning. Do not wire anything else to this without meaning to.
+
+     HOW IT LISTENS, proven OFFLINE FIRST against all 28 samples in
+     scripts/snare-tuning.py — HANDOFF 13's sequencing rule, and the proof
+     earned its keep: the obvious "both bands rising" gate measured 26 false
+     onsets per 20s and phase concentration 0.30, and was thrown away before
+     any of it reached this file. What shipped instead:
+
+       - a 2.5kHz HIGHPASS x3 side chain (the snare's noise burst) with the
+         same base/peak/floor threshold machine as the kick,
+       - gated on a COINCIDENT ONSET in a 200Hz body band (its own machine,
+         fixed sens 1.5 in the JS) within 45ms — a snare is the one thing in
+         these mixes that hits both bands at once; hats have no body, bass
+         has no noise,
+       - and a SYMMETRIC ±45ms kick veto, paid for by holding each candidate
+         45ms (~3 frames) before the flash — the kick's own beater click
+         crosses 2.5kHz a few ms before the low band trips, so a one-sided
+         veto still fires on the kick itself. The 45ms lands well inside the
+         window where sound and light read as simultaneous.
+
+     MEASURED at these defaults: 3-15 strikes per 20s sample (mean 9) against
+     16-31 kicks, phase concentration 0.66 mean / 0.42 worst, >= 0.5 on 25 of
+     28 tracks. Concentration measures CONSISTENCY, not correctness — there
+     is no hand-labelled snare reference — so the owner's ear is the last
+     word on whether it is landing on the snare; these numbers say it lands
+     in one stable place in the bar.
+
+       decay  ms; the strike's visible tail is roughly 2-3x this.
+       sens   threshold as a MULTIPLE of the high band's running average.
+              2.2 is deliberately stricter than the kick's 1.8: the high band
+              is busier (hats, sibilance, vocal noise), and the sweep showed
+              everything below ~2.0 bleeding onto the hats. Fire-on-
+              everything: raise. Missing strikes: lower, and expect hats
+              before you expect nothing.
+       freq   highpass cutoff of the noise side chain, Hz. 2500 measured
+              best; 2000-3000 all workable, below that the body bleeds in.
+              The 200Hz body band is NOT this and is not a slider. */
+  --snare: 0;
+  --snare-decay: 260;
+  --snare-sens: 2.2;
+  --snare-freq: 2500;
 
   --spine-bloom: 0;     /* the flare riding the charge front, 0 = off */
   --spine-glow: 0;      /* 1 = the bloom as generated, 0 = crushed to hard lines */
@@ -426,7 +504,17 @@
    mobile block for the sky.
    -------------------------------------------------------------------------- */
 html.page-home {
-  /* index.html. Empty = index.html renders on the baseline above, unchanged. */
+  /* index.html. Anything absent inherits the baseline above, unchanged.
+
+     THE SPINE IS OFF ON THE HOME PAGE — the owner's call, 2026-08-06, made
+     after the lightning went in: the sky carries the motion there now (nebula
+     on the kick, lightning on the snare) and the column had become the third
+     thing moving. Everything else about the spine keeps running on this page
+     — js/spine-bg.js still builds the layer, still writes --charge, --kick
+     and --snare, and the tuner still works; drag `on` to 1 in /?tune to see
+     the column exactly as it was tuned. about.html keeps its spine: its own
+     block below does not set this, so it inherits the baseline 1. */
+  --spine-on: 0;
 }
 
 html.page-about {
@@ -559,6 +647,10 @@ body { position: relative; }
   /* Derived from the measured column fraction, so --spine-w means what it says
      whatever margins the artwork happens to carry. */
   background-size: calc(var(--spine-w) / var(--spine-frac)) auto;
+
+  /* The page's spine toggle. On the child, not on .spine-bg — see --spine-on
+     in :root for why the parent must never carry an opacity. */
+  opacity: var(--spine-on);
 
   /* THE FIX for the visible lighter panel.
      The artwork is glow-on-black, and no encode of "black" is ever exactly the
@@ -772,7 +864,8 @@ body { position: relative; }
 .spine-bg__bloom {
   position: absolute;
   inset: 0;
-  opacity: var(--spine-bloom);
+  /* x --spine-on: the page toggle folds into this layer's own control. */
+  opacity: calc(var(--spine-bloom) * var(--spine-on));
   /* Cool, to match the moonlight artwork. This was a warm amber bloom for the
      first artwork; left warm it puts back exactly the orange cast the new
      colour grade was generated to remove. */
@@ -791,7 +884,8 @@ body { position: relative; }
   right: 0;
   height: 2px;
   top: calc(var(--charge) * 100%);
-  opacity: min(1, var(--spine-beam));
+  /* x --spine-on: the page toggle folds into this layer's own control. */
+  opacity: calc(min(1, var(--spine-beam)) * var(--spine-on));
   filter: brightness(max(1, var(--spine-beam)));
   background: linear-gradient(to right, transparent 0%, rgba(138, 20, 20, 0) 12%,
     var(--color-crimson-lit) 42%, #C8302E 50%, var(--color-crimson-lit) 58%,

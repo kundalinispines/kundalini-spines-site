@@ -72,6 +72,11 @@
      actually loaded. python -m http.server serves Last-Modified only, and a
      browser sitting on a cached copy looks identical to a change that did not
      work — this makes the difference visible instead of arguable.
+     36 = the mobile selector list below widened with page-archive /
+     page-transmissions. Those pages do NOT link this file — they got the sky
+     only (see css/star-bg.css build 21) — but the "add any new page class to
+     both lists in the same commit" rule is kept anyway, so the day one of
+     them links the spine the phone values already win. No spine value changed.
      35 = --spine-on, the whole-column toggle, and the home page turning its
      spine OFF via the first value ever to land in html.page-home.
      34 = the snare detector (--snare envelope + listening controls below) and
@@ -79,7 +84,7 @@
      kick. 33 = the lightning layer wired in (js injection + tuner rows; the
      layer itself lives in css/star-bg.css) and the stale "loaded by
      index.html only" header line above corrected. */
-  --spine-build: 35;
+  --spine-build: 36;
 
   --charge: 0;          /* 0..1, written by js/spine-bg.js every scroll frame */
 
@@ -1165,8 +1170,11 @@ main > .section .label {
      braces and nothing in the console to say so. Naming the page classes here
      puts them at equal specificity and later in source order, so the phone
      values win the way they read as if they do. Add any new page class to this
-     list at the same time you add its block above. */
-  :root, html.page-home, html.page-about {
+     list at the same time you add its block above. page-archive and
+     page-transmissions are named here even though those pages do not link this
+     file yet — sky only, see css/star-bg.css build 21 — so the rule holds by
+     construction rather than by memory. */
+  :root, html.page-home, html.page-about, html.page-archive, html.page-transmissions {
     /* Scaled from the desktop values by the same ratios the first pass used
        (0.61x width, 0.57x lit, 0.61x dim). Re-derive these whenever the desktop
        numbers change: the previous block was scaled off --spine-lit: 1.06, so

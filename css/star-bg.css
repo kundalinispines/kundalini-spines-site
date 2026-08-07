@@ -41,6 +41,11 @@
 :root {
   /* Bumped on every change, same reason as --spine-build: a browser sitting on
      a cached stylesheet is indistinguishable from a change that did not work.
+     21 = the sky reaches archive.html and transmissions.html (each links this
+     file and carries a page class; empty page blocks + the widened mobile
+     selector list live at the bottom of this file). No sky variable changed.
+     music.html is skipped ON PURPOSE — it is an instant redirect to /#tracks,
+     so a sky there would paint for no one; do not "complete the set".
      20 = patterns d/e/f, extracted from the owner's three reference frames
      (.star-bolt--d/e/f; scripts/bolt-extract.py reference-frame mode). Five
      patterns rotate, random, never the same twice in a row.
@@ -56,7 +61,7 @@
      as worth 63 -> 88 fps; that figure was taken on a software renderer and is
      corrected under html::after below). 6 was the single lockstep cores
      layer. */
-  --star-build: 20;
+  --star-build: 21;
 
   /* Brightness of the whole field. 0 is off — the layer still exists but adds
      no light, and under screen blending (see below) that is exactly the same
@@ -954,6 +959,32 @@ html::after {
   50%      { opacity: calc(var(--star-cloud-amp) * 1); }
 }
 
+/* --------------------------------------------------------------------------
+   PER-PAGE OVERRIDES FOR THE SKY. These are the first page blocks this file
+   has ever carried — until build 21 the only page blocks lived in
+   css/spine-bg.css, whose long note above html.page-home explains the whole
+   architecture (why the class sits on <html> and never <body>, why inline
+   tuner writes still win, and the specificity trap the media block below
+   exists to defuse). Both blocks ship EMPTY, same convention as
+   html.page-home when it first landed: a page appears here only when it
+   should actually differ from the :root baseline, and an empty block is the
+   hook that lets it be tuned later without touching every other page.
+   archive.html and transmissions.html link this stylesheet as of build 21 —
+   the sky is the same four bands + nebula everywhere, one <link>, no markup.
+   THESE BLOCKS MUST STAY ABOVE THE @media (max-width: 600px) BLOCK BELOW.
+   The first value that ever lands in one of them is (0,2,0) against the
+   media block's need to win at equal specificity by source order — page
+   blocks below the media block would beat the phone values silently.
+   -------------------------------------------------------------------------- */
+html.page-archive {
+  /* archive.html. Sky only — no spine, no lightning: that page does not link
+     css/spine-bg.css or js/spine-bg.js, the owner's call, 2026-08-07. */
+}
+
+html.page-transmissions {
+  /* transmissions.html. Same deal as archive above. */
+}
+
 @media (max-width: 600px) {
   /* THE SELECTOR LIST IS LOAD-BEARING — do not shorten it back to `:root`.
      index.html and about.html carry a page class on <html> (page-home /
@@ -969,7 +1000,7 @@ html::after {
      too, so star variables WILL land in them. Naming the page classes here puts
      them at equal specificity and later in source order, so the phone values
      win. Add any new page class to this list in the same commit. */
-  :root, html.page-home, html.page-about {
+  :root, html.page-home, html.page-about, html.page-archive, html.page-transmissions {
     /* cover on a 390px-wide viewport crops to the middle 20% of the frame,
        which is the densest part of the nebula band — so the phone gets MORE
        nebula per screen than the desktop does, not less. Down, not up. */

@@ -1,5 +1,10 @@
 <!DOCTYPE html>
-<html lang="en">
+<!-- page-archive selects the per-page override block in css/star-bg.css. The
+     block is empty today; the class is the hook that lets this page's sky be
+     tuned without retuning the others. IT BELONGS ON <html>, NOT ON <body> —
+     the nebula and one star band are pseudo-elements of html and can never see
+     a value set on body. See the long note in css/spine-bg.css. -->
+<html lang="en" class="page-archive">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -24,6 +29,7 @@
 
 <link rel="stylesheet" href="css/tokens.css">
 <link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/star-bg.css">
 <link rel="stylesheet" href="css/components.css">
 </head>
 <body>

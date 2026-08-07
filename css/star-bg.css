@@ -41,6 +41,9 @@
 :root {
   /* Bumped on every change, same reason as --spine-build: a browser sitting on
      a cached stylesheet is indistinguishable from a change that did not work.
+     20 = patterns d/e/f, extracted from the owner's three reference frames
+     (.star-bolt--d/e/f; scripts/bolt-extract.py reference-frame mode). Five
+     patterns rotate, random, never the same twice in a row.
      19 = pattern b removed by the owner's eye; two patterns alternate
      (.star-bolt--a/c; the slot letter b is retired, not reused).
      18 = three strike patterns (.star-bolt--a/b/c; the snare machine rotates
@@ -53,7 +56,7 @@
      as worth 63 -> 88 fps; that figure was taken on a software renderer and is
      corrected under html::after below). 6 was the single lockstep cores
      layer. */
-  --star-build: 19;
+  --star-build: 20;
 
   /* Brightness of the whole field. 0 is off — the layer still exists but adds
      no light, and under screen blending (see below) that is exactly the same
@@ -847,25 +850,30 @@ html::after {
   opacity: 0;
 }
 
-/* TWO STRIKE PATTERNS since build 19 — js/spine-bg.js injects two divs
+/* FIVE STRIKE PATTERNS since build 20 — js/spine-bg.js injects five divs
    sharing the .star-bolt class (see the long note there for why sharing the
    class is load-bearing: STAR_LAYERS, the view modes and the reduced-motion
    rule all address the lightning by it). Each carries one pattern; only the
-   one with .is-struck lights, and the machine alternates that class per
-   strike. THE SLOT LETTER b IS RETIRED, NOT REUSED: a second diagonal
+   one with .is-struck lights, and the machine moves that class per strike —
+   random, never the same twice in a row (the two-pattern builds' strict
+   alternation was this rule's reduction; five patterns restore the random
+   pick). THE SLOT LETTER b IS RETIRED, NOT REUSED: a second diagonal
    pattern shipped in build 18, was re-contained three times against the
    owner's reference, and was removed by his eye in the same session —
-   HANDOFF 16 has the story. A future third pattern should take d.
+   HANDOFF 16 has the story. A future sixth pattern takes g.
 
-   BOTH ASSETS ARE THE SAME PIPELINE (scripts/bolt-extract.py — c was built
-   by it in HANDOFF 16; a is the HANDOFF 14 original it recreates):
+   ALL ASSETS ARE THE SAME MACHINE (scripts/bolt-extract.py — c was built by
+   its generated-candidate path in HANDOFF 16; a is the HANDOFF 14 original
+   that path recreates; d/e/f came from its REFERENCE-FRAME path the session
+   after, extracted directly from the owner's three target frames):
    filament-only deltas registered to this sky, pre-contained by
-   cloud-mask.webp at build time AND (since the same session) by the
-   VISIBLE-GLOW ramp — filaments live only in the bright white cloud mass,
-   the way the owner's reference paints them. Floor 0.000 per channel, no
-   --star-black treatment needed. Same 3840x2144 as starfield-deep-4k.webp —
-   halve or double, never resize to anything else (the `cover` alignment
-   argument in the header note above).
+   cloud-mask.webp at build time AND by a visible-glow ramp. The two paths
+   ramp differently ON PURPOSE — 45->85 g2 corrals generator-invented
+   geometry (a/c), 25->60 g1 only de-noises owner-supplied geometry (d/e/f);
+   the script's reference-mode header carries the measured reasons. Near-full
+   black floor (min nonzero 1), no --star-black treatment needed. Same
+   3840x2144 as starfield-deep-4k.webp — halve or double, never resize to
+   anything else (the `cover` alignment argument in the header note above).
 
      a  the HANDOFF 14 original     96.72% black, 3.14% of frame lit
      c  the OUTER WING              97.94% black, 2.06% lit — the first
@@ -875,9 +883,25 @@ html::after {
         filament cold (0.72/0.82/1.0) by the extraction's size-aware hue
         gate; its containment was tightened three times against the
         owner's reference — scripts/bolt-extract.py steps 4 and 6b carry
-        both stories with the measurements. */
+        both stories with the measurements.
+     d  SPARSE CRACKLE around the left core (target frame -2)
+                                    98.45% black, 1.34% lit
+     e  the HEAVIEST — veins threading the whole band (frame -3)
+                                    97.82% black, 1.89% lit
+     f  the UPPER-RIGHT ARM emphasis (frame -4)
+                                    97.09% black, 2.56% lit
+        d/e/f are the frames' own vein networks: screen-inverse delta,
+        median-isolated veins, synthesized discharge halo, recolored to the
+        same filament cold, cores normalized to ~245 after the 4K warp so
+        no pattern begs at the shared `bolt b` slider. The pattern letters
+        name the frames' states, and the STATES DIFFER IN COVERAGE ON
+        PURPOSE — d is sparse because its reference is sparse; do not
+        "even them out". */
 .star-bolt--a { background-image: url("../assets/hero/nebula-lightning-4k.webp"); }
 .star-bolt--c { background-image: url("../assets/hero/nebula-lightning-c-4k.webp"); }
+.star-bolt--d { background-image: url("../assets/hero/nebula-lightning-d-4k.webp"); }
+.star-bolt--e { background-image: url("../assets/hero/nebula-lightning-e-4k.webp"); }
+.star-bolt--f { background-image: url("../assets/hero/nebula-lightning-f-4k.webp"); }
 
 /* THE LIGHTNING ANSWERS THE SNARE — var(--snare), a SECOND envelope written
    by the same frame loop that writes --kick, with its own detector (2.5kHz

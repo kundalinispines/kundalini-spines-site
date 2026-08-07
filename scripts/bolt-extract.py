@@ -6,6 +6,16 @@
 #         -> assets/hero/<out-stem>-4k.webp (3840x2144)
 #         -> assets/hero/<out-stem>.webp    (1920x1072, half size)
 #
+# TWO MODES since the session after HANDOFF 16, dispatched on candidate size:
+#   3840x2144 (or near)  -> main(), the generated-candidate path below,
+#                           unchanged from HANDOFF 16.
+#   1948x807             -> main_ref(), the REFERENCE-FRAME path at the end
+#                           of this file: the owner's own target frames
+#                           (reference/nebula-with-lightning-target-*.png)
+#                           become patterns directly. Read its header before
+#                           touching either path — the two differ for
+#                           measured reasons, not by preference.
+#
 # The pipeline, per HANDOFF 14 "as built":
 #   1. Register the candidate to assets/hero/starfield-deep-4k.webp
 #      (nano banana edits preserve framing, so expect ~identity — but MEASURE
@@ -195,5 +205,203 @@ def main(cand_path, stem):
     print(f'{out4k}  {os.path.getsize(out4k)/1024:.0f} KB')
     print(f'{out1k}  {os.path.getsize(out1k)/1024:.0f} KB')
 
+
+# ============================================================================
+# REFERENCE-FRAME MODE — patterns d/e/f, built from the owner's own frames.
+#
+# The frames (reference/nebula-with-lightning-target-2/3/4.png, 1948x807) are
+# NOT crops of our sky the way the original target was. Measured before
+# anything was built: the original target matches the sky at fine (star)
+# scale — band NCC 0.63 — which is why v1's exact subtraction worked. The
+# three new frames match at coarse (cloud-mass) scale only: fine NCC -0.03,
+# +0.09, 0.00 against the sky at their best warps; they are re-renders (video
+# frames) of the scene, with their own stars and their own cloud texture.
+# Exact subtraction therefore leaves the RENDER DIFFERENCE, not the
+# lightning: warm star residuals everywhere plus broad cold texture mismatch
+# that no hue gate can separate from glow. Three dead ends are recorded here
+# so they are not retried:
+#   (1) subtract + hue/size gates alone (the v1 recipe verbatim): the delta
+#       reads as a brighter COPY of the clouds, not as strikes — the kept
+#       light is mostly grade difference.  (2) vein-seeded KEEP with a wide
+#       halo (sigma 24): near dense vein fields the halo union covers whole
+#       cloud patches, and the warm-core recolor then keeps their wash —
+#       reads as cloud brightening with jagged hue-gate edges. (3) a linear
+#       delta asset (ref - fit): the layer composites with mix-blend-mode
+#       SCREEN, which is sub-additive over a lit background — the same delta
+#       that reproduces the reference under addition reads at roughly half
+#       strength under screen. v1 never hit this because its painted bolts
+#       saturated over dark lanes (asset peak 255); the frames' veins sit on
+#       bright cloud. The asset must be the SCREEN-INVERSE,
+#       q = 255*(ref-fit)/(255-fit), which reproduces the reference exactly
+#       at opacity 1 by construction.
+#
+# What ships is the vein network and only the vein network:
+#   veins = q - localMedian(q, 31px). The median kills every broad field —
+#   grade mismatch AND the reference's own cloud illumination — and keeps
+#   thin bright structure, which is what v1's approved look actually is
+#   (veins + knots; on a strike the sky's own clouds light through the
+#   screen blend, so broad illumination comes free at composite time). A
+#   small synthesized halo (0.9*gauss sigma5 + 0.5*gauss sigma14) restores
+#   the discharge glow the median takes with it. Everything is recolored to
+#   the filament cold (0.72/0.82/1.0) at its own luminance — same rule and
+#   same constant as the generated path's step 4, for the same reason: the
+#   strike must be the nebula's own blue whatever the source painted. Small
+#   mostly-warm components die as star residuals (the frames' own stars);
+#   bolt-sized structure keeps its warm cores, recolored.
+#
+# CONTAINMENT IS GENTLER HERE, AND THAT IS A STATED DECISION: 25->60 gamma 1
+# on the blurred-sky glow, not the generated path's 45->85 gamma 2. The
+# shipped ramp exists to corral GENERATOR-INVENTED geometry that ran over
+# faint sky (HANDOFF 16's containment story). These frames' geometry is the
+# owner's own reference — the thing the ramp calibrates AGAINST — so the
+# ramp's only job in this mode is killing subtraction noise on dark sky.
+# 45->85 g2 measured against the frames crushes exactly what they add
+# (-2's left-core crackle fell to 0.22% of frame lit, near-invisible; -4's
+# arm emphasis died). Calibration remains the owner's eye on real hardware,
+# per HANDOFF 16's closing line; if his eye says a pattern leaks, tighten
+# THIS mode's ramp and rebuild — do not touch the generated path's.
+#
+# Registration: v1's constants (scale 0.60650, offset (28,326)) put each
+# frame within ~10px; a per-frame ECC affine refinement on mid-band
+# luminance closes the rest (cc 0.89-0.91 on all three frames; the affine
+# terms are ~1% scale + subpixel shear, real frame drift, not noise).
+# The gain is normalized so vein-core p99.7 -> 245 (v1's cores reach 255;
+# an asset dimmer than its siblings would push the owner at the shared
+# `bolt b` slider, which HANDOFF 16 forbids as a per-pattern lever).
+# ============================================================================
+
+REF_W, REF_H = 1948, 807
+REF_SCALE, REF_OX, REF_OY = 0.60650, 28, 326   # HANDOFF 14, re-measured this session
+COLD = (0.72, 0.82, 1.0)
+
+def main_ref(cand_path, stem):
+    sky = load(SKY)
+    ref = load(cand_path)
+    if ref.shape[:2] != (REF_H, REF_W):
+        raise SystemExit(f'reference-frame mode expects {REF_W}x{REF_H}, got {ref.shape[1]}x{ref.shape[0]}')
+
+    # -- 1. registration: v1 constants, then ECC affine refinement ----------
+    sw, sh = round(W * REF_SCALE), round(H * REF_SCALE)
+    sky_s = cv2.resize(sky, (sw, sh), interpolation=cv2.INTER_AREA)
+    crop = sky_s[REF_OY:REF_OY + REF_H, REF_OX:REF_OX + REF_W]
+    gray = lambda a: cv2.cvtColor(a.astype(np.float32), cv2.COLOR_RGB2GRAY)
+    mid = lambda g: cv2.GaussianBlur(g, (0, 0), 2) - cv2.GaussianBlur(g, (0, 0), 20)
+    warp = np.eye(2, 3, dtype=np.float32)
+    cc, warp = cv2.findTransformECC(mid(gray(ref)), mid(gray(crop)), warp, cv2.MOTION_AFFINE,
+        (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 200, 1e-7), None, 5)
+    print(f'registration: ECC cc {cc:.4f} (expect ~0.9; below 0.8, stop and look)')
+    bg = np.stack([cv2.warpAffine(crop[..., c], warp, (REF_W, REF_H),
+                   flags=cv2.INTER_LINEAR | cv2.WARP_INVERSE_MAP, borderMode=cv2.BORDER_REPLICATE)
+                   for c in range(3)], -1)
+
+    # -- 2. photometric fit, darker 80%, same as the generated path ---------
+    gbg = gray(bg)
+    sel = gbg < np.percentile(gbg, 80)
+    fit = np.empty_like(bg)
+    for c in range(3):
+        a, b = np.polyfit(bg[..., c][sel], ref[..., c][sel], 1)
+        fit[..., c] = np.clip(a * bg[..., c] + b, 0, 254)
+        print(f'  channel {c}: ref = {a:.4f} * sky + {b:+.2f}')
+
+    # -- 3. SCREEN-INVERSE delta (dead end 3 above) --------------------------
+    lin = np.clip(ref - fit, 0, 255)
+    q = np.clip(255.0 * lin / (255.0 - fit), 0, 255)
+    g = q.max(-1)
+
+    # -- 4. vein isolation: kill every broad field (dead ends 1 and 2) ------
+    med = cv2.medianBlur(np.clip(g, 0, 255).astype(np.uint8), 31).astype(np.float64)
+    v = np.clip(g - med, 0, 255)
+
+    # -- 4b. star-residual cull, hue rule at component scale: a small
+    #    mostly-warm component is one of the frame's own stars; bolt-sized
+    #    structure keeps warm cores (they are painted core, recolored below —
+    #    the generated path's step 4 lesson at vein scale). --
+    vm = (v > 26).astype(np.uint8)
+    cold_px = (lin[..., 2] + 2 >= lin[..., 0])
+    n, lab, st, _ = cv2.connectedComponentsWithStats(vm, 8)
+    culled = 0
+    for i in range(1, n):
+        w, h = st[i, cv2.CC_STAT_WIDTH], st[i, cv2.CC_STAT_HEIGHT]
+        if w * w + h * h < 22 * 22:
+            m = lab == i
+            if cold_px[m].mean() < 0.6:
+                vm[m] = 0; culled += 1
+    v = v * vm
+    print(f'vein isolation: {culled} warm speck components culled')
+
+    # -- 5. synthesized discharge halo + cold recolor ------------------------
+    #    (gain normalization happens AFTER the 4K warp, step 6b — the 1.65x
+    #    upscale spreads 1-2px vein cores and eats ~20% of their peak, so
+    #    normalizing here would ship dim cores no matter what this step does)
+    halo = cv2.GaussianBlur(v, (0, 0), 5) * 0.9 + cv2.GaussianBlur(v, (0, 0), 14) * 0.5
+    lum = np.clip(v + halo, 0, 255)
+    out = np.stack([lum * f for f in COLD], -1)
+
+    # -- 6. into the sky frame, then the generated path's gates -------------
+    A = np.vstack([warp, [0, 0, 1]])
+    T = np.array([[1, 0, REF_OX], [0, 1, REF_OY], [0, 0, 1]], float)
+    S = np.array([[1 / REF_SCALE, 0, 0], [0, 1 / REF_SCALE, 0], [0, 0, 1]], float)
+    M = (S @ T @ A)[:2].astype(np.float32)
+    big = cv2.warpAffine(out, M, (W, H), flags=cv2.INTER_LINEAR, borderValue=0)
+
+    on = (big.max(-1) > 8).astype(np.uint8)
+    n2, lab2, st2, _ = cv2.connectedComponentsWithStats(on, 8)
+    keep = np.zeros(n2, bool)
+    for i in range(1, n2):
+        w, h = st2[i, cv2.CC_STAT_WIDTH], st2[i, cv2.CC_STAT_HEIGHT]
+        keep[i] = (w * w + h * h) >= 25 * 25
+    big[~keep[lab2]] = 0
+
+    m = np.asarray(Image.open(MASK))[:, :, 3].astype(np.float64) / 255.0
+    m = cv2.resize(m, (W, H), interpolation=cv2.INTER_LINEAR)
+    big *= m[..., None]
+
+    # reference-mode ramp — see the header for why this is NOT 45->85 g2
+    glow = cv2.GaussianBlur(sky.max(-1), (0, 0), 30)
+    big *= np.clip((glow - 25.0) / 35.0, 0, 1)[..., None]
+
+    on = (big.max(-1) > 4).astype(np.uint8)
+    n3, lab3, st3, _ = cv2.connectedComponentsWithStats(on, 8)
+    keep3 = np.zeros(n3, bool)
+    for i in range(1, n3):
+        w3, h3 = st3[i, cv2.CC_STAT_WIDTH], st3[i, cv2.CC_STAT_HEIGHT]
+        if w3 * w3 + h3 * h3 >= 25 * 25:
+            y3, x3 = st3[i, cv2.CC_STAT_TOP], st3[i, cv2.CC_STAT_LEFT]
+            keep3[i] = big[y3:y3 + h3, x3:x3 + w3].max() >= 20
+    big[~keep3[lab3]] = 0
+
+    # -- 6b. gain, at final resolution and after containment: vein-core
+    #    p99.7 -> 245 (v1's cores reach 255; a pattern dimmer than its
+    #    siblings would push the owner at the shared `bolt b` slider, which
+    #    HANDOFF 16 forbids as a per-pattern lever). --
+    bg8 = big.max(-1)
+    p = np.percentile(bg8[bg8 > 8], 99.7) if (bg8 > 8).any() else 245.0
+    gain = min(245.0 / max(p, 1.0), 2.5)
+    big = np.clip(big * gain, 0, 255)
+    print(f'gain: x{gain:.2f} (vein-core p99.7 -> 245, post-warp)')
+
+    # -- 7. measure + encode, identical to the generated path ---------------
+    q8 = np.rint(np.clip(big, 0, 255)).astype(np.uint8)
+    g8 = q8.max(-1)
+    print(f'exact black          {(g8 == 0).mean()*100:.2f}%')
+    print(f'residual floor       ' + ' / '.join(
+        f'{np.min(q8[..., c][q8[..., c] > 0]) - 1 if (q8[..., c] > 0).any() else 0:.3f}' for c in range(3)))
+    print(f'mean luminance       {g8.mean():.3f}')
+    for t in (0.5, 2, 8):
+        print(f'%frame > {t:<4}        {(g8 > t).mean()*100:.2f}')
+    print(f'adds at flash 0.35   {g8.mean()*0.35:.3f} /255 mean')
+    out4k = f'assets/hero/{stem}-4k.webp'
+    out1k = f'assets/hero/{stem}.webp'
+    Image.fromarray(q8).save(out4k, quality=90, method=6)
+    half = cv2.resize(q8, (W // 2, H // 2), interpolation=cv2.INTER_AREA)
+    Image.fromarray(half).save(out1k, quality=90, method=6)
+    import os
+    print(f'{out4k}  {os.path.getsize(out4k)/1024:.0f} KB')
+    print(f'{out1k}  {os.path.getsize(out1k)/1024:.0f} KB')
+
 if __name__ == '__main__':
-    main(sys.argv[1], sys.argv[2])
+    _im = Image.open(sys.argv[1])
+    if _im.size == (REF_W, REF_H):
+        main_ref(sys.argv[1], sys.argv[2])
+    else:
+        main(sys.argv[1], sys.argv[2])

@@ -55,23 +55,26 @@
      divs are empty, unstyled, zero-height elements — inert, same as the sky
      being absent.
 
-     TWO OF THEM SINCE BUILD 19 — one per strike pattern (a = the HANDOFF
-     14 asset, c = the outer wing, HANDOFF 16). There is no b: a second
-     diagonal pattern was built, tuned through four containment rounds and
-     removed by the owner's eye ("it just doesn't look right") — the slot
-     letter is retired with it so the handoffs' history stays readable.
-     Both divs carry the same .star-bolt class ON PURPOSE: STAR_LAYERS, the
+     FIVE OF THEM SINCE BUILD 20 — one per strike pattern (a = the HANDOFF
+     14 asset, c = the outer wing from HANDOFF 16, d/e/f = the owner's three
+     reference frames extracted directly by scripts/bolt-extract.py's
+     reference-frame mode: d the sparse left-core crackle, e the heaviest
+     full-band state, f the upper-right arm emphasis). There is no b: a
+     second diagonal pattern was built, tuned through four containment
+     rounds and removed by the owner's eye ("it just doesn't look right") —
+     the slot letter is retired so the handoffs' history stays readable.
+     All divs carry the same .star-bolt class ON PURPOSE: STAR_LAYERS, the
      view modes and the reduced-motion rule all address the lightning by
      that class, and divs sharing it inherit every one of those
      registrations for free — a variant div with its own class name would
      silently drop out of all of them. Only the div with .is-struck lights
      on a strike; the snare machine moves that class at the moment a strike
-     is accepted. With two patterns, "never the same twice in a row" (the
-     owner's call) IS strict alternation — the random pick the three-pattern
-     build used reduces to this, it is not a design change. Both images
-     decode at injection (~100 KB total, once) so the first strike of
-     either pattern never waits on the network. */
-  var BOLT_VARIANTS = ['a', 'c'];
+     is accepted — random among the others, never the same twice in a row
+     (the owner's rule; the two-pattern builds' strict alternation was its
+     reduction, and five patterns restore the original random pick). All
+     five images decode at injection (~190 KB total, once) so the first
+     strike of any pattern never waits on the network. */
+  var BOLT_VARIANTS = ['a', 'c', 'd', 'e', 'f'];
   var bolts = [];
   for (var bi = 0; bi < BOLT_VARIANTS.length; bi++) {
     var bolt = document.createElement('div');
@@ -410,17 +413,20 @@
           pendingSnare = -1;
           snares++;
           /* Move .is-struck BEFORE the envelope jump below, so this strike
-             lights the pattern it lands on. Advancing by one modulo the
-             pattern count is "never the same twice in a row", which at two
-             patterns is plain alternation (see the injection note — the
-             three-pattern build picked randomly among the others; this is
-             that rule's two-pattern reduction, not a redesign). The
-             previous pattern's decay tail is cut mid-fade when this fires
-             inside it; at REFRACTORY_S 150ms and s ms 260 that read as the
-             new strike replacing the old on real hardware, not as a
-             glitch — and it is exactly how a fresh strike should behave. */
+             lights the pattern it lands on. Random among the OTHER
+             patterns — never the same twice in a row, the owner's rule
+             (see the injection note: the two-pattern builds advanced
+             (boltAt+1) % length because at two patterns this rule IS
+             strict alternation; at five the original random pick is back,
+             not a redesign). The previous pattern's decay tail is cut
+             mid-fade when this fires inside it; at REFRACTORY_S 150ms and
+             s ms 260 that read as the new strike replacing the old on real
+             hardware, not as a glitch — and it is exactly how a fresh
+             strike should behave. */
           bolts[boltAt].classList.remove('is-struck');
-          boltAt = (boltAt + 1) % bolts.length;
+          var boltNext = Math.floor(Math.random() * (bolts.length - 1));
+          if (boltNext >= boltAt) boltNext++;
+          boltAt = boltNext;
           bolts[boltAt].classList.add('is-struck');
           if (pendingHit > envS) envS = pendingHit;
         }

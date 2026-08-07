@@ -72,6 +72,13 @@
      actually loaded. python -m http.server serves Last-Modified only, and a
      browser sitting on a cached copy looks identical to a change that did not
      work — this makes the difference visible instead of arguable.
+     37 = the mobile block re-derived against today's desktop values — the
+     stale set HANDOFF 14 records (width 390 -> 73px, lit 0.3 -> 0 restoring
+     the flash-out-of-black mechanism, band pair rescaled) — plus the first
+     page-scoped rule INSIDE the media block: html.page-about keeps its
+     inverted polarity on phones (lit 0.84 above dim 0.08), which the shared
+     phone values would otherwise silently reverse. Calibrated at a real
+     390px viewport; not yet seen on the owner's phone.
      36 = the mobile selector list below widened with page-archive /
      page-transmissions. Those pages do NOT link this file — they got the sky
      only (see css/star-bg.css build 21) — but the "add any new page class to
@@ -84,7 +91,7 @@
      kick. 33 = the lightning layer wired in (js injection + tuner rows; the
      layer itself lives in css/star-bg.css) and the stale "loaded by
      index.html only" header line above corrected. */
-  --spine-build: 36;
+  --spine-build: 37;
 
   --charge: 0;          /* 0..1, written by js/spine-bg.js every scroll frame */
 
@@ -1175,23 +1182,62 @@ main > .section .label {
      file yet — sky only, see css/star-bg.css build 21 — so the rule holds by
      construction rather than by memory. */
   :root, html.page-home, html.page-about, html.page-archive, html.page-transmissions {
-    /* Scaled from the desktop values by the same ratios the first pass used
-       (0.61x width, 0.57x lit, 0.61x dim). Re-derive these whenever the desktop
-       numbers change: the previous block was scaled off --spine-lit: 1.06, so
-       against the tuned 0.5 it would have made the phone BRIGHTER than the
-       desktop rather than dimmer, which is backwards. */
-    --spine-w: 390px;
-    --spine-lit: 0.3;
-    --spine-dim: 0.23;
-    /* INFERRED, not judged on a device — same status as the two values above.
-       The band is a length in DOCUMENT space, and at 390px the same content
+    /* RE-DERIVED 2026-08-07 against the build-37 desktop baseline — the stale
+       set HANDOFF 14 records, every value rescaled at once rather than edited
+       in place. The ratios are the first pass's own (0.61x width, 0.57x lit,
+       0.61x dim; card ratio ~0.7 for the band pair). The previous block was
+       scaled off desktop numbers that had since moved: 390px width against a
+       desktop that had come down to 120px (phone column 3.25x WIDER than the
+       desktop's), and lit 0.3 against a desktop lit of 0 — which is not
+       drift but the charge-front mechanism REVERSED: lit 0 is what lets the
+       charged region sit darker than dim and flash out of black. 0.57 x 0 = 0,
+       and 0 it is. Calibrated at a real 390x844 viewport this time (computed
+       values + pixel diff); not yet seen on the owner's actual phone.
+       Note these baseline-derived values are, today, tuning for a column
+       nobody sees: the only page whose spine renders is about.html, which
+       gets its own phone rule BELOW this one, and the home page ships
+       --spine-on: 0. They stay correct anyway, so the day the home spine
+       comes back on, its phone is already right. */
+    --spine-w: 73px;      /* 0.61 x 120px = 73.2 */
+    --spine-lit: 0;       /* 0.57 x 0 — the mechanism, restored */
+    --spine-dim: 0.13;    /* 0.61 x 0.22 = 0.134 */
+    /* The band is a length in DOCUMENT space, and at 390px the same content
        stacks into a document roughly twice as tall, so a desktop-height band
        covers half as much of the page and reads as a much shorter flash. Scaled
        by the card ratio rather than the document ratio: the point of the band is
        to sit on the hero card, and that card is ~0.7x its desktop height here.
-       Re-derive whenever --spine-band changes on desktop. */
-    --spine-band: 880px;
-    --spine-band-feather: 0px;
+       Re-derive whenever --spine-band changes on desktop.
+       0.7 x 800px = 560px, 0.7 x 600px = 420px — the previous 880px / 0px pair
+       was the same card ratio applied to a desktop pair that no longer ships. */
+    --spine-band: 560px;
+    --spine-band-feather: 420px;
+  }
+
+  /* ABOUT.HTML'S PHONE VALUES — this rule must sit AFTER the shared one above.
+     Same specificity (0,2,0) on that page, so source order decides, exactly
+     the mechanism the selector-list note above describes. Without this rule
+     the shared phone values land on about.html and quietly REVERSE its
+     deliberate polarity: about runs the charge front the bright way round
+     (lit 1.48 ABOVE dim 0.13 — no kick on that page, nothing to flash out of
+     black; the long note at html.page-about explains it). The shared rule's
+     lit 0 / dim 0.13 would put its front back to dark-forever — the exact
+     failure that polarity exists to avoid — with balanced braces and nothing
+     in the console. Ratios are the same ones the shared rule uses, applied to
+     THAT page's block, not to :root: */
+  html.page-about {
+    --spine-lit: 0.84;          /* 0.57 x 1.48 — still ABOVE dim: polarity kept */
+    --spine-dim: 0.08;          /* 0.61 x 0.13 */
+    --spine-band: 0px;          /* 0 is the page's design (all falloff, no
+                                   plateau) — a ratio times 0 stays 0 */
+    --spine-band-feather: 560px;/* 0.7 x 800px */
+    /* --spine-w is NOT re-stated: the page inherits the shared 73px, the same
+       ratio its desktop inherits the baseline 120px by. --spine-feather 10px,
+       --spine-from 690px, --spine-offset 680px and --spine-bias -0.7 ride in
+       unchanged from the page block above — document-space geometry the
+       shared rule does not touch. Whether 690px still clears the h1 on a
+       phone-height document is an OPEN question for the owner's eye; it is
+       geometry, not brightness, so it was left for a judged pass rather than
+       scaled blind. */
   }
 }
 

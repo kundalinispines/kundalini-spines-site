@@ -41,6 +41,12 @@
 :root {
   /* Bumped on every change, same reason as --spine-build: a browser sitting on
      a cached stylesheet is indistinguishable from a change that did not work.
+     22 = the mobile block re-derived against the build-21 desktop values —
+     the stale set HANDOFF 14 records. Dim and the twinkle pair rescaled by
+     their original ratios (play-button lift restored on phones); the cloud
+     cut moved off --star-cloud (the headroom split, now untouched at every
+     width) onto --star-cloud-bright, per the 2026-08-05 stale note it
+     replaces. Calibrated at a real 390px viewport; not yet seen on a phone.
      21 = the sky reaches archive.html and transmissions.html (each links this
      file and carries a page class; empty page blocks + the widened mobile
      selector list live at the bottom of this file). No sky variable changed.
@@ -61,7 +67,7 @@
      as worth 63 -> 88 fps; that figure was taken on a software renderer and is
      corrected under html::after below). 6 was the single lockstep cores
      layer. */
-  --star-build: 21;
+  --star-build: 22;
 
   /* Brightness of the whole field. 0 is off — the layer still exists but adds
      no light, and under screen blending (see below) that is exactly the same
@@ -1001,47 +1007,51 @@ html.page-transmissions {
      them at equal specificity and later in source order, so the phone values
      win. Add any new page class to this list in the same commit. */
   :root, html.page-home, html.page-about, html.page-archive, html.page-transmissions {
+    /* RE-DERIVED 2026-08-07, the whole block at once, against the desktop
+       values shipping in build 22 — every number below is a documented ratio
+       times TODAY'S desktop value, not an edit of the previous phone number.
+       The previous block was the stale set HANDOFF 14 records (three values
+       inverted); each ratio's origin is noted at its line. Verified at a real
+       390x844 viewport this time (headless Chromium, computed values + pixel
+       diff) — but still not seen on the owner's actual phone, so these are
+       calibrated, not approved. */
     /* cover on a 390px-wide viewport crops to the middle 20% of the frame,
        which is the densest part of the nebula band — so the phone gets MORE
-       nebula per screen than the desktop does, not less. Down, not up. */
-    --star-dim: 0.46;
+       nebula per screen than the desktop does, not less. Down, not up.
+       0.575 x desktop 1.4 = 0.805 -> 0.8. The 0.575 is the ratio the first
+       pass chose (0.46 against the then-desktop 0.8). */
+    --star-dim: 0.8;
     /* The phone crop lands on the densest part of the nebula band, so the same
-       amplitude reads as more movement on a smaller screen. Inferred, like the
-       rest of this block.
-       RE-DERIVED 2026-08-04 when the desktop values changed. The old pair was
-       0.03 / 0.25 against a desktop 0.04 / 0.32 — ratios of 0.75 and 0.78. The
-       desktop is now 1 / 1, so the same ratios give 0.75, and the two are held
-       equal here because they are equal on the desktop: a phone that responded
-       to the play button when the desktop does not would be a difference nobody
-       decided on. THIS IS THE TRAP HANDOFF 7 RECORDS — the mobile block was
-       once scaled off a desktop value that had since moved, which would have
-       made the phone BRIGHTER than the desktop. Re-derive every time. */
-    --star-twinkle: 0.75;
-    --star-twinkle-hi: 0.75;
+       amplitude reads as more movement on a smaller screen.
+       Ratios 0.75 / 0.78, from the first pass (0.03/0.04 and 0.25/0.32):
+       0.75 x 0.46 = 0.345 -> 0.35, and 0.78 x 1.5 = 1.17. The previous pair
+       (0.75 / 0.75) was re-derived 2026-08-04 when the desktop pair was held
+       equal at 1 / 1; build 15 split the desktop pair again (0.46 idle vs 1.5
+       playing), which made the old phone pair BOTH wrong at once — idle 1.6x
+       brighter than desktop, and the play button a no-op because hi equalled
+       idle. Restoring the ratios restores both: idle drops below desktop, and
+       the play lift is back (3.3x, against the desktop's 3.26x). At 1.17 the
+       46% keyframe stop clips to 1.0 — one peak flattened, against the
+       desktop's two; see the clipping note beside --star-twinkle-hi above. */
+    --star-twinkle: 0.35;
+    --star-twinkle-hi: 1.17;
     /* --star-desync is NOT overridden. The crop shows fewer stars, which makes
        lockstep MORE obvious rather than less, so the phone wants at least as
        much spread as the desktop. */
-    /* --star-cloud IS overridden again, on the instruction the previous version
-       of this comment left: "re-introduce it if --star-cloud ever goes back
-       above ~0.3." It is now 0.36. Scaled by the same 0.575 the dim override
-       uses (0.46/0.8), giving 0.21 — the phone crop is mostly nebula, so an
-       unscaled cloud glow would be far heavier there than on the desktop.
-
-       >>> STALE AS OF 2026-08-05, AND IN A NEW WAY. THIS BLOCK CANNOT FIX IT.
-       >>> 0.21 was scaled off a desktop 0.36 that is now 0.27, so the ratio has
-       >>> inverted: the phone is now BRIGHTER than the desktop, 0.21 against
-       >>> 0.27, which is exactly the HANDOFF 7 trap the comment above warns
-       >>> about, arrived at from the other direction. The prescribed 0.575 gives
-       >>> 0.155.
-       >>> WORSE, AND THE PART A NUMBER HERE WILL NOT REACH: brightness() on the
-       >>> cloud filter went 0.85 -> 1.75, and that declaration is NOT inside any
-       >>> media query, so the phone took the full 2.06x lift with none of the
-       >>> compensating opacity cut. Scaling this value alone will not undo it.
-       >>> The phone needs its own brightness() override, or this pair needs
-       >>> re-deriving against the new filter. Left as-is rather than guessed at,
-       >>> because no one has looked at this on a phone and a wrong number here
-       >>> reads as a decision. Filed with the rest of the stale overrides. */
-    --star-cloud: 0.21;
+    /* --star-cloud is NOT overridden any more — the cut moved channels.
+       The previous block held --star-cloud: 0.21, scaled off a desktop 0.36
+       that had since fallen to 0.2, so the phone had quietly gone BRIGHTER
+       than the desktop; and the 2026-08-05 stale note here pointed out that
+       the real lift had meanwhile moved into the cloud filter's brightness(),
+       which no opacity number can undo. Since build 15 the pairing note at
+       --star-cloud is explicit: the opacity is the KICK-HEADROOM SPLIT, the
+       brightness is the brightness. The phone wants less nebula LIGHT, not a
+       different headroom split — so the override now lives one line down, on
+       the channel that means brightness, and the split (and with it the
+       --kick-cloud ceiling math on index.html) is identical at every width.
+       0.575 x desktop 2.2 = 1.265 -> 1.27, the same ratio the first pass
+       applied when the cut lived on the opacity. */
+    --star-cloud-bright: 1.27;
     /* --star-black is deliberately NOT overridden. It is a property of the
        photograph, not of the viewport, and the crop does not change where the
        artwork's floor sits. */

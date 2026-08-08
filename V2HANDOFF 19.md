@@ -10,7 +10,7 @@
 
 ## The one-line version
 
-An isolated desktop prototype of the living-spine navigation now exists at `spine-lab.html`, built over the real site atmosphere, using a generated transparent wireframe-spine asset. It is committed to `feature/spine-ui-v2` as `c7f94bb`. **`main` was not touched and nothing was pushed.**
+An isolated desktop prototype of the living-spine navigation now exists at `spine-lab.html`, built over the real site atmosphere, using a generated transparent wireframe-spine asset. It is committed to `feature/spine-ui-v2` and **now backed up on GitHub** at `origin/feature/spine-ui-v2`. **`main` was not touched.**
 
 ---
 
@@ -20,8 +20,8 @@ An isolated desktop prototype of the living-spine navigation now exists at `spin
 - **Production worktree (untouched):** `C:\Users\Haight\Desktop\kundalini-spines` → branch `main`.
 - **Branch point:** `13083d9` (= `main` = `origin/main` at session start, and still).
 - **Commit made this session:** `c7f94bb` — *"feat: add spine navigation shell prototype (spine-lab)"*, 21 files, +3304 lines. Purely additive (no existing file modified).
-- **`feature/spine-ui-v2` is 1 ahead of `main`, 0 behind.** `main` and `origin/main` remain `13083d9`.
-- **Not pushed.** The branch has **no upstream** — by choice, it stays local until explicitly pushed. A push would create `feature/spine-ui-v2` on GitHub; it can never reach `main` on its own.
+- **`feature/spine-ui-v2` is 2 ahead of `main`, 0 behind** (prototype `c7f94bb` + handoff `4e81d07`). `main` and `origin/main` remain `13083d9`.
+- **Pushed / backed up to GitHub (Aug 8, 2026).** `feature/spine-ui-v2` now exists on the remote at `origin/feature/spine-ui-v2` (`4e81d07` at push time), with upstream tracking set — future backups are just `git push`. Verified: local and remote heads are identical (`0 0` divergence). The remote now has two branches, `main` (`13083d9`) and `feature/spine-ui-v2`; the feature branch is a sibling of main and can never reach it on its own. **No pull request was opened** (GitHub suggested one on push — deliberately ignored).
 
 ---
 
@@ -88,7 +88,7 @@ Everything below is in the single isolated file `spine-lab.html` plus one genera
 - **Do not re-add `mix-blend-mode: screen` to `.spine__anat`.** The PNG is already true alpha (luminance→alpha); a screen blend would double-process it.
 - **Do not "fix" the upward energy.** It rises on purpose (kundalini). Reversing it also breaks the ping sync — the delays were derived for an upward pass.
 - **Do not wire Music, Archive, the tuner, or the hero into the prototype yet.** Master prompt §42/§45 gate these — explain the change and get approval first.
-- **Do not push `feature/spine-ui-v2`** without an explicit go-ahead. It is deliberately local.
+- **Pushing `feature/spine-ui-v2` is now the normal backup path** — it is already on GitHub with upstream set, so `git push` backs up. But **never push to `main`**, never open or merge a PR into `main` without explicit approval, and never force-push.
 - **Do not force the desktop spine onto mobile** (§34). Two mobile prototypes are owed first (vertical rail vs horizontal stepper), for review before choosing.
 
 ---
@@ -111,7 +111,7 @@ Everything below is in the single isolated file `spine-lab.html` plus one genera
 - **Tuner integration** — extend the existing `/?tune` `FIELDS`/`GROUPS` in `js/spine-bg.js` with the spine-UI variables (gated).
 - **Music / Archive immersive wraps** — later stages, wrap-not-rebuild, approval required.
 - **Optimize `spine-ui-wire.png` → webp** for production (currently a 628 KB PNG; no `cwebp`/`magick` on the box this session, so PIL was used for the alpha conversion).
-- **Decide whether to push `feature/spine-ui-v2`** to GitHub (remote backup / possible Vercel preview to compare against production).
+- **Vercel preview (unconfirmed).** The branch is backed up on GitHub now; if the GitHub↔Vercel integration builds feature branches, a preview deployment of V2 may exist — not checked this session. (The push-to-GitHub decision itself is now *closed* — done Aug 8.)
 - **`design/` image weight in git history** — ~8.7 MB now permanent on this branch; a later cleanup is possible if it matters.
 
 ---

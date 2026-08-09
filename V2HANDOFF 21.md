@@ -29,9 +29,24 @@ transitions explicitly disabled.
 
 So: the coil, the dust, the bones, the tooltips and the intro cut are all
 **verified as numbers and unverified as pictures.** The owner asked at wrap-up
-for an environment where the assistant can actually see rendering. That is now
-the single highest-value unblock for this track — three sessions of feel work
-have been judged entirely on the owner's own screen.
+for an environment where the assistant can actually see rendering.
+
+### …and it was solved before the session ended
+
+**Headless Chrome works on this machine, needs no install, and the recipe is now
+in the `kundalini-session-start` skill (step 8).** No Node, no npm and no
+Playwright are present — do not try to install them — but Chrome and Edge are
+both there and take a `--screenshot` flag whose output can be read directly.
+
+It was proven the moment it ran: the first capture of `hero-scrub-lab.html`
+showed **the HUD range sliders rendering in default browser blue**, sitting under
+a bone-and-amber entrance. `accent-color` was set on some throwaway mockups
+earlier in the session and never on the lab itself. Days of measurement had not
+found it; ten seconds of looking did.
+
+**So the "unseen" caveats above are now a to-do list, not a limitation.**
+Everything in this handoff marked asserted-not-verified can be checked with a
+screenshot once the `?cap=` parameter exists (see Still open).
 
 ---
 
@@ -214,7 +229,22 @@ All measured Aug 9 2026 against `python -m http.server 8000`.
    both `hero-scrub-lab.html` and `hero-timeline-lab.html`; the timeline tool
    seeks constantly, so webm-first would make it unusable.
 
-9. **The HUD grew to 125px, 17.4% of a 720px viewport**, wrapping to three rows —
+9. **Headless Chrome captures, and what it can and cannot see.** Verified by
+   capture and by pixel-differencing the results:
+   - **Video does NOT render** — captures at `--virtual-time-budget=500` and
+     `=6000` came back **byte-identical** (886,897 bytes each, pixel diff 0.00).
+     You get the poster frame. `--autoplay-policy=no-user-gesture-required` does
+     **not** change this; do not add that flag believing it helps.
+   - **Canvas DOES render**, including `shadowBlur` and `putImageData` — tested
+     with a synthetic canvas, 8.8% coverage. So the coil and the dust are
+     capturable. SVG, CSS and images render too.
+   - The output path must be **absolute** (relative fails with "Access is
+     denied"), and Chrome **returns before the file is written**, so an immediate
+     existence check reports nothing.
+   - Chrome is at the **`Program Files (x86)`** path on this box, which is the
+     less common location — detect it rather than assume.
+
+10. **The HUD grew to 125px, 17.4% of a 720px viewport**, wrapping to three rows —
    sitting exactly where the sacrum is and where the dust starts leaving. Hence
    the collapse toggle (43px collapsed, 11.4% of screen recovered).
 
@@ -308,8 +338,13 @@ Everything in V2HANDOFF 19 and 20's lists still stands. Additionally:
 - No console errors on any lab page.
 
 **Asserted / NOT verified:**
-- **NOTHING WAS SEEN.** See the warning at the top. No visual confirmation of the
-  coil, the dust, the bones, the cut, or the tooltips' appearance.
+- **NOTHING WAS SEEN** — still true of everything this session shipped, but no
+  longer a limitation, only an outstanding task. Headless Chrome capture was
+  proven working at the very end of the session, too late to re-verify the work.
+  No visual confirmation of the coil, the dust, the bones, the cut, or the
+  tooltips' appearance. The one screenshot that was taken found a real defect
+  immediately (blue HUD sliders), which is the best argument for doing this first
+  next time.
 - **Performance is entirely unmeasured** and there are now two suspects: the coil
   issues up to ~880 `stroke()` calls a frame, many with `shadowBlur`; the dust
   clears an ~857 KB buffer and writes ~7,800 particle blocks a frame. Both were
@@ -324,24 +359,33 @@ Everything in V2HANDOFF 19 and 20's lists still stands. Additionally:
 
 ## Still open
 
-1. **LOOK AT IT.** Everything above is unjudged visually. Start here.
-2. **Get the assistant an environment that renders.** Owner-raised at wrap-up.
-   This is the biggest force multiplier available to this track.
-3. **Time the coil and the dust** on real hardware. Fallback documented in code.
-4. **The `css/spine-ui.css` + `js/spine-ui.js` extraction.** Now overdue — the
+1. **Add the `?cap=` capture parameter to the labs.** Headless captures the page
+   *as loaded*, so everything behind scroll position — the coil, the dust, the
+   bones — is currently unreachable. A parameter that forces a state at load
+   (`?cap=coil:0.6`, `?cap=dust:0.4`, `?cap=nav`) is maybe 15 lines and converts
+   most of the asserted-not-verified list into something checkable. Varying
+   `--virtual-time-budget` then frame-steps animation deterministically.
+   **Do this first — it makes everything below cheaper.**
+2. **LOOK AT IT.** The whole entrance is still unjudged visually.
+3. **Fix the blue HUD sliders.** `.hud input[type=range] { accent-color: rgb(240,165,92); }`
+   — one line, found by the first screenshot, not yet applied.
+4. **Time the coil and the dust** on real hardware. Fallback documented in code.
+5. **The `css/spine-ui.css` + `js/spine-ui.js` extraction.** Now overdue — the
    six-node table exists in two files and is kept in step by hand.
-5. **Confirm the ring-2 fix.** It changes a look the owner already signed off on
+6. **Confirm the ring-2 fix.** It changes a look the owner already signed off on
    (two coincident rings become an alternating train). Owner's call to keep.
-6. **`spine-ui-wire.png` → webp.** 640 KB, and now in the entrance flow.
-7. **Scroll-linked vs Timed once** for the aster reveal — still no verdict.
-8. **Mobile** — four labs, none has a mobile answer. `hero-scrub-lab.html` is the
+7. **`spine-ui-wire.png` → webp.** 640 KB, and now in the entrance flow.
+8. **Scroll-linked vs Timed once** for the aster reveal — still no verdict.
+9. **Mobile** — four labs, none has a mobile answer. `hero-scrub-lab.html` is the
    hard one (sticky + scroll-scrub on iOS, Safari seek throttling, `100svh`).
-9. **Production scroll-unlock answer.** The lab's Reset button is not it.
-10. **Tuner integration; Music / Archive immersive wraps** — unchanged from 19.
+10. **Production scroll-unlock answer.** The lab's Reset button is not it.
+11. **Tuner integration; Music / Archive immersive wraps** — unchanged from 19.
 
 **Closed since 20:** the motion cue (as twin serpents, not rings); the hero
 entrance behaviour (intro-then-scrub at 5.469s); the entrance→navigator wiring
-(partially — reduced navigator only); the dead ring-2 offset.
+(partially — reduced navigator only); the dead ring-2 offset; **and the
+long-standing "the assistant cannot see anything" problem** — headless Chrome
+works, recipe in the start skill.
 
 ---
 
@@ -350,6 +394,23 @@ entrance behaviour (intro-then-scrub at 5.469s); the entrance→navigator wiring
 The assistant's persistent memory note "next session: swap the flat scan line for
 amber concentric rings" was **deleted** — the task is done and the note would
 have misdirected the next session toward hoops.
+
+**The session skills now live in the repo** at `.claude/skills/kundalini-session-start/`
+and `.claude/skills/kundalini-session-end/`, alongside the `launch.json` that was
+already tracked there. They were previously only under
+`AppData\Roaming\Claude\local-agent-mode-sessions\skills-plugin\...`, which is
+app-managed and can be overwritten — an edit made there this session was at risk
+of being discarded. **The repo copies are canonical and each says so at the top.**
+The AppData copies were deliberately left in place rather than deleted, because
+they belong to the skills plugin; where both exist, the project-scoped copy wins
+for this directory.
+
+Both skills were also corrected: `kundalini-session-start` step 8 previously sent
+a new session after Playwright at `/opt/pw-browsers/chromium` and
+`npm install playwright`. **Neither Node nor npm exists on this machine** — that
+guidance was a dead end and is replaced by the headless Chrome recipe.
+`kundalini-session-end` gained a rule that "not seen" is no longer an acceptable
+default, and a checklist line for it.
 
 ---
 

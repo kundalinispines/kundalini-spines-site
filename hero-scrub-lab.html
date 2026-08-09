@@ -3,10 +3,17 @@
      HERO SCRUB -> SPINE ASTER — ENTRANCE LAB   (isolated; zero production files
      touched. index.html and js/hero-video.js are NOT modified by this page.)
 
-     The sequence, per the owner's decision Aug 9 2026:
-       1. hero video, scrubbed by scroll (not autoplayed)
-       2. the spine aster reveals as its OWN full-screen beat
-       3. navigation comes after that
+     The sequence, per the owner's decisions Aug 9 2026:
+       1. hero video FREE-PLAYS from 0 to 5.469s, then holds that frame
+       2. scroll scrubs the remaining 3.299s of it
+       3. the spine aster reveals as its OWN full-screen beat
+       4. navigation comes after that
+
+     Step 1 replaced an earlier decision the same day ("scroll owns currentTime
+     from the first pixel"). 5.469s was marked by the owner on
+     hero-timeline-lab.html — the frame where the camera enters the spine and
+     turns for the nebula. See INTRO_END in the script; do not treat it as a
+     round number someone picked.
 
      MEASURED, and it dictates the markup below: the two hero encodes are not
      interchangeable for scrubbing.
@@ -55,11 +62,66 @@
   --outline-color: 242, 242, 238;
   --outline-a:     0.92;
   --mesh-a:        0.55;
-  --scan-a:        0.95;
-  --scan-h:        110px;
+  /* the rising motion cue. Was a flat scan line; became twin coils around a lit
+     central channel Aug 9 2026 (owner). Amber is quoted verbatim from the
+     navigator's --node-color in spine-lab.html so the two systems speak the
+     same language — do not drift it. JS caches these at init and on HUD input,
+     it does not read them per frame. */
+  --coil-color:    240, 165, 92;
+  --coil-turns:    5;      /* per strand, base to crown. Twin wants fewer than one. */
+  --coil-beam:     0.4;    /* strength of the central channel and its reach */
+  --coil-hug:      1;      /* 1 = follow the measured silhouette, 0 = constant radius */
+  --coil-clear:    14;     /* viewBox units of air between silhouette and coil */
   --feather:       7%;
   --breathe:       0.012;
   --breathe-ms:    7600ms;
+  /* ---- the handoff to navigation.
+     The aster disintegrates into the nebula and the navigator's wireframe fades
+     in behind it. Owner's decision Aug 9 2026, having been shown that the two
+     artworks cannot match on both axes.
+
+     THE TWO SPINES ARE DIFFERENT DRAWINGS. Measured art bounding boxes, both
+     inside a 1200x2150 box:
+         spine-aster.svg    x 428-773, y 81-2069  ->  345 x 1988   aspect 0.174
+         spine-ui-wire.png  x 381-820, y 34-2107  ->  439 x 2073   aspect 0.212
+     Matching HEIGHT was chosen — it is the dimension the eye reads on a vertical
+     column. The consequence is accepted, not overlooked: the navigator's spine
+     renders about 22% wider than the one that just dusted away (121px against
+     99px at the authored sizes). If that pop turns out to be too much, the fix
+     is a different artwork, NOT a non-uniform scale — squashing the wire to
+     345/439 of its width would visibly thin every vertebra.
+
+     The height match itself:
+         aster art on screen = --aster-h * 1988.41/2150
+         wire  art on screen = --nav-spine-h * 2073/2150
+     Setting those equal gives --nav-spine-h = --aster-h * (1988.41/2073).
+     Change --aster-h and this tracks it; hard-code either and they drift. */
+  --nav-spine-h:   calc(var(--aster-h) * 0.95919);
+  /* Art centres are not quite box centres: the aster's sits at 1075.2 of 2150
+     (dead centre), the wire's at 1070.5 (4.5 units high). Nudged down by
+     4.5/2150 of its own height so the two columns share a centreline. Worth
+     about 1.2px — below notice on its own, but this whole beat is a size match,
+     so it is corrected rather than rounded away. */
+  --nav-art-nudge: 0.00209;
+
+  --dust-ms:       2200ms;
+  --dust-lift:     1;      /* how hard the particles are drawn upward */
+  --dust-spread:   1;      /* lateral wander and outward drift */
+  --nav-fade-ms:   900ms;
+
+  /* quoted from spine-lab.html's settled values — do not drift these */
+  --spine-anat-opacity:  0.64;
+  --spine-anat-bright:   0.9;
+  --spine-anat-contrast: 0.7;
+  --node-color:          240, 165, 92;
+  --node-size:           10.5px;
+  --node-idle-opacity:   0.79;
+  --node-glow:           10px;
+  --node-glow-a:         0.59;
+  --node-mark-a:         0.5;
+  --node-label-offset:   180px;
+  --cord-opacity:        0.7;
+
   --reveal-ms:     2600ms;
   --reveal-ease:   cubic-bezier(0.22, 0.61, 0.36, 1);
   --mesh-delay:    900ms;
@@ -68,16 +130,23 @@
 
 @property --p { syntax: '<number>'; inherits: true; initial-value: 0; }
 
-/* PLANNED, next session (owner, Aug 9 2026): .aster__scan is a placeholder shape.
-   It becomes concentric amber rings matching the navigation reticle — same
-   --node-color 240,165,92, same continuous-ripple feel as node-pulse in
-   spine-lab.html — but oriented as a HULA HOOP around the column, travelling up
-   it and beaming upward, rather than a flat line lying across it. Stated as a
-   direction to work from, not a fixed spec. Note it implies perspective: a ring
-   encircling the spine reads as an ellipse whose minor axis varies with height,
-   so it likely wants a rotateX 3D transform or an animated SVG ellipse, not a
-   flat circle. Whatever replaces it, keep the --scan-live gating below and keep
-   its position welded to the same --p that drives the mask. */
+/* DONE Aug 9 2026 — this replaced the flat .aster__scan line.
+   Twin serpents: two coils half a turn apart winding around a lit central
+   channel. Ida and pingala around sushumna, which is the band's own iconography
+   and the reason this variant was chosen over a single coil or a plain hoop.
+   Amber is the navigator's --node-color, quoted not approximated.
+
+   Why a coil and not the concentric hoops first sketched: a hoop's minor axis
+   varies with height, and with the eye at mid-screen it passes through ZERO
+   exactly as the wavefront crosses centre — the ring degenerates into a flat
+   horizontal line, which is precisely the shape being replaced, appearing at
+   the worst possible moment. The fix that survived is in ringAt() in the
+   script: the virtual eye sits ABOVE the top of the column, so every ring is
+   seen from above and stays open the whole way up. If you ever move the eye
+   back to mid-screen you will reintroduce that collapse.
+
+   Geometry is MEASURED from spine-aster.svg, not guessed — see the block
+   comment on HALF in the script before touching any radius. */
 
 /* --scan-live gates the leading edge on ACTUAL MOTION.
    Under scroll-linking the cue parks wherever the reader stops, so a thing whose
@@ -145,19 +214,34 @@
   background: url("assets/hero/spine-aster-mesh.webp") center / contain no-repeat;
   opacity: calc(var(--mesh-a) * var(--mesh-on));
 }
-/* --p lives on the STICKY wrapper, not on the wipe: the scan line is a sibling
-   of the wipe, so a value set on the wipe never reaches it and the leading edge
-   would sit frozen while the mask travelled. One value, common ancestor. */
-.aster__scan {
-  position: absolute; left: -6%; right: -6%; height: var(--scan-h);
-  bottom: calc(var(--p) * 100% - var(--scan-h) / 2);
-  background: radial-gradient(ellipse at center,
-      rgba(255,250,244, var(--scan-a)) 0%,
-      rgba(240,165,92, calc(var(--scan-a) * 0.55)) 32%,
-      transparent 72%);
-  filter: blur(2px); pointer-events: none;
-  /* present only while the wipe is actually travelling — and only while the
-     reader is actually moving it (--scan-live). */
+/* --p lives on the STICKY wrapper, not on the wipe: the coil canvases are
+   SIBLINGS of the wipe, so a value set on the wipe never reaches them and the
+   cue would sit frozen while the mask travelled. One value, common ancestor.
+   This bit twice already — once here, once on the old scan line. */
+
+/* TWO canvases, and their order in the markup is load-bearing:
+   --back sits BEFORE .aster__wipe so the far half of each strand passes behind
+   the spine, --front sits AFTER so the near half passes in front of it. That
+   back/front split is the entire illusion of winding AROUND rather than lying
+   ON. One canvas cannot do it, and neither can SVG without a separate path per
+   segment. Canvas is used because every segment carries its own width, colour
+   and glow derived from its depth and its recency — roughly 1200 of them a
+   frame, which is cheap on a canvas and absurd in the DOM.
+   Both canvases are children of .aster, so the breathe animation scales them
+   with the artwork and they stay in register for free.
+   The gate below is byte-for-byte the old scan line's, deliberately: in over
+   the first 7% of the reveal, out over the last 7%, all multiplied by
+   --scan-live so the cue is absent whenever the reader is not moving. */
+.aster__coil {
+  position: absolute; inset: 0; pointer-events: none;
+  /* width/height 100% are REQUIRED, not belt-and-braces. A canvas is a replaced
+     element, so `inset: 0` with auto width resolves to its INTRINSIC size (the
+     width/height content attributes, default 300x150) instead of stretching to
+     the containing block the way a div does. Worse, the script sizes the backing
+     store from the measured box, so the element fed its own measurement back
+     into itself and the height ran away — measured 300x754 against an artwork
+     box of 345x619 before this line existed. */
+  width: 100%; height: 100%;
   opacity: calc(min(var(--p) * 14, 1)
               * (1 - max((var(--p) - 0.93) * 14, 0))
               * var(--scan-live));
@@ -168,6 +252,86 @@
    value still inherits down. */
 .aster                    { --scan-live: 0; transition: --scan-live 420ms ease; }
 .is-moving .aster         { --scan-live: 1; transition: --scan-live 90ms ease; }
+/* ---------------------------------------------------------------- the dust
+   One more canvas over the aster. When the reveal completes, the aster is
+   rasterised once (mesh + outline, at the opacities they were wearing), sampled
+   into particles, and the DOM copy is hidden — from then on this canvas draws
+   BOTH the intact remainder and the particles that have left, which is what
+   makes the column erode rather than have a copy fly off an intact spine.
+   Particles lift from the base upward, so the crown is the last thing to go. */
+.aster__dust {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  pointer-events: none; opacity: 0;
+}
+.aster__dust.on { opacity: 1; }
+/* the canvas owns the picture the moment dusting starts */
+.beat__stick.is-dusting .aster__wipe,
+.beat__stick.is-dusting .aster__coil { opacity: 0; }
+
+/* ---------------------------------------------------------------- the bones
+   The wire sits BEHIND the aster and fades up while the dust is still leaving,
+   so it reads as being uncovered rather than arriving. Flesh strips away, bone
+   remains. It is fixed and full-viewport because this is where the entrance
+   ends: once it is up, the page stops scrolling. */
+.nav {
+  position: fixed; inset: 0; z-index: 40;
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none;
+  transition: opacity var(--nav-fade-ms) var(--ease-standard);
+}
+html.is-nav .nav { opacity: 1; pointer-events: auto; }
+/* THE SCROLL ENDS HERE. The entrance is a one-way door, consistent with the
+   reveal's forward-only latch: a transmission that has arrived does not
+   un-arrive, and a reader who has been delivered to the navigation is not sent
+   back up the tunnel. The HUD's Reset is the way out, and it exists because
+   this is a lab — a production build would need a considered answer instead. */
+html.is-nav, html.is-nav body { overflow: hidden; }
+
+.nav__spine {
+  position: relative; height: var(--nav-spine-h); aspect-ratio: 1200 / 2150;
+  transform: translateY(calc(var(--nav-spine-h) * var(--nav-art-nudge)));
+}
+.nav__spine img {
+  width: 100%; height: 100%; display: block;
+  opacity: var(--spine-anat-opacity);
+  filter: contrast(var(--spine-anat-contrast)) brightness(var(--spine-anat-bright));
+}
+/* the thread the nodes are strung on, spanning the wire's ART, not its box */
+.nav__cord {
+  position: absolute; left: 50%; width: 1px; transform: translateX(-50%);
+  background: linear-gradient(180deg, transparent, rgba(242,242,238,0.5) 12%,
+              rgba(242,242,238,0.5) 88%, transparent);
+  filter: drop-shadow(0 0 4px rgba(242,242,238,0.45));
+  opacity: var(--cord-opacity);
+}
+.nav__node {
+  position: absolute; left: 50%; width: 0; height: 0;
+  /* each node ignites in turn as the bones are uncovered — delay set inline */
+  opacity: 0; transition: opacity 520ms var(--ease-standard);
+}
+html.is-nav .nav__node { opacity: 1; }
+.nav__dot {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+  width: var(--node-size); height: var(--node-size); border-radius: 50%;
+  background: rgba(255,236,214,1);
+  box-shadow: 0 0 var(--node-glow) rgba(var(--node-color), var(--node-glow-a));
+  opacity: var(--node-idle-opacity);
+}
+.nav__dot::after {
+  content: ''; position: absolute; top: 50%; left: 50%;
+  width: 200%; height: 200%; transform: translate(-50%,-50%);
+  border: 1px solid rgba(var(--node-color), var(--node-mark-a)); border-radius: 50%;
+}
+.nav__label {
+  position: absolute; top: 50%; transform: translateY(-50%);
+  white-space: nowrap; font-family: var(--font-mono); font-size: var(--fs-mono);
+  letter-spacing: var(--tracking-label); text-transform: uppercase;
+  color: var(--text-primary); text-shadow: 0 0 10px rgba(5,5,5,0.95), 0 0 3px rgba(5,5,5,1);
+}
+.nav__label i { font-style: normal; color: rgba(var(--node-color), 0.85); margin-right: 8px; }
+.nav__node[data-side="left"]  .nav__label { right: var(--node-label-offset); text-align: right; }
+.nav__node[data-side="right"] .nav__label { left:  var(--node-label-offset); }
+
 @keyframes aster-breathe {
   0%, 100% { transform: scaleY(1); }
   50%      { transform: scaleY(calc(1 + var(--breathe))); }
@@ -205,6 +369,34 @@
 }
 .hud .btn:hover { color: var(--text-primary); border-color: var(--color-bone); }
 .hud input[type=range] { width: 100px; }
+.hud [data-tip] { cursor: help; }
+
+/* The bar grew from 8 controls to 18 across this session and now wraps to three
+   rows — 125px, a sixth of a 720px viewport, sitting exactly where the sacrum is
+   and where the dust starts leaving. Collapsible so the entrance can be judged
+   without it. Measured, not guessed at. */
+html.hud-min .hud > *:not(.hud__toggle) { display: none; }
+html.hud-min .hud { background: none; padding: 8px 16px; }
+
+/* ONE shared tooltip, positioned by script, rather than a ::after on each
+   control. The HUD is a full-width row, so a tooltip centred on its own control
+   would hang off the viewport at either end — and the obvious fix, clipping
+   overflow on a wrapper, cannot be used here: this page depends on
+   position: sticky, and making an ancestor a scroll container breaks it. One
+   fixed element clamped to the viewport sidesteps both problems. */
+.tip {
+  position: fixed; z-index: 70; max-width: 300px;
+  padding: 9px 11px;
+  background: rgba(10,11,13,0.97);
+  border: 1px solid rgba(216,208,190,0.28);
+  border-left: 2px solid rgba(240,165,92,0.75);
+  color: var(--text-secondary);
+  font-family: var(--font-mono); font-size: 10.5px; line-height: 1.55;
+  letter-spacing: 0.03em; text-transform: none;
+  opacity: 0; pointer-events: none;
+  transition: opacity 120ms var(--ease-standard);
+}
+.tip.on { opacity: 1; }
 
 @media (prefers-reduced-motion: reduce) {
   /* no scrubbing, no wipe — the poster frame and a fully present spine. */
@@ -212,7 +404,10 @@
   .beat  { height: 100svh; }
   .beat__stick { --p: 1; --mesh-on: 1; transition: none; }
   .aster { animation: none; }
-  .aster__scan { display: none; }
+  .aster__coil { display: none; }
+  /* no disintegration; the bones are simply there once the beat is done */
+  .aster__dust { display: none; }
+  .nav { transition: none; }
   .scrub__copy { opacity: 1; transform: none; }
 }
 </style>
@@ -240,11 +435,15 @@
 <section class="beat" id="beat">
   <div class="beat__stick" id="beatStick">
     <div class="aster">
+      <!-- ORDER IS LOAD-BEARING: back canvas, then the spine, then front canvas.
+           See the .aster__coil comment in the stylesheet. -->
+      <canvas class="aster__coil aster__coil--back" id="coilBack" aria-hidden="true"></canvas>
       <div class="aster__wipe">
         <div class="aster__layer aster__mesh" aria-hidden="true"></div>
         <div class="aster__layer aster__outline" id="outline"></div>
       </div>
-      <div class="aster__scan" aria-hidden="true"></div>
+      <canvas class="aster__coil aster__coil--front" id="coilFront" aria-hidden="true"></canvas>
+      <canvas class="aster__dust" id="dust" aria-hidden="true"></canvas>
     </div>
   </div>
 </section>
@@ -256,7 +455,18 @@
   </div>
 </section>
 
+<!-- The bones. Height-matched to the aster's ART, not to its box — see
+     --nav-spine-h. Nodes are injected by the script so their positions can be
+     derived from the wire's measured art bounds rather than eyeballed. -->
+<div class="nav" id="nav" aria-hidden="true">
+  <div class="nav__spine" id="navSpine">
+    <img src="assets/hero/spine-ui-wire.png" alt="" decoding="async">
+    <div class="nav__cord" id="navCord"></div>
+  </div>
+</div>
+
 <div class="hud">
+  <button type="button" class="btn hud__toggle" id="hudToggle">Hide</button>
   <span>scrub <b id="pv">0.00</b></span>
   <span>video <b id="tv">0.00s</b></span>
   <span>aster <b id="av">0.00</b></span>
@@ -264,8 +474,19 @@
   <button type="button" class="btn" id="latch">Latch: on</button>
   <span>scrub len <input type="range" id="slen" min="150" max="600" step="10" value="260"><b id="slenv">260vh</b></span>
   <span>handoff <input type="range" id="hoff" min="0" max="0.4" step="0.01" value="0.12"><b id="hoffv">0.12</b></span>
+  <span>turns <input type="range" id="ctn" min="2" max="14" step="0.5" value="5"><b id="ctnv">5</b></span>
+  <span>beam <input type="range" id="cbm" min="0" max="1" step="0.02" value="0.4"><b id="cbmv">0.40</b></span>
+  <span>hug <input type="range" id="chg" min="0" max="1" step="0.05" value="1"><b id="chgv">1.00</b></span>
+  <span>intro <input type="range" id="intro" min="0" max="8.768" step="0.001" value="5.469"><b id="introv">5.469s</b></span>
+  <button type="button" class="btn" id="replay">Replay intro</button>
+  <span>dust <input type="range" id="dms" min="600" max="5000" step="50" value="2200"><b id="dmsv">2200ms</b></span>
+  <span>lift <input type="range" id="dlf" min="0.2" max="2.5" step="0.05" value="1"><b id="dlfv">1.00</b></span>
+  <span>spread <input type="range" id="dsp" min="0" max="3" step="0.05" value="1"><b id="dspv">1.00</b></span>
+  <button type="button" class="btn" id="reset">Reset entrance</button>
   <button type="button" class="btn" id="top">Back to top</button>
 </div>
+
+<div class="tip" id="tip" role="status" aria-live="polite"></div>
 
 <script>
 (function () {
@@ -306,24 +527,79 @@
   // by the time this script runs, the event never fires, and a listener-only
   // version sits dead forever while the scroll maths keeps working perfectly —
   // scrub advances, video frozen at frame 0. Measured exactly that here.
-  function markReady() { ready = true; }
+  function markReady() {
+    ready = true;
+    // the intro dial cannot be bounded until the duration is known
+    var el = document.getElementById('intro');
+    if (el && isFinite(video.duration)) el.max = video.duration.toFixed(3);
+  }
   if (video.readyState >= 1) markReady();
   else video.addEventListener('loadedmetadata', markReady);
 
-  // prime the decoder — a video that has never decoded a frame seeks slowly the
-  // first time, which lands exactly on the user's first scroll if left to chance.
-  function prime() {
-    var p = video.play();
-    if (p && p.then) p.then(function () { video.pause(); video.currentTime = 0; }).catch(function () {});
-    else { try { video.pause(); } catch (e) {} }
+  // ---- the intro.
+  // The hero FREE-PLAYS from 0 to INTRO_END at real speed, then stops dead and
+  // holds that frame. Scroll owns everything after it and nothing before it.
+  // Owner's decision Aug 9 2026, replacing "scroll owns currentTime from the
+  // first pixel" — which is what the head comment above used to describe.
+  //
+  // INTRO_END WAS MARKED, NOT GUESSED. Found on hero-timeline-lab.html: 5.469s
+  // of the 8.768s clip (fraction 0.6238, frame 131 at the measured 24fps) — the
+  // frame where the camera enters the spine and turns for the nebula. Scroll
+  // therefore scrubs the remaining 3.299s, not the whole clip.
+  //
+  // The seam is invisible for a reader who waits: playback stops on exactly the
+  // frame that scroll progress 0 maps to, so the handover changes nothing on
+  // screen. A reader who scrolls DURING the intro gets a cut to that frame
+  // instead, and that is deliberate — someone who scrolls is asking for control.
+  // The alternative, ignoring their scroll until the intro finishes, is worse:
+  // --p keeps advancing from scroll position while the video does not, so the
+  // handover still jumps, just later and by more.
+  //
+  // Playing the intro also primes the decoder, which is what the old prime()
+  // existed to do — a video that has never decoded a frame seeks slowly the
+  // first time, and that would otherwise land on the reader's first scroll.
+  //
+  // If autoplay is REFUSED nothing breaks. Muted autoplay is normally allowed,
+  // but low-power modes do block it; then the video simply sits at 0, the intro
+  // never completes on its own, and the first scroll hands over as above.
+  var INTRO_END = 5.469;
+  var introDone = false;
+
+  function endIntro(toMark) {
+    if (introDone) return;
+    introDone = true;
+    video.removeEventListener('timeupdate', introWatch);
+    try { video.pause(); } catch (e) {}
+    if (toMark && isFinite(video.duration)) video.currentTime = Math.min(INTRO_END, video.duration - 0.001);
   }
-  if (video.readyState >= 3) prime();
-  else video.addEventListener('canplay', prime, { once: true });
+  function introWatch() {
+    if (introDone) return true;
+    if (video.currentTime >= INTRO_END) { endIntro(true); return true; }
+    return false;
+  }
+  function startIntro() {
+    if (reduce || introDone) return;
+    var p = video.play();
+    if (p && p.catch) p.catch(function () {});
+    // rAF is the precise stop; timeupdate is the backstop for a starved frame
+    // loop. timeupdate alone fires roughly four times a second, which can
+    // overshoot the mark by a quarter second — plainly visible when the scrub
+    // that follows is only 3.3s long.
+    video.addEventListener('timeupdate', introWatch);
+    (function tick() {
+      if (introWatch()) return;
+      requestAnimationFrame(tick);
+    })();
+  }
+  if (video.readyState >= 3) startIntro();
+  else video.addEventListener('canplay', startIntro, { once: true });
 
   function pump() {
     queued = false;
     if (!ready || !isFinite(video.duration)) return;
-    var t = wantT * video.duration;
+    // Scroll maps onto INTRO_END..duration, NOT 0..duration. The first 5.469s
+    // belong to the intro and are never scrubbed.
+    var t = INTRO_END + wantT * Math.max(video.duration - INTRO_END, 0.001);
     if (Math.abs(video.currentTime - t) > 0.01) video.currentTime = t;
     tv.textContent = video.currentTime.toFixed(2) + 's';
   }
@@ -337,7 +613,13 @@
     var ps = progress(scrub);
     sStick.style.setProperty('--p', ps.toFixed(4));
     pv.textContent = ps.toFixed(2);
-    if (!reduce) { wantT = ps; if (!queued) { queued = true; requestAnimationFrame(pump); } }
+    if (!reduce) {
+      // A reader who scrolls is taking control, so the intro ends BEFORE the
+      // scrub writes currentTime — otherwise playback and the seek loop fight
+      // over the same element and the picture stutters between them.
+      if (!introDone && ps > 0.002) endIntro(true);
+      if (introDone) { wantT = ps; if (!queued) { queued = true; requestAnimationFrame(pump); } }
+    }
 
     var pb = progress(beat);
     if (mode() === 'scroll') {
@@ -351,6 +633,10 @@
       bStick.style.setProperty('--p', pEff.toFixed(4));
       bStick.classList.toggle('is-lit', pEff > 0.02);
       av.textContent = pEff.toFixed(2);
+      // drawn straight from the value we just wrote — no getComputedStyle round
+      // trip, and no frame the mask has advanced but the coil has not.
+      coilDraw(pEff);
+      if (pEff >= 0.999) beginHandoff();
     } else {
       // timed: the reveal runs on its own clock, fired once the beat is on screen
       if (!timedFired && pb > 0.02) {
@@ -360,7 +646,12 @@
         av.textContent = 'firing';
         // hold the edge lit for the length of the reveal — here the motion IS
         // the animation, so it must not be gated on the reader scrolling.
-        markMoving((parseFloat(getComputedStyle(root).getPropertyValue('--reveal-ms')) || 2600) + 200);
+        var revealMs = (parseFloat(getComputedStyle(root).getPropertyValue('--reveal-ms')) || 2600) + 200;
+        markMoving(revealMs);
+        coilPollFor(revealMs);
+        // timed mode has no scroll to tell us the reveal finished, so the
+        // handoff is scheduled off the same clock that drives it.
+        window.setTimeout(beginHandoff, revealMs + 400);
       } else if (timedFired && pb <= 0.001) {
         timedFired = false;
         bStick.style.setProperty('--p', '0');
@@ -391,6 +682,451 @@
     onScroll();
   }, { passive: true });
   window.addEventListener('resize', onScroll);
+
+  // ------------------------------------------------------------- the coil
+  // Twin serpents: two strands half a turn apart winding around a lit central
+  // channel. Ida and pingala around sushumna — chosen over a single coil or a
+  // plain hoop because a coil around nothing reads as decoration, and giving it
+  // a lit core to wind around makes it read as anatomy.
+  //
+  // GEOMETRY IS MEASURED, NOT GUESSED. assets/hero/spine-aster.svg was parsed
+  // Aug 9 2026 — all 13 paths flattened at 24 samples per cubic (60,162 points),
+  // then true edge intersections taken per horizontal scanline and cross-checked
+  // against an independent Pillow raster (agreement within 2 units on 1907 of
+  // 1980 rows). Two findings drive everything below:
+  //
+  //   1. THE COLUMN IS DRAWN DEAD STRAIGHT. Centre x = 600.44, sd 0.72 across
+  //      y 100..2050 — total drift 0.38 units over 1950 of height. So CXV is a
+  //      constant and there is no centre curve to follow. (Rows y=562 and
+  //      y=1376 look like a 17-unit lurch; they are single-row artifacts where
+  //      one wing of a transverse process enters the scanline a row before the
+  //      other. Not an S-curve. Do not "correct" for one.)
+  //   2. THE WIDTH PROFILE HAS ONE-ROW CLIFFS. Where a process's near-horizontal
+  //      top edge enters, halfwidth jumps in a single row: 94.3 at y=1660 to
+  //      146.4 at y=1661. A coil interpolating raw per-row widths jerks there.
+  //      HALF is therefore a smoothed UPPER envelope — 40 rows evenly spaced
+  //      y=81..2069, each the max halfwidth within +/-25 of that row, then a
+  //      running max over its immediate neighbours. The coil clears the
+  //      silhouette everywhere rather than tracking every bump.
+  //
+  // Landmarks worth knowing if you retune: sacral ala is the widest point of the
+  // artwork (halfwidth 172.6 at y=1753); the narrow waists between each
+  // vertebra's processes sit remarkably constant at halfwidth 55-57; and the
+  // cervical region is NOT the narrowest part — the cervical cap at y=127 is the
+  // second widest peak in the whole column.
+  var VB_W = 1200, VB_H = 2150, CXV = 600.4, Y_TOP = 82, Y_BOT = 2069, TAU = Math.PI * 2;
+  var HALF = [
+    132.7, 132.7, 132.7,  91.6,  96.6, 111.5, 125.3, 125.3, 125.3, 112.3,
+    110.8, 106.5, 101.7, 101.7, 101.7, 100.2,  99.6,  97.9,  90.5,  90.5,
+     78.5,  78.5, 116.6, 118.9, 118.9, 123.8, 132.3, 145.6, 145.6, 145.6,
+    162.6, 170.9, 172.6, 172.6, 172.6, 159.1, 137.8, 109.8,  88.3,  49.9
+  ];
+  var HALF_STEP = (2069 - 81) / (HALF.length - 1);
+
+  // The virtual eye sits ABOVE the crown, not at mid-screen. With a mid-screen
+  // eye the minor axis passes through zero exactly as the wavefront crosses
+  // centre, and the ring collapses to a flat horizontal line — the very shape
+  // this replaced, arriving at the worst moment. From above, every ring is seen
+  // from above and stays open the whole way up, and the foreshortening tightens
+  // as the coil climbs, which reads as the energy gathering. Do not move it.
+  var EYE_Y = Y_TOP - 420;
+
+  var CFG = { color: '240, 165, 92', turns: 5, beam: 0.4, hug: 1, clear: 14 };
+  var CORE = '255,250,244';
+  function cssNum(n, d) {
+    var v = parseFloat(getComputedStyle(root).getPropertyValue(n));
+    return isFinite(v) ? v : d;
+  }
+  function readCfg() {
+    var c = getComputedStyle(root).getPropertyValue('--coil-color');
+    if (c && c.trim()) CFG.color = c.trim();
+    CFG.turns = cssNum('--coil-turns', 5);
+    CFG.beam  = cssNum('--coil-beam', 0.4);
+    CFG.hug   = cssNum('--coil-hug', 1);
+    CFG.clear = cssNum('--coil-clear', 14);
+  }
+  readCfg();
+
+  function halfAt(y) {
+    var f = (y - 81) / HALF_STEP;
+    if (f <= 0) return HALF[0];
+    if (f >= HALF.length - 1) return HALF[HALF.length - 1];
+    var i = Math.floor(f);
+    return HALF[i] + (HALF[i + 1] - HALF[i]) * (f - i);
+  }
+  function ringAt(y) {
+    var hw = halfAt(y) * CFG.hug + 96 * (1 - CFG.hug);
+    var rx = hw + CFG.clear;
+    return { rx: rx, ry: rx * (0.16 + 0.30 * ((y - EYE_Y) / (Y_BOT - EYE_Y))) };
+  }
+
+  var cvBack = document.getElementById('coilBack'), cvFront = document.getElementById('coilFront');
+  // Backing store is sized from the live box every draw. The aster is sized in
+  // vh, so it changes on any viewport resize AND on mobile URL-bar show/hide;
+  // a canvas sized once at load goes soft or clips the moment either happens.
+  function fit(cv) {
+    var r = cv.getBoundingClientRect();
+    if (!r.width || !r.height) return null;
+    var dpr = Math.min(window.devicePixelRatio || 1, 2);
+    var w = Math.round(r.width * dpr), h = Math.round(r.height * dpr);
+    if (cv.width !== w) cv.width = w;
+    if (cv.height !== h) cv.height = h;
+    var ctx = cv.getContext('2d');
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+    var s = Math.min(w / VB_W, h / VB_H);
+    ctx.setTransform(s, 0, 0, s, (w - VB_W * s) / 2, (h - VB_H * s) / 2);
+    // shadowBlur is NOT scaled by the transform — it stays in device pixels.
+    // Everything else here is in viewBox units, so blur radii are stashed
+    // separately rather than being written as if they shared that space.
+    ctx.__blur = dpr;
+    return ctx;
+  }
+
+  // One strand. Called four times a frame: phase 0 and phase PI, each split into
+  // its far half (onto the back canvas) and its near half (onto the front).
+  // `near` selects which samples this pass is allowed to draw, so the same walk
+  // produces both halves without sorting anything.
+  // PERFORMANCE, UNMEASURED — read before blaming the scrub. Four calls a frame
+  // at S samples each means up to 4*S stroke() calls, a good share of them
+  // carrying shadowBlur, which is the expensive one. It could not be profiled
+  // here: the assistant's browser pane does not composite, so there were no
+  // frames to time. 220 is a deliberate trim from 300 (no visible difference at
+  // 620px tall with 5 turns) but it is not a fix.
+  // If it stutters on real hardware, the fix is NOT to thin the coil — group the
+  // segments into ~8 recency buckets and stroke each bucket as ONE path with one
+  // shadow setting. That is ~32 strokes a frame instead of ~880, and at 8
+  // buckets the banding in width and alpha is not visible.
+  function strand(ctx, yF, uF, phase, near) {
+    var S = 220, prev = null, b = ctx.__blur, am = CFG.color;
+    for (var i = 0; i <= S; i++) {
+      var y = Y_BOT + (yF - Y_BOT) * (i / S);
+      var u = (Y_BOT - y) / (Y_BOT - Y_TOP);
+      var th = u * CFG.turns * TAU + phase;
+      var g = ringAt(y);
+      var d = Math.sin(th);
+      // +ry for the near half: the eye is above, so the half of the ring nearest
+      // the viewer projects LOWER on screen (canvas y grows downward).
+      var pt = { x: CXV + g.rx * Math.cos(th), y: y + g.ry * d, d: d };
+      if (prev && (pt.d > 0) === near) {
+        // recency — the leading turn is the bright one, everything behind it is
+        // the trail it has already laid down. Cubed so the falloff is fast
+        // enough that the crown of the coil reads as a single travelling event.
+        var rec = Math.pow(u / uF, 3.2);
+        ctx.beginPath();
+        ctx.moveTo(prev.x, prev.y);
+        ctx.lineTo(pt.x, pt.y);
+        if (near && rec > 0.45) { ctx.shadowColor = 'rgba(' + am + ',0.9)'; ctx.shadowBlur = 11 * b; }
+        else { ctx.shadowBlur = 0; }
+        ctx.strokeStyle = 'rgba(' + (near && rec > 0.78 ? CORE : am) +
+                          ',' + (near ? 0.34 + 0.60 * rec : 0.09 + 0.13 * rec).toFixed(3) + ')';
+        ctx.lineWidth = near ? 4 + 3.6 * rec : 2.7;
+        ctx.lineCap = 'round';
+        ctx.stroke();
+      }
+      prev = pt;
+    }
+  }
+
+  // sushumna — the lit core the strands wind around, from the base to the
+  // wavefront. Straight, because finding 1 says the column is.
+  function channel(ctx, yF) {
+    if (CFG.beam <= 0.01) return;
+    var b = ctx.__blur, am = CFG.color;
+    ctx.beginPath(); ctx.moveTo(CXV, Y_BOT); ctx.lineTo(CXV, yF);
+    ctx.lineCap = 'round';
+    ctx.shadowColor = 'rgba(' + am + ',0.75)'; ctx.shadowBlur = 13 * b;
+    ctx.strokeStyle = 'rgba(' + am + ',' + (0.30 * CFG.beam).toFixed(3) + ')';
+    ctx.lineWidth = 14; ctx.stroke();
+    ctx.shadowBlur = 6 * b;
+    ctx.strokeStyle = 'rgba(' + CORE + ',' + (0.34 * CFG.beam).toFixed(3) + ')';
+    ctx.lineWidth = 3.6; ctx.stroke();
+  }
+
+  // the reach — light thrown up the column ahead of the wavefront, into spine
+  // that has not been drawn yet, so the cue points where the reveal is going.
+  // Softened with gradient stops rather than ctx.filter: filter blur is not
+  // reliably in the same space as the transform, and this is dead simple.
+  function reach(ctx, yF) {
+    if (CFG.beam <= 0.01) return;
+    var top = Math.max(yF - 330, Y_TOP - 60);
+    if (top >= yF - 10) return;
+    var rx = ringAt(yF).rx, a = CFG.beam, am = CFG.color;
+    var gr = ctx.createLinearGradient(0, yF, 0, top);
+    gr.addColorStop(0,    'rgba(' + am + ',' + (0.44 * a).toFixed(3) + ')');
+    gr.addColorStop(0.18, 'rgba(' + am + ',' + (0.24 * a).toFixed(3) + ')');
+    gr.addColorStop(0.45, 'rgba(' + am + ',' + (0.11 * a).toFixed(3) + ')');
+    gr.addColorStop(0.72, 'rgba(' + am + ',' + (0.04 * a).toFixed(3) + ')');
+    gr.addColorStop(1,    'rgba(' + am + ',0)');
+    ctx.shadowBlur = 0;
+    ctx.beginPath();
+    ctx.moveTo(CXV - rx * 0.86, yF);
+    ctx.lineTo(CXV + rx * 0.86, yF);
+    ctx.lineTo(CXV + rx * 0.26, top);
+    ctx.lineTo(CXV - rx * 0.26, top);
+    ctx.closePath();
+    ctx.fillStyle = gr;
+    ctx.fill();
+  }
+
+  function drawCoil(p) {
+    var back = fit(cvBack), front = fit(cvFront);
+    if (!back || !front) return;
+    // The mask is a percentage of the FULL element box (viewBox height), not of
+    // the art bounding box, so the wavefront must be derived the same way or the
+    // coil and the wipe drift apart. Clamped to the art so the coil does not
+    // dangle below the coccyx at p=0.
+    var yF = VB_H * (1 - p);
+    if (yF > Y_BOT) yF = Y_BOT;
+    if (yF < Y_TOP - 40) yF = Y_TOP - 40;
+    var uF = (Y_BOT - yF) / (Y_BOT - Y_TOP);
+    if (uF <= 0.002) return;
+    strand(back,  yF, uF, 0,       false);
+    strand(back,  yF, uF, Math.PI, false);
+    channel(back, yF);
+    reach(back,   yF);
+    strand(front, yF, uF, 0,       true);
+    strand(front, yF, uF, Math.PI, true);
+  }
+
+  // SCROLL MODE DRAWS SYNCHRONOUSLY, NOT ON rAF. Chrome already delivers scroll
+  // events at most once per frame, so a rAF hop buys nothing — and it costs
+  // something real: the wipe is pure CSS and keeps advancing even when the frame
+  // loop is starved, so an rAF-gated coil silently desyncs from the mask it is
+  // supposed to be the leading edge of. Measured in the assistant's browser
+  // pane, which composites so rarely that rAF fired ONCE in 4.5 seconds; the
+  // mask tracked --p perfectly there while an rAF-driven coil never drew at all.
+  // Real hardware will not be that bad, but background tabs and low-power modes
+  // are the same failure in milder form.
+  //
+  // TIMED MODE is the one case that must poll: nothing calls back into JS while
+  // a CSS transition on --p runs, so the value has to be read each frame. It is
+  // bounded by the length of the reveal rather than left running forever.
+  var coilForce = false;
+  function coilVisible() {
+    var r = beat.getBoundingClientRect();
+    return r.bottom > 0 && r.top < window.innerHeight;
+  }
+  function coilDraw(p) {
+    if (reduce) return;
+    if (!coilForce && !coilVisible()) return;
+    coilForce = false;
+    drawCoil(p);
+  }
+  var pollUntil = 0, polling = false;
+  function coilPoll() {
+    if (performance.now() > pollUntil) { polling = false; return; }
+    requestAnimationFrame(coilPoll);
+    coilDraw(parseFloat(getComputedStyle(bStick).getPropertyValue('--p')) || 0);
+  }
+  function coilPollFor(ms) {
+    pollUntil = performance.now() + ms;
+    if (!polling) { polling = true; requestAnimationFrame(coilPoll); }
+  }
+
+  // Same shape as spine-lab.html's window.__spineLab: a way to drive the thing
+  // from the console (or from a test) without waiting on the frame loop.
+  // ------------------------------------------------- dust, and then the bones
+  // Measured alpha bounding box of spine-ui-wire.png (Pillow, Aug 9 2026):
+  // x 381-820, y 34-2107 inside a 1200x2150 file. Only the vertical bounds are
+  // used — the art's horizontal centre is 600.5 of 1200, i.e. dead centre, so
+  // nodes sit at left 50% with no correction.
+  var WIRE = { top: 34, bot: 2107, box: 2150 };
+
+  // Same six destinations, same order, same sides and y values as the node table
+  // in spine-lab.html. Kept in step by hand for now; the real fix is the
+  // css/spine-ui.css + js/spine-ui.js extraction that is already on the list.
+  // NOTE this is a REDUCED navigator — dot, mark ring, cord and label only. No
+  // cards, no reticle, no rising comet. Enough to judge the handoff, not the
+  // navigation itself.
+  var NAV_NODES = [
+    { idx: '01', title: 'Music',          side: 'right', y: 14 },
+    { idx: '02', title: 'Our Story',      side: 'left',  y: 29 },
+    { idx: '03', title: 'The Messengers', side: 'right', y: 44 },
+    { idx: '04', title: 'Our Ethos',      side: 'left',  y: 59 },
+    { idx: '05', title: 'Archive',        side: 'right', y: 74 },
+    { idx: '06', title: 'Timeline',       side: 'left',  y: 88 }
+  ];
+
+  (function buildNav() {
+    var host = document.getElementById('navSpine');
+    var artTop = WIRE.top / WIRE.box, artH = (WIRE.bot - WIRE.top) / WIRE.box;
+    var cord = document.getElementById('navCord');
+    cord.style.top = (artTop * 100).toFixed(3) + '%';
+    cord.style.height = (artH * 100).toFixed(3) + '%';
+    NAV_NODES.forEach(function (n, i) {
+      var el = document.createElement('div');
+      el.className = 'nav__node';
+      el.setAttribute('data-side', n.side);
+      // y is a percentage of the SPINE, as in spine-lab.html — mapped onto the
+      // wire's measured ART bounds, not onto its 1200x2150 box. Map it to the
+      // box instead and every node sits about 1.6% high, which floats the top
+      // one clean off the bone.
+      el.style.top = ((artTop + (n.y / 100) * artH) * 100).toFixed(3) + '%';
+      el.style.transitionDelay = (140 + i * 90) + 'ms';
+      el.innerHTML = '<span class="nav__dot"></span>' +
+                     '<span class="nav__label"><i>' + n.idx + '</i>' + n.title + '</span>';
+      host.appendChild(el);
+    });
+  })();
+
+  var dustCv = document.getElementById('dust');
+  var raster = null, parts = null, dustImg = null, dusting = false;
+
+  // Rasterise what is actually on screen: mesh then outline, each at the opacity
+  // its CSS gives it. Getting this wrong is visible — the swap from DOM to
+  // canvas happens in one frame, so any difference in density or colour reads as
+  // a flicker at the exact moment the effect starts.
+  function rasterizeAster(cb) {
+    if (raster) { cb(raster); return; }
+    var svgEl = document.querySelector('#outline svg');
+    var box = document.querySelector('.aster').getBoundingClientRect();
+    if (!svgEl || !box.width) { cb(null); return; }
+    var dpr = Math.min(window.devicePixelRatio || 1, 2);
+    var W = Math.round(box.width * dpr), H = Math.round(box.height * dpr);
+    var off = document.createElement('canvas'); off.width = W; off.height = H;
+    var ox = off.getContext('2d');
+
+    // currentColor DOES NOT RESOLVE inside an <img>. An SVG loaded as an image
+    // is an independent document with no CSS context from this page, so
+    // fill="currentColor" falls back to black and the outline vanishes entirely
+    // against the sky. Substituted explicitly on a clone — and the clone also
+    // carries width/height, without which Chrome rasterises at intrinsic size.
+    var clone = svgEl.cloneNode(true);
+    clone.setAttribute('width', W);
+    clone.setAttribute('height', H);
+    clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+    var markup = new XMLSerializer().serializeToString(clone)
+                   .replace(/currentColor/g, 'rgb(242,242,238)');
+
+    var mesh = new Image(), line = new Image(), n = 0;
+    function step() {
+      if (++n < 2) return;
+      ox.globalAlpha = cssNum('--mesh-a', 0.55);
+      try { ox.drawImage(mesh, 0, 0, W, H); } catch (e) {}
+      ox.globalAlpha = cssNum('--outline-a', 0.92);
+      try { ox.drawImage(line, 0, 0, W, H); } catch (e) {}
+      ox.globalAlpha = 1;
+      raster = { cv: off, w: W, h: H, dpr: dpr };
+      cb(raster);
+    }
+    mesh.onload = step; mesh.onerror = step;
+    line.onload = step; line.onerror = step;
+    mesh.src = 'assets/hero/spine-aster-mesh.webp';
+    line.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(markup);
+  }
+
+  function buildParticles(r) {
+    var stride = Math.max(2, Math.round(2 * r.dpr));
+    var d = r.cv.getContext('2d').getImageData(0, 0, r.w, r.h).data;
+    var list = [];
+    for (var y = 0; y < r.h; y += stride) {
+      for (var x = 0; x < r.w; x += stride) {
+        var i = (y * r.w + x) * 4;
+        if (d[i + 3] < 14) continue;
+        list.push({
+          x: x, y: y, r: d[i], g: d[i + 1], b: d[i + 2], a: d[i + 3] / 255,
+          vx: Math.random() - 0.5,
+          sp: 0.6 + Math.random() * 0.8,
+          w:  Math.random() * 6.283,
+          // BASE FIRST, CROWN LAST. The sweep runs the same direction as the
+          // reveal and the coil did, so the crown is the last thing to leave —
+          // the column strips upward rather than collapsing.
+          dl: (1 - y / r.h) * 0.55 + Math.random() * 0.12
+        });
+      }
+    }
+    return list;
+  }
+
+  // Written straight into an ImageData buffer rather than with fillRect: there
+  // are on the order of fifteen thousand particles, and a fillStyle change per
+  // particle per frame is the thing that would actually cost the frame budget.
+  function drawDust(t) {
+    var r = raster; if (!r || !parts) return;
+    var ctx = dustCv.getContext('2d');
+    if (dustCv.width !== r.w) { dustCv.width = r.w; dustCv.height = r.h; dustImg = null; }
+    if (!dustImg) dustImg = ctx.createImageData(r.w, r.h);
+    var buf = dustImg.data; buf.fill(0);
+    var W = r.w, H = r.h;
+    var S = Math.max(2, Math.round(2 * r.dpr));
+    var lift = cssNum('--dust-lift', 1), spread = cssNum('--dust-spread', 1);
+    for (var k = 0; k < parts.length; k++) {
+      var p = parts[k];
+      var px, py, al;
+      if (t <= p.dl) { px = p.x; py = p.y; al = p.a; }
+      else {
+        var u = (t - p.dl) / (1 - p.dl);
+        if (u >= 1) continue;
+        var e = u * u;                                  // accelerate away
+        py = p.y - e * H * 0.95 * lift * p.sp;
+        px = p.x + p.vx * spread * 90 * u + Math.sin(p.w + u * 6) * 16 * spread * u;
+        al = p.a * (1 - u);
+        if (al <= 0.004) continue;
+      }
+      var ai = (al * 255) | 0, cx = px | 0, cy = py | 0;
+      for (var yy = 0; yy < S; yy++) {
+        var row = cy + yy;
+        if (row < 0 || row >= H) continue;
+        var base = row * W * 4;
+        for (var xx = 0; xx < S; xx++) {
+          var col = cx + xx;
+          if (col < 0 || col >= W) continue;
+          var o = base + col * 4;
+          if (buf[o + 3] >= ai) continue;               // keep the brighter overlap
+          buf[o] = p.r; buf[o + 1] = p.g; buf[o + 2] = p.b; buf[o + 3] = ai;
+        }
+      }
+    }
+    ctx.putImageData(dustImg, 0, 0);
+  }
+
+  function showNav() { document.documentElement.classList.add('is-nav'); }
+
+  function runDust() {
+    rasterizeAster(function (r) {
+      if (!r) { showNav(); return; }               // no raster, no theatre — still deliver the nav
+      parts = buildParticles(r);
+      bStick.classList.add('is-dusting');
+      dustCv.classList.add('on');
+      var ms = cssNum('--dust-ms', 2200), t0 = performance.now();
+      // The bones come up WHILE the dust is still leaving, not after it. They
+      // are meant to be uncovered, not to arrive.
+      var navAt = window.setTimeout(showNav, ms * 0.35);
+      (function frame(now) {
+        var t = (now - t0) / ms;
+        if (t >= 1) {
+          window.clearTimeout(navAt);
+          dustCv.classList.remove('on');
+          showNav();
+          return;
+        }
+        drawDust(t);
+        requestAnimationFrame(frame);
+      })(t0);
+    });
+  }
+
+  // The entrance completes itself. Once the reveal is fully drawn there is
+  // nothing left to scrub, so this is not gated on further scrolling.
+  function beginHandoff() {
+    if (dusting) return;
+    dusting = true;
+    if (reduce) { showNav(); return; }
+    runDust();
+  }
+
+  // pump is included because it too is rAF-gated: on a surface that is not
+  // compositing there is no way to prove the scroll-to-currentTime mapping
+  // without driving it by hand.
+  window.__heroScrub = {
+    drawCoil: drawCoil, cfg: CFG, ringAt: ringAt, halfAt: halfAt,
+    pump: pump, introEnd: function () { return INTRO_END; },
+    introDone: function () { return introDone; },
+    beginHandoff: beginHandoff, drawDust: drawDust,
+    rasterizeAster: rasterizeAster, buildParticles: buildParticles,
+    parts: function () { return parts; }, raster: function () { return raster; }
+  };
 
   document.getElementById('mode').addEventListener('click', function () {
     var timed = bStick.classList.toggle('mode-timed');
@@ -423,8 +1159,151 @@
     onScroll();
   });
 
+  // Coil dials. Each one has to call markMoving as well as redrawing: dragging a
+  // slider is not scrolling, --scan-live is therefore 0, and without this the
+  // coil is dutifully redrawn at opacity 0 and the slider looks broken.
+  function coilDial(id, cssVar, prop, fmt) {
+    var el = document.getElementById(id), out = document.getElementById(id + 'v');
+    el.addEventListener('input', function () {
+      root.style.setProperty(cssVar, el.value);
+      CFG[prop] = parseFloat(el.value);
+      out.textContent = fmt(el.value);
+      coilForce = true;
+      markMoving(700);
+    });
+  }
+  coilDial('ctn', '--coil-turns', 'turns', function (v) { return v; });
+  coilDial('cbm', '--coil-beam',  'beam',  function (v) { return (+v).toFixed(2); });
+  coilDial('chg', '--coil-hug',   'hug',   function (v) { return (+v).toFixed(2); });
+
+  // The aster is sized in vh, so a resize changes the canvas box and the backing
+  // store with it — redraw or the coil is left stretched from the old geometry.
+  window.addEventListener('resize', function () {
+    coilForce = true;
+    coilDraw(parseFloat(getComputedStyle(bStick).getPropertyValue('--p')) || 0);
+  });
+
+  var introEl = document.getElementById('intro'), introVal = document.getElementById('introv');
+  introEl.addEventListener('input', function () {
+    INTRO_END = parseFloat(introEl.value);
+    introVal.textContent = INTRO_END.toFixed(3) + 's';
+    onScroll();
+  });
+  document.getElementById('replay').addEventListener('click', function () {
+    window.scrollTo({ top: 0 });
+    introDone = false;
+    if (isFinite(video.duration)) video.currentTime = 0;
+    startIntro();
+  });
+
+  function dial(id, cssVar, fmt) {
+    var el = document.getElementById(id), out = document.getElementById(id + 'v');
+    el.addEventListener('input', function () {
+      root.style.setProperty(cssVar, el.value + (cssVar === '--dust-ms' ? 'ms' : ''));
+      out.textContent = fmt(el.value);
+    });
+  }
+  dial('dms', '--dust-ms',     function (v) { return v + 'ms'; });
+  dial('dlf', '--dust-lift',   function (v) { return (+v).toFixed(2); });
+  dial('dsp', '--dust-spread', function (v) { return (+v).toFixed(2); });
+
+  // The entrance is a one-way door by design, so the lab needs an explicit way
+  // back. Everything stateful is unwound here — miss one and the next run
+  // starts half-finished, which reads as a bug in the effect rather than in the
+  // reset.
+  document.getElementById('reset').addEventListener('click', function () {
+    document.documentElement.classList.remove('is-nav');
+    bStick.classList.remove('is-dusting', 'is-lit');
+    document.getElementById('dust').classList.remove('on');
+    dusting = false; parts = null;
+    asterMax = 0; timedFired = false;
+    bStick.style.setProperty('--p', '0');
+    introDone = false;
+    window.scrollTo(0, 0);
+    if (isFinite(video.duration)) video.currentTime = 0;
+    startIntro();
+    onScroll();
+  });
+
   document.getElementById('top').addEventListener('click', function () {
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+
+  // ---- HUD tooltips.
+  // Written in the shape of the production /?tune panel TIPS map — keyed by
+  // control id, single-quoted, and DELIBERATELY FREE OF APOSTROPHES. One
+  // apostrophe inside a single-quoted tip kills that panel, and these are meant
+  // to be lifted into js/spine-bg.js wholesale rather than rewritten. Say
+  // "does not" rather than the contraction and the constraint costs nothing.
+  var TIPS = {
+    pv:     'Scroll progress through the hero beat, 0 to 1. Drives the video scrub, the copy fade and the dissolve into the sky.',
+    tv:     'Current time of the hero video. Holds at the intro mark until scroll takes over, then tracks it.',
+    av:     'Reveal progress of the spine aster, 0 to 1. Ratchets forward only unless Latch is off.',
+    mode:   'Scroll-linked ties the reveal to scroll position. Timed once fires it on its own clock when the beat comes on screen.',
+    latch:  'Forward-only ratchet. On, the spine never disassembles when you scroll back up. Turn it off to judge the wipe in both directions.',
+    slen:   'Length of the hero scrub in viewport heights. 260 lands near 12 wheel notches; at 340 the entrance became a chore.',
+    hoff:   'Fraction of the scrub spent dissolving the hero into the star field rather than cutting to it.',
+    ctn:    'Turns per strand, base to crown. Twin serpents want fewer turns than a single coil, or the two stop reading as two.',
+    cbm:    'Strength of the lit central channel and the beam it throws up the column ahead of the wavefront.',
+    chg:    'How closely the coil follows the measured spine silhouette. 1 hugs the artwork, 0 holds a constant radius.',
+    intro:  'Where free playback stops and scroll takes over. 5.469s is the marked frame where the camera enters the spine.',
+    replay: 'Scroll to the top and play the hero intro again from zero.',
+    dms:    'How long the aster takes to strip away into the nebula.',
+    dlf:    'How hard the dust is drawn upward. The sweep runs base to crown, so the crown is always the last thing to leave.',
+    dsp:    'Lateral wander and outward drift of the dust. At 0 it goes straight up.',
+    reset:  'Unwind the whole entrance — clears the bones, unlocks the scroll and replays from the top.',
+    top:      'Smooth scroll back to the start without resetting any state.',
+    hudToggle: 'Collapse this bar. It wraps to three rows and covers the lower sixth of the screen, which is exactly where the dust starts leaving. Press H to toggle.'
+  };
+
+  var hudToggle = document.getElementById('hudToggle');
+  function toggleHud() {
+    var min = document.documentElement.classList.toggle('hud-min');
+    hudToggle.textContent = min ? 'Controls' : 'Hide';
+  }
+  hudToggle.addEventListener('click', toggleHud);
+  document.addEventListener('keydown', function (e) {
+    // not while a slider has focus — arrow keys and H would fight each other
+    if (e.key === 'h' || e.key === 'H') {
+      if (e.target && e.target.tagName === 'INPUT') return;
+      toggleHud();
+    }
+  });
+
+  var tipEl = document.getElementById('tip'), tipHost = null;
+  function showTip(host) {
+    var txt = host.getAttribute('data-tip');
+    if (!txt) return;
+    tipHost = host;
+    tipEl.textContent = txt;
+    tipEl.classList.add('on');
+    // Measured AFTER the text is in, because the width depends on it. Clamped to
+    // the viewport so the controls at either end of the row do not push a
+    // tooltip off screen — which on a page with no overflow clipping would drag
+    // a horizontal scrollbar into existence mid-entrance.
+    var r = host.getBoundingClientRect(), t = tipEl.getBoundingClientRect();
+    var left = r.left + r.width / 2 - t.width / 2;
+    left = Math.max(12, Math.min(left, window.innerWidth - t.width - 12));
+    tipEl.style.left = Math.round(left) + 'px';
+    tipEl.style.top  = Math.round(r.top - t.height - 10) + 'px';
+  }
+  function hideTip(host) {
+    if (host && host !== tipHost) return;
+    tipHost = null;
+    tipEl.classList.remove('on');
+  }
+  Object.keys(TIPS).forEach(function (id) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    // the wrapping span where there is one, so the label and readout are part of
+    // the hover target rather than just the slider thumb
+    var host = el.closest('span') || el;
+    host.setAttribute('data-tip', TIPS[id]);
+    host.addEventListener('mouseenter', function () { showTip(host); });
+    host.addEventListener('mouseleave', function () { hideTip(host); });
+    // keyboard reaches these too — the sliders are all tabbable
+    host.addEventListener('focusin',  function () { showTip(host); });
+    host.addEventListener('focusout', function () { hideTip(host); });
   });
 
   onScroll();

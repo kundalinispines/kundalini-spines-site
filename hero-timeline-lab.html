@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<!-- ==========================================================================
+     HERO TIMELINE — FINDING THE HANDOFF POINT   (isolated utility; zero
+     production files touched. This page reads the hero encodes and nothing else.)
+
+     PURPOSE: the owner chose "play normally, then hand off to the scrub" over
+     "scroll owns currentTime from the first pixel" (which is what
+     hero-scrub-lab.html currently does). That needs one number — the timestamp
+     where free playback stops and the scrub takes over. Expected to land where
+     the camera enters the spine and heads toward the nebula.
+
+     Once the mark is known, the scrub in hero-scrub-lab.html rebases from
+     0..duration to MARK..duration. That is why this page reports the mark as a
+     fraction of duration as well as in seconds — the fraction is the number the
+     scrub maths actually needs.
+
+     mp4 is listed FIRST here for the same measured reason as the scrub lab:
+     mp4 seeks resolve in ~0ms after the first, webm has a median seek of 154ms
+     peaking at 250ms. This page seeks constantly (every filmstrip frame, every
+     step, every slider drag), so webm-first would make it unusable. Do not
+     "restore" source order to match index.html.
+     ========================================================================== -->
+<html lang="en" class="page-home">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hero Timeline · Kundalini Spines</title>
+<meta name="robots" content="noindex">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/base.css">
+
+<style>
+body { background: #050505; min-height: 100vh; }
+.wrap { max-width: 1180px; margin: 0 auto; padding: 28px 20px 60px; }
+
+.head { display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap; margin-bottom: 18px; }
+.head h1 { font-family: var(--font-display); font-weight: 800; font-size: 1.6rem;
+  letter-spacing: var(--tracking-display); color: var(--text-primary); margin: 0; }
+.head .meta { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--color-gray-400); }
+
+.stage { position: relative; background: #000; border: 1px solid rgba(216,208,190,0.18); }
+.stage video { display: block; width: 100%; max-height: 56vh; object-fit: contain; background: #000; }
+/* the frame the scrub would freeze on, drawn over the video during a preview */
+.stage__badge {
+  position: absolute; left: 12px; top: 12px; padding: 5px 10px;
+  font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase;
+  background: rgba(240,165,92,0.16); border: 1px solid rgba(240,165,92,0.55);
+  color: rgb(240,165,92); opacity: 0; transition: opacity 180ms var(--ease-standard);
+}
+.stage__badge.on { opacity: 1; }
+/* where the mark sits, drawn straight onto the video as a vertical rule */
+.stage__markline {
+  position: absolute; top: 0; bottom: 0; width: 1px; background: rgba(240,165,92,0.9);
+  box-shadow: 0 0 8px rgba(240,165,92,0.7); display: none; pointer-events: none;
+}
+
+/* ---------------------------------------------------------------- scrubber */
+.scrubrow { display: flex; align-items: center; gap: 14px; margin: 16px 0 6px; }
+.scrubrow input[type=range] { flex: 1; accent-color: rgb(240,165,92); }
+.time {
+  font-family: var(--font-mono); font-size: 15px; color: var(--text-primary);
+  font-variant-numeric: tabular-nums; min-width: 132px;
+}
+.time small { color: var(--color-gray-400); font-size: 11px; }
+
+.transport { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 10px 0 22px; }
+.btn {
+  padding: 7px 12px; cursor: pointer; background: transparent;
+  border: 1px solid rgba(216,208,190,0.36); color: var(--text-secondary);
+  font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase;
+}
+.btn:hover { color: var(--text-primary); border-color: var(--color-bone); }
+.btn--amber { border-color: rgba(240,165,92,0.6); color: rgb(240,165,92); }
+.btn--amber:hover { border-color: rgb(240,165,92); background: rgba(240,165,92,0.1); }
+.transport .sep { width: 1px; height: 22px; background: rgba(216,208,190,0.2); margin: 0 4px; }
+.hint { font-family: var(--font-mono); font-size: 10px; color: var(--color-gray-500);
+  letter-spacing: 0.1em; text-transform: uppercase; }
+
+/* ---------------------------------------------------------------- filmstrip */
+.striphead { display: flex; align-items: baseline; gap: 12px; margin-bottom: 8px; }
+.striphead h2 { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.16em;
+  text-transform: uppercase; color: var(--color-gray-400); margin: 0; font-weight: 500; }
+.strip {
+  display: grid; grid-auto-flow: column; grid-auto-columns: minmax(96px, 1fr);
+  gap: 4px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 26px;
+}
+.cell { position: relative; cursor: pointer; border: 1px solid transparent; background: #0b0b0b; }
+.cell canvas { display: block; width: 100%; height: auto; }
+.cell span {
+  position: absolute; left: 0; bottom: 0; padding: 2px 5px;
+  font-family: var(--font-mono); font-size: 9.5px; color: var(--text-primary);
+  background: rgba(0,0,0,0.72); letter-spacing: 0.06em;
+}
+.cell:hover { border-color: rgba(216,208,190,0.6); }
+.cell.is-mark { border-color: rgb(240,165,92); }
+
+/* ---------------------------------------------------------------- the mark */
+.mark {
+  border: 1px solid rgba(240,165,92,0.4); background: rgba(240,165,92,0.06);
+  padding: 16px 18px; margin-bottom: 22px;
+}
+.mark h2 { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.16em;
+  text-transform: uppercase; color: rgb(240,165,92); margin: 0 0 12px; font-weight: 500; }
+.mark .none { font-family: var(--font-mono); font-size: 12px; color: var(--color-gray-400); }
+.mark dl { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px 22px; margin: 0 0 14px; }
+.mark dt { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--color-gray-400); margin-bottom: 3px; }
+.mark dd { font-family: var(--font-mono); font-size: 17px; color: var(--text-primary);
+  margin: 0; font-variant-numeric: tabular-nums; }
+.mark dd em { font-style: normal; font-size: 11px; color: var(--color-gray-400); }
+
+.note { font-family: var(--font-body); font-size: 0.92rem; line-height: 1.6;
+  color: var(--text-secondary); max-width: 76ch; }
+.note code { font-family: var(--font-mono); font-size: 0.84em; color: rgb(240,165,92); }
+.err { color: #e07a5f; font-family: var(--font-mono); font-size: 12px; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="head">
+    <h1>Hero timeline</h1>
+    <span class="meta" id="meta">loading…</span>
+  </div>
+
+  <div class="stage">
+    <video id="v" muted playsinline preload="auto" crossorigin="anonymous">
+      <!-- mp4 FIRST, deliberately — see the head comment. -->
+      <source src="assets/hero/messengers-hero-video.mp4" type="video/mp4">
+      <source src="assets/hero/messengers-hero-video.webm" type="video/webm">
+    </video>
+    <div class="stage__badge" id="badge">holding — scrub would take over here</div>
+  </div>
+
+  <div class="scrubrow">
+    <input type="range" id="scrub" min="0" max="1" step="0.0005" value="0">
+    <span class="time"><b id="tnow">0.000</b>s <small id="fnow">f0</small></span>
+  </div>
+
+  <div class="transport">
+    <button type="button" class="btn" id="b1s">&minus;1s</button>
+    <button type="button" class="btn" id="b100">&minus;0.1s</button>
+    <button type="button" class="btn" id="bf">&minus;1 frame</button>
+    <button type="button" class="btn" id="play">Play</button>
+    <button type="button" class="btn" id="ff">+1 frame</button>
+    <button type="button" class="btn" id="f100">+0.1s</button>
+    <button type="button" class="btn" id="f1s">+1s</button>
+    <span class="sep"></span>
+    <button type="button" class="btn btn--amber" id="setmark">Mark handoff point</button>
+    <button type="button" class="btn" id="preview">Preview handoff</button>
+    <button type="button" class="btn" id="clear">Clear mark</button>
+    <span class="hint">&larr; &rarr; step a frame &middot; shift = 0.1s &middot; space = play</span>
+  </div>
+
+  <div class="mark" id="markbox">
+    <h2>Handoff point</h2>
+    <div class="none" id="marknone">No mark yet — scrub to the moment the camera enters the spine, then hit <b>Mark handoff point</b>.</div>
+    <dl id="markdl" hidden>
+      <div><dt>Timestamp</dt><dd><span id="mkT">—</span><em>s</em></dd></div>
+      <div><dt>Frame</dt><dd id="mkF">—</dd></div>
+      <div><dt>Fraction of duration</dt><dd id="mkP">—</dd></div>
+      <div><dt>Scrub covers</dt><dd><span id="mkR">—</span><em>s remaining</em></dd></div>
+    </dl>
+    <button type="button" class="btn btn--amber" id="copy" hidden>Copy numbers</button>
+  </div>
+
+  <div class="striphead">
+    <h2>Filmstrip</h2>
+    <span class="hint" id="stripstate">building…</span>
+    <button type="button" class="btn" id="dense">More frames</button>
+  </div>
+  <div class="strip" id="strip"></div>
+
+  <p class="note">
+    The number I need is the <b>fraction of duration</b>. If the hero free-plays from 0 to the
+    mark and the scrub takes over from there, the scrub in <code>hero-scrub-lab.html</code> stops
+    mapping scroll <code>0..1</code> onto <code>0..duration</code> and starts mapping it onto
+    <code>mark..duration</code>. Everything else in that page — the latch, the handoff dissolve,
+    the aster beat — is unchanged.
+    <br><br>
+    <b>Preview handoff</b> plays from 0 at real speed, stops dead on the mark and holds it. That is
+    exactly what a reader would see before they scroll, so judge the cut on that, not on the
+    scrubber.
+  </p>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  var v      = document.getElementById('v');
+  var scrub  = document.getElementById('scrub');
+  var tnow   = document.getElementById('tnow'), fnow = document.getElementById('fnow');
+  var meta   = document.getElementById('meta');
+  var strip  = document.getElementById('strip'), stripState = document.getElementById('stripstate');
+  var badge  = document.getElementById('badge');
+
+  var fps = 30;          // assumed until measured — see measureFps()
+  var fpsMeasured = false;
+  var dur = 0;
+  var mark = null;
+  var cells = [];
+
+  // readyState is checked BEFORE falling back to the event, everywhere. Media
+  // events do not replay: on a warm cache the video is already readyState 4 by
+  // the time this script runs, the event never fires, and a listener-only
+  // version sits dead forever. This exact bug cost a session on the scrub lab —
+  // it works on first load and dies on every reload after.
+  function whenMeta(fn) {
+    if (v.readyState >= 1 && isFinite(v.duration)) fn();
+    else v.addEventListener('loadedmetadata', fn, { once: true });
+  }
+  function whenData(fn) {
+    if (v.readyState >= 2) fn();
+    else v.addEventListener('loadeddata', fn, { once: true });
+  }
+
+  function fmt(t) { return t.toFixed(3); }
+  function frameOf(t) { return Math.round(t * fps); }
+
+  function paint() {
+    var t = v.currentTime;
+    tnow.textContent = fmt(t);
+    fnow.textContent = 'f' + frameOf(t) + (fpsMeasured ? '' : '?');
+    if (dur) scrub.value = (t / dur).toFixed(5);
+    for (var i = 0; i < cells.length; i++) {
+      cells[i].el.classList.toggle('is-mark', mark !== null && Math.abs(cells[i].t - mark) < (dur / cells.length) / 2);
+    }
+  }
+
+  function seek(t) {
+    if (!dur) return;
+    v.currentTime = Math.max(0, Math.min(dur - 0.001, t));
+  }
+  function step(d) { v.pause(); seek(v.currentTime + d); }
+
+  v.addEventListener('timeupdate', paint);
+  v.addEventListener('seeked', paint);
+
+  whenMeta(function () {
+    dur = v.duration;
+    meta.textContent = fmt(dur) + 's · ' + v.videoWidth + '×' + v.videoHeight +
+                       ' · ' + (v.currentSrc.split('.').pop());
+    paint();
+    // STRICTLY SEQUENTIAL. Both of these drive the same <video>: buildStrip
+    // seeks and pauses, measureFps plays. Started together, the strip's pause()
+    // kills the playback the measurement needs and fps silently stays at the
+    // assumed 30 — which is worse than no measurement, because the frame counter
+    // then looks authoritative while being wrong. Measured exactly that.
+    whenData(function () { buildStrip(24, measureFps); });
+  });
+
+  // ---- fps, measured rather than assumed.
+  // requestVideoFrameCallback reports the presentation time of each real frame,
+  // so the median delta between consecutive callbacks IS the frame interval.
+  // Without this the frame counter and the +/-1 frame buttons are fiction; 30 is
+  // only a placeholder. Falls back silently where rVFC is unsupported.
+  function measureFps() {
+    if (!('requestVideoFrameCallback' in HTMLVideoElement.prototype)) return;
+    var times = [], last = null, n = 0, finished = false;
+    var wasMuted = v.muted; v.muted = true;
+    v.currentTime = 0;
+    var p = v.play();
+    if (p && p.catch) p.catch(function () {});
+
+    // ABORT GUARD. rVFC only fires when a frame is actually PRESENTED, so on a
+    // surface that is not compositing (a background tab, a remote-controlled
+    // pane) the callback never arrives — and without this the video is left
+    // running to the end with the page none the wiser. Seen exactly that: the
+    // element sat parked at 8.768s with fps still assumed. Restores state and
+    // leaves the counter honestly marked as an assumption.
+    var abort = setTimeout(function () {
+      if (finished) return;
+      finished = true;
+      v.pause(); v.currentTime = 0; v.muted = wasMuted;
+      stripState.textContent += ' · fps not measurable here';
+    }, 4000);
+
+    function cb(now, m) {
+      if (finished) return;
+      if (last !== null && m.mediaTime > last) times.push(m.mediaTime - last);
+      last = m.mediaTime;
+      if (++n < 40) { v.requestVideoFrameCallback(cb); return; }
+      finished = true; clearTimeout(abort);
+      v.pause(); v.currentTime = 0; v.muted = wasMuted;
+      if (times.length > 6) {
+        times.sort(function (a, b) { return a - b; });
+        var med = times[Math.floor(times.length / 2)];
+        if (med > 0.005 && med < 0.2) {
+          fps = Math.round(1 / med);
+          fpsMeasured = true;
+          meta.textContent += ' · ' + fps + 'fps measured';
+          paint();
+        }
+      }
+    }
+    v.requestVideoFrameCallback(cb);
+  }
+
+  // ---- filmstrip.
+  // Seeks are serialised: one at a time, each waiting for its own 'seeked'.
+  // Firing them in parallel queues seeks faster than the decoder retires them,
+  // which is the same mistake that makes naive scrubbers feel like glue.
+  var building = false;
+  function buildStrip(n, done) {
+    if (building || !dur) return;
+    building = true;
+    strip.innerHTML = '';
+    cells = [];
+    var resume = v.currentTime;
+    var w = 160, h = Math.round(w * (v.videoHeight / v.videoWidth)) || 90;
+    var i = 0;
+
+    function makeCell(t) {
+      var d = document.createElement('div');
+      d.className = 'cell';
+      var c = document.createElement('canvas');
+      c.width = w; c.height = h;
+      var s = document.createElement('span');
+      s.textContent = t.toFixed(2) + 's';
+      d.appendChild(c); d.appendChild(s);
+      d.addEventListener('click', function () { v.pause(); seek(t); });
+      strip.appendChild(d);
+      cells.push({ el: d, t: t, cv: c });
+      return c;
+    }
+
+    function next() {
+      if (i >= n) {
+        building = false;
+        stripState.textContent = n + ' frames · click to jump';
+        seek(resume);
+        if (done) done();
+        return;
+      }
+      var t = (i + 0.5) / n * dur;
+      var cv = makeCell(t);
+      stripState.textContent = 'building ' + (i + 1) + '/' + n + '…';
+      var onSeeked = function () {
+        v.removeEventListener('seeked', onSeeked);
+        try { cv.getContext('2d').drawImage(v, 0, 0, cv.width, cv.height); }
+        catch (e) { stripState.innerHTML = '<span class="err">thumbnail blocked — serve over http, not file://</span>'; }
+        i++; next();
+      };
+      v.addEventListener('seeked', onSeeked);
+      v.currentTime = t;
+    }
+    v.pause();
+    next();
+  }
+
+  document.getElementById('dense').addEventListener('click', function () {
+    buildStrip(cells.length >= 48 ? 24 : 48);
+  });
+
+  // ---- transport
+  scrub.addEventListener('input', function () { v.pause(); seek(scrub.value * dur); });
+  document.getElementById('b1s').addEventListener('click', function () { step(-1); });
+  document.getElementById('b100').addEventListener('click', function () { step(-0.1); });
+  document.getElementById('bf').addEventListener('click', function () { step(-1 / fps); });
+  document.getElementById('ff').addEventListener('click', function () { step(1 / fps); });
+  document.getElementById('f100').addEventListener('click', function () { step(0.1); });
+  document.getElementById('f1s').addEventListener('click', function () { step(1); });
+
+  var playBtn = document.getElementById('play');
+  function togglePlay() {
+    if (v.paused) { previewing = false; badge.classList.remove('on'); v.play(); }
+    else v.pause();
+  }
+  playBtn.addEventListener('click', togglePlay);
+  v.addEventListener('play',  function () { playBtn.textContent = 'Pause'; });
+  v.addEventListener('pause', function () { playBtn.textContent = 'Play'; });
+
+  // ---- the mark
+  function showMark() {
+    var has = mark !== null;
+    document.getElementById('marknone').hidden = has;
+    document.getElementById('markdl').hidden = !has;
+    document.getElementById('copy').hidden = !has;
+    if (!has) { paint(); return; }
+    document.getElementById('mkT').textContent = fmt(mark);
+    document.getElementById('mkF').textContent = 'f' + frameOf(mark) + (fpsMeasured ? '' : ' (fps assumed)');
+    document.getElementById('mkP').textContent = (mark / dur).toFixed(4);
+    document.getElementById('mkR').textContent = fmt(dur - mark);
+    paint();
+  }
+  document.getElementById('setmark').addEventListener('click', function () {
+    mark = v.currentTime; showMark();
+  });
+  document.getElementById('clear').addEventListener('click', function () {
+    mark = null; badge.classList.remove('on'); showMark();
+  });
+  document.getElementById('copy').addEventListener('click', function () {
+    var txt = 'handoff mark ' + fmt(mark) + 's of ' + fmt(dur) + 's' +
+              ' | fraction ' + (mark / dur).toFixed(4) +
+              ' | frame ' + frameOf(mark) + (fpsMeasured ? ' @' + fps + 'fps' : ' @' + fps + 'fps assumed') +
+              ' | scrub would cover ' + fmt(dur - mark) + 's';
+    if (navigator.clipboard) navigator.clipboard.writeText(txt);
+    this.textContent = 'Copied';
+    var b = this;
+    setTimeout(function () { b.textContent = 'Copy numbers'; }, 1400);
+  });
+
+  // ---- preview: play from 0 at real speed, stop dead on the mark, hold it.
+  // Uses a rAF watcher rather than 'timeupdate' because timeupdate only fires
+  // about four times a second, which would overshoot the mark by up to a
+  // quarter second — enough to miss the cut entirely on an 8.8s clip.
+  var previewing = false;
+  document.getElementById('preview').addEventListener('click', function () {
+    if (mark === null) return;
+    previewing = true;
+    badge.classList.remove('on');
+    v.currentTime = 0;
+    var p = v.play();
+    if (p && p.catch) p.catch(function () {});
+    function stopAtMark() {
+      if (!previewing || v.currentTime < mark) return false;
+      v.pause(); seek(mark); previewing = false;
+      badge.classList.add('on');
+      v.removeEventListener('timeupdate', stopAtMark);
+      return true;
+    }
+    // rAF is the precise watcher; timeupdate is a backstop for the case where
+    // the frame loop is starved and rAF stops arriving, which would otherwise
+    // let the preview run straight past the mark to the end of the clip.
+    // timeupdate alone is not enough — it fires roughly 4x a second, which on an
+    // 8.8s clip can overshoot by a quarter second and miss the cut entirely.
+    v.addEventListener('timeupdate', stopAtMark);
+    (function watch() {
+      if (!previewing) return;
+      if (stopAtMark()) return;
+      requestAnimationFrame(watch);
+    })();
+  });
+
+  // ---- keyboard
+  document.addEventListener('keydown', function (e) {
+    if (e.target.tagName === 'INPUT' && e.key !== ' ') return;
+    if (e.key === 'ArrowLeft')  { e.preventDefault(); step(e.shiftKey ? -0.1 : -1 / fps); }
+    if (e.key === 'ArrowRight') { e.preventDefault(); step(e.shiftKey ?  0.1 :  1 / fps); }
+    if (e.key === ' ')          { e.preventDefault(); togglePlay(); }
+  });
+
+  showMark();
+})();
+</script>
+</body></html>

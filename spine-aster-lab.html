@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<!-- ==========================================================================
+     SPINE ASTER — REVEAL LAB  (isolated, changes zero production files)
+
+     Purpose: judge the ENTRANCE of the owner-supplied spine artwork before it is
+     bound to anything. The trigger ("after the hero scrub down") is deliberately
+     NOT wired here — this page owns the choreography only, and exposes it behind
+     a Replay button so it can be watched as many times as it takes.
+
+     The asset arrived as spineaster1.svg (1.05 MB) with TWO layers that turned
+     out to be complementary, not duplicates:
+       - a raster layer: a dense wireframe MESH over every vertebra, authored as
+         pure-black RGB with the shape carried in alpha. Invisible on this site
+         until recoloured, which is why it reads as an empty black rectangle if
+         you just open it.
+       - a vector layer: 13 paths tracing the OUTLINE of the same spine.
+     Split into assets/hero/spine-aster-mesh.webp (recoloured white, alpha byte-
+     identical to source) and assets/hero/spine-aster.svg (paths verbatim,
+     fill=currentColor). Both keep the source 1200x2150 coordinate space, so they
+     stack in register with no fiddling.
+
+     Why a MASK WIPE and not stroke-dashoffset: the outline is a single 2089-
+     command path 32527 units long. A dash draw traces it in PATH order, which
+     wanders around the contour and reads as scribble. A mask advances in SPACE,
+     so the spine assembles cervical-to-sacrum (or the reverse) the way a body
+     would. The bright scan line at the mask front is the same visual idea as the
+     connector energy head already in spine-lab.html.
+     ========================================================================== -->
+<html lang="en" class="page-home">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Spine Aster — Reveal Lab · Kundalini Spines</title>
+<meta name="robots" content="noindex">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/star-bg.css">
+
+<style>
+:root {
+  /* idle the reactive sky with no audio engine on this page */
+  --kick: 0; --snare: 0; --charge: 0;
+  --kick-stars: 0; --kick-cloud: 0; --snare-bolt: 0;
+
+  /* ---- reveal choreography ---- */
+  --aster-h:            86vh;     /* rendered height of the column */
+  --reveal-ms:          2600ms;   /* the wipe itself */
+  --reveal-ease:        cubic-bezier(0.22, 0.61, 0.36, 1);
+  --mesh-delay:         900ms;    /* mesh starts materialising mid-wipe */
+  --mesh-ms:            1600ms;
+  --settle-ms:          1200ms;
+
+  /* ---- look ---- */
+  --outline-color:      242, 242, 238;   /* Signal White */
+  --outline-w:          1.6;
+  --outline-a:          0.92;
+  --mesh-a:             0.55;     /* resting opacity of the wireframe mesh */
+  --scan-a:             0.95;     /* the leading edge */
+  --scan-h:            110px;     /* its softness */
+  --feather:             7%;      /* mask edge softness */
+  --breathe:            0.012;
+  --breathe-ms:        7600ms;
+
+  /* direction: the project's established convention is that energy RISES
+     (kundalini) — see the "do not fix the upward energy" note in V2HANDOFF 19.
+     So the default assembles sacrum -> cervical. Flip via the control. */
+  --dir: 1;
+}
+
+.stage {
+  position: relative; min-height: 100svh; overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+}
+
+/* the two layers, stacked in register — same viewBox, same box */
+.aster {
+  position: relative;
+  height: var(--aster-h);
+  aspect-ratio: 1200 / 2150;
+  animation: aster-breathe var(--breathe-ms) var(--ease-standard) infinite;
+}
+.aster__layer { position: absolute; inset: 0; }
+
+.aster__outline { color: rgb(var(--outline-color)); opacity: var(--outline-a); }
+.aster__outline svg { width: 100%; height: 100%; display: block; }
+/* the outline paths are closed contours meant to be FILLED — filling them is
+   what produces the linework you see, not stroking them. */
+.aster__outline path { fill: currentColor; }
+
+.aster__mesh {
+  background: url("assets/hero/spine-aster-mesh.webp") center / contain no-repeat;
+  opacity: 0;
+}
+
+/* ---- the wipe -----------------------------------------------------------
+   One mask on a wrapper drives BOTH layers, so outline and mesh are revealed by
+   exactly the same edge. --p runs 0 -> 1; the gradient stop chases it. */
+@property --p { syntax: '<number>'; inherits: true; initial-value: 0; }
+
+/* --p lives on .stage, NOT on .aster__wipe: the scan line is a SIBLING of the
+   wipe, so anything set on the wipe is invisible to it and the leading edge
+   would sit still while the mask travelled. One value on the common ancestor
+   drives both, which is the only way they stay welded together. */
+.aster__wipe {
+  position: absolute; inset: 0;
+  -webkit-mask-image: linear-gradient(to top,
+      #000 calc(var(--p) * 100%),
+      transparent calc(var(--p) * 100% + var(--feather)));
+          mask-image: linear-gradient(to top,
+      #000 calc(var(--p) * 100%),
+      transparent calc(var(--p) * 100% + var(--feather)));
+}
+/* downward variant — assembles cervical -> sacrum instead */
+.stage.is-down .aster__wipe {
+  -webkit-mask-image: linear-gradient(to bottom,
+      #000 calc(var(--p) * 100%),
+      transparent calc(var(--p) * 100% + var(--feather)));
+          mask-image: linear-gradient(to bottom,
+      #000 calc(var(--p) * 100%),
+      transparent calc(var(--p) * 100% + var(--feather)));
+}
+
+/* the leading edge — a warm scan line riding the mask front */
+.aster__scan {
+  position: absolute; left: -6%; right: -6%;
+  height: var(--scan-h);
+  bottom: calc(var(--p) * 100% - var(--scan-h) / 2);
+  background: radial-gradient(ellipse at center,
+      rgba(255, 250, 244, var(--scan-a)) 0%,
+      rgba(240, 165, 92, calc(var(--scan-a) * 0.55)) 32%,
+      transparent 72%);
+  opacity: 0; pointer-events: none;
+  filter: blur(2px);
+}
+.stage.is-down .aster__scan { bottom: auto; top: calc(var(--p) * 100% - var(--scan-h) / 2); }
+
+/* ---- run states ---- */
+.stage.is-armed { --p: 0; }
+.stage.is-armed .aster__mesh { opacity: 0; }
+.stage.is-armed .aster__scan { opacity: 0; }
+
+.stage.is-running {
+  --p: 1;
+  transition: --p var(--reveal-ms) var(--reveal-ease);
+}
+.stage.is-running .aster__scan {
+  opacity: 1;
+  transition: opacity 260ms ease;
+}
+.stage.is-running .aster__mesh {
+  opacity: var(--mesh-a);
+  transition: opacity var(--mesh-ms) var(--ease-standard) var(--mesh-delay);
+}
+/* settle: the scan line dissolves once it runs off the end */
+.stage.is-settled .aster__scan { opacity: 0; transition: opacity var(--settle-ms) ease; }
+
+@keyframes aster-breathe {
+  0%, 100% { transform: scaleY(1); }
+  50%      { transform: scaleY(calc(1 + var(--breathe))); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aster { animation: none; }
+  .stage.is-running .aster__wipe { transition-duration: 1ms; }
+  .stage.is-running .aster__mesh { transition-duration: 1ms; transition-delay: 0s; }
+  .aster__scan { display: none; }
+}
+
+/* ---- page chrome ---- */
+.bar {
+  position: fixed; inset: auto 0 0 0; z-index: 40;
+  display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+  padding: 12px 18px;
+  background: linear-gradient(0deg, rgba(5,5,5,0.86), rgba(5,5,5,0));
+  font-family: var(--font-mono); font-size: 11px;
+}
+.bar__note { color: var(--color-gray-400); margin-right: auto; }
+.btn {
+  padding: 7px 12px; cursor: pointer; background: transparent;
+  border: 1px solid rgba(216,208,190,0.36); color: var(--text-secondary);
+  font-family: inherit; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase;
+}
+.btn:hover { color: var(--text-primary); border-color: var(--color-bone); }
+.btn--go { color: var(--color-bone); border-color: rgba(240,165,92,0.6); }
+.fld { display: flex; align-items: center; gap: 7px; color: var(--color-gray-400); }
+.fld input[type=range] { width: 108px; }
+.fld b { color: var(--text-primary); font-weight: 500; min-width: 46px; text-align: right;
+         font-variant-numeric: tabular-nums; }
+</style>
+</head>
+<body>
+
+<main class="stage is-armed" id="stage">
+  <div class="aster" id="aster">
+    <div class="aster__wipe">
+      <div class="aster__layer aster__mesh" aria-hidden="true"></div>
+      <div class="aster__layer aster__outline" id="outline"><!-- svg injected --></div>
+    </div>
+    <div class="aster__scan" aria-hidden="true"></div>
+  </div>
+</main>
+
+<div class="bar">
+  <span class="bar__note">Spine Aster · reveal only — trigger not wired</span>
+  <span class="fld">Duration <input type="range" id="ms" min="600" max="6000" step="100" value="2600"><b id="msv">2600ms</b></span>
+  <span class="fld">Mesh in <input type="range" id="md" min="0" max="4000" step="50" value="900"><b id="mdv">900ms</b></span>
+  <span class="fld">Mesh level <input type="range" id="ma" min="0" max="1" step="0.01" value="0.55"><b id="mav">0.55</b></span>
+  <span class="fld">Scan <input type="range" id="sa" min="0" max="1" step="0.01" value="0.95"><b id="sav">0.95</b></span>
+  <span class="fld">Feather <input type="range" id="ft" min="0" max="30" step="0.5" value="7"><b id="ftv">7%</b></span>
+  <button type="button" class="btn" id="dir">Rise ↑</button>
+  <button type="button" class="btn btn--go" id="go">Replay</button>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  var stage = document.getElementById('stage');
+  var root  = document.documentElement;
+
+  // Inline the SVG rather than <img>, so the outline can take currentColor and
+  // so individual vertebrae stay addressable for later per-segment work.
+  fetch('assets/hero/spine-aster.svg')
+    .then(function (r) { return r.text(); })
+    .then(function (t) { document.getElementById('outline').innerHTML = t; run(); })
+    .catch(function (e) {
+      document.getElementById('outline').textContent = 'Could not load spine-aster.svg — serve over http, not file://';
+      console.error(e);
+    });
+
+  var settleTimer = null;
+  function run() {
+    window.clearTimeout(settleTimer);
+    stage.classList.remove('is-running', 'is-settled');
+    stage.classList.add('is-armed');
+    // force the armed state to commit before transitioning out of it
+    void stage.offsetWidth;
+    stage.classList.remove('is-armed');
+    stage.classList.add('is-running');
+    var total = parseFloat(getComputedStyle(root).getPropertyValue('--reveal-ms')) || 2600;
+    settleTimer = window.setTimeout(function () { stage.classList.add('is-settled'); }, total);
+  }
+  document.getElementById('go').addEventListener('click', run);
+
+  var dirBtn = document.getElementById('dir');
+  dirBtn.addEventListener('click', function () {
+    var down = stage.classList.toggle('is-down');
+    dirBtn.textContent = down ? 'Fall ↓' : 'Rise ↑';
+    run();
+  });
+
+  [['ms','--reveal-ms','ms'],['md','--mesh-delay','ms'],['ma','--mesh-a',''],
+   ['sa','--scan-a',''],['ft','--feather','%']].forEach(function (f) {
+    var el = document.getElementById(f[0]), out = document.getElementById(f[0] + 'v');
+    el.addEventListener('input', function () {
+      root.style.setProperty(f[1], el.value + f[2]);
+      out.textContent = el.value + f[2];
+      run();
+    });
+  });
+})();
+</script>
+</body>
+</html>

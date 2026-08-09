@@ -41,6 +41,23 @@
    SPINE UI TOKENS  (prototype-local; destined for css/tokens.css after review)
    Every spine value is a variable so the existing /?tune panel can adopt them
    later by adding field descriptors — no second control system.
+
+   Aug 9 2026 — the idle-read pass. These are the owner's own numbers, dialled
+   live through spine-lab.html?tune on their own screen, not values reasoned out
+   from a screenshot. Thirteen moved: nodes brighter and slightly larger with a
+   wider halo (0.6 -> 0.79 opacity, 7px -> 10px glow), their destination ring
+   strengthened (alpha 0.35 -> 0.5), the wireframe pulled back behind them
+   (opacity 0.74 -> 0.64, contrast 1 -> 0.7), the ripple made tighter and quicker
+   (scale 2.3 -> 1.55, period 1700ms -> 1350ms), the active ring smaller
+   (62px -> 48px), non-active nodes barely receding (0.3 -> 0.78), and labels
+   pulled in (210px -> 180px). Do not "restore" any of these to the earlier
+   numbers — the earlier numbers were judged in an 800x450 pane at the clamp()
+   floor, which is exactly the mistake this pass corrected.
+
+   The through-line, so later passes do not undo it by halves: the nodes carry
+   the page and the wireframe is backdrop. Every one of these moved in that same
+   direction, which is why raising the spine back up or thinning the nodes will
+   feel wrong even though each looks reasonable on its own.
    -------------------------------------------------------------------------- */
 :root {
   /* Idle the reactive sky correctly with no audio engine on this page: the
@@ -49,6 +66,16 @@
   --kick-stars: 0; --kick-cloud: 0; --snare-bolt: 0;
 
   /* Spine structure */
+  --axis-shift:              0px;    /* lateral offset of the whole spine axis.
+                                        Only the ?tune panel moves it, so the
+                                        spine stays optically centred in the
+                                        space the panel leaves. Everything that
+                                        references the axis — spine, nodes, hint,
+                                        and the card placement in JS — reads THIS,
+                                        so there is one source of truth. Padding
+                                        on the stage cannot do the job: absolutely
+                                        positioned cards resolve their 50% against
+                                        the padding box, so they would not move. */
   --spine-ui-opacity:        1;
   --spine-ui-line-w:         1.5px;
   --spine-ui-line:           rgba(216, 208, 190, 0.22);   /* the cord — faint */
@@ -61,23 +88,66 @@
      a true transparent asset (assets/hero/spine-ui-wire.png, luminance->alpha).
      No black at all — the nebula shows through natively, no blend needed. */
   --spine-anat-w:            clamp(240px, 28vw, 380px);
-  --spine-anat-opacity:      0.74;   /* dimmed so the node string reads over it */
+  --spine-anat-opacity:      0.64;   /* dimmed so the node string reads over it */
   --spine-anat-bright:       0.9;
-  --spine-anat-contrast:     1;
+  --spine-anat-contrast:     0.7;    /* softened — the wireframe recedes behind
+                                        the nodes rather than competing with them */
   --spine-anat-sat:          0;      /* neutral white wireframe */
 
   /* Nodes */
-  --node-size:               10px;
-  --node-idle-opacity:       0.6;
+  --node-size:               10.5px;
+  --node-idle-opacity:       0.79;
   --node-hover-intensity:    1;
   --node-active-intensity:   1;
   --node-ring:               26px;    /* unfocused/hover ring size — smaller */
-  --node-ring-active:        62px;    /* clicked/active — bigger concentric circles */
-  --node-pulse-ms:           1700ms;
-  --node-dim-when-active:    0.3;     /* non-active nodes recede this far */
+  --node-ring-active:        48px;    /* clicked/active — bigger concentric circles */
+  --node-pulse-ms:           1350ms;
+  --node-dim-when-active:    0.78;    /* non-active nodes recede this far — high
+                                         on purpose: the spine stays legible as a
+                                         whole while a card is open, rather than
+                                         collapsing to a single lit point */
   --reticle-w:               300px;   /* horizontal crosshair span when focused */
   --node-color:              240, 165, 92;   /* warm amber-gold — kundalini energy; distinguishes nodes from the white spine */
-  --node-label-offset:       210px;   /* push labels clear of the spine glow */
+  --node-label-offset:       180px;   /* push labels clear of the spine glow */
+
+  /* Node IDLE read — how strongly a real destination announces itself before
+     anything is hovered. Split out of the hardcoded shadows so ?tune can dial
+     it live: the question these answer is "do the six read as clickable?". */
+  --node-glow:               10px;    /* amber halo radius on the idle dot */
+  --node-glow-a:             0.59;    /* ...and its alpha */
+  --node-core-a:             0.85;    /* the tight white core inside the dot */
+  --node-mark-size:          200%;    /* the thin static ring that marks a REAL
+                                         destination apart from a decorative point */
+  --node-mark-a:             0.5;     /* ...its alpha. The single biggest lever
+                                         on "is this a button or an ambience dot" */
+
+  /* Ripple rings — the keyframe's endpoints, hoisted so they are tunable */
+  --ring-scale:              1.55;    /* how far a ripple travels before dissolving —
+                                         short, so the ripple stays a tight halo on
+                                         its own node instead of reaching neighbours */
+  --ring-peak-a:             0.9;     /* brightness at the start of its travel */
+
+  /* Decorative energy-points (ambience, non-interactive) */
+  --point-size:              5px;
+  --point-idle:              0.1;     /* resting opacity between passes */
+  --point-flash:             0.85;    /* brightness as the rising light crosses */
+  --point-dim-when-active:   0.69;    /* how far the ambience drops once a card is
+                                         open. See the note on @property --point-dim
+                                         below: the old rule that tried to do this
+                                         never fired, so this is the first time the
+                                         value has actually reached the screen — and
+                                         0.69 is the first one anyone has judged. The
+                                         dead rule had asked for 0.12; seen working,
+                                         that read far too severe next to nodes that
+                                         only recede to 0.78. A multiplier, so 1 is
+                                         no dimming at all. */
+
+  /* The rising comet */
+  --comet-w:                 3.5px;
+  --comet-h:                 96px;
+  --comet-a:                 0.9;     /* plateau opacity mid-travel */
+  --comet-head:              7px;     /* diameter of the bright leading head */
+  --cord-opacity:            0.7;     /* the thin luminous thread the dots ride */
 
   /* Connectors */
   --connector-w:             1.5px;
@@ -167,7 +237,7 @@
    machine-like — it breathes; a single energy pulse drifts down it.
    -------------------------------------------------------------------------- */
 .spine {
-  position: absolute; top: 0; bottom: 0; left: 50%;
+  position: absolute; top: 0; bottom: 0; left: calc(50% + var(--axis-shift));
   width: 2px; transform: translateX(-50%);
   z-index: 10;
   opacity: var(--spine-ui-opacity);
@@ -202,7 +272,7 @@
   background: linear-gradient(180deg, transparent,
     rgba(242,242,238,0.5) 12%, rgba(242,242,238,0.5) 88%, transparent);
   filter: drop-shadow(0 0 4px rgba(242,242,238,0.45));
-  opacity: 0.7;
+  opacity: var(--cord-opacity);
 }
 
 /* START (ENTRY) / CONTINUE (SCROLL) axis markers, per the master concept */
@@ -221,7 +291,7 @@
    (below, since it travels up). The head is the point the node flickers meet. */
 .spine__energy {
   position: absolute; left: 50%; top: 8%;
-  width: 3.5px; height: 96px; transform: translate(-50%, 0);
+  width: var(--comet-w); height: var(--comet-h); transform: translate(-50%, 0);
   border-radius: 3px;
   background: linear-gradient(180deg,
     rgba(var(--node-color), 0.95) 0%,     /* amber head (leading edge, top) */
@@ -236,7 +306,7 @@
 /* the bright comet head */
 .spine__energy::before {
   content: ""; position: absolute; top: -2.5px; left: 50%; transform: translateX(-50%);
-  width: 7px; height: 7px; border-radius: 50%;
+  width: var(--comet-head); height: var(--comet-head); border-radius: 50%;
   background: radial-gradient(circle, #fff 0%, rgba(var(--node-color),0.95) 55%, transparent 78%);
   box-shadow: 0 0 12px rgba(var(--node-color),0.8), 0 0 4px #fff;
 }
@@ -247,8 +317,8 @@
 /* energy RISES — bottom to top, powering the chakras up the spine */
 @keyframes spine-energy {
   0%   { top: 92%; opacity: 0; }
-  12%  { opacity: 0.9; }
-  88%  { opacity: 0.9; }
+  12%  { opacity: var(--comet-a); }
+  88%  { opacity: var(--comet-a); }
   100% { top: 8%;  opacity: 0; }
 }
 
@@ -257,7 +327,7 @@
    Real <button>s in a vertical toolbar: keyboard + screen-reader native.
    -------------------------------------------------------------------------- */
 .spine__nodes {
-  position: absolute; inset: 0; left: 50%; transform: translateX(-50%);
+  position: absolute; inset: 0; left: calc(50% + var(--axis-shift)); transform: translateX(-50%);
   width: 0; z-index: 20;
 }
 /* real destination nodes — glowing light-points riding the central cord */
@@ -279,7 +349,8 @@
   position: absolute; inset: 0; border-radius: 50%;
   background: radial-gradient(circle, #fff 0%, #fff 30%, rgba(var(--node-color),0.6) 60%, transparent 74%);
   opacity: var(--node-idle-opacity);
-  box-shadow: 0 0 7px rgba(var(--node-color),0.6), 0 0 2px rgba(255,255,255,0.85);
+  box-shadow: 0 0 var(--node-glow) rgba(var(--node-color), var(--node-glow-a)),
+              0 0 2px rgba(255,255,255, var(--node-core-a));
   transition: opacity var(--motion-base) var(--ease-standard),
               box-shadow var(--motion-base) var(--ease-standard),
               transform var(--motion-base) var(--ease-standard);
@@ -287,8 +358,8 @@
 /* a thin static focus ring marks a real destination vs a decorative point */
 .spine-node__dot::after {
   content: ""; position: absolute; top: 50%; left: 50%;
-  width: 200%; height: 200%; transform: translate(-50%,-50%);
-  border-radius: 50%; border: 1px solid rgba(242,242,238,0.35);
+  width: var(--node-mark-size); height: var(--node-mark-size); transform: translate(-50%,-50%);
+  border-radius: 50%; border: 1px solid rgba(242,242,238, var(--node-mark-a));
 }
 /* concentric pulse rings (reticle) */
 .spine-node__ring {
@@ -387,8 +458,8 @@
 /* an amber ripple emanating outward from the node and dissolving as it goes */
 @keyframes node-pulse {
   0%   { transform: translate(-50%,-50%) scale(0.3); opacity: 0; }
-  12%  { opacity: 0.9; }
-  100% { transform: translate(-50%,-50%) scale(2.3); opacity: 0; }
+  12%  { opacity: var(--ring-peak-a); }
+  100% { transform: translate(-50%,-50%) scale(var(--ring-scale)); opacity: 0; }
 }
 @media (prefers-reduced-motion: reduce) {
   .spine-node__ring { display: none; }
@@ -402,9 +473,12 @@
   box-shadow: 0 0 22px rgba(var(--node-color),0.45);
 }
 
-/* when SOMETHING is active, the others recede */
+/* when SOMETHING is active, the others recede.
+   The nodes can take `opacity` directly — nothing animates the button itself.
+   The POINTS cannot (see the @property --point-dim note above); they are dimmed
+   through the multiplier their keyframes read. */
 .spine-stage.is-card .spine-node:not(.is-active) { opacity: var(--node-dim-when-active); }
-.spine-stage.is-card .spine-point { opacity: 0.12; }
+.spine-stage.is-card .spine-point { --point-dim: var(--point-dim-when-active); }
 
 /* immersive nodes read as a hollow double point */
 .spine-node[data-kind="immersive"] .spine-node__dot::after { border-style: double; border-width: 2px; }
@@ -426,21 +500,47 @@
 
 /* decorative energy-points — faint light-points along the cord, non-interactive,
    each giving a tiny warm flash as the same light passes. */
+/* --point-dim is a MULTIPLIER on the points' opacity, 1 at rest and
+   --point-dim-when-active while a card is open.
+
+   Why it has to work this way: the obvious rule —
+       .spine-stage.is-card .spine-point { opacity: 0.12 }
+   — was dead code for the life of this prototype. `point-ping` sets `opacity`
+   in every one of its keyframes, and a running animation beats a normal
+   declaration in the cascade, so the points never receded at all no matter what
+   that rule said. Measured Aug 9 2026: opacity stayed on the animated value with
+   a card open. The dim therefore has to live INSIDE the keyframes, which is what
+   the calc()s below do.
+
+   And it is registered with @property purely so it can TRANSITION. An unregistered
+   custom property is not animatable, so the dim would snap on and off while the
+   nodes beside it fade over --motion-base. Registering it as a <number> makes the
+   multiplier itself interpolate, and the keyframes re-resolve each frame. In a
+   browser without @property support the dim still applies — it just snaps. */
+@property --point-dim {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 1;
+}
+
 .spine-point {
   position: absolute; left: 0; top: var(--y);
-  width: 4px; height: 4px; transform: translate(-50%, -50%);
+  width: var(--point-size); height: var(--point-size); transform: translate(-50%, -50%);
   border-radius: 50%; background: rgba(242,242,238,0.8);
   box-shadow: 0 0 4px rgba(242,242,238,0.35);
-  opacity: 0.1; pointer-events: none;
+  opacity: calc(var(--point-idle) * var(--point-dim)); pointer-events: none;
   animation: point-ping var(--spine-ui-energy-ms) linear infinite;
+  transition: --point-dim var(--motion-base) var(--ease-standard);
 }
 @keyframes point-ping {
-  0%   { opacity: 0.85; box-shadow: 0 0 9px rgba(var(--node-color),0.9); background: rgba(255,236,214,1); }
-  7%   { opacity: 0.1;  box-shadow: 0 0 3px rgba(242,242,238,0.25); background: rgba(242,242,238,0.7); }
-  100% { opacity: 0.1; }
+  0%   { opacity: calc(var(--point-flash) * var(--point-dim)); box-shadow: 0 0 9px rgba(var(--node-color),0.9); background: rgba(255,236,214,1); }
+  7%   { opacity: calc(var(--point-idle) * var(--point-dim));  box-shadow: 0 0 3px rgba(242,242,238,0.25); background: rgba(242,242,238,0.7); }
+  100% { opacity: calc(var(--point-idle) * var(--point-dim)); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .spine-point { animation: none; opacity: 0.24; }
+  /* no animation here, so plain opacity applies — but it still has to respect
+     the dim, or the ambience would stay full-strength behind an open card. */
+  .spine-point { animation: none; opacity: calc(0.24 * var(--point-dim)); }
   .spine-node__ping { animation: none; display: none; }
 }
 
@@ -532,12 +632,131 @@
    HINT  (bottom-center, fades once the user has interacted)
    -------------------------------------------------------------------------- */
 .spine-hint {
-  position: fixed; left: 50%; bottom: var(--space-6); transform: translateX(-50%);
+  position: fixed; left: calc(50% + var(--axis-shift)); bottom: var(--space-6); transform: translateX(-50%);
   z-index: 30; text-align: center; pointer-events: none;
   transition: opacity var(--motion-slow) var(--ease-standard);
 }
 .spine-hint .label { color: var(--color-gray-400); }
 .spine-hint.is-hidden { opacity: 0; }
+
+/* --------------------------------------------------------------------------
+   TUNE PANEL  (prototype-local, gated on ?tune — same idea as the production
+   /?tune panel in js/spine-bg.js, kept separate only because the spine-UI
+   variables live in this file until the refactor. Field descriptors here are
+   written in that panel's shape (FIELDS / TIPS / GROUPS) so they can be lifted
+   into it wholesale later rather than rewritten.
+
+   It exists because the desktop feel is a judgement the owner has to make at
+   their own screen size — every earlier pass was judged in an 800x450 pane,
+   where the spine renders at its clamp() floor. Sliders, not guesses.
+   -------------------------------------------------------------------------- */
+.tune {
+  position: fixed; top: 0; right: 0; bottom: 0; z-index: 200;
+  width: 330px; max-width: 92vw;
+  display: flex; flex-direction: column;
+  background: rgba(8, 9, 12, 0.92);
+  -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+  border-left: 1px solid rgba(216,208,190,0.20);
+  font-family: var(--font-mono); font-size: 11px; color: var(--text-secondary);
+  transition: transform 260ms var(--ease-standard);
+}
+.tune.is-collapsed { transform: translateX(100%); }
+.tune__head {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 12px 14px; border-bottom: 1px solid rgba(216,208,190,0.16); flex: 0 0 auto;
+}
+.tune__title { letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-primary); }
+.tune__title b { color: var(--color-crimson-lit); font-weight: 500; }
+.tune__body { flex: 1 1 auto; overflow-y: auto; overscroll-behavior: contain; padding: 4px 0 20px; }
+.tune__foot {
+  flex: 0 0 auto; display: flex; gap: 6px; flex-wrap: wrap;
+  padding: 10px 14px; border-top: 1px solid rgba(216,208,190,0.16);
+  background: rgba(5,5,5,0.5);
+}
+/* the pull-tab that brings the panel back when collapsed */
+.tune-tab {
+  position: fixed; top: 50%; right: 0; z-index: 201; transform: translateY(-50%);
+  padding: 12px 7px; writing-mode: vertical-rl;
+  background: rgba(8,9,12,0.9); border: 1px solid rgba(216,208,190,0.22); border-right: 0;
+  color: var(--text-muted); font-family: var(--font-mono); font-size: 10px;
+  letter-spacing: 0.18em; text-transform: uppercase; cursor: pointer;
+  opacity: 0; pointer-events: none; transition: opacity 200ms var(--ease-standard);
+}
+.tune-tab.is-shown { opacity: 1; pointer-events: auto; }
+.tune-tab:hover { color: var(--text-primary); }
+
+.tune-group { border-bottom: 1px solid rgba(216,208,190,0.10); }
+.tune-group__btn {
+  width: 100%; display: flex; align-items: center; justify-content: space-between;
+  padding: 9px 14px; background: transparent; border: 0; cursor: pointer;
+  font-family: inherit; font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--color-bone); text-align: left;
+}
+.tune-group__btn:hover { color: var(--text-primary); }
+.tune-group__btn .chev { transition: transform 180ms var(--ease-standard); }
+.tune-group.is-open .tune-group__btn .chev { transform: rotate(90deg); }
+.tune-group__fields { display: none; padding: 2px 14px 12px; }
+.tune-group.is-open .tune-group__fields { display: block; }
+/* the group the session is actually working on gets a marker */
+.tune-group.is-focus .tune-group__btn { color: rgb(240,165,92); }
+
+.tune-field { margin-bottom: 11px; }
+.tune-field__top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.tune-field__label { color: var(--text-secondary); }
+.tune-field__val {
+  color: var(--text-primary); font-variant-numeric: tabular-nums;
+  background: transparent; border: 0; border-bottom: 1px solid transparent;
+  width: 74px; text-align: right; font-family: inherit; font-size: 11px; padding: 0;
+}
+.tune-field__val:focus { outline: none; border-bottom-color: var(--color-bone); }
+.tune-field.is-dirty .tune-field__label { color: rgb(240,165,92); }
+.tune-field__tip { display: block; color: var(--color-gray-500); font-size: 10px; margin-top: 2px; line-height: 1.45; }
+.tune-field input[type="range"] {
+  -webkit-appearance: none; appearance: none;
+  width: 100%; height: 14px; margin: 4px 0 0; background: transparent; cursor: ew-resize;
+}
+.tune-field input[type="range"]::-webkit-slider-runnable-track {
+  height: 1px; background: rgba(216,208,190,0.34);
+}
+.tune-field input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none; margin-top: -5px;
+  width: 11px; height: 11px; border-radius: 50%;
+  background: var(--color-bone); border: 0;
+}
+.tune-field input[type="range"]:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 3px rgba(240,165,92,0.45); }
+.tune-field input[type="color"] {
+  width: 100%; height: 26px; margin-top: 4px; padding: 0;
+  background: transparent; border: 1px solid rgba(216,208,190,0.28); cursor: pointer;
+}
+
+.tune-btn {
+  flex: 1 1 auto; padding: 7px 9px; cursor: pointer;
+  background: transparent; border: 1px solid rgba(216,208,190,0.34);
+  color: var(--text-secondary); font-family: inherit; font-size: 10px;
+  letter-spacing: 0.14em; text-transform: uppercase;
+  transition: color var(--motion-fast), border-color var(--motion-fast);
+}
+.tune-btn:hover { color: var(--text-primary); border-color: var(--color-bone); }
+.tune-btn--primary { color: var(--color-bone); border-color: rgba(240,165,92,0.55); }
+.tune-out {
+  width: 100%; height: 96px; margin-top: 8px; display: none;
+  background: rgba(5,5,5,0.7); border: 1px solid rgba(216,208,190,0.24);
+  color: var(--text-secondary); font-family: inherit; font-size: 10px; line-height: 1.5;
+  padding: 7px; resize: vertical; white-space: pre;
+}
+.tune-out.is-shown { display: block; }
+
+/* With the panel open, slide the whole axis left by half the panel width so the
+   spine sits optically centred in the space that is left — otherwise the thing
+   being judged is off-centre, which is its own distortion. One variable moves
+   spine, nodes, hint AND cards together; see --axis-shift in the token block. */
+body.has-tune { --axis-shift: -165px; }
+body.has-tune.tune-collapsed { --axis-shift: 0px; }
+
+/* too narrow to give the panel its own lane — let it overlay instead */
+@media (max-width: 900px) {
+  body.has-tune { --axis-shift: 0px; }
+}
 
 /* --------------------------------------------------------------------------
    RESPONSIVE  (prototype degrades gracefully; the two mobile candidates in
@@ -726,6 +945,30 @@
     }
   })();
 
+  // ---- hooks for the ?tune panel below.
+  //      resyncEnergy() MUST run whenever --spine-ui-energy-ms changes: every
+  //      ping delay is derived from the period, so changing the period alone
+  //      silently slides every node flash off the comet head. restartMotion()
+  //      drops all running animations back to t=0 so the sync can actually be
+  //      judged from a known phase instead of whatever moment you looked.
+  window.__spineLab = {
+    resyncEnergy: function () {
+      energyMs = parseFloat(getVar('--spine-ui-energy-ms')) || 7000;
+      NODES.forEach(function (n) {
+        nodeEls[n.id].querySelector('.spine-node__ping').style.animationDelay = energyDelay(n.y);
+      });
+      Array.prototype.forEach.call(navbar.querySelectorAll('.spine-point'), function (p) {
+        p.style.animationDelay = energyDelay(parseFloat(p.style.getPropertyValue('--y')));
+      });
+    },
+    restartMotion: function () {
+      if (!document.getAnimations) return;
+      document.getAnimations().forEach(function (a) {
+        try { a.currentTime = 0; } catch (err) {}
+      });
+    }
+  };
+
   // ---- roving keyboard nav on the toolbar
   navbar.addEventListener('keydown', function (e) {
     var order = NODES.map(function (n) { return n.id; });
@@ -840,8 +1083,25 @@
     var cardH = card.offsetHeight || 300;
     var top = Math.max(90, Math.min(nodeCy - cardH / 2, stageRect.height - cardH - 24));
     card.style.top = top + 'px';
-    if (n.side === 'left') card.style.right = 'calc(50% + ' + gap + 'px)';
-    else card.style.left = 'calc(50% + ' + gap + 'px)';
+
+    // Horizontal placement is measured off the NODE, not off 50% — the ?tune
+    // panel slides the whole axis (--axis-shift) while the stage's 50% stays
+    // put, so anchoring to 50% would leave the card behind. Then clamp into the
+    // usable width: while the panel is open it owns a lane on the right, and at
+    // 1280px a right-side card otherwise runs underneath it. MIN_GAP stops the
+    // clamp from ever pushing a card back into the spine glow it has to clear.
+    var MIN_GAP = 70, EDGE = 24;
+    var panelEl = document.querySelector('.tune:not(.is-collapsed)');
+    var panelW = panelEl ? panelEl.offsetWidth : 0;
+    var axisX = nodeRect.left + nodeRect.width / 2 - stageRect.left;
+    var left;
+    if (n.side === 'left') {
+      left = Math.min(Math.max(EDGE, axisX - gap - cardW), axisX - MIN_GAP - cardW);
+    } else {
+      left = Math.max(axisX + MIN_GAP,
+                      Math.min(axisX + gap, stageRect.width - panelW - EDGE - cardW));
+    }
+    card.style.left = left + 'px';
   }
 
   // ---- rigid connector: node on the axis -> horizontal -> 90deg -> into card.
@@ -944,6 +1204,314 @@
   function nodeById(id) { for (var i = 0; i < NODES.length; i++) if (NODES[i].id === id) return NODES[i]; return null; }
   function getVar(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
   function dismissHint() { if (hint) hint.classList.add('is-hidden'); }
+})();
+</script>
+
+<script>
+/* ==========================================================================
+   SPINE UI V2 — prototype tune panel   (open spine-lab.html?tune)
+
+   Why this exists: the desktop feel is a judgement that has to be made at the
+   owner's own screen size. Every pass before this one was judged in an 800x450
+   pane, where --spine-anat-w sits at its clamp() FLOOR (240px) instead of the
+   380px it reaches at 1440px wide. Sliders beat guessing from the wrong size.
+
+   Shape deliberately mirrors the production panel in js/spine-bg.js — FIELDS
+   with a v / label / min / max / step / unit descriptor, TIPS keyed by variable,
+   GROUPS ordering them — so these descriptors can be lifted into that panel
+   wholesale at refactor time rather than rewritten.
+
+   Convention carried over from that panel: TIPS are single-quoted strings with
+   NO apostrophes. One apostrophe there kills the whole panel, and the habit is
+   worth keeping even where this file would tolerate it.
+   ========================================================================== */
+(function () {
+  'use strict';
+
+  if (!/[?&]tune\b/.test(window.location.search)) return;
+
+  // ---- field descriptors. `def` is only a fallback for values whose authored
+  //      form does not parse as a number (--spine-anat-w is a clamp()).
+  var FIELDS = [
+    // Nodes — idle read
+    { v: '--node-idle-opacity',   label: 'Dot opacity',      min: 0,   max: 1,    step: 0.01 },
+    { v: '--node-size',           label: 'Dot size',         min: 4,   max: 24,   step: 0.5, unit: 'px' },
+    { v: '--node-glow',           label: 'Halo radius',      min: 0,   max: 30,   step: 0.5, unit: 'px' },
+    { v: '--node-glow-a',         label: 'Halo alpha',       min: 0,   max: 1,    step: 0.01 },
+    { v: '--node-core-a',         label: 'White core alpha', min: 0,   max: 1,    step: 0.01 },
+    { v: '--node-mark-size',      label: 'Destination ring', min: 100, max: 420,  step: 5,   unit: '%' },
+    { v: '--node-mark-a',         label: 'Dest. ring alpha', min: 0,   max: 1,    step: 0.01 },
+    { v: '--node-dim-when-active',label: 'Others recede to', min: 0,   max: 1,    step: 0.01 },
+    // Energy points
+    { v: '--point-size',          label: 'Point size',       min: 1,   max: 10,   step: 0.5, unit: 'px' },
+    { v: '--point-idle',          label: 'Point at rest',    min: 0,   max: 0.7,  step: 0.01 },
+    { v: '--point-flash',         label: 'Point flash',      min: 0,   max: 1,    step: 0.01 },
+    { v: '--point-dim-when-active',label:'Points recede to', min: 0,   max: 1,    step: 0.01 },
+    // Ripple rings
+    { v: '--node-ring',           label: 'Ring size',        min: 8,   max: 90,   step: 1,   unit: 'px' },
+    { v: '--node-ring-active',    label: 'Ring size active', min: 20,  max: 160,  step: 1,   unit: 'px' },
+    { v: '--node-pulse-ms',       label: 'Ripple period',    min: 600, max: 4000, step: 50,  unit: 'ms' },
+    { v: '--ring-scale',          label: 'Ripple travel',    min: 1,   max: 5,    step: 0.05 },
+    { v: '--ring-peak-a',         label: 'Ripple peak',      min: 0,   max: 1,    step: 0.01 },
+    // Rising comet
+    { v: '--spine-ui-energy-ms',  label: 'Rise period',      min: 2000,max: 16000,step: 100, unit: 'ms', resync: true },
+    { v: '--comet-w',             label: 'Beam width',       min: 1,   max: 12,   step: 0.5, unit: 'px' },
+    { v: '--comet-h',             label: 'Trail length',     min: 20,  max: 320,  step: 4,   unit: 'px' },
+    { v: '--comet-a',             label: 'Beam opacity',     min: 0,   max: 1,    step: 0.01 },
+    { v: '--comet-head',          label: 'Head size',        min: 2,   max: 20,   step: 0.5, unit: 'px' },
+    // Spine + cord
+    { v: '--spine-anat-w',        label: 'Spine width',      min: 160, max: 640,  step: 5,   unit: 'px', def: 380 },
+    { v: '--spine-anat-opacity',  label: 'Spine opacity',    min: 0,   max: 1,    step: 0.01 },
+    { v: '--spine-anat-bright',   label: 'Spine brightness', min: 0.2, max: 2,    step: 0.01 },
+    { v: '--spine-anat-contrast', label: 'Spine contrast',   min: 0.2, max: 2,    step: 0.01 },
+    { v: '--spine-ui-breathe',    label: 'Breath amount',    min: 0,   max: 0.12, step: 0.005 },
+    { v: '--spine-ui-breathe-ms', label: 'Breath period',    min: 3000,max: 16000,step: 100, unit: 'ms' },
+    { v: '--cord-opacity',        label: 'Cord opacity',     min: 0,   max: 1,    step: 0.01 },
+    // Reticle + labels
+    { v: '--reticle-w',           label: 'Crosshair span',   min: 80,  max: 700,  step: 5,   unit: 'px' },
+    { v: '--node-label-offset',   label: 'Label offset',     min: 80,  max: 420,  step: 5,   unit: 'px' },
+    // Colour
+    { v: '--node-color',          label: 'Node colour',      type: 'rgb' }
+  ];
+
+  var TIPS = {
+    '--node-idle-opacity':    'How present the six destinations are before you hover anything. Low reads as ambience, high reads as a menu.',
+    '--node-size':            'Diameter of the light-point itself. The hit area is fixed and generous, so this is purely visual.',
+    '--node-glow':            'Reach of the amber halo. The cheapest way to make a node read as energy rather than a dot.',
+    '--node-glow-a':          'Strength of that halo. Push it before pushing dot opacity if the nodes feel flat.',
+    '--node-core-a':          'The tight white pinpoint at the centre. Keeps the node crisp when the halo is wide.',
+    '--node-mark-size':       'The thin static ring that separates a REAL destination from a decorative point. Bigger reads more like a target.',
+    '--node-mark-a':          'Alpha of that ring. This is the single biggest lever on whether a node reads as clickable at rest.',
+    '--node-dim-when-active': 'How far the other five recede once a card is open. Lower isolates harder.',
+    '--point-size':           'The 14 decorative points between destinations. Ambience only, never interactive.',
+    '--point-idle':           'Resting brightness of those points between passes of the rising light.',
+    '--point-flash':          'Peak brightness as the rising light crosses a point. This is what implies more spine below.',
+    '--point-dim-when-active':'How far the 14 ambience points drop once a card is open. Open a card while you drag this. It is a multiplier, so 1 means no dimming at all.',
+    '--node-ring':            'Base ripple diameter on hover and focus.',
+    '--node-ring-active':     'Ripple diameter once a card is open. Bigger is the intended contrast with hover.',
+    '--node-pulse-ms':        'One full ripple cycle. Two rings run half a cycle apart, so a ripple is always travelling out.',
+    '--ring-scale':           'How far a ripple expands before it dissolves. Above about 3 it starts colliding with the neighbouring node.',
+    '--ring-peak-a':          'Brightness at the start of a ripples travel. Lower calms a busy reticle without losing the motion.',
+    '--spine-ui-energy-ms':   'Time for one bottom-to-top rise. Node flash delays re-derive automatically when you move this.',
+    '--comet-w':              'Thickness of the rising beam.',
+    '--comet-h':              'Length of the white trail behind the head. Longer reads faster at the same period.',
+    '--comet-a':              'Plateau opacity through the middle of the travel.',
+    '--comet-head':           'Diameter of the bright leading head. This is the point the node flashes are synced to.',
+    '--spine-anat-w':         'Width of the wireframe column. Authored as clamp 240 to 380px by viewport. Reset restores the clamp.',
+    '--spine-anat-opacity':   'Presence of the wireframe. It is dimmed so the node string reads over it.',
+    '--spine-anat-bright':    'Brightness filter on the wireframe asset.',
+    '--spine-anat-contrast':  'Contrast filter. Raising it thins the soft glow and leaves the hard lines.',
+    '--spine-ui-breathe':     'Amplitude of the idle vertical breath. Deliberately restrained.',
+    '--spine-ui-breathe-ms':  'One full breath in and out.',
+    '--cord-opacity':         'The thin luminous thread the dots ride on.',
+    '--reticle-w':            'Span of the horizontal crosshair when a node is focused.',
+    '--node-label-offset':    'How far off the spine a label sits. It has to clear the wireframe glow.',
+    '--node-color':           'The amber accent shared by nodes, ripples, pings and the comet head. Not the brand crimson, by choice.'
+  };
+
+  var GROUPS = [
+    { name: 'Nodes — idle read', focus: true, open: true,
+      of: ['--node-idle-opacity','--node-size','--node-glow','--node-glow-a','--node-core-a','--node-mark-size','--node-mark-a','--node-dim-when-active'] },
+    { name: 'Energy points', of: ['--point-size','--point-idle','--point-flash','--point-dim-when-active'] },
+    { name: 'Ripple rings', of: ['--node-ring','--node-ring-active','--node-pulse-ms','--ring-scale','--ring-peak-a'] },
+    { name: 'Rising comet', of: ['--spine-ui-energy-ms','--comet-w','--comet-h','--comet-a','--comet-head'] },
+    { name: 'Spine + cord', of: ['--spine-anat-w','--spine-anat-opacity','--spine-anat-bright','--spine-anat-contrast','--spine-ui-breathe','--spine-ui-breathe-ms','--cord-opacity'] },
+    { name: 'Reticle + labels', of: ['--reticle-w','--node-label-offset'] },
+    { name: 'Colour', of: ['--node-color'] }
+  ];
+
+  var STORE = 'spine-lab-tune-v1';
+  var root  = document.documentElement;
+  var byVar = {};
+  FIELDS.forEach(function (f) { byVar[f.v] = f; });
+
+  // ---- authored defaults, captured BEFORE any stored override is applied
+  var DEFAULTS = {};
+  FIELDS.forEach(function (f) {
+    var raw = getComputedStyle(root).getPropertyValue(f.v).trim();
+    if (f.type === 'rgb') { DEFAULTS[f.v] = raw; return; }
+    var n = parseFloat(raw);
+    DEFAULTS[f.v] = isNaN(n) ? f.def : n;
+  });
+
+  var overrides = {};
+  try { overrides = JSON.parse(localStorage.getItem(STORE) || '{}') || {}; } catch (e) { overrides = {}; }
+
+  function fmt(f, n) { return f.type === 'rgb' ? n : (n + (f.unit || '')); }
+  function apply(f, n) { root.style.setProperty(f.v, fmt(f, n)); }
+  function save() { try { localStorage.setItem(STORE, JSON.stringify(overrides)); } catch (e) {} }
+
+  function rgbToHex(s) {
+    var p = String(s).split(',').map(function (x) { return Math.max(0, Math.min(255, parseInt(x, 10) || 0)); });
+    return '#' + p.slice(0, 3).map(function (x) { return ('0' + x.toString(16)).slice(-2); }).join('');
+  }
+  function hexToRgb(h) {
+    var m = /^#?([0-9a-f]{6})$/i.exec(String(h).trim());
+    if (!m) return null;
+    var i = parseInt(m[1], 16);
+    return ((i >> 16) & 255) + ', ' + ((i >> 8) & 255) + ', ' + (i & 255);
+  }
+
+  // ---- build the panel
+  var panel = document.createElement('aside');
+  panel.className = 'tune';
+  panel.setAttribute('aria-label', 'Spine UI tuning');
+  panel.innerHTML =
+    '<div class="tune__head">' +
+      '<span class="tune__title">Spine tune · <b>lab</b></span>' +
+      '<button type="button" class="tune-btn" data-act="collapse" style="flex:0 0 auto">Hide</button>' +
+    '</div>' +
+    '<div class="tune__body"></div>' +
+    '<div class="tune__foot">' +
+      '<button type="button" class="tune-btn tune-btn--primary" data-act="copy">Copy changed</button>' +
+      '<button type="button" class="tune-btn" data-act="restart">Restart motion</button>' +
+      '<button type="button" class="tune-btn" data-act="reset">Reset all</button>' +
+      '<textarea class="tune-out" readonly spellcheck="false"></textarea>' +
+    '</div>';
+  var body = panel.querySelector('.tune__body');
+  var out  = panel.querySelector('.tune-out');
+
+  var tab = document.createElement('button');
+  tab.type = 'button';
+  tab.className = 'tune-tab';
+  tab.textContent = 'Tune';
+
+  var rows = {};   // var -> { wrap, range, num }
+
+  GROUPS.forEach(function (g) {
+    var grp = document.createElement('section');
+    grp.className = 'tune-group' + (g.open ? ' is-open' : '') + (g.focus ? ' is-focus' : '');
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'tune-group__btn';
+    btn.innerHTML = '<span>' + g.name + '</span><span class="chev" aria-hidden="true">&rsaquo;</span>';
+    btn.setAttribute('aria-expanded', g.open ? 'true' : 'false');
+    var fields = document.createElement('div');
+    fields.className = 'tune-group__fields';
+    btn.addEventListener('click', function () {
+      var open = grp.classList.toggle('is-open');
+      btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+    grp.appendChild(btn); grp.appendChild(fields); body.appendChild(grp);
+
+    g.of.forEach(function (name) {
+      var f = byVar[name];
+      if (!f) return;
+      var wrap = document.createElement('div');
+      wrap.className = 'tune-field';
+
+      if (f.type === 'rgb') {
+        var cur = overrides[f.v] != null ? overrides[f.v] : DEFAULTS[f.v];
+        wrap.innerHTML =
+          '<div class="tune-field__top"><span class="tune-field__label">' + f.label + '</span>' +
+          '<input class="tune-field__val" type="text" value="' + cur + '"></div>' +
+          '<input type="color" value="' + rgbToHex(cur) + '">' +
+          '<span class="tune-field__tip">' + (TIPS[f.v] || '') + '</span>';
+        var picker = wrap.querySelector('input[type="color"]');
+        var text   = wrap.querySelector('.tune-field__val');
+        var setRgb = function (rgb, syncPicker) {
+          overrides[f.v] = rgb; apply(f, rgb); save();
+          text.value = rgb;
+          if (syncPicker) picker.value = rgbToHex(rgb);
+          wrap.classList.add('is-dirty');
+        };
+        picker.addEventListener('input', function () { var r = hexToRgb(picker.value); if (r) setRgb(r, false); });
+        text.addEventListener('change', function () {
+          var r = /^\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*$/.test(text.value) ? text.value.trim() : null;
+          if (r) setRgb(r, true); else text.value = overrides[f.v] != null ? overrides[f.v] : DEFAULTS[f.v];
+        });
+        rows[f.v] = { wrap: wrap, text: text, picker: picker };
+        fields.appendChild(wrap);
+        if (overrides[f.v] != null) { apply(f, overrides[f.v]); wrap.classList.add('is-dirty'); }
+        return;
+      }
+
+      var val = overrides[f.v] != null ? overrides[f.v] : DEFAULTS[f.v];
+      wrap.innerHTML =
+        '<div class="tune-field__top"><span class="tune-field__label">' + f.label + '</span>' +
+        '<input class="tune-field__val" type="number" step="' + f.step + '" value="' + val + '"></div>' +
+        '<input type="range" min="' + f.min + '" max="' + f.max + '" step="' + f.step + '" value="' + val + '" aria-label="' + f.label + '">' +
+        '<span class="tune-field__tip">' + (TIPS[f.v] || '') + '</span>';
+      var range = wrap.querySelector('input[type="range"]');
+      var num   = wrap.querySelector('input[type="number"]');
+
+      var set = function (n, from) {
+        n = parseFloat(n);
+        if (isNaN(n)) return;
+        overrides[f.v] = n;
+        apply(f, n);
+        if (from !== 'range') range.value = n;
+        if (from !== 'num')   num.value = n;
+        wrap.classList.add('is-dirty');
+        save();
+        if (f.resync && window.__spineLab) window.__spineLab.resyncEnergy();
+      };
+      range.addEventListener('input', function () { set(range.value, 'range'); });
+      num.addEventListener('input',   function () { set(num.value, 'num'); });
+
+      rows[f.v] = { wrap: wrap, range: range, num: num };
+      fields.appendChild(wrap);
+      if (overrides[f.v] != null) { apply(f, overrides[f.v]); wrap.classList.add('is-dirty'); }
+    });
+  });
+
+  // stored overrides can include the energy period — re-derive the ping delays once
+  if (overrides['--spine-ui-energy-ms'] != null && window.__spineLab) window.__spineLab.resyncEnergy();
+
+  // ---- footer actions
+  function collapse(on) {
+    panel.classList.toggle('is-collapsed', on);
+    tab.classList.toggle('is-shown', on);
+    document.body.classList.toggle('tune-collapsed', on);
+    // the axis moves with the panel, so an open card has to be re-placed and its
+    // connector redrawn — the controller already does both on resize.
+    window.setTimeout(function () { window.dispatchEvent(new Event('resize')); }, 280);
+  }
+  tab.addEventListener('click', function () { collapse(false); });
+
+  panel.querySelector('.tune__foot').addEventListener('click', function (e) {
+    var act = e.target.getAttribute && e.target.getAttribute('data-act');
+    if (!act) return;
+    if (act === 'restart') { if (window.__spineLab) window.__spineLab.restartMotion(); return; }
+    if (act === 'reset') {
+      Object.keys(overrides).forEach(function (k) { root.style.removeProperty(k); });
+      overrides = {}; save();
+      FIELDS.forEach(function (f) {
+        var r = rows[f.v]; if (!r) return;
+        r.wrap.classList.remove('is-dirty');
+        if (f.type === 'rgb') { r.text.value = DEFAULTS[f.v]; r.picker.value = rgbToHex(DEFAULTS[f.v]); }
+        else { r.range.value = DEFAULTS[f.v]; r.num.value = DEFAULTS[f.v]; }
+      });
+      if (window.__spineLab) window.__spineLab.resyncEnergy();
+      out.classList.remove('is-shown');
+      return;
+    }
+    if (act === 'copy') {
+      var keys = FIELDS.map(function (f) { return f.v; }).filter(function (v) { return overrides[v] != null; });
+      if (!keys.length) { out.value = '/* nothing changed yet */'; out.classList.add('is-shown'); return; }
+      var pad = Math.max.apply(null, keys.map(function (v) { return v.length; })) + 2;
+      var css = ':root {\n' + keys.map(function (v) {
+        var f = byVar[v];
+        return '  ' + (v + ':' + new Array(pad - v.length + 1).join(' ')) + fmt(f, overrides[v]) + ';';
+      }).join('\n') + '\n}';
+      out.value = css;
+      out.classList.add('is-shown');
+      out.focus(); out.select();
+      // writeText REJECTS rather than throws when the document is not focused,
+      // so a bare try/catch lets the rejection escape. The textarea is already
+      // selected either way, so a failed copy still leaves it Ctrl+C-able.
+      try {
+        var p = navigator.clipboard && navigator.clipboard.writeText(css);
+        if (p && p.catch) p.catch(function () {});
+      } catch (err) {}
+      return;
+    }
+  });
+  panel.querySelector('[data-act="collapse"]').addEventListener('click', function () { collapse(true); });
+
+  document.body.appendChild(panel);
+  document.body.appendChild(tab);
+  document.body.classList.add('has-tune');
 })();
 </script>
 </body>

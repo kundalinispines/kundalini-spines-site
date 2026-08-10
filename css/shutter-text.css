@@ -1,0 +1,139 @@
+/* ==========================================================================
+   SHUTTER TEXT — horizontal-slat reveal for a display headline.
+
+   WHAT THIS IS. The headline is sliced into horizontal bands across its CAP
+   HEIGHT. Each band is a full copy of the line, clipped to its slat, that
+   slides in from the left under directional (horizontal-only) motion blur,
+   with a saturated amber ghost running ahead of it. Bands settle at different
+   times, so the word assembles slat by slat rather than fading.
+
+   DERIVED FROM the owner's screen recording of a paywalled component
+   ("Hero Shutter Text" — the source is locked, so nothing here is copied from
+   it). Frames live in the session scratchpad; the two that carry the geometry
+   are ref2/d02_2.04s.png and ref2/d04_2.18s.png. Everything marked MEASURED
+   below was read off those PNGs pixel by pixel, not eyeballed.
+
+   MEASURED — BAND COUNT AND PITCH. On d02/d04 the word "IMMERSE" occupies
+   y = 180..261 (cap height 81px) and the rows where the horizontal ink extent
+   jumps are y = 196, 211, 230/231 and 243/244. Five equal slats across 81px
+   predict 196.2, 212.4, 228.6, 244.8 — every boundary within ~2px. Four slats
+   predict 200.3 / 220.5 / 240.8 and miss all three. So: FIVE bands across the
+   cap height, and the pitch is cap/5, not element-height/5. That distinction
+   is the whole reason this file measures the font instead of dividing the box.
+
+   MEASURED — TRAVEL. At t = 2.04s (about 40ms into the run) the per-band
+   residual x-offsets, against the settled frame, were:
+       band 1  -164px    band 2  -3px    band 3  -1px    band 4/5  -271px
+   on a word 509px wide -> 0.32, 0.01, 0.00, 0.53, 0.53 of the line width.
+   That spread is the effect's signature: two of the five slats barely move
+   while two fly half the width of the word. Do NOT "even them out" — with
+   equal amplitudes the whole thing reads as one blurred block sliding, which
+   is the generic version of this move.
+
+   MEASURED — THE GHOST LEADS, IT DOES NOT TRAIL. On d02 band 4 the bone copy
+   sat at -271 and the accent copy at -108: ratio 0.40. The accent is CLOSER to
+   home than the text, so it is uncovered at the RIGHT end of each slat until
+   the text catches up (see ref2/d06_2.32s.png, where the only accent left is a
+   tail past the last letter). It is painted UNDER the text for the same
+   reason. Reading it as a trail behind the motion and offsetting it the other
+   way puts the colour on the wrong side of every glyph.
+
+   MEASURED — ACCENT DECAY / DURATION. Accent saturation per band, sampled
+   across ref2/d02..d09: band 1 gone by 2.18s, band 4 by 2.39s, band 5 by
+   2.46s, bands 2 and 3 never showed any. Total ink mass bottoms out at 2.04s
+   and is back to settled by ~2.70s. Run starts between 1.97s and 2.04s, so the
+   visible motion is ~460ms and full settle ~700ms. Defaults here land at
+   588ms total, inside the 500-600ms the owner asked for; the HUD goes to 900
+   if the longer settle is wanted back.
+
+   COLOUR. The ghost is amber rgb(240,165,92) — the navigator's --node-color,
+   quoted verbatim from spine-lab.html so this speaks the same language as the
+   coil and the nodes. It is deliberately NOT --color-crimson (#5E0A0A): at
+   9% luminance crimson is darker than the bone text AND barely above the star
+   field, so a crimson ghost on this page reads as a smudge where the reference's
+   violet read as light. Amber is the only saturated hue in the palette that is
+   brighter than the background.
+   ========================================================================== */
+
+/* The clip stack, outermost in:
+     .shutter    the headline. Owns the settled text and the a11y text.
+     .sh-line    one visual line. Positioning context for that line's slats.
+     .sh-band    one slat. Absolutely placed, overflow:hidden, NEVER transformed
+                 — the slat has to stay put while its contents slide.
+     .sh-copy    the sliding copy. Owns transform + filter + colour.
+   Two elements are needed because a transform on the clipping box moves the
+   clip with the content, which is a no-op. This is why .sh-band and .sh-copy
+   are not one div. */
+
+.shutter { position: relative; }
+
+/* The settled headline. It stays in the DOM and in the accessibility tree the
+   whole time — the slats are aria-hidden copies. opacity, not visibility or
+   display: visibility:hidden drops the text out of the a11y tree, which would
+   make the headline disappear from a screen reader for the length of the
+   animation and, if the script ever failed mid-run, permanently. */
+.shutter.is-running .shutter__text { opacity: 0; }
+
+/* REDUCED MOTION IS NOT HANDLED HERE. No slats are ever built — the script
+   returns early — and the headline just appears. The fade that would otherwise
+   cover that is written as inline style in js/shutter-text.js, and on Chromium
+   it does not run at all, because that engine suppresses CSS transitions
+   outright while the preference is set. Measured, and left as is; the note in
+   Shutter.prototype.play has the numbers. Adding a rule here would not change
+   it. */
+
+.sh-line {
+  display: block;
+  position: relative;
+}
+
+/* Vertical bleed is not a concern — the blur is horizontal only — so
+   overflow:hidden here costs nothing vertically and buys the horizontal clip:
+   a slat entering from the left is cut off at the line box edge, exactly as
+   the reference cuts its word at the component bounds. The line box is the
+   full width of the copy column and the text is centred inside it, so there is
+   real slack on both sides and no glyph is ever clipped at rest. */
+.sh-band {
+  position: absolute;
+  left: 0;
+  right: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.sh-copy {
+  position: absolute;
+  left: 0;
+  right: 0;
+  will-change: transform, filter, opacity;
+}
+
+/* INHERIT, do not name a colour. The slats have to land on exactly the colour
+   the settled headline is already painted in, and hard-coding var(--color-bone)
+   here while the headline sat on --text-primary put a visible hue pop on the
+   last frame — Archive Bone #D8D0BE flipping to Signal White #F2F2EE the
+   instant the slats were torn down. Caught on the 520ms capture. Whatever the
+   headline's own colour is, the slats are that colour.
+   The ghost is under the text in DOM order, so the text always wins where they
+   overlap and the amber only shows where the slat has not arrived yet. */
+.sh-copy--text  { color: inherit; }
+.sh-copy--ghost { color: rgb(var(--sh-ghost, 240, 165, 92)); }
+
+/* The blur filters live in an inline <svg> in the page. Zero-size and out of
+   flow so it never affects layout; not display:none, because a referenced
+   filter inside a display:none subtree still resolves but some engines skip
+   rasterising it. */
+.sh-filters {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+/* The second beat. "KUNDALINI SPINES" cross-fades OUT while the headline
+   shutters IN — it does not shutter too. Two shutters back to back turns a
+   signature move into a mannerism, so the eyebrow gets the one gesture the
+   headline does not have: a straight fade with a small lift. Driven from the
+   same clock as the slats (see js/shutter-text.js), so scrubbing time moves
+   both together. */
+.sh-eyebrow { will-change: opacity, transform; }

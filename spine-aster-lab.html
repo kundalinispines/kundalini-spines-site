@@ -188,7 +188,11 @@
 .btn:hover { color: var(--text-primary); border-color: var(--color-bone); }
 .btn--go { color: var(--color-bone); border-color: rgba(240,165,92,0.6); }
 .fld { display: flex; align-items: center; gap: 7px; color: var(--color-gray-400); }
-.fld input[type=range] { width: 108px; }
+/* Same default-blue defect as hero-scrub-lab.html's .hud, fixed the same way and
+   on the same day (Aug 10 2026). rgb(240,165,92) is --node-color — the amber
+   already on .btn--go two rules up. accent-color rather than a webkit track/thumb
+   rebuild: these are plain full-height sliders, so there is nothing to hand-build. */
+.fld input[type=range] { width: 108px; accent-color: rgb(240, 165, 92); }
 .fld b { color: var(--text-primary); font-weight: 500; min-width: 46px; text-align: right;
          font-variant-numeric: tabular-nums; }
 </style>

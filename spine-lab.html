@@ -721,6 +721,12 @@
 .tune-field__val:focus { outline: none; border-bottom-color: var(--color-bone); }
 .tune-field.is-dirty .tune-field__label { color: rgb(240,165,92); }
 .tune-field__tip { display: block; color: var(--color-gray-500); font-size: 10px; margin-top: 2px; line-height: 1.45; }
+/* Deliberately NOT accent-color, unlike hero-scrub-lab.html's .hud and
+   spine-aster-lab.html's .fld, which were switched to it Aug 10 2026 to kill
+   Chrome's default blue. This panel already escapes that blue by rebuilding the
+   track and thumb below, because it wants a 1px bone hairline rather than a
+   full-height slider; accent-color has no effect once appearance is none, so
+   adding it here would be dead CSS. Checked Aug 10 2026 — leave as is. */
 .tune-field input[type="range"] {
   -webkit-appearance: none; appearance: none;
   width: 100%; height: 14px; margin: 4px 0 0; background: transparent; cursor: ew-resize;

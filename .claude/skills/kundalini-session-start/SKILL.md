@@ -38,9 +38,11 @@ do all of it.
 - **Handoff series:** the V2 track uses **`V2HANDOFF N.md`** (newest = highest N;
   the series starts at 19). The old `HANDOFF 1–19` series documents the dormant
   production line — background reading only, not the live task.
-- **Static HTML/CSS/JS, no build step.** Serve locally over HTTP (`python -m
-  http.server 8000`) — the carousel and Transmissions use `fetch()`, blocked on
-  `file://`. The V2 prototype currently lives in **`spine-lab.html`**, an
+- **Static HTML/CSS/JS, no build step.** Serve locally over HTTP with
+  **`python scripts/serve.py`** (repo root, port 8000) — the carousel and
+  Transmissions use `fetch()`, blocked on `file://`. Use that script, **not
+  `python -m http.server 8000`**: see "Serving the site" below before you
+  substitute the shorter command. The V2 prototype currently lives in **`spine-lab.html`**, an
   isolated page that links the real `css/tokens.css`, `css/base.css`,
   `css/star-bg.css` (and its own inline `<style>`/`<script>` for the spine).
 - **The production conventions below still describe the underlying code** V2
@@ -173,7 +175,9 @@ the HUD visible and finding that invisible too. Verified Aug 9 2026: the pane is
 not a substitute for this, and the first real screenshot found a bug that days of
 measurement had not (HUD sliders rendering in default browser blue).
 
-Serve with `python -m http.server 8000`, then drive it from Python:
+Serve with `python scripts/serve.py` (see "Serving the site" below — **do not
+substitute `python -m http.server`**, it breaks every video seek), then drive it
+from Python:
 
 ```python
 from playwright.sync_api import sync_playwright
@@ -222,6 +226,38 @@ Alongside the screenshots, keep the numeric checks — they catch different thin
 - Transitions do not advance in the in-app pane, so a value read straight after
   setting it returns the *old* one. Set `transition: none` before reading, or the
   reading is meaningless.
+
+## Serving the site — `scripts/serve.py`, never `python -m http.server`
+
+```powershell
+python scripts/serve.py          # repo root on http://127.0.0.1:8000
+python scripts/serve.py 8001     # optional port
+```
+
+`python -m http.server 8000` — which every handoff before V2HANDOFF 23 and an
+earlier version of this skill told sessions to use — **answers media requests
+with `200` and no `Accept-Ranges` header.** Chrome reads that as "not seekable",
+and the failure is silent and very convincing:
+
+- `video.buffered` is the full `[[0, 8.768]]`, so the file clearly loaded;
+- `video.seekable` is `[[0, 0]]`;
+- **every `currentTime` assignment clamps to 0.** No console error. `seeking`
+  and `seeked` both fire normally and `seeked` reports `currentTime === 0`.
+
+On `hero-scrub-lab.html` this shows up as: the intro free-plays 0 → 5.469s
+correctly (free playback needs no seek), then `endIntro()` seeks to the 5.469s
+mark and lands on frame 0, so the entrance settles on the two hooded messengers
+instead of the lattice frame. It reads as a scrub-mapping bug in the page. It is
+not — it is the server.
+
+Measured Aug 10 2026: the identical tree served by `scripts/serve.py` gives
+`seekable == [[0, 8.768]]` and the scrub maps exactly (0 → 5.469s, 0.25 →
+6.287s, 0.5 → 7.112s, 1.0 → 8.768s). **Video measurements taken against
+`python -m http.server` are suspect** — three sessions' worth already were.
+
+`scripts/serve.py` also sends `Cache-Control: no-store`; python's stock server
+answers `304`s, which in this project has repeatedly presented as "my edit did
+not work". Keep using a `?cb=` cache-buster on every load anyway.
 
 ## Conventions that bite — the short list
 

@@ -284,8 +284,23 @@ html.is-nav .nav { opacity: 1; pointer-events: auto; }
    reveal's forward-only latch: a transmission that has arrived does not
    un-arrive, and a reader who has been delivered to the navigation is not sent
    back up the tunnel. The HUD's Reset is the way out, and it exists because
-   this is a lab — a production build would need a considered answer instead. */
-html.is-nav, html.is-nav body { overflow: hidden; }
+   this is a lab — a production build would need a considered answer instead.
+
+   HTML ONLY. DO NOT ADD `html.is-nav body` BACK — it was here until Aug 10 2026
+   and it silently ate the second half of the dust. Overflow on html and body
+   TOGETHER makes body a scroll container, .beat__stick stops being sticky and
+   snaps to its static position at the top of .beat. Measured at scrollY 3700:
+   beatStick viewport y goes 0 -> -1360 the frame is-nav lands, with scrollY
+   unchanged. showNav() fires at dust t=0.35, so the column was ripped 1360px
+   off-screen a third of the way through the erosion and the crown's departure —
+   the whole point of the base-first sweep — had never once been seen. The dust
+   arithmetic in V2HANDOFF 21 was right all along; this rule was the problem.
+
+   Either declaration alone locks the scroll just as well. Measured, same run:
+   html-only -> stickY 0, wheel does not move scrollY. body-only -> stickY 0,
+   wheel does not move scrollY. Both -> stickY -1360. So the one-way door
+   survives intact and costs nothing. */
+html.is-nav { overflow: hidden; }
 
 .nav__spine {
   position: relative; height: var(--nav-spine-h); aspect-ratio: 1200 / 2150;
@@ -368,7 +383,16 @@ html.is-nav .nav__node { opacity: 1; }
   font-family: inherit; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase;
 }
 .hud .btn:hover { color: var(--text-primary); border-color: var(--color-bone); }
-.hud input[type=range] { width: 100px; }
+/* accent-color, not a full ::-webkit-slider-* rebuild. Chrome's default range
+   is #1a73e8 blue, which is the one saturated cool hue on a page that is
+   otherwise bone and amber — it reads as browser chrome, not as part of the
+   instrument. One line recolours track fill AND thumb in Chrome/Firefox/Safari.
+   rgb(240,165,92) is --node-color, the same amber as .btn--go and the dirty
+   field labels. Measured Aug 10 2026. The obvious alternative — -webkit-appearance:
+   none plus hand-built track and thumb, the way spine-lab.html's .tune-field does
+   it — is 12 lines, is webkit-only, and silently drops the focus ring; that page
+   needs it because its track is a 1px hairline, this HUD does not. */
+.hud input[type=range] { width: 100px; accent-color: rgb(240, 165, 92); }
 .hud [data-tip] { cursor: help; }
 
 /* The bar grew from 8 controls to 18 across this session and now wraps to three

@@ -1,0 +1,547 @@
+<!doctype html>
+<html lang="en" class="page-entrance">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Entrance — Spine UI V2</title>
+
+<!-- ==========================================================================
+     ENTRANCE — the whole sequence, assembled.
+
+       1. the hero video FREE-PLAYS 0 -> 8.768s, muted, autoplaying
+       2. "KUNDALINI SPINES" is the headline while it plays
+       3. the clip ends on the nebula; the video settles onto the site's own
+          star field, which is very nearly the same picture
+       4. "Knowledge Hidden in Plain Sight" shutter-reveals
+       5. a small amber ENTER appears beneath it
+       6. ENTER hands off to the navigator, and the twin serpents run once
+
+     THERE IS NO SCROLL ANYWHERE IN THIS PAGE. The scroll-scrubbed entrance in
+     hero-scrub-lab.html was abandoned Aug 10 2026, along with the spine aster,
+     its mask wipe and the dust handoff. That file is kept as a record; nothing
+     here is derived from it.
+
+     WHAT THIS FILE OWNS: the sequence, and nothing else. The navigator is
+     css/spine-ui.css + js/spine-ui.js, the serpents are js/spine-coil.js, the
+     reveal is js/shutter-text.js + css/shutter-text.css. If something here
+     looks like it is reimplementing one of those, it is a bug.
+
+     WHY THE VIDEO AND THE NAVIGATOR SHARE ONE PAGE: the clip's last frame is a
+     nebula on black and so is css/star-bg.css, so the handover between them is
+     invisible. Navigating to a second URL would repaint that background and
+     put a seam in the one place the design cannot afford one.
+     ========================================================================== -->
+
+<!-- REAL identity + REAL atmosphere, reused unchanged. -->
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/star-bg.css">
+<link rel="stylesheet" href="css/spine-ui.css">
+<link rel="stylesheet" href="css/shutter-text.css">
+
+<style>
+:root {
+  /* Idle the reactive sky: with no audio engine on this page the kick/snare
+     consumers resolve to 0 and star-bg.css computes its rest state.
+
+     DELIBERATE, and it is the whole answer to "what is the sky doing during
+     the entrance": nothing. It stays still until Music is opened, which is
+     what makes Music the moment the site comes alive. When js/spine-bg.js is
+     eventually attached here these zeroes must come OUT — the detector writes
+     the same variables inline and a page that ships zeroes as its authored
+     defaults has simply pinned the sky to rest. */
+  --kick: 0; --snare: 0; --charge: 0;
+  --kick-stars: 0; --kick-cloud: 0; --snare-bolt: 0;
+
+  --ent-settle-ms: 620ms;   /* video -> star field. Long, because it is a
+                               cross-fade between two near-identical images and
+                               a fast one reads as a flicker rather than a fade. */
+  --ent-cut-ms:    200ms;   /* the same fade when a seek was not possible —
+                               see canSeek() below */
+  --ent-hand-ms:   520ms;   /* entrance layer -> navigator */
+}
+
+html, body { height: 100%; }
+body { margin: 0; overflow: hidden; }   /* nothing on this page scrolls, ever */
+
+/* --------------------------------------------------------------------------
+   THE ENTRANCE LAYER
+   -------------------------------------------------------------------------- */
+.ent {
+  position: fixed; inset: 0; z-index: 60;
+  display: flex; align-items: center; justify-content: center;
+  transition: opacity var(--ent-hand-ms) var(--ease-standard);
+}
+.ent.is-gone { opacity: 0; pointer-events: none; }
+
+.ent__video {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%; object-fit: cover;
+  transition: opacity var(--ent-settle-ms) linear;
+}
+/* The video is REMOVED from the compositor once it has faded, not merely made
+   transparent. A 1920x1080 decoded surface left composited over the navigator
+   costs a full-screen layer for the rest of the session. */
+.ent.is-settled .ent__video { opacity: 0; }
+.ent.is-cut     .ent__video { transition-duration: var(--ent-cut-ms); opacity: 0; }
+.ent__video.is-dropped { display: none; }
+
+/* Just enough scrim to hold the type over the brightest part of the clip.
+   It fades with the video: once the star field is showing there is nothing to
+   protect the type from. */
+.ent__scrim {
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse at center,
+              rgba(8,9,12,0.52) 0%, rgba(8,9,12,0.30) 45%, rgba(8,9,12,0.62) 100%);
+  transition: opacity var(--ent-settle-ms) linear;
+}
+.ent.is-settled .ent__scrim, .ent.is-cut .ent__scrim { opacity: 0; }
+
+.ent__copy { position: relative; z-index: 2; text-align: center; padding: 0 var(--space-24, 24px); }
+
+/* .scrub__title is NOT in any shared stylesheet — it is declared inline in both
+   hero-scrub-lab.html and shutter-lab.html, so a page that copies the markup
+   without it silently gets base.css's h1 instead. Caught here by looking at a
+   capture and finding the wrong face. Quoted from shutter-lab.html so the
+   headline being revealed is the same object that was judged against the
+   reference frames.
+
+   The element keeps .text-stencil for its text-shadow while this rule
+   overrides the stencil FAMILY, which is deliberate: stencil bridges are
+   horizontal gaps through the glyphs, and slicing horizontal slats across them
+   puts two competing horizontal rhythms on the same letterforms — the word
+   stops being readable mid-run. If the hero ever goes truly stencil, the band
+   count has to come down and be re-judged against the bridges.
+
+   Bone rather than --text-primary: bone is what the amber ghost resolves INTO.
+   On signal white the amber reads as a stain the letters shake off; on bone it
+   reads as the same light cooling. */
+.ent__copy .scrub__title {
+  font-family: var(--font-display); font-weight: 800; font-size: var(--fs-h1);
+  line-height: var(--lh-heading); letter-spacing: var(--tracking-display);
+  color: var(--color-bone);
+  margin: 0;
+}
+
+/* Both occupy the same cell, so one can replace the other in place. */
+.ent__stack { display: grid; place-items: center; }
+.ent__stack > * { grid-area: 1 / 1; }
+
+/* KUNDALINI SPINES IS THE HEADLINE WHILE THE CLIP PLAYS — display scale, not
+   the small mono .label it inherits. The whole point of the sequence is that
+   the sentence is not on screen yet: it arrives, and it can only arrive if
+   there was something else there first. */
+.ent__stack .sh-eyebrow {
+  font-family: var(--font-display); font-weight: 800; font-size: var(--fs-h1);
+  line-height: var(--lh-heading); letter-spacing: var(--tracking-display);
+  text-transform: uppercase;
+  color: var(--color-bone);
+  white-space: nowrap;
+}
+
+/* THE HEADLINE DOES NOT EXIST UNTIL THE REVEAL.
+
+   visibility, not opacity or display: the shutter driver owns opacity on this
+   element and its slats, so setting opacity here would fight it; display:none
+   would stop the type being laid out, and the slat grid is measured from the
+   rendered box. visibility:hidden keeps the box, keeps the metrics, and paints
+   nothing. */
+.ent .shutter { visibility: hidden; }
+.ent.is-settled .shutter,
+.ent.is-cut .shutter { visibility: visible; }
+
+/* The old subtitle is deliberately gone. It read "Two Messengers. One Signal.
+   Scroll to run the transmission." and there is no scroll on this page any
+   more; leaving it would instruct the reader to do the one thing that does
+   nothing. The eyebrow and the headline carry the moment on their own. */
+
+/* ENTER — the only door. It does not exist until the reveal has finished,
+   because a door offered before the sentence has landed pulls the eye off the
+   sentence. */
+.ent__enter {
+  display: inline-flex; align-items: center; gap: 10px;
+  margin-top: var(--space-32, 32px);
+  padding: 12px 26px;
+  min-height: 44px;                      /* a real tap target at 375px */
+  font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgb(var(--node-color));
+  background: transparent;
+  border: 1px solid rgba(var(--node-color), 0.45);
+  border-radius: 2px;
+  cursor: pointer;
+  opacity: 0; transform: translateY(6px);
+  pointer-events: none;
+  transition: opacity 420ms var(--ease-standard),
+              transform 420ms var(--ease-standard),
+              border-color 200ms linear, box-shadow 200ms linear;
+  box-shadow: 0 0 0 rgba(var(--node-color), 0);
+}
+.ent.is-open .ent__enter { opacity: 1; transform: none; pointer-events: auto; }
+.ent__enter:hover, .ent__enter:focus-visible {
+  border-color: rgba(var(--node-color), 0.9);
+  box-shadow: 0 0 18px rgba(var(--node-color), 0.25);
+}
+.ent__enter .dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: rgb(var(--node-color));
+  box-shadow: 0 0 10px rgba(var(--node-color), 0.9);
+}
+
+/* SKIP — deliberately quiet and always present during playback. Enter and the
+   wheel do the same thing; the button exists because neither of those is
+   discoverable, and on a phone neither exists at all. */
+.ent__skip {
+  position: absolute; right: 18px; bottom: 16px; z-index: 3;
+  padding: 10px 14px; min-height: 44px;
+  font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(216,208,190,0.55);
+  background: transparent; border: 1px solid rgba(216,208,190,0.2);
+  border-radius: 2px; cursor: pointer;
+  transition: opacity 260ms linear, color 200ms linear, border-color 200ms linear;
+}
+.ent__skip:hover, .ent__skip:focus-visible { color: var(--color-bone); border-color: rgba(216,208,190,0.5); }
+.ent.is-settled .ent__skip, .ent.is-cut .ent__skip { opacity: 0; pointer-events: none; }
+
+/* --------------------------------------------------------------------------
+   THE NAVIGATOR, and the serpents that run over it
+   -------------------------------------------------------------------------- */
+.spine-stage {
+  opacity: 0;
+  transition: opacity var(--ent-hand-ms) var(--ease-standard);
+}
+.spine-stage.is-live { opacity: 1; }
+
+/* THE COIL'S COORDINATE SPACE IS NOT THE NAVIGATOR'S SPINE BOX.
+
+   js/spine-coil.js maps art coordinates from a 1200x2150 viewBox onto its
+   canvas, so its canvas must cover the WHOLE PNG the way coil-lab.html's
+   aspect-ratio box does. The navigator does not show the whole PNG: its
+   .spine__anat is a narrow strip (--spine-anat-w, 240..380px) painting the
+   image at `background-size: auto 100%` with overflow:hidden, so the file is
+   height-fitted and then cropped left and right.
+
+   So the canvases get their own box that reproduces the full-PNG rectangle —
+   same height as .spine__anat, width from the 1200/2150 aspect — inside a
+   wrapper carrying the SAME crop. Drop the canvases straight into .spine and
+   the serpents wind around a column that is not where they think it is.
+
+   They also cannot go INSIDE .spine__anat: it carries the spine-breathe scaleY
+   animation and a brightness/contrast filter, and both would inherit onto the
+   canvas and distort the coil. Measured Aug 10 2026 while assembling this. */
+.ent-coil {
+  position: absolute; top: 5%; bottom: 5%; left: 50%;
+  width: var(--spine-anat-w); transform: translateX(-50%);
+  overflow: hidden;                 /* the same crop .spine__anat applies */
+  pointer-events: none;
+}
+.ent-coil--back  { z-index: 1; }    /* behind the wireframe */
+.ent-coil--front { z-index: 3; }    /* in front of it */
+
+/* Paint order is what the depth split needs, and z-index is what provides it
+   here — the module's "markup order is load-bearing" note is really about
+   which canvas paints first. */
+.ent-coil__box {
+  position: absolute; top: 0; left: 50%; height: 100%;
+  aspect-ratio: 1200 / 2150; transform: translateX(-50%);
+}
+/* width/height 100% is NOT belt-and-braces: a canvas is a replaced element, so
+   auto width resolves to the intrinsic 300x150 and the module, which sizes its
+   backing store from the measured box, then feeds that measurement back into
+   itself. */
+.ent-coil__box canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+.spine__anat { z-index: 2; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ent-coil { display: none; }
+  .ent__video { transition-duration: 1ms; }
+}
+
+/* Phone: the headline is already handled by css/shutter-text.css (its grid is
+   derived from measured type metrics, not fixed px). This is only about the
+   furniture. */
+@media (max-width: 600px) {
+  .ent__skip { right: 12px; bottom: 12px; }
+  .ent__enter { margin-top: var(--space-24, 24px); }
+}
+</style>
+</head>
+<body>
+
+<!-- The directional-blur ladder the shutter points at, rung by rung.
+     stdDeviation is not CSS-settable, so it cannot be animated from a custom
+     property; the driver swaps which filter each copy uses.
+     color-interpolation-filters="sRGB" is load-bearing — the SVG default is
+     linearRGB, which shifts the amber as it blurs. -->
+<svg class="sh-filters" aria-hidden="true" focusable="false">
+  <defs>
+    <filter id="shBlur1"  x="-60%" y="-10%" width="220%" height="120%" color-interpolation-filters="sRGB"><feGaussianBlur stdDeviation="1 0"/></filter>
+    <filter id="shBlur2"  x="-60%" y="-10%" width="220%" height="120%" color-interpolation-filters="sRGB"><feGaussianBlur stdDeviation="2 0"/></filter>
+    <filter id="shBlur3"  x="-60%" y="-10%" width="220%" height="120%" color-interpolation-filters="sRGB"><feGaussianBlur stdDeviation="3 0"/></filter>
+    <filter id="shBlur4"  x="-60%" y="-10%" width="220%" height="120%" color-interpolation-filters="sRGB"><feGaussianBlur stdDeviation="4.5 0"/></filter>
+    <filter id="shBlur5"  x="-60%" y="-10%" width="220%" height="120%" color-interpolation-filters="sRGB"><feGaussianBlur stdDeviation="6 0"/></filter>
+    <filter id="shBlur6"  x="-60%" y="-10%" width="220%" height="120%" color-interpolation-filters="sRGB"><feGaussianBlur stdDeviation="8 0"/></filter>
+    <filter id="shBlur7"  x="-60%" y="-10%" width="220%" height="120%" color-interpolation-filters="sRGB"><feGaussianBlur stdDeviation="11 0"/></filter>
+    <filter id="shBlur8"  x="-60%" y="-10%" width="220%" height="120%" color-interpolation-filters="sRGB"><feGaussianBlur stdDeviation="15 0"/></filter>
+    <filter id="shBlur9"  x="-60%" y="-10%" width="220%" height="120%" color-interpolation-filters="sRGB"><feGaussianBlur stdDeviation="20 0"/></filter>
+    <filter id="shBlur10" x="-60%" y="-10%" width="220%" height="120%" color-interpolation-filters="sRGB"><feGaussianBlur stdDeviation="27 0"/></filter>
+  </defs>
+</svg>
+
+<!-- ============================ THE ENTRANCE ============================= -->
+<div class="ent" id="ent">
+  <!-- mp4 FIRST. It is listed first in every lab on this branch: webm's seek
+       latency was measured at a 154ms median against the mp4's ~0ms, and the
+       skip-to-end below is a seek. -->
+  <video class="ent__video" id="heroVideo" muted playsinline preload="auto"
+         poster="assets/hero/messengers-hero-video-poster.jpg" aria-hidden="true">
+    <source src="assets/hero/messengers-hero-video.mp4" type="video/mp4">
+    <source src="assets/hero/messengers-hero-video.webm" type="video/webm">
+  </video>
+  <div class="ent__scrim" aria-hidden="true"></div>
+
+  <div class="ent__copy">
+    <!-- ONE SLOT, TWO OCCUPANTS. The eyebrow and the headline are stacked in
+         the same grid cell so the cross-fade happens IN PLACE — KUNDALINI
+         SPINES is the headline while the clip plays, and the reveal replaces it
+         where it stands rather than beside it.
+
+         Grid rather than absolute positioning because the shutter driver puts
+         its own transform on the eyebrow (the 6px lift) and on the slats; an
+         absolutely centred element would need translate(-50%,-50%) and the
+         driver would overwrite it. -->
+    <div class="ent__stack">
+      <span class="label sh-eyebrow" id="eyebrow">Kundalini Spines</span>
+
+      <!-- TWO LINES, TWO SHUTTERS — one grid across both would put a slat
+           boundary through the interline gap. .sh-hold keeps it dark until the
+           webfont has landed, because the slat grid is measured against the
+           real face and Arial Narrow's metrics misplace every boundary,
+           silently. -->
+      <h1 class="scrub__title text-stencil shutter sh-hold" id="title">
+        <span class="sh-line" data-text="Knowledge Hidden"><span class="shutter__text">Knowledge Hidden</span></span>
+        <span class="sh-line" data-text="in Plain Sight"><span class="shutter__text">in Plain Sight</span></span>
+      </h1>
+    </div>
+
+    <button type="button" class="ent__enter" id="enter">
+      <span class="dot" aria-hidden="true"></span> Enter
+    </button>
+  </div>
+
+  <button type="button" class="ent__skip" id="skip">Skip</button>
+</div>
+
+<!-- ============================ THE NAVIGATOR ===========================
+     Markup is the navigator's own, unchanged, so js/spine-ui.js finds what it
+     expects (#spine-nav-stage, #spine-nav, #spine-card, .spine-connectors,
+     #spine-hint). The only additions are the two coil wrappers around
+     .spine__anat.
+     ====================================================================== -->
+<main class="spine-stage" id="spine-nav-stage" aria-hidden="true">
+
+  <svg class="spine-connectors" aria-hidden="true">
+    <path class="conn-active"></path>
+    <path class="conn-head"></path>
+  </svg>
+
+  <div class="spine" aria-hidden="true">
+    <div class="ent-coil ent-coil--back">
+      <div class="ent-coil__box"><canvas id="coilBack"></canvas></div>
+    </div>
+
+    <div class="spine__anat"></div>
+
+    <div class="ent-coil ent-coil--front">
+      <div class="ent-coil__box"><canvas id="coilFront"></canvas></div>
+    </div>
+
+    <div class="spine__cord"></div>
+    <div class="spine__energy"></div>
+  </div>
+
+  <div class="spine__nodes" id="spine-nav" role="toolbar" aria-orientation="vertical" aria-label="Spine navigation">
+    <!-- populated by js/spine-ui.js from its NODES[] -->
+  </div>
+
+  <article class="spine-card" id="spine-card" role="dialog" aria-modal="false" aria-labelledby="spine-card-title" hidden>
+    <button type="button" class="spine-card__close" aria-label="Close">&times;</button>
+    <div class="spine-card__head">
+      <span class="spine-card__idx"></span>
+      <span class="spine-card__flag">Active</span>
+    </div>
+    <span class="label spine-card__eyebrow"></span>
+    <h2 class="spine-card__title" id="spine-card-title"></h2>
+    <div class="spine-card__rule"></div>
+    <div class="spine-card__body"></div>
+    <a class="spine-card__cta" href="#"><span class="cta-text">Explore</span> <span class="arrow" aria-hidden="true">&rarr;</span></a>
+  </article>
+
+  <p class="spine-hint" id="spine-hint"><span class="label">Hover a node &middot; click to open &middot; Esc to close</span></p>
+</main>
+
+<script src="js/spine-ui.js"></script>
+<script src="js/spine-coil.js"></script>
+<script src="js/shutter-text.js"></script>
+
+<script>
+/* ==========================================================================
+   THE SEQUENCE
+
+   Four states, one direction, no way back: playing -> settling -> open -> nav.
+   Every transition is idempotent, because three different inputs can trigger
+   the same one (the video ending, the skip button, and a wheel gesture that
+   arrives while a seek is already in flight).
+   ========================================================================== */
+(function () {
+  'use strict';
+
+  var ent    = document.getElementById('ent');
+  var video  = document.getElementById('heroVideo');
+  var title  = document.getElementById('title');
+  var enter  = document.getElementById('enter');
+  var skipEl = document.getElementById('skip');
+  var stage  = document.getElementById('spine-nav-stage');
+
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var settled = false, handed = false;
+
+  /* ---- the seek guard.
+
+     THIS IS NOT DEFENSIVE PROGRAMMING, IT IS A MEASURED FAILURE MODE.
+     python -m http.server answers media requests with 200 and no Accept-Ranges
+     header. Chrome reads that as "not seekable" and reports video.seekable as
+     [[0,0]] even when video.buffered is the entire clip — and then EVERY
+     currentTime write clamps silently to 0. No console error; seeking and
+     seeked both fire and seeked reports 0.
+
+     Unguarded, that turns Skip into "restart the video from the beginning",
+     which is the worst possible reading of a skip button and gives no clue
+     where to look. Serve with scripts/serve.py, which answers 206 properly —
+     but the page must not DEPEND on someone having done that. */
+  function canSeek(v) {
+    return v.seekable && v.seekable.length > 0 && v.seekable.end(0) > 0;
+  }
+
+  /* ---- 1. playback.
+     Muted autoplay is normally permitted. If it is refused — low power mode,
+     some mobile defaults — nothing here breaks: the video simply sits on its
+     poster and the watchdog below opens the door anyway. The old scroll-scrub
+     had the reader's own scrolling as its safety net; with no scroll at all,
+     this timer IS the safety net. */
+  var p = video.play();
+  if (p && p.catch) p.catch(function () {});
+
+  window.setTimeout(function () {
+    if (!settled && (video.paused || video.currentTime < 0.1)) settle(true);
+  }, 1400);
+
+  video.addEventListener('ended', function () { settle(false); });
+
+  /* ---- 2. settle: the video hands over to the star field, the eyebrow fades
+     out and the headline shutters in.
+
+     `cut` picks the short fade: it is true when we could not reach the last
+     frame, so the picture on screen is mid-clip rather than the nebula and
+     lingering on it only advertises the jump. */
+  function settle(cut) {
+    if (settled) return;
+    settled = true;
+    ent.classList.add(cut ? 'is-cut' : 'is-settled');
+    try { video.pause(); } catch (e) {}
+
+    // drop the decoded surface once it is invisible, not before
+    var fade = cut ? 200 : 620;
+    window.setTimeout(function () { video.classList.add('is-dropped'); }, fade + 60);
+
+    shutter.play();
+    window.setTimeout(openDoor, reduce ? 0 : shutter.total());
+  }
+
+  function openDoor() { ent.classList.add('is-open'); enter.focus({ preventScroll: true }); }
+
+  /* ---- 3. skip. Button, Enter, or a wheel gesture — all three land here.
+
+     It seeks to the END and lets the reveal play, rather than jumping straight
+     past everything: the reveal is under a second and it is the part the whole
+     entrance is built around. Where seeking is impossible the fallback is not
+     a degraded version of the same idea, it is the same destination reached
+     differently — and because the clip ends on a nebula that is nearly the
+     star field already, the two routes look almost identical anyway. */
+  function skip() {
+    if (settled) return;
+    if (canSeek(video) && isFinite(video.duration)) {
+      video.currentTime = Math.max(0, video.duration - 0.05);
+      // 'ended' does not reliably fire from a seek to the very end
+      window.setTimeout(function () { settle(false); }, 120);
+    } else {
+      settle(true);
+    }
+  }
+
+  skipEl.addEventListener('click', skip);
+  window.addEventListener('wheel', function () { skip(); }, { passive: true });
+  window.addEventListener('keydown', function (e) {
+    if (settled) return;
+    if (e.key === 'Enter' || e.key === ' ' || e.key === 'Escape') { e.preventDefault(); skip(); }
+  });
+
+  /* ---- 4. the handoff to the navigator, and the serpents.
+
+     The coil fires as soon as the navigator is VISIBLE rather than on the
+     click, so it reads as something the spine does on arrival rather than as
+     feedback for pressing a button. One shot: it runs up the column once and
+     is gone for the session. */
+  var coil = null;
+
+  function hand() {
+    if (handed) return;
+    handed = true;
+    ent.classList.add('is-gone');
+    stage.classList.add('is-live');
+    stage.removeAttribute('aria-hidden');
+
+    window.setTimeout(function () {
+      ent.style.display = 'none';
+      if (reduce) return;
+      if (!coil) {
+        coil = SpineCoil.create({
+          back:  document.getElementById('coilBack'),
+          front: document.getElementById('coilFront'),
+          config: SpineCoil.readCssVars(document.documentElement)
+        });
+      }
+      coil.run();
+      var first = document.querySelector('.spine-node');
+      if (first) first.focus({ preventScroll: true });
+    }, 520);
+  }
+
+  enter.addEventListener('click', hand);
+
+  /* ---- the reveal itself. Mounted now, played at settle. */
+  var shutter = ShutterText.mount(title, { eyebrow: document.getElementById('eyebrow') });
+
+  /* ---- verification hook. The captures and the page take the same path — a
+     lab where they differ is a lab that cannot be trusted. */
+  window.__entrance = {
+    settle: settle, skip: skip, hand: hand,
+    shutter: shutter,
+    coil: function () { return coil; },
+    canSeek: function () { return canSeek(video); },
+    state: function () {
+      return {
+        settled: settled, handed: handed,
+        cls: ent.className,
+        videoT: +video.currentTime.toFixed(3),
+        seekable: video.seekable.length ? [video.seekable.start(0), +video.seekable.end(0).toFixed(3)] : [],
+        navOpacity: getComputedStyle(stage).opacity
+      };
+    }
+  };
+})();
+</script>
+</body>
+</html>

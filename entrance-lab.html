@@ -38,6 +38,7 @@
 <link rel="stylesheet" href="css/star-bg.css">
 <link rel="stylesheet" href="css/spine-ui.css">
 <link rel="stylesheet" href="css/shutter-text.css">
+<link rel="stylesheet" href="css/text-scramble.css">
 
 <style>
 :root {
@@ -326,8 +327,12 @@ body { margin: 0; overflow: hidden; }   /* nothing on this page scrolls, ever */
       </h1>
     </div>
 
+    <!-- The scramble module reads its label out of this element and leaves the
+         .dot span alone, so the markup needs no other change. Uppercased by
+         CSS; the module keeps an aria-label so the accessible name stays
+         "ENTER THE SIGNAL" while textContent is mid-decode noise. -->
     <button type="button" class="ent__enter" id="enter">
-      <span class="dot" aria-hidden="true"></span> Enter
+      <span class="dot" aria-hidden="true"></span> Enter the Signal
     </button>
   </div>
 
@@ -385,6 +390,7 @@ body { margin: 0; overflow: hidden; }   /* nothing on this page scrolls, ever */
 <script src="js/spine-ui.js"></script>
 <script src="js/spine-coil.js"></script>
 <script src="js/shutter-text.js"></script>
+<script src="js/text-scramble.js"></script>
 
 <script>
 /* ==========================================================================
@@ -460,7 +466,21 @@ body { margin: 0; overflow: hidden; }   /* nothing on this page scrolls, ever */
     window.setTimeout(openDoor, reduce ? 0 : shutter.total());
   }
 
-  function openDoor() { ent.classList.add('is-open'); enter.focus({ preventScroll: true }); }
+  /* The door opens and its label decodes, in that order and on the same beat.
+
+     scramble.play() goes BEFORE focus(): the module re-decodes on focus, and
+     focusing first would start a run and then immediately restart it. Its own
+     mid-run guard makes that harmless, but the ordering says what is intended.
+
+     The decode is the SECOND decode in four seconds — the headline shutters,
+     then this. That was the owner's call with the risk stated. If it ever
+     reads as one gesture too many, this line is where to cut it, not the
+     module. */
+  function openDoor() {
+    ent.classList.add('is-open');
+    if (scramble) scramble.play();
+    enter.focus({ preventScroll: true });
+  }
 
   /* ---- 3. skip. Button, Enter, or a wheel gesture — all three land here.
 
@@ -524,11 +544,22 @@ body { margin: 0; overflow: hidden; }   /* nothing on this page scrolls, ever */
   /* ---- the reveal itself. Mounted now, played at settle. */
   var shutter = ShutterText.mount(title, { eyebrow: document.getElementById('eyebrow') });
 
+  /* ---- the door's label. Mounted now so the slot grid is measured while the
+     button is laid out but still invisible; played at openDoor. Mounting is
+     what nails each character to one advance width, so an unmounted button
+     would visibly resize the moment the first decode ran. */
+  var scramble = window.TextScramble ? TextScramble.mount(enter) : null;
+
   /* ---- verification hook. The captures and the page take the same path — a
      lab where they differ is a lab that cannot be trusted. */
   window.__entrance = {
     settle: settle, skip: skip, hand: hand,
     shutter: shutter,
+    /* scramble-lab.html sets window.__scramble itself; the MODULE does not, so
+       a consuming page has to expose its own instance or every seek() in a
+       capture script silently no-ops against undefined and the frames come
+       back live rather than frozen. */
+    scramble: function () { return scramble; },
     coil: function () { return coil; },
     canSeek: function () { return canSeek(video); },
     state: function () {

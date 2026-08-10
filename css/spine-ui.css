@@ -1,0 +1,508 @@
+/* ==========================================================================
+   SPINE UI V2 — the living-spine navigator, presentation layer
+   Partner file: js/spine-ui.js (behaviour). Extracted from spine-lab.html
+   Aug 10 2026 so a second page can consume the same navigator instead of
+   hand-copying it, which is how hero-scrub-lab.html ended up with its own
+   drifting duplicate of the six-node table.
+
+   WHAT THIS FILE OWNS
+     stage + connector overlay · the spine (wireframe, cord, markers, rising
+     comet) · nodes (dot, destination mark, ripple rings, crosshair reticle,
+     labels, colour ping) · the decorative energy-points and the @property
+     registration they depend on · the reading card · the hint · the phone
+     breakpoint for all of the above.
+
+   WHAT DELIBERATELY STAYED IN spine-lab.html
+     - The authored :root token values. This file consumes them and does not
+       define them, so a consuming page MUST supply the spine token block
+       (--node-size, --node-color, --spine-ui-energy-ms, and the rest) or every
+       rule here resolves against an empty var(). That is on purpose: the lab
+       page owns those numbers because its ?tune panel writes them live, and
+       giving this file a second set of defaults would create exactly the
+       two-sources-of-truth problem the extraction exists to remove.
+     - The --kick / --snare / --charge idle stubs, which are about star-bg.css,
+       not about the navigator.
+     - The ?tune panel's own chrome, and the --axis-shift value it sets. The
+       navigator only READS --axis-shift; the panel decides what it is.
+
+   Nothing in here was retuned while it was moved. The fourteen values the
+   owner dialled on their own hardware live in spine-lab.html and are unchanged.
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   STAGE
+   -------------------------------------------------------------------------- */
+.spine-stage {
+  position: relative;
+  min-height: 100svh;
+  overflow: hidden;
+}
+
+/* Connector overlay sits above the spine line but below the cards. */
+.spine-connectors {
+  position: absolute; inset: 0; z-index: 15;
+  width: 100%; height: 100%;
+  pointer-events: none;
+  overflow: visible;
+}
+.spine-connectors path {
+  fill: none;
+  stroke-linejoin: miter;
+  stroke-linecap: butt;
+  opacity: 0;
+}
+/* base line — draws (fills) from the spine toward the card */
+.spine-connectors .conn-active {
+  stroke: var(--connector-color);
+  stroke-width: var(--connector-w);
+  filter: drop-shadow(0 0 3px rgba(242,242,238,0.35));
+}
+.spine-connectors .conn-active.is-preview { stroke: var(--connector-preview); filter: none; }
+/* energy head — a short bright segment that runs the line as it establishes */
+.spine-connectors .conn-head {
+  stroke: var(--connector-head);
+  stroke-width: calc(var(--connector-w) + 0.5px);
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 5px rgba(242,242,238,0.9));
+}
+
+/* --------------------------------------------------------------------------
+   THE SPINE  (central vertical axis)
+   A thin luminous rail with regular vertebra ticks. Restrained, anatomical,
+   machine-like — it breathes; a single energy pulse drifts down it.
+   -------------------------------------------------------------------------- */
+.spine {
+  position: absolute; top: 0; bottom: 0; left: calc(50% + var(--axis-shift));
+  width: 2px; transform: translateX(-50%);
+  z-index: 10;
+  opacity: var(--spine-ui-opacity);
+}
+/* the anatomical wireframe spine — the site's own line-art vertebral column.
+   screen blend drops the image's black over the starfield, leaving only the
+   glowing bone lines; the filter dims it to a restrained schematic. A narrow
+   centered strip with overflow:hidden crops the sacred-geometry wings so only
+   the central column reads. */
+.spine__anat {
+  position: absolute; top: 5%; bottom: 5%; left: 50%;
+  width: var(--spine-anat-w); transform: translateX(-50%);
+  overflow: hidden;
+  /* ../ because a url() resolves against the STYLESHEET, not the document. This
+     read "assets/hero/..." while it lived in spine-lab.html's inline <style>,
+     where the document was the base; moving it here silently repointed it at
+     css/assets/hero/ and the wireframe 404d away to nothing. Measured Aug 10
+     2026 during the extraction — the only line in this file whose text had to
+     change to survive the move. Matches star-bg.css and spine-bg.css, which
+     have always used ../assets/. */
+  background-image: url("../assets/hero/spine-ui-wire.png");
+  background-repeat: no-repeat;
+  background-position: center center;
+  background-size: auto 100%;
+  opacity: var(--spine-anat-opacity);
+  filter: saturate(var(--spine-anat-sat))
+          brightness(var(--spine-anat-bright))
+          contrast(var(--spine-anat-contrast));
+  -webkit-mask-image: linear-gradient(180deg, transparent, #000 9%, #000 91%, transparent);
+          mask-image: linear-gradient(180deg, transparent, #000 9%, #000 91%, transparent);
+  animation: spine-breathe var(--spine-ui-breathe-ms) var(--ease-standard) infinite;
+  transform-origin: center;
+}
+
+/* the central luminous cord — the thin bright thread the node-dots ride on */
+.spine__cord {
+  position: absolute; top: 6%; bottom: 6%; left: 50%;
+  width: 1px; transform: translateX(-50%);
+  background: linear-gradient(180deg, transparent,
+    rgba(242,242,238,0.5) 12%, rgba(242,242,238,0.5) 88%, transparent);
+  filter: drop-shadow(0 0 4px rgba(242,242,238,0.45));
+  opacity: var(--cord-opacity);
+}
+
+/* START (ENTRY) / CONTINUE (SCROLL) axis markers, per the master concept */
+.spine__marker {
+  position: absolute; left: 50%; transform: translateX(-50%);
+  text-align: center; pointer-events: none; white-space: nowrap;
+  font-family: var(--font-mono); font-size: 10px;
+  letter-spacing: 0.18em; text-transform: uppercase; color: var(--color-gray-500);
+}
+.spine__marker span { display: block; color: var(--color-gray-400); }
+.spine__marker--start { top: 1.5%; }
+.spine__marker--start .tick { display: block; margin: 6px auto 0; width: 1px; height: 22px; background: linear-gradient(180deg, transparent, rgba(216,208,190,0.35)); }
+.spine__marker--end { bottom: 1.5%; }
+.spine__marker--end .tick { display: block; margin: 0 auto 6px; width: 1px; height: 22px; background: linear-gradient(180deg, rgba(216,208,190,0.35), transparent); }
+/* the rising energy — a comet: warm amber head leading, white trail behind
+   (below, since it travels up). The head is the point the node flickers meet. */
+.spine__energy {
+  position: absolute; left: 50%; top: 8%;
+  width: var(--comet-w); height: var(--comet-h); transform: translate(-50%, 0);
+  border-radius: 3px;
+  background: linear-gradient(180deg,
+    rgba(var(--node-color), 0.95) 0%,     /* amber head (leading edge, top) */
+    rgba(255, 250, 244, 0.92) 9%,         /* bright white just behind the head */
+    rgba(242, 242, 238, 0.5) 40%,         /* white trail, fading */
+    rgba(242, 242, 238, 0.16) 70%,
+    transparent 100%);                    /* trail dissolves below */
+  filter: blur(1px);
+  opacity: 0;
+  animation: spine-energy var(--spine-ui-energy-ms) linear infinite;
+}
+/* the bright comet head */
+.spine__energy::before {
+  content: ""; position: absolute; top: -2.5px; left: 50%; transform: translateX(-50%);
+  width: var(--comet-head); height: var(--comet-head); border-radius: 50%;
+  background: radial-gradient(circle, #fff 0%, rgba(var(--node-color),0.95) 55%, transparent 78%);
+  box-shadow: 0 0 12px rgba(var(--node-color),0.8), 0 0 4px #fff;
+}
+@keyframes spine-breathe {
+  0%, 100% { transform: translateX(-50%) scaleY(1); }
+  50%      { transform: translateX(-50%) scaleY(calc(1 + var(--spine-ui-breathe))); }
+}
+/* energy RISES — bottom to top, powering the chakras up the spine */
+@keyframes spine-energy {
+  0%   { top: 92%; opacity: 0; }
+  12%  { opacity: var(--comet-a); }
+  88%  { opacity: var(--comet-a); }
+  100% { top: 8%;  opacity: 0; }
+}
+
+/* --------------------------------------------------------------------------
+   NODES  (vertebra endpoints — the interactive destinations)
+   Real <button>s in a vertical toolbar: keyboard + screen-reader native.
+   -------------------------------------------------------------------------- */
+.spine__nodes {
+  position: absolute; inset: 0; left: calc(50% + var(--axis-shift)); transform: translateX(-50%);
+  width: 0; z-index: 20;
+}
+/* real destination nodes — glowing light-points riding the central cord */
+.spine-node {
+  position: absolute; left: 0; top: var(--y);
+  transform: translate(-50%, -50%);
+  width: var(--node-size); height: var(--node-size);
+  padding: 0; margin: 0;
+  background: transparent; border: 0; cursor: pointer;
+  color: var(--text-primary);
+  transition: opacity var(--motion-base) var(--ease-standard);
+}
+/* generous invisible hit area without moving the visual dot */
+.spine-node::before {
+  content: ""; position: absolute; inset: -16px; border-radius: 50%;
+}
+/* the luminous point */
+.spine-node__dot {
+  position: absolute; inset: 0; border-radius: 50%;
+  background: radial-gradient(circle, #fff 0%, #fff 30%, rgba(var(--node-color),0.6) 60%, transparent 74%);
+  opacity: var(--node-idle-opacity);
+  box-shadow: 0 0 var(--node-glow) rgba(var(--node-color), var(--node-glow-a)),
+              0 0 2px rgba(255,255,255, var(--node-core-a));
+  transition: opacity var(--motion-base) var(--ease-standard),
+              box-shadow var(--motion-base) var(--ease-standard),
+              transform var(--motion-base) var(--ease-standard);
+}
+/* a thin static focus ring marks a real destination vs a decorative point */
+.spine-node__dot::after {
+  content: ""; position: absolute; top: 50%; left: 50%;
+  width: var(--node-mark-size); height: var(--node-mark-size); transform: translate(-50%,-50%);
+  border-radius: 50%; border: 1px solid rgba(242,242,238, var(--node-mark-a));
+}
+/* concentric pulse rings (reticle) */
+.spine-node__ring {
+  position: absolute; top: 50%; left: 50%;
+  width: var(--node-ring); height: var(--node-ring);
+  transform: translate(-50%, -50%) scale(0.4);
+  border-radius: 50%;
+  /* the warm glow reaches out and fades — colour gradient, not a hard line */
+  border: 1px solid rgba(var(--node-color), 0.55);
+  background: radial-gradient(circle, transparent 58%, rgba(var(--node-color),0.14) 100%);
+  box-shadow: 0 0 14px rgba(var(--node-color),0.35);
+  opacity: 0; pointer-events: none;
+  transition: width var(--motion-base) var(--ease-standard), height var(--motion-base) var(--ease-standard);
+}
+.spine-node__ring--2 { width: var(--node-ring); height: var(--node-ring); }
+
+/* the crosshair reticle — a horizontal axis with square endpoints, hidden until
+   the node is focused/active, then it extends symmetrically (references 2 & 3). */
+.spine-node__reticle {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+  width: 0; height: 0; pointer-events: none; opacity: 0;
+  transition: opacity var(--motion-base) var(--ease-standard);
+}
+.spine-node__reticle .rx {
+  position: absolute; top: 50%; left: 50%;
+  width: var(--reticle-w); height: 1px; transform: translate(-50%,-50%) scaleX(0);
+  background: linear-gradient(90deg, transparent, rgba(242,242,238,0.85) 12%, rgba(242,242,238,0.85) 88%, transparent);
+  filter: drop-shadow(0 0 3px rgba(242,242,238,0.6));
+  transition: transform var(--motion-base) var(--ease-standard);
+}
+.spine-node__reticle .sq {
+  position: absolute; top: 50%; width: 5px; height: 5px; margin-top: -2.5px;
+  border: 1px solid rgba(242,242,238,0.7); background: rgba(5,5,5,0.4);
+  opacity: 0; transition: opacity var(--motion-base) var(--ease-standard);
+}
+.spine-node__reticle .sq--l { left: calc(50% - var(--reticle-w) / 2 - 2.5px); }
+.spine-node__reticle .sq--r { left: calc(50% + var(--reticle-w) / 2 - 2.5px); }
+
+/* node label — schematic mono, hidden until hover/active, then off to the card side */
+.spine-node__label {
+  position: absolute; top: 50%; transform: translateY(-50%);
+  white-space: nowrap; pointer-events: none;
+  font-family: var(--font-mono); font-size: var(--fs-mono);
+  letter-spacing: var(--tracking-label); text-transform: uppercase;
+  color: var(--text-primary);
+  /* legibility scrim so the label never washes out over the white spine */
+  text-shadow: 0 0 6px rgba(5,5,5,0.95), 0 0 12px rgba(5,5,5,0.9), 0 1px 2px rgba(5,5,5,1);
+  opacity: 0; transition: opacity var(--motion-base) var(--ease-standard);
+}
+.spine-node[data-side="left"]  .spine-node__label { right: var(--node-label-offset); text-align: right; }
+.spine-node[data-side="right"] .spine-node__label { left: var(--node-label-offset);  text-align: left; }
+.spine-node__label .idx { color: var(--color-bone); margin-right: 6px; }
+.spine-node__label .kind {
+  display: block; font-size: 10px; letter-spacing: 0.16em;
+  color: var(--color-gray-300); margin-top: 3px;
+}
+
+/* ---- hover / pre-focus + active share the "focused" reticle look ---- */
+.spine-node:hover, .spine-node:focus-visible,
+.spine-node.is-prefocus, .spine-node.is-active { outline: none; }
+
+.spine-node:hover .spine-node__dot,
+.spine-node:focus-visible .spine-node__dot,
+.spine-node.is-prefocus .spine-node__dot,
+.spine-node.is-active .spine-node__dot {
+  opacity: 1; transform: scale(1.15);
+  box-shadow: 0 0 18px rgba(var(--node-color),0.85), 0 0 6px rgba(255,255,255,0.95);
+}
+.spine-node:hover .spine-node__label,
+.spine-node:focus-visible .spine-node__label,
+.spine-node.is-prefocus .spine-node__label { opacity: 1; }
+/* once the card is open it carries the title — clear the label off the wire */
+.spine-node.is-active .spine-node__label { opacity: 0; }
+
+.spine-node:hover .spine-node__reticle,
+.spine-node:focus-visible .spine-node__reticle,
+.spine-node.is-prefocus .spine-node__reticle,
+.spine-node.is-active .spine-node__reticle { opacity: 1; }
+.spine-node:hover .spine-node__reticle .rx,
+.spine-node:focus-visible .spine-node__reticle .rx,
+.spine-node.is-prefocus .spine-node__reticle .rx { transform: translate(-50%,-50%) scaleX(0.62); }
+.spine-node.is-active .spine-node__reticle .rx { transform: translate(-50%,-50%) scaleX(1); }
+.spine-node:hover .spine-node__reticle .sq,
+.spine-node:focus-visible .spine-node__reticle .sq,
+.spine-node.is-prefocus .spine-node__reticle .sq,
+.spine-node.is-active .spine-node__reticle .sq { opacity: 1; }
+
+.spine-node:hover .spine-node__ring,
+.spine-node:focus-visible .spine-node__ring,
+.spine-node.is-prefocus .spine-node__ring,
+.spine-node.is-active .spine-node__ring {
+  /* LONGHANDS, deliberately — do not collapse these back into the `animation`
+     shorthand. The shorthand also sets animation-delay: 0s, and this selector is
+     (0,3,0) against the ring--2 delay rule's (0,2,0), so the shorthand won that
+     cascade and BOTH rings ran in phase, drawn exactly on top of each other
+     (they are the same size). Measured Aug 9 2026: the "steady radar-like train"
+     of two offset ripples described in V2HANDOFF 19 had never once rendered.
+     Longhands leave animation-delay alone, so ring 2 keeps its half cycle. */
+  animation-name: node-pulse;
+  animation-duration: var(--node-pulse-ms);
+  animation-timing-function: cubic-bezier(0, 0.4, 0.3, 1);
+  animation-iteration-count: infinite;
+}
+/* the second ring rides half a cycle behind so a ripple is always travelling out */
+.spine-node .spine-node__ring--2 { animation-delay: calc(var(--node-pulse-ms) * -0.5); }
+/* an amber ripple emanating outward from the node and dissolving as it goes */
+@keyframes node-pulse {
+  0%   { transform: translate(-50%,-50%) scale(0.3); opacity: 0; }
+  12%  { opacity: var(--ring-peak-a); }
+  100% { transform: translate(-50%,-50%) scale(var(--ring-scale)); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .spine-node__ring { display: none; }
+}
+
+/* active / locked — brightest core + bigger concentric circles */
+.spine-node.is-active { --node-ring: var(--node-ring-active); }
+.spine-node.is-active .spine-node__dot { transform: scale(1.3); }
+.spine-node.is-active .spine-node__ring {
+  border-color: rgba(var(--node-color), 0.7);
+  box-shadow: 0 0 22px rgba(var(--node-color),0.45);
+}
+
+/* when SOMETHING is active, the others recede.
+   The nodes can take `opacity` directly — nothing animates the button itself.
+   The POINTS cannot (see the @property --point-dim note above); they are dimmed
+   through the multiplier their keyframes read. */
+.spine-stage.is-card .spine-node:not(.is-active) { opacity: var(--node-dim-when-active); }
+.spine-stage.is-card .spine-point { --point-dim: var(--point-dim-when-active); }
+
+/* immersive nodes read as a hollow double point */
+.spine-node[data-kind="immersive"] .spine-node__dot::after { border-style: double; border-width: 2px; }
+
+/* colour ping — a brief warm flash as the travelling light crosses this node,
+   revealing that there are nodes below on the spine. Delay is synced in JS. */
+.spine-node__ping {
+  position: absolute; top: 50%; left: 50%;
+  width: 26px; height: 26px; transform: translate(-50%,-50%) scale(0.6);
+  border-radius: 50%; pointer-events: none; opacity: 0;
+  background: radial-gradient(circle, rgba(var(--node-color),0.85), rgba(var(--node-color),0.2) 45%, transparent 70%);
+  animation: node-ping var(--spine-ui-energy-ms) linear infinite;
+}
+@keyframes node-ping {
+  0%   { opacity: 0.9; transform: translate(-50%,-50%) scale(1.15); }
+  6%   { opacity: 0;   transform: translate(-50%,-50%) scale(1.9);  }
+  100% { opacity: 0; }
+}
+
+/* decorative energy-points — faint light-points along the cord, non-interactive,
+   each giving a tiny warm flash as the same light passes. */
+/* --point-dim is a MULTIPLIER on the points' opacity, 1 at rest and
+   --point-dim-when-active while a card is open.
+
+   Why it has to work this way: the obvious rule —
+       .spine-stage.is-card .spine-point { opacity: 0.12 }
+   — was dead code for the life of this prototype. `point-ping` sets `opacity`
+   in every one of its keyframes, and a running animation beats a normal
+   declaration in the cascade, so the points never receded at all no matter what
+   that rule said. Measured Aug 9 2026: opacity stayed on the animated value with
+   a card open. The dim therefore has to live INSIDE the keyframes, which is what
+   the calc()s below do.
+
+   And it is registered with @property purely so it can TRANSITION. An unregistered
+   custom property is not animatable, so the dim would snap on and off while the
+   nodes beside it fade over --motion-base. Registering it as a <number> makes the
+   multiplier itself interpolate, and the keyframes re-resolve each frame. In a
+   browser without @property support the dim still applies — it just snaps. */
+@property --point-dim {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 1;
+}
+
+.spine-point {
+  position: absolute; left: 0; top: var(--y);
+  width: var(--point-size); height: var(--point-size); transform: translate(-50%, -50%);
+  border-radius: 50%; background: rgba(242,242,238,0.8);
+  box-shadow: 0 0 4px rgba(242,242,238,0.35);
+  opacity: calc(var(--point-idle) * var(--point-dim)); pointer-events: none;
+  animation: point-ping var(--spine-ui-energy-ms) linear infinite;
+  transition: --point-dim var(--motion-base) var(--ease-standard);
+}
+@keyframes point-ping {
+  0%   { opacity: calc(var(--point-flash) * var(--point-dim)); box-shadow: 0 0 9px rgba(var(--node-color),0.9); background: rgba(255,236,214,1); }
+  7%   { opacity: calc(var(--point-idle) * var(--point-dim));  box-shadow: 0 0 3px rgba(242,242,238,0.25); background: rgba(242,242,238,0.7); }
+  100% { opacity: calc(var(--point-idle) * var(--point-dim)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  /* no animation here, so plain opacity applies — but it still has to respect
+     the dim, or the ambience would stay full-strength behind an open card. */
+  .spine-point { animation: none; opacity: calc(0.24 * var(--point-dim)); }
+  .spine-node__ping { animation: none; display: none; }
+}
+
+/* --------------------------------------------------------------------------
+   CARDS  (informational reading surface)
+   Shared visual language; flexible dimensions. Mixed transparency for
+   readability per §28 — the reading card is nearly opaque; its frame glows.
+   -------------------------------------------------------------------------- */
+.spine-card {
+  position: absolute; z-index: 25;
+  width: var(--card-w); max-width: calc(100vw - 2 * var(--space-6));
+  background:
+    linear-gradient(155deg, rgba(242,242,238,0.06), rgba(242,242,238,0) 42%),
+    var(--card-bg-solid);
+  -webkit-backdrop-filter: blur(var(--card-blur)) saturate(1.1); backdrop-filter: blur(var(--card-blur)) saturate(1.1);
+  border: 1px solid var(--card-border-lit);
+  box-shadow: inset 0 1px 0 rgba(242,242,238,0.10), 0 24px 60px rgba(0,0,0,0.5);
+  padding: var(--space-6);
+  opacity: 0; visibility: hidden; pointer-events: none;
+  transform: translateY(8px) scale(0.965);
+  transition: opacity var(--card-enter-ms) var(--ease-standard),
+              transform var(--card-enter-ms) var(--ease-standard),
+              visibility 0s linear var(--card-enter-ms);
+}
+.spine-card.is-open {
+  opacity: 1; visibility: visible; pointer-events: auto;
+  transform: translateY(0) scale(1);
+  transition-delay: 0s; /* enter after connector draws (set in JS) */
+}
+/* depth / ghost frames behind the card — two offset outlines that build the
+   layered "emergence from the spine" of State 03, then settle quietly. */
+.spine-card::before,
+.spine-card::after {
+  content: ""; position: absolute; inset: 0; z-index: -1;
+  border: 1px solid var(--card-ghost); background: transparent;
+  opacity: 0; pointer-events: none;
+  transition: opacity var(--card-enter-ms) var(--ease-standard),
+              transform var(--card-enter-ms) var(--ease-standard);
+  transform: translate(0, 0) scale(1);
+}
+.spine-card.is-open::before { opacity: 0.7; transform: translate(10px, 12px) scale(1.006); transition-delay: 60ms; }
+.spine-card.is-open::after  { opacity: 0.4; transform: translate(20px, 24px) scale(1.012); transition-delay: 120ms; }
+/* on the left-side cards the depth stacks the other way */
+.spine-card.side-left.is-open::before { transform: translate(-10px, 12px) scale(1.006); }
+.spine-card.side-left.is-open::after  { transform: translate(-20px, 24px) scale(1.012); }
+.spine-card__head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: var(--space-4); margin-bottom: var(--space-3);
+}
+.spine-card__idx { font-family: var(--font-mono); font-size: var(--fs-mono);
+  letter-spacing: var(--tracking-label); color: var(--color-gray-400); }
+.spine-card__flag { font-family: var(--font-mono); font-size: 10px;
+  letter-spacing: 0.18em; text-transform: uppercase; color: var(--color-bone);
+  border: 1px solid var(--border-subtle); padding: 2px 7px; }
+.spine-card__eyebrow { display: block; margin-bottom: var(--space-2); }
+.spine-card__title {
+  font-family: var(--font-display); font-weight: 800;
+  font-size: var(--fs-h2); line-height: var(--lh-heading);
+  letter-spacing: var(--tracking-display); margin: 0 0 var(--space-3);
+  color: var(--text-primary);
+}
+.spine-card__rule { width: 34px; height: 2px; background: var(--color-bone); margin: 0 0 var(--space-4); opacity: 0.7; }
+.spine-card__body { font-family: var(--font-body); font-size: var(--fs-body);
+  line-height: var(--lh-body); color: var(--text-secondary); }
+.spine-card__body p { margin: 0 0 var(--space-3); }
+.spine-card__body p:last-child { margin-bottom: 0; }
+.spine-card__cta {
+  display: inline-flex; align-items: center; gap: 8px; margin-top: var(--space-4);
+  font-family: var(--font-mono); font-size: var(--fs-mono);
+  letter-spacing: var(--tracking-label); text-transform: uppercase;
+  color: var(--text-primary); text-decoration: none;
+}
+.spine-card__cta .arrow { transition: transform var(--motion-fast) var(--ease-standard); }
+.spine-card__cta:hover .arrow { transform: translateX(6px); }
+.spine-card__close {
+  position: absolute; top: 10px; right: 10px;
+  width: 30px; height: 30px; line-height: 1;
+  background: transparent; border: 1px solid var(--border-subtle);
+  color: var(--text-muted); cursor: pointer; font-size: 16px;
+  transition: color var(--motion-fast), border-color var(--motion-fast);
+}
+.spine-card__close:hover { color: var(--text-primary); border-color: var(--color-bone); }
+
+/* immersive placeholder card reads as a stub, not a real destination yet */
+.spine-card.is-immersive { border-color: var(--card-border); }
+.spine-card.is-immersive .spine-card__body { color: var(--text-secondary); }
+
+/* --------------------------------------------------------------------------
+   HINT  (bottom-center, fades once the user has interacted)
+   -------------------------------------------------------------------------- */
+.spine-hint {
+  position: fixed; left: calc(50% + var(--axis-shift)); bottom: var(--space-6); transform: translateX(-50%);
+  z-index: 30; text-align: center; pointer-events: none;
+  transition: opacity var(--motion-slow) var(--ease-standard);
+}
+.spine-hint .label { color: var(--color-gray-400); }
+.spine-hint.is-hidden { opacity: 0; }
+
+/* --------------------------------------------------------------------------
+   RESPONSIVE  (prototype degrades gracefully; the two mobile candidates in
+   §34 — vertical rail vs. horizontal stepper — come as a later, approved step)
+   -------------------------------------------------------------------------- */
+@media (max-width: 760px) {
+  .spine-node__label .kind { display: none; }
+  .spine-card {
+    left: 50% !important; right: auto !important;
+    transform: translate(-50%, 8px) scale(0.965);
+    width: calc(100vw - 2 * var(--space-4));
+    bottom: calc(var(--space-16)); top: auto !important;
+  }
+  .spine-card.is-open { transform: translate(-50%, 0) scale(1); }
+  .spine-connectors { display: none; } /* right-angle branch reads poorly at phone width */
+}

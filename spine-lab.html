@@ -42,139 +42,33 @@
 
 <style>
 /* --------------------------------------------------------------------------
-   SPINE UI TOKENS  (prototype-local; destined for css/tokens.css after review)
-   Every spine value is a variable so the existing /?tune panel can adopt them
-   later by adding field descriptors — no second control system.
+   WHAT IS LEFT IN THIS FILE
 
-   Aug 9 2026 — the idle-read pass. These are the owner's own numbers, dialled
-   live through spine-lab.html?tune on their own screen, not values reasoned out
-   from a screenshot. Thirteen moved: nodes brighter and slightly larger with a
-   wider halo (0.6 -> 0.79 opacity, 7px -> 10px glow), their destination ring
-   strengthened (alpha 0.35 -> 0.5), the wireframe pulled back behind them
-   (opacity 0.74 -> 0.64, contrast 1 -> 0.7), the ripple made tighter and quicker
-   (scale 2.3 -> 1.55, period 1700ms -> 1350ms), the active ring smaller
-   (62px -> 48px), non-active nodes barely receding (0.3 -> 0.78), and labels
-   pulled in (210px -> 180px). Do not "restore" any of these to the earlier
-   numbers — the earlier numbers were judged in an 800x450 pane at the clamp()
-   floor, which is exactly the mistake this pass corrected.
+   The spine tokens used to live here. Aug 10 2026 they moved into
+   css/spine-ui.css, because leaving them behind meant every page consuming the
+   navigator had to carry its own copy of a hundred-line block -- the exact
+   duplication the extraction was done to remove. The fourteen values the owner
+   dialled on Aug 9 are unchanged, only relocated.
 
-   The through-line, so later passes do not undo it by halves: the nodes carry
-   the page and the wireframe is backdrop. Every one of these moved in that same
-   direction, which is why raising the spine back up or thinning the nodes will
-   feel wrong even though each looks reasonable on its own.
+   The ?tune panel below needed no changes: it captures its defaults with
+   getComputedStyle(), which resolves a linked stylesheet exactly as it resolved
+   this inline <style>, and Reset all calls removeProperty() so values fall back
+   to the stylesheet rather than to nothing.
+
+   The through-line for those numbers, kept here where the panel that edits them
+   can see it: THE NODES CARRY THE PAGE AND THE WIREFRAME IS BACKDROP. Do not
+   restore the pre-Aug-9 values. They were judged in an 800x450 pane with
+   --spine-anat-w sitting at its clamp() FLOOR of 240px instead of the 380px it
+   reaches at 1440 wide, which is precisely the mistake that pass corrected.
    -------------------------------------------------------------------------- */
 :root {
   /* Idle the reactive sky correctly with no audio engine on this page: the
-     kick/snare consumers resolve to 0, so star-bg.css computes its rest state. */
+     kick/snare consumers resolve to 0, so star-bg.css computes its rest state.
+     PER-PAGE ON PURPOSE, and why this did not follow the rest into
+     css/spine-ui.css: a page running the real detector must not ship zeroes as
+     its defaults. */
   --kick: 0; --snare: 0; --charge: 0;
   --kick-stars: 0; --kick-cloud: 0; --snare-bolt: 0;
-
-  /* Spine structure */
-  --axis-shift:              0px;    /* lateral offset of the whole spine axis.
-                                        Only the ?tune panel moves it, so the
-                                        spine stays optically centred in the
-                                        space the panel leaves. Everything that
-                                        references the axis — spine, nodes, hint,
-                                        and the card placement in JS — reads THIS,
-                                        so there is one source of truth. Padding
-                                        on the stage cannot do the job: absolutely
-                                        positioned cards resolve their 50% against
-                                        the padding box, so they would not move. */
-  --spine-ui-opacity:        1;
-  --spine-ui-line-w:         1.5px;
-  --spine-ui-line:           rgba(216, 208, 190, 0.22);   /* the cord — faint */
-  --spine-ui-line-lit:       rgba(242, 242, 238, 0.85);   /* signal white */
-  --spine-ui-breathe:        0.03;    /* amplitude of idle breath — restrained */
-  --spine-ui-breathe-ms:     7600ms;
-  --spine-ui-energy-ms:      7000ms;  /* vertical energy travel period */
-
-  /* Anatomical spine — generated wireframe-mesh vertebral column, converted to
-     a true transparent asset (assets/hero/spine-ui-wire.png, luminance->alpha).
-     No black at all — the nebula shows through natively, no blend needed. */
-  --spine-anat-w:            clamp(240px, 28vw, 380px);
-  --spine-anat-opacity:      0.64;   /* dimmed so the node string reads over it */
-  --spine-anat-bright:       0.9;
-  --spine-anat-contrast:     0.7;    /* softened — the wireframe recedes behind
-                                        the nodes rather than competing with them */
-  --spine-anat-sat:          0;      /* neutral white wireframe */
-
-  /* Nodes */
-  --node-size:               10.5px;
-  --node-idle-opacity:       0.79;
-  --node-hover-intensity:    1;
-  --node-active-intensity:   1;
-  --node-ring:               26px;    /* unfocused/hover ring size — smaller */
-  --node-ring-active:        48px;    /* clicked/active — bigger concentric circles */
-  --node-pulse-ms:           1350ms;
-  --node-dim-when-active:    0.78;    /* non-active nodes recede this far — high
-                                         on purpose: the spine stays legible as a
-                                         whole while a card is open, rather than
-                                         collapsing to a single lit point */
-  --reticle-w:               300px;   /* horizontal crosshair span when focused */
-  --node-color:              240, 165, 92;   /* warm amber-gold — kundalini energy; distinguishes nodes from the white spine */
-  --node-label-offset:       180px;   /* push labels clear of the spine glow */
-
-  /* Node IDLE read — how strongly a real destination announces itself before
-     anything is hovered. Split out of the hardcoded shadows so ?tune can dial
-     it live: the question these answer is "do the six read as clickable?". */
-  --node-glow:               10px;    /* amber halo radius on the idle dot */
-  --node-glow-a:             0.59;    /* ...and its alpha */
-  --node-core-a:             0.85;    /* the tight white core inside the dot */
-  --node-mark-size:          200%;    /* the thin static ring that marks a REAL
-                                         destination apart from a decorative point */
-  --node-mark-a:             0.5;     /* ...its alpha. The single biggest lever
-                                         on "is this a button or an ambience dot" */
-
-  /* Ripple rings — the keyframe's endpoints, hoisted so they are tunable */
-  --ring-scale:              1.55;    /* how far a ripple travels before dissolving —
-                                         short, so the ripple stays a tight halo on
-                                         its own node instead of reaching neighbours */
-  --ring-peak-a:             0.9;     /* brightness at the start of its travel */
-
-  /* Decorative energy-points (ambience, non-interactive) */
-  --point-size:              5px;
-  --point-idle:              0.1;     /* resting opacity between passes */
-  --point-flash:             0.85;    /* brightness as the rising light crosses */
-  --point-dim-when-active:   0.69;    /* how far the ambience drops once a card is
-                                         open. See the note on @property --point-dim
-                                         below: the old rule that tried to do this
-                                         never fired, so this is the first time the
-                                         value has actually reached the screen — and
-                                         0.69 is the first one anyone has judged. The
-                                         dead rule had asked for 0.12; seen working,
-                                         that read far too severe next to nodes that
-                                         only recede to 0.78. A multiplier, so 1 is
-                                         no dimming at all. */
-
-  /* The rising comet */
-  --comet-w:                 3.5px;
-  --comet-h:                 96px;
-  --comet-a:                 0.9;     /* plateau opacity mid-travel */
-  --comet-head:              7px;     /* diameter of the bright leading head */
-  --cord-opacity:            0.7;     /* the thin luminous thread the dots ride */
-
-  /* Connectors */
-  --connector-w:             1.5px;
-  --connector-color:         rgba(216, 208, 190, 0.72);
-  --connector-active:        rgba(242, 242, 238, 0.9);   /* lit when established */
-  --connector-preview:       rgba(216, 208, 190, 0.28);
-  --connector-head:          rgba(242, 242, 238, 1);      /* energy running the line */
-  --connector-draw-ms:       520ms;   /* §00 mockup: "all transitions 550ms" */
-  --connector-ease:          cubic-bezier(0.4, 0, 0.2, 1);
-
-  /* Cards — frosted glass so the nebula reads through */
-  --card-bg:                 rgba(12, 14, 18, 0.34);
-  --card-bg-solid:           rgba(12, 14, 18, 0.42);
-  --card-blur:               18px;
-  --card-border:             rgba(216, 208, 190, 0.22);
-  --card-border-lit:         rgba(242, 242, 238, 0.45);
-  --card-ghost:              rgba(216, 208, 190, 0.22);   /* depth / ghost frames */
-  --card-enter-ms:           440ms;
-  --card-w:                  clamp(280px, 30vw, 400px);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  :root { --connector-draw-ms: 1ms; --card-enter-ms: 1ms; }
 }
 
 /* --------------------------------------------------------------------------

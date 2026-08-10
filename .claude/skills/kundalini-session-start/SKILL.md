@@ -154,10 +154,16 @@ credits, so generation is always the user's call.
 The project's standard is **measure it, do not eyeball it** — every change
 gets verified in a real browser before it is delivered. Set this up early:
 
-**On the Windows desktop box, take screenshots with headless Chrome.** There is
-**no Node, no npm and no Playwright** on this machine — do not try to install
-them, and ignore any older instruction about `/opt/pw-browsers/chromium`, which
-described a cloud workspace. Chrome is already there and needs nothing.
+**Use Playwright. It is installed on this box** (Aug 10 2026): the **Python**
+package, `playwright` 1.62.0 via pip on Python 3.14.6, with Chrome for Testing
+151.0.7922.34 under `%LOCALAPPDATA%\ms-playwright\`. There is still **no Node, no
+npm and no npx** — the Python package needs none of them, so do not go looking
+for them. `playwright.exe` is not on PATH; invoke it as `python -m playwright`.
+
+Ignore any older instruction about `/opt/pw-browsers/chromium` (that described a
+cloud workspace) and any claim that Playwright is unavailable here — an earlier
+version of this step said exactly that, and V2HANDOFF 21 repeats it. Both are
+superseded.
 
 **Do this early, before any feel judgement.** For three sessions every visual
 decision was made blind, because the assistant's in-app browser pane does not
@@ -167,37 +173,44 @@ the HUD visible and finding that invisible too. Verified Aug 9 2026: the pane is
 not a substitute for this, and the first real screenshot found a bug that days of
 measurement had not (HUD sliders rendering in default browser blue).
 
-Serve with `python -m http.server 8000`, then:
+Serve with `python -m http.server 8000`, then drive it from Python:
 
+```python
+from playwright.sync_api import sync_playwright
+
+with sync_playwright() as p:
+    b = p.chromium.launch(channel="chromium")   # full Chrome, NOT the headless shell
+    page = b.new_page(viewport={"width": 1440, "height": 900})
+    page.goto("http://localhost:8000/hero-scrub-lab.html", wait_until="load")
+    page.screenshot(path=r"C:\...\absolute\shot.png")   # absolute path
+    b.close()
 ```
-"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe" --headless=new --disable-gpu --hide-scrollbars --window-size=1280,720 --virtual-time-budget=4000 --screenshot="C:\Users\Haight\AppData\Local\Temp\shot.png" "http://localhost:8000/hero-scrub-lab.html"
-```
 
-Then `Read` the PNG. Four things that will otherwise cost time:
+Then `Read` the PNG. Notes that will otherwise cost time:
 
-- **The output path must be absolute.** A relative one fails with
-  `Failed to write file ...: Access is denied`.
-- **Chrome returns before the file is written.** Checking for it immediately
-  reports nothing; wait, then check.
-- **Detect the Chrome path, do not assume it.** On this box it sits in
-  `Program Files (x86)`, which is the less common location. Edge is also
-  installed and takes the same flags.
-- **Video does not render — you get the poster frame.** Verified: captures at
-  `--virtual-time-budget=500` and `=6000` were byte-identical, and
-  `--autoplay-policy=no-user-gesture-required` does NOT change this. Do not add
-  that flag believing it helps.
+- **`channel="chromium"` matters.** The default headless shell is the cut-down
+  binary; the full Chrome for Testing build is what decodes video.
+- **The screenshot path must be absolute**, same as the old Chrome recipe.
+- **`page.evaluate()` and `page.mouse.wheel()` reach any state**, so scroll
+  position, HUD toggles and mid-animation frames are all directly reachable.
 
-**Canvas, SVG, CSS and images all render correctly**, including `shadowBlur` and
-`putImageData` — verified Aug 9 2026. So the coil and the dust in
-`hero-scrub-lab.html` are capturable; only the hero video is not.
+**Video renders — this is the big change.** Verified Aug 10 2026 against
+`hero-scrub-lab.html`: rAF ran at ~61fps (122 frames in 2.006s), the H.264 mp4
+decoded and painted real pixels (12,451 of 14,400 sampled pixels lit), and
+`requestVideoFrameCallback` fired with 83 presented frames. Canvas, SVG, CSS and
+images render too. **The whole page is capturable, hero video included.**
 
-**The limitation to plan around:** headless captures the page *as loaded*, so
-anything behind scroll position is unreachable. The entrance labs need a `?cap=`
-parameter that forces a state at load (`?cap=coil:0.6`, `?cap=dust:0.4`,
-`?cap=nav`) before the coil, the dust or the bones can be seen. That is a small
-change and it is the highest-value thing available to this track — it converts
-most of the handoff's "asserted, not verified" list into something checkable.
-Varying `--virtual-time-budget` then frame-steps animation deterministically.
+**Headless Chrome via `--screenshot` still works as a fallback** and needs no
+install, but it **cannot render video** (captures at `--virtual-time-budget=500`
+and `=6000` came back byte-identical) and cannot reach anything behind scroll
+position. Prefer Playwright; reach for Chrome only if Playwright is somehow
+broken.
+
+**On `?cap=`:** earlier handoffs call a `?cap=coil:0.6` style parameter the
+highest-value item on the track, because headless captured the page only *as
+loaded*. Playwright removes that blocker — it can scroll and set state directly.
+The parameter is now a **convenience for deterministic repeat captures**, not a
+prerequisite. Do not treat it as blocking the visual pass.
 
 Alongside the screenshots, keep the numeric checks — they catch different things:
 
@@ -240,7 +253,7 @@ session, kept here so they are loaded before the first edit:
 Confirm, each one checked rather than assumed: newest handoff read
 (corrections first) · progress notes checked · folder connected · repo
 cloned and log matches the handoff · desktop verified against origin ·
-build numbers match · **one headless screenshot taken and actually looked at** ·
+build numbers match · **one Playwright screenshot taken and actually looked at** ·
 task list created for the session's work.
 
 Then start the actual task — usually the top of the handoff's "Still open"

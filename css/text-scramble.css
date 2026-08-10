@@ -1,0 +1,143 @@
+/* ==========================================================================
+   TEXT SCRAMBLE — the styling half.  Pairs with js/text-scramble.js; the
+   measurements taken off the reference recording are in the block comment at
+   the top of that file.
+
+   THIS FILE OWNS ALMOST NOTHING ON PURPOSE. The button it decorates lives in
+   entrance-lab.html and that page is not ours to edit, so every rule here is
+   written to sit UNDER the entrance's own .ent__enter block without fighting
+   it: the slot spans are new elements nothing else styles, and the dot is
+   touched only through `transform` and `filter`, which .ent__enter .dot does
+   not set. Colour, background, border and box-shadow are left entirely to the
+   page. That constraint is load-bearing — .ent__enter's rules live in an
+   inline <style> in the page head, which loads AFTER this stylesheet, so any
+   property both files declare would silently go to the page and this file
+   would appear not to work.
+
+   COLOUR. The whole effect is the two-tone split measured off the reference:
+   settled characters in the label's own colour, churning characters in an
+   accent that separates from it.
+
+     --ts-color  240,165,92   the navigator's --node-color, quoted exactly —
+                              the same amber as the coil, the shutter's ghost
+                              and the button's border. NOT --color-crimson;
+                              #5E0A0A is darker than the star field's brightest
+                              band and reads as a smudge rather than as light.
+     --ts-churn  216,208,190  --color-bone.
+
+   WHICH WAY ROUND, and why bone is the churn rather than the answer: on the
+   reference the churning tail is the LOUDER of the two (accent orange against
+   near-black settled text), and the settled state is the calm one. Our button
+   is already amber, so the churn has to be the other colour, and it has to be
+   brighter than amber for the same relationship to hold. Relative luminance on
+   black: bone 208, amber 176 — bone is the brighter, so noise reads as hot and
+   the resolved word cools into the button's own amber. That also puts this in
+   deliberate opposition to css/shutter-text.css one line above it in the
+   sequence, where an amber ghost resolves INTO bone: the two moments trade the
+   same two colours in opposite directions, which is why they read as the same
+   language rather than as the same trick done twice.
+   ========================================================================== */
+
+:root {
+  --ts-color: 240, 165, 92;
+  --ts-churn: 216, 208, 190;
+}
+
+/* .is-scrambling is set on the host for the duration of a run and carries no
+   rules here on purpose — it is an integration hook, so the entrance can hang
+   its own behaviour off "the label is currently noise" (suppressing the
+   border's hover glow while it churns, say) without this file having an
+   opinion about it. Do not add a rule to it here; anything it sets would be
+   overridden by entrance-lab.html's inline <style> anyway. */
+
+/* The container the script appends. display:inline-flex so the slots cannot be
+   broken across lines and cannot collapse whitespace between themselves — at
+   sixteen inline-blocks in a row, one collapsed inter-element space would add
+   a word space the layout never accounted for. */
+.ts {
+  display: inline-flex;
+  align-items: baseline;
+  white-space: nowrap;
+}
+
+/* ONE SLOT, ONE FIXED WIDTH. --ts-slot is written by the script from a probe
+   span measured inside the real button, so it is the layout engine's own
+   advance for this face at this size, not canvas's approximation of it.
+
+   letter-spacing is ZEROED here and reinstated as margin-right. CSS puts
+   letter-spacing AFTER each character, including inside an inline-block, so a
+   slot sized to the glyph advance would have the tracking overflowing it and
+   the glyph would sit off-centre in its own box. Explicit margin keeps the
+   tracking a property of the GRID rather than of the glyph, which is what
+   makes the box identical whatever character is in it.
+
+   The margin is on every slot INCLUDING THE LAST, deliberately: a plain text
+   node also carries trailing tracking past its final character, so keeping it
+   reproduces the button's original width exactly rather than approximating it
+   one tracking-unit short. */
+.ts__c {
+  display: inline-block;
+  width: var(--ts-slot, 1ch);
+  margin-right: var(--ts-track, 0.18em);
+  letter-spacing: 0;
+  text-align: center;
+  font-variant-ligatures: none;   /* no slot may ever fuse with its neighbour */
+  will-change: color;
+}
+
+/* Word breaks are held as spaces for the whole run and never handed to the
+   pool — see the SPACES note in the script. They keep a full slot width, so
+   the phrase stays three words wide from the first frame to the last. The
+   script fills them with NBSP rather than a space: a lone space at the start
+   of an inline-block is trimmed, the box then has no inline content, and it
+   aligns on its margin edge instead of the baseline — which drops the two
+   slots by a pixel and puts a visible notch in the word. */
+.ts__c--space { color: transparent; }
+
+/* The width probe. Absolute so measuring it cannot reflow the button it is
+   temporarily inside, letter-spacing zeroed so it reports the bare advance. */
+.ts__probe {
+  position: absolute;
+  visibility: hidden;
+  white-space: pre;
+  letter-spacing: 0;
+  pointer-events: none;
+}
+
+/* --------------------------------------------------------------- the dot --
+   The button's small leading amber dot is the decode's readout, not decoration
+   beside it: --ts-act is written every frame by the script as (characters not
+   yet resolved) / 14, so the dot comes down in fourteen steps and reaches rest
+   at the same instant the last character does.
+
+   TRANSFORM AND FILTER ONLY. box-shadow and background on .dot belong to
+   entrance-lab.html, which loads after this file; filter happens to be the
+   right tool anyway, because it applies to the element's whole rendering
+   INCLUDING its box-shadow, so one declaration brightens the dot and its glow
+   together and the bloom grows with it.
+
+   0.26 of scale and 1.42x of brightness, and BOTH CAME DOWN after looking at
+   a 4x capture. The first pass was 0.42 and 1.9x: at full activity that pushes
+   rgb(240,165,92) to (255,255,175) — the green channel saturates first, so the
+   dot goes YELLOW, which is a hue that appears nowhere else on this site and
+   read as a warning lamp bolted to the button rather than as the button's own
+   light. 1.42x tops out around (255,234,131), still recognisably the amber,
+   and the 6px dot stays a dot instead of growing into a second UI element.
+
+   No CSS transition on either — the script's own cool-down already smooths the
+   fourteen steps, and a transition would put the dot mid-interpolation at the
+   moment seek() freezes everything else, which is exactly the "captures and
+   reality differ" failure the freeze hook exists to prevent. */
+.ts-host .dot {
+  transform: scale(calc(1 + 0.26 * var(--ts-act, 0)));
+  filter: brightness(calc(1 + 0.42 * var(--ts-act, 0)));
+}
+
+/* prefers-reduced-motion: the script builds nothing at all, so there are no
+   slots and no --ts-act to respond to and the button renders its own label the
+   way it always did. These two rules exist only to neutralise the dot in the
+   case where a run was already in flight when the preference flipped. */
+@media (prefers-reduced-motion: reduce) {
+  .ts-host .dot { transform: none; filter: none; }
+  .ts__c { will-change: auto; }
+}

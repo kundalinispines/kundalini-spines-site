@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<!-- ==========================================================================
+     TEXT SCRAMBLE LAB — the entrance's ENTER button decoding "ENTER THE
+     SIGNAL" out of noise, on the real star field.  (Isolated: this page and
+     its two assets, css/text-scramble.css and js/text-scramble.js, are the
+     only files it touches. entrance-lab.html is NOT modified — the owner
+     integrates it there.)
+
+     WHAT TO JUDGE HERE, in order:
+       1. THE TWO-TONE SPLIT. Settled characters in the button's amber, the
+          whole unresolved tail in bone. If at any freeze position you cannot
+          instantly see where the front is, the effect has failed — that split
+          is the entire difference between decoding and flickering, and it is
+          the thing the written description of the component does not mention.
+       2. THE FRONT MOVING LEFT TO RIGHT, one character at a time, never
+          re-scrambling anything it has passed.
+       3. THE TWO SPACES holding as spaces the whole way through. The phrase is
+          three words wide in the first frame and in the last.
+       4. THE DOT stepping down as the front advances, and reaching rest at the
+          same instant the last character does.
+       5. THE BUTTON NOT MOVING. Its border is the thing to watch: at sixteen
+          slots, a fraction of a pixel of per-glyph width error accumulates
+          into a visible shimmer on the right edge.
+
+     THE SECOND BUTTON is the reference pool — capitals and digits only, which
+     is what the recording actually shows (O9CA6J5, EXN6M1, WTXC, 2X8W). The
+     primary button carries the owner's pool: the same caps and digits plus the
+     four ASCII symbols that survived being looked at (see DENSE in the script). Both run off the same clock and the same freeze slider so the two
+     pools can be compared at an identical instant rather than from memory.
+
+     THE MEASUREMENTS behind every number are in the block comment at the top
+     of js/text-scramble.js. Short version: resolve order, per-character rate
+     and the colour split were read off frames from the owner's screen
+     recording of 21st.dev/@jatin-yadav05/components/text-scramble at 200ms
+     spacing; the component's source was never available and nothing here is
+     ported from it.
+     ========================================================================== -->
+<!-- The page class belongs on <html>, not <body> — html::before and html::after
+     are two of the four star layers in css/star-bg.css. Same rule as index.html. -->
+<html lang="en" class="page-home">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Text Scramble · Kundalini Spines</title>
+<meta name="robots" content="noindex">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&family=Source+Serif+4:opsz,wght@8..60,400&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/star-bg.css">
+<link rel="stylesheet" href="css/text-scramble.css">
+
+<style>
+:root {
+  /* THE SKY IS REACTIVE AND THIS PAGE HAS NO AUDIO ENGINE. css/star-bg.css
+     declares --kick / --snare / --charge as inputs written per frame by
+     js/spine-bg.js. Without that script they are undefined, every calc() that
+     references one becomes invalid, and the twinkle and nebula amplitudes fall
+     back to their initial values instead of their idle values — the sky
+     renders, but not the sky index.html shows. Stubbing them at 0 is what
+     "idle" means. Do not delete these because the page looks fine on your
+     machine; it is the calc() chain that breaks, not the image. */
+  --kick: 0; --snare: 0; --charge: 0;
+  --kick-stars: 0; --kick-cloud: 0; --snare-bolt: 0;
+
+  /* Amber, quoted from spine-ui.css's --node-color rather than approximated,
+     so the button, the coil and the navigator's nodes are literally the same
+     three numbers. */
+  --node-color: 240, 165, 92;
+}
+
+html, body { height: 100%; }
+body { margin: 0; }
+
+main {
+  min-height: 100svh;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: var(--space-12);
+  padding: 0 var(--space-6) 140px;
+}
+
+/* Same scrim idea as shutter-lab.html: the star field is a photograph with a
+   bright nebula band running diagonally through the middle, which is exactly
+   where the button sits. Without it the bone churn competes with the sky. */
+.stage {
+  position: relative;
+  display: flex; flex-direction: column; align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-16) var(--space-8);
+}
+.stage::before {
+  content: "";
+  position: absolute; inset: -10% -20%; z-index: -1;
+  background: radial-gradient(60% 55% at 50% 50%, rgba(5,5,5,0.72), rgba(5,5,5,0) 70%);
+  pointer-events: none;
+}
+
+/* ------------------------------------------------------------------------
+   THE BUTTON, QUOTED VERBATIM from .ent__enter in entrance-lab.html so what
+   is judged here is the same object and not a lookalike. The only departures
+   are the three that would make the lab unusable: the entry animation
+   (opacity 0 / translateY / pointer-events none, which is the entrance's
+   is-open gate and has nothing to do with this effect), and no margin-top.
+   Everything that touches the type — mono, 12px, 0.18em tracking, uppercase,
+   44px min-height, the padding, the border and the dot — is unchanged.
+   ------------------------------------------------------------------------ */
+.ent__enter {
+  display: inline-flex; align-items: center; gap: 10px;
+  padding: 12px 26px;
+  min-height: 44px;                      /* a real tap target at 375px */
+  font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgb(var(--node-color));
+  background: transparent;
+  border: 1px solid rgba(var(--node-color), 0.45);
+  border-radius: 2px;
+  cursor: pointer;
+  transition: border-color 200ms linear, box-shadow 200ms linear;
+  box-shadow: 0 0 0 rgba(var(--node-color), 0);
+}
+.ent__enter:hover, .ent__enter:focus-visible {
+  border-color: rgba(var(--node-color), 0.9);
+  box-shadow: 0 0 18px rgba(var(--node-color), 0.25);
+}
+.ent__enter .dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: rgb(var(--node-color));
+  box-shadow: 0 0 10px rgba(var(--node-color), 0.9);
+}
+
+/* A HAIRLINE ON THE BUTTON'S OWN RIGHT EDGE, for judging width stability by
+   eye instead of only by getBoundingClientRect(). Absolutely positioned
+   against the stage, parked at the button's settled right edge by the script;
+   if the button breathes during a run, the border pulls away from this line.
+   Off by default — it is an instrument, not part of the design. */
+.rule {
+  position: absolute; top: 0; bottom: 0; width: 1px;
+  background: rgba(94,10,10,0.9);
+  opacity: 0; pointer-events: none;
+}
+html.show-rule .rule { opacity: 1; }
+
+.caption {
+  font-family: var(--font-mono); font-size: 10px;
+  letter-spacing: var(--tracking-label); text-transform: uppercase;
+  color: var(--color-gray-400);
+}
+.stage__hint {
+  font-family: var(--font-mono); font-size: 10px;
+  letter-spacing: var(--tracking-label); text-transform: uppercase;
+  color: var(--color-gray-400);
+  margin-top: var(--space-6);
+}
+
+/* Held dark until the webfont has landed. The slot width is measured against
+   the rendered face, and measuring Courier New's advance and then laying the
+   label out in IBM Plex Mono puts every slot boundary in the wrong place —
+   silently, and only on an uncached first load. */
+   pointer-events is part of the hold and not decoration: mount() binds hover
+   and focus immediately, and build() is lazy, so a hover landing on an
+   invisible button before the font arrives would measure the fallback advance
+   and keep it for the session. Nothing can touch the button until start(). */
+.ts-hold { opacity: 0; pointer-events: none; }
+
+/* ---------------------------------------------------------------- chrome */
+/* Same HUD as shutter-lab.html — bottom bar, mono, amber range accent. */
+.hud {
+  position: fixed; inset: auto 0 0 0; z-index: 60;
+  display: flex; gap: 12px; align-items: center; flex-wrap: wrap;
+  padding: 10px 16px; background: linear-gradient(0deg, rgba(5,5,5,0.92), rgba(5,5,5,0));
+  font-family: var(--font-mono); font-size: 11px; color: var(--color-gray-400);
+}
+.hud b { color: var(--text-primary); font-weight: 500; font-variant-numeric: tabular-nums; min-width: 46px; display: inline-block; }
+.hud .btn {
+  padding: 6px 11px; cursor: pointer; background: transparent;
+  border: 1px solid rgba(216,208,190,0.36); color: var(--text-secondary);
+  font-family: inherit; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase;
+}
+.hud .btn:hover { color: var(--text-primary); border-color: var(--color-bone); }
+.hud select {
+  background: transparent; color: var(--text-secondary);
+  border: 1px solid rgba(216,208,190,0.36); font-family: inherit; font-size: 10px;
+  padding: 4px 6px;
+}
+.hud select option { background: #0A0A0A; }
+/* accent-color, not a hand-built track — one line recolours fill and thumb in
+   Chrome/Firefox/Safari and keeps the focus ring. Chrome's default #1a73e8 is
+   the one saturated cool hue on a page that is otherwise bone and amber, so it
+   reads as browser chrome rather than as part of the instrument. */
+.hud input[type=range] { width: 88px; accent-color: rgb(240, 165, 92); }
+.hud__row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; width: 100%; }
+html.hud-min .hud > *:not(.hud__toggle) { display: none; }
+html.hud-min .hud { background: none; padding: 8px 16px; }
+
+/* 375px. The HUD wraps to six rows on a phone and would bury the button, so it
+   starts collapsed below 600px — the effect is the thing being judged, not the
+   sliders. The two buttons also stack tighter; at 375 the label is 16 slots of
+   ~9.4px plus 52px of padding, which fits the viewport with room to spare. */
+@media (max-width: 600px) {
+  main { gap: var(--space-8); padding-bottom: 90px; }
+  .stage { padding: var(--space-8) var(--space-2); }
+  .hud { gap: 8px; font-size: 10px; }
+  /* The scrim's -20% horizontal bleed is wider than the viewport once the
+     stage is the viewport: measured 416px of scrollWidth at a 375px viewport,
+     i.e. a page that scrolls sideways. Nothing visible was off-screen — a
+     pseudo-element does not show up in a querySelectorAll sweep for
+     out-of-bounds boxes, which is why this took a scrollWidth check to find.
+     At this width the stage already spans the screen, so the bleed has nothing
+     left to do. */
+  .stage::before { inset: -6% 0; }
+}
+</style>
+</head>
+<body>
+
+<main id="main">
+  <div class="stage" id="stage">
+    <span class="rule" id="rule"></span>
+
+    <!-- The real markup from entrance-lab.html, character for character apart
+         from the label itself: a .dot span, then a bare text node. The script
+         swallows the text node and leaves the dot where it is, which is the
+         whole reason mount() reads the word out of the DOM rather than taking
+         it as an option — that page is not ours to edit. -->
+    <button type="button" class="ent__enter ts-hold" id="enter"><span class="dot"></span> Enter the Signal</button>
+    <span class="caption">owner pool — caps + digits + 4 dense symbols</span>
+
+    <button type="button" class="ent__enter ts-hold" id="enterRef"><span class="dot"></span> Enter the Signal</button>
+    <span class="caption">reference pool — caps + digits only</span>
+
+    <span class="stage__hint" id="hint">Hover or focus either button to re-decode · click the stage to replay both</span>
+  </div>
+</main>
+
+<div class="hud">
+  <div class="hud__row">
+    <button type="button" class="btn hud__toggle" id="hudToggle">Hide</button>
+    <button type="button" class="btn" id="replay">Replay</button>
+    <span>total <input type="range" id="total" min="400" max="2000" step="10" value="1050"><b id="totalv">1050ms</b></span>
+    <span>per char <b id="perv">—</b></span>
+    <span>cycle <input type="range" id="cycle" min="16" max="120" step="1" value="45"><b id="cyclev">45ms</b></span>
+    <span>lead <input type="range" id="lead" min="0" max="300" step="5" value="40"><b id="leadv">40ms</b></span>
+  </div>
+  <div class="hud__row">
+    <span>cool <input type="range" id="flash" min="0" max="400" step="5" value="90"><b id="flashv">90ms</b></span>
+    <span>per step <input type="range" id="step" min="1" max="4" step="1" value="1"><b id="stepv">1</b></span>
+    <span>churn a <input type="range" id="ca" min="0.3" max="1" step="0.02" value="0.92"><b id="cav">0.92</b></span>
+    <span>pool
+      <select id="pool">
+        <option value="dense" selected>caps+digits+4 dense symbols</option>
+        <option value="full">caps+digits+16 symbols</option>
+        <option value="caps+digits">caps+digits (reference)</option>
+        <option value="caps">caps</option>
+        <option value="digits">digits</option>
+        <option value="symbols">symbols</option>
+      </select>
+    </span>
+    <span>freeze <input type="range" id="scrub" min="0" max="1050" step="1" value="0"><b id="scrubv">—</b></span>
+    <button type="button" class="btn" id="ruleBtn">Rule</button>
+    <span id="rm"></span>
+  </div>
+  <div class="hud__row">
+    <span>width <b id="widthv">—</b></span>
+    <span>font <b id="fontv" style="min-width:auto">—</b></span>
+  </div>
+</div>
+
+<script src="js/text-scramble.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  var btn    = document.getElementById('enter');
+  var btnRef = document.getElementById('enterRef');
+  var stage  = document.getElementById('stage');
+  var rule   = document.getElementById('rule');
+
+  /* Two instances, one clock. The reference-pool copy exists so the two pools
+     can be judged at the SAME frozen millisecond — comparing them by replaying
+     one and then the other is comparing one against a memory, which is exactly
+     how "the symbols look fine" survives longer than it should. */
+  var ts    = TextScramble.mount(btn,    { o: { pool: 'dense' } });
+  var tsRef = TextScramble.mount(btnRef, { o: { pool: 'caps+digits' } });
+  var all   = [ts, tsRef];
+
+  var el = {};
+  ['replay','total','totalv','perv','cycle','cyclev','lead','leadv','flash','flashv',
+   'step','stepv','ca','cav','pool','scrub','scrubv','hudToggle','ruleBtn','rm','hint',
+   'widthv','fontv']
+    .forEach(function (id) { el[id] = document.getElementById(id); });
+
+  function readHud() {
+    var o = {
+      total:   parseInt(el.total.value, 10),
+      cycle:   parseInt(el.cycle.value, 10),
+      lead:    parseInt(el.lead.value, 10),
+      flash:   parseInt(el.flash.value, 10),
+      perStep: parseInt(el.step.value, 10),
+      churnA:  parseFloat(el.ca.value)
+    };
+    ts.set(o);    ts.set({ pool: el.pool.value });
+    tsRef.set(o); /* the reference copy keeps its own pool, always */
+
+    el.totalv.textContent = o.total + 'ms';
+    el.cyclev.textContent = o.cycle + 'ms';
+    el.leadv.textContent  = o.lead + 'ms';
+    el.flashv.textContent = o.flash + 'ms';
+    el.stepv.textContent  = o.perStep;
+    el.cav.textContent    = o.churnA.toFixed(2);
+    el.perv.textContent   = Math.round(ts.perStep()) + 'ms';
+    el.scrub.max = o.total;
+  }
+
+  function playAll() {
+    el.scrubv.textContent = '—';
+    all.forEach(function (s) { s.play(); });
+  }
+
+  ['total','cycle','lead','flash','step','ca'].forEach(function (id) {
+    el[id].addEventListener('input', function () { readHud(); playAll(); });
+  });
+  el.pool.addEventListener('change', function () {
+    ts.set({ pool: el.pool.value });
+    ts.rebuild();
+    readHud();
+    report();
+    playAll();
+  });
+
+  /* The freeze slider is the same entry point the screenshot rig uses
+     (window.__scramble.seek), so what the owner drags through and what the
+     captures show are the same code path — a lab where the two differ is a lab
+     that cannot be trusted. */
+  el.scrub.addEventListener('input', function () {
+    var ms = parseInt(el.scrub.value, 10);
+    el.scrubv.textContent = ms + 'ms';
+    all.forEach(function (s) { s.seek(ms); });
+    measure();
+  });
+
+  el.replay.addEventListener('click', function (e) { e.stopPropagation(); playAll(); });
+  stage.addEventListener('click', function (e) {
+    if (e.target.closest('.ent__enter')) return;   /* the buttons re-trigger themselves */
+    playAll();
+  });
+
+  el.ruleBtn.addEventListener('click', function (e) {
+    e.stopPropagation();
+    document.documentElement.classList.toggle('show-rule');
+    placeRule();
+  });
+  function placeRule() {
+    var b = btn.getBoundingClientRect(), s = stage.getBoundingClientRect();
+    rule.style.left = (b.right - s.left) + 'px';
+  }
+
+  el.hudToggle.addEventListener('click', function (e) {
+    e.stopPropagation();
+    var min = document.documentElement.classList.toggle('hud-min');
+    el.hudToggle.textContent = min ? 'HUD' : 'Hide';
+  });
+  if (window.matchMedia('(max-width: 600px)').matches) {
+    document.documentElement.classList.add('hud-min');
+    el.hudToggle.textContent = 'HUD';
+  }
+
+  /* ------------------------------------------------------------ instruments */
+
+  /* WIDTH, live. The one number that cannot be judged by eye at the precision
+     it needs: sixteen slots each a third of a pixel wrong is five pixels of
+     drift, which looks like the button breathing but reads as "hmm, is it?".
+     min/max/spread are accumulated across everything the page has rendered
+     since load, including every hover the owner does. */
+  var wMin = Infinity, wMax = -Infinity;
+  function measure() {
+    var w = btn.getBoundingClientRect().width;
+    if (w < wMin) wMin = w;
+    if (w > wMax) wMax = w;
+    el.widthv.textContent =
+      w.toFixed(2) + 'px  (spread ' + (wMax - wMin).toFixed(3) + 'px)';
+  }
+  setInterval(measure, 60);
+
+  function report() {
+    var a = ts.audit;
+    if (!a) return;
+    el.fontv.textContent =
+      'advance ' + a.advance.toFixed(3) + 'px · pool ' + a.ok.length + ' ok' +
+      ' · tofu ' + a.tofu.length + ' · blank ' + a.blank.length +
+      ' · off-width ' + a.wrong.length;
+  }
+
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    el.rm.textContent = 'reduced-motion: no scramble, word is simply there';
+    el.hint.textContent = 'Reduced motion — the label does not scramble';
+  }
+
+  /* Slot widths are measured against the rendered face, so nothing is built
+     until the webfont has actually arrived. document.fonts.ready resolves
+     immediately when the font is cached, so this is not a delay in practice —
+     it is insurance against the first uncached load. The .catch keeps the
+     buttons from staying at opacity 0 forever if Google Fonts is unreachable. */
+  function start() {
+    readHud();
+    btn.classList.remove('ts-hold');
+    btnRef.classList.remove('ts-hold');
+    playAll();
+    report();
+    placeRule();
+    measure();
+  }
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(start).catch(start);
+  } else {
+    start();
+  }
+
+  /* Verification hook. Absolute control of the clock from the outside:
+       __scramble.seek(620)    freeze the owner-pool button at 620ms
+       __lab.seek(620)         freeze BOTH buttons at 620ms
+       __lab.width()           the button's current laid-out width
+       __lab.audit()           the font-coverage result for the live pool   */
+  window.__scramble = ts;
+  window.__lab = {
+    a: ts, ref: tsRef,
+    seek:  function (ms) { all.forEach(function (s) { s.seek(ms); }); measure(); },
+    play:  playAll,
+    width: function () { return btn.getBoundingClientRect().width; },
+    audit: function () { return ts.audit; },
+    set:   function (o) { all.forEach(function (s) { s.set(o); }); }
+  };
+}());
+</script>
+</body>
+</html>

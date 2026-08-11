@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<!-- ==========================================================================
+     SPINE CARD GLASS LAB — six readings of "liquid glass" for the reading card
+
+     WHY THIS FILE EXISTS
+     The owner asked for the navigation cards to look like liquid glass, and
+     pointed at an Apple-Tahoe-style React component built on SVG
+     feDisplacementMap + WebGL. That component cannot be used here and its
+     technique only partly can. Both facts were settled in interview before any
+     code was written:
+
+       1. THIS IS NOT A REACT PROJECT. No package.json, no node_modules, no
+          TypeScript, no Tailwind, no shadcn, no build step of any kind. The
+          component's every instruction -- shadcn CLI, /components/ui,
+          @/lib/utils, cn() -- has no target here. Converting the site to make
+          it fit would mean rewriting css/spine-ui.css, css/track-experience.css
+          and css/spine-bg.css and every hand-measured number in them. The
+          TECHNIQUE was ported instead. Nothing in liquid glass needs React.
+
+       2. THAT COMPONENT NEVER REFRACTS THE PAGE BEHIND IT. feDisplacementMap
+          cannot reach a live DOM backdrop. It works by drawing its own bgImage
+          INSIDE its viewport and displacing that copy -- it only looks like
+          refraction because it owns its background. These cards float over a
+          reactive star field that answers to audio. There is no bgImage to give
+          it, so real displacement was ruled out as the primary look.
+
+     WHAT WAS SETTLED (owner's decisions, all of them)
+       - Enriched specular glass, not true refraction. The lens edge is PAINTED.
+       - Reading cards only. The Music panel keeps no plate -- V2HANDOFF 25
+         records that as settled and this does not reopen it.
+       - THE SPINE IS THE LIGHT SOURCE, not Apple's top-centre lamp. A card
+         opening to the right of the column is lit along its LEFT edge, and
+         vice versa. This is the one decision that makes the effect belong to
+         this project rather than being borrowed.
+       - No idle rAF loop. Everything below is CSS; nothing samples per frame.
+         V2HANDOFF 25 finding 3 measured the carousel at 0.00 rAF/s and that
+         number is not being spent on a rim highlight.
+       - Fallback is TODAY'S CARD, exactly. Already tuned, already known good.
+       - Hand-edited custom properties, no tuner. Tuner integration is 19's
+         open item and should not be duplicated ahead of being designed.
+
+     HOW TO USE IT
+     Six variants below, one of them (FROST) deliberately the current card so
+     the boundary is visible -- the same reason music-collapse-lab.html keeps
+     GHOST. Pick one by LOOKING at it. Only the winner gets ported into
+     css/spine-ui.css; nothing here is live on any real page.
+
+     Every number worth moving is a custom property in THE DIALS block below.
+     ========================================================================== -->
+<html lang="en" class="page-home">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Spine card — liquid glass readings</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/star-bg.css">
+<link rel="stylesheet" href="css/spine-ui.css">
+
+<style>
+/* ==========================================================================
+   THE DIALS — everything worth adjusting, in one block.
+   These are the values to hand-edit. Nothing below this block holds a number
+   you would want to reach for twice.
+   ========================================================================== */
+:root {
+  /* FIRST PASS WAS TOO TIMID AND THESE ARE THE CORRECTED VALUES. Built at
+     rim 0.85 / bevel 3px / sheen 0.14 and screenshotted, the six readings were
+     nearly indistinguishable from each other and from FROST -- the large
+     negative spreads on the insets were collapsing every bevel to a hairline.
+     A lab you cannot judge by looking has failed at its only job. Roughly
+     doubled, and the spreads pulled back toward 0. */
+  --glass-rim:      1.0;    /* 0-1. Brightness of the lit lip on the spine side. */
+  --glass-bevel:    6px;    /* how far the lit lip is inset. Thickness of the
+                               glass at its edge. */
+  --glass-sheen:    0.30;   /* 0-1. The broad specular wash falling away from
+                               the lit edge across the card face. */
+  --glass-chroma:   1.0;    /* 0-1. Prismatic split at the lit edge. Only the
+                               CHROMA, LENS and BREATHE readings use it. */
+  --glass-dark:     0.55;   /* 0-1. The shaded far edge. Without this the card
+                               reads as a lit sticker rather than a solid with
+                               two sides. */
+  --glass-blur:     18px;   /* matches --card-blur. DEEP overrides it. */
+  --glass-sat:      1.10;   /* matches the shipped saturate(1.1). */
+  --glass-lift:     0.5;    /* 0-1. Depth of the cast shadow under the card. */
+}
+
+/* --------------------------------------------------------------------------
+   LIGHT DIRECTION
+   --lit-x is -1 when the light arrives from the LEFT and +1 from the RIGHT.
+   The card's own side class decides it, because the spine is the light:
+   a card that opened to the RIGHT of the column has the column on its left.
+
+   Every gradient and every inset below multiplies by --lit-x rather than being
+   written twice, so flipping a card cannot leave one layer lit the wrong way.
+   -------------------------------------------------------------------------- */
+.spine-card              { --lit-x: -1; }   /* side-right: lit from the left  */
+.spine-card.side-left    { --lit-x:  1; }   /* side-left:  lit from the right */
+
+/* ==========================================================================
+   THE GLASS LAYER
+   A real child element, and it has to be: .spine-card::before and ::after are
+   BOTH already spoken for by the stacked ghost frames (spine-ui.css:598-611),
+   which build the "emergence from the spine" depth. Taking one would delete
+   that.
+   ========================================================================== */
+.spine-card__glass {
+  position: absolute; inset: 0; z-index: 0;
+  border-radius: inherit; pointer-events: none;
+}
+/* The card's real content has to clear the glass layer. The children are
+   static, so without this the glass paints over the title. */
+.spine-card > *:not(.spine-card__glass) { position: relative; z-index: 1; }
+
+/* ==========================================================================
+   READING 1 — FROST.  THE CONTROL, AND DELIBERATELY UNCHANGED.
+   This is exactly what ships today: blur(18px) saturate(1.1), a 155deg sheen,
+   a 1px lit border and an inset top highlight. It is here because the six
+   cannot be judged without the thing they are being judged against, and
+   because "the current card was already fine" has to stay available as an
+   answer. Kept for the same reason music-collapse-lab.html keeps GHOST.
+   ========================================================================== */
+.v-frost .spine-card__glass { display: none; }
+
+/* ==========================================================================
+   READING 2 — BEVEL.  The core proposal.
+   One lit lip on the spine side, one shaded lip opposite, and a broad specular
+   wash falling away from the light. This is the reading that says "glass" with
+   the fewest moving parts, and everything after it is this plus something.
+   ========================================================================== */
+.v-bevel .spine-card__glass {
+  background-image:
+    radial-gradient(130% 100% at calc(50% + var(--lit-x) * 50%) 0%,
+      rgba(255,255,255,var(--glass-sheen)) 0%, transparent 62%);
+  /* SPREAD IS 0 ON THE LIPS, deliberately. `inset Xpx 0 0 0` paints a solid
+     band X wide against the lit edge; a negative spread eats it back to a
+     hairline, which is what made the first pass invisible. */
+  box-shadow:
+    /* the lit lip — the bright edge nearest the column */
+    inset calc(var(--lit-x) * 2px) 0 0 0 rgba(255,255,255,var(--glass-rim)),
+    /* the light bleeding inward off that lip, which is what gives thickness */
+    inset calc(var(--lit-x) * 18px) 0 30px -12px
+      rgba(255,255,255,calc(var(--glass-rim) * 0.55)),
+    /* the shaded far edge */
+    inset calc(var(--lit-x) * -3px) 0 0 0 rgba(0,0,0,var(--glass-dark)),
+    /* a top lip, because the energy pass travels UP the column */
+    inset 0 2px 0 0 rgba(255,255,255,calc(var(--glass-rim) * 0.35));
+}
+
+/* ==========================================================================
+   READING 3 — CHROMA.  BEVEL plus a prismatic split at the lit edge.
+   Real glass disperses. A warm sliver on the outside of the lit lip and a cool
+   one just inside it is the cheapest honest way to say so, and it borrows the
+   scene's own amber (--node-color) rather than inventing a hue.
+   ========================================================================== */
+.v-chroma .spine-card__glass {
+  background-image:
+    /* warm, hard against the lit edge */
+    linear-gradient(to right,
+      rgba(var(--node-color), calc(var(--glass-chroma) * 0.30)) 0px,
+      transparent 3px),
+    /* cool, a hair inside it */
+    linear-gradient(to right,
+      transparent 2px,
+      rgba(150,190,255, calc(var(--glass-chroma) * 0.22)) 3px,
+      transparent 7px),
+    radial-gradient(130% 100% at calc(50% + var(--lit-x) * 50%) 0%,
+      rgba(255,255,255,var(--glass-sheen)) 0%, transparent 62%);
+  box-shadow:
+    inset calc(var(--lit-x) * var(--glass-bevel)) 0 0 calc(var(--glass-bevel) * -1 + 1px)
+      rgba(255,255,255,calc(var(--glass-rim) * 0.75)),
+    inset calc(var(--lit-x) * 14px) 0 26px -20px
+      rgba(255,255,255,calc(var(--glass-rim) * 0.85)),
+    inset calc(var(--lit-x) * -2px) 0 0 -1px rgba(0,0,0,var(--glass-dark)),
+    inset 0 1px 0 0 rgba(255,255,255,calc(var(--glass-rim) * 0.28));
+}
+/* The chroma gradients are written left-to-right; a right-lit card needs them
+   mirrored. scaleX on the layer alone would mirror the sheen too, so the
+   gradients are re-declared rather than transformed. */
+.side-left.v-chroma .spine-card__glass {
+  background-image:
+    linear-gradient(to left,
+      rgba(var(--node-color), calc(var(--glass-chroma) * 0.30)) 0px,
+      transparent 3px),
+    linear-gradient(to left,
+      transparent 2px,
+      rgba(150,190,255, calc(var(--glass-chroma) * 0.22)) 3px,
+      transparent 7px),
+    radial-gradient(130% 100% at calc(50% + var(--lit-x) * 50%) 0%,
+      rgba(255,255,255,var(--glass-sheen)) 0%, transparent 62%);
+}
+
+/* ==========================================================================
+   READING 4 — LENS.  The edge reads as a THICK piece of glass.
+   A bright outer lip, a dark line immediately inside it, then a second faint
+   lip -- the sequence your eye reads as a bevelled pane rather than a pane
+   with a highlight on it. The most literal answer to "liquid glass" that does
+   not require displacing pixels.
+   ========================================================================== */
+.v-lens .spine-card__glass {
+  background-image:
+    linear-gradient(to right,
+      rgba(var(--node-color), calc(var(--glass-chroma) * 0.22)) 0px,
+      transparent 4px),
+    radial-gradient(130% 100% at calc(50% + var(--lit-x) * 50%) 0%,
+      rgba(255,255,255,var(--glass-sheen)) 0%, transparent 62%);
+  box-shadow:
+    /* Bands, not hairlines. Each entry paints from the lit edge inward to its
+       own width; the FIRST listed sits on top, so these stack outside-in and
+       each one is visible only in the gap the one above it leaves. That is
+       what produces a readable lip / dark line / lip sequence. */
+    /* 1. the outer lip, brightest — 0-2px */
+    inset calc(var(--lit-x) * 2px) 0 0 0 rgba(255,255,255,var(--glass-rim)),
+    /* 2. the dark line just inside it — 2-7px. This is the whole trick */
+    inset calc(var(--lit-x) * 7px) 0 0 0 rgba(0,0,0,0.65),
+    /* 3. the second, softer lip further in — 7-12px */
+    inset calc(var(--lit-x) * 12px) 0 0 0 rgba(255,255,255,calc(var(--glass-rim) * 0.42)),
+    /* 4. the wash off the lit edge */
+    inset calc(var(--lit-x) * 26px) 0 38px -14px rgba(255,255,255,calc(var(--glass-rim) * 0.5)),
+    /* 5. the far edge, shaded and slightly thicker than BEVEL's */
+    inset calc(var(--lit-x) * -4px) 0 0 0 rgba(0,0,0,calc(var(--glass-dark) * 1.15)),
+    inset 0 2px 0 0 rgba(255,255,255,calc(var(--glass-rim) * 0.35));
+}
+.side-left.v-lens .spine-card__glass {
+  background-image:
+    linear-gradient(to left,
+      rgba(var(--node-color), calc(var(--glass-chroma) * 0.22)) 0px,
+      transparent 4px),
+    radial-gradient(130% 100% at calc(50% + var(--lit-x) * 50%) 0%,
+      rgba(255,255,255,var(--glass-sheen)) 0%, transparent 62%);
+}
+
+/* ==========================================================================
+   READING 5 — DEEP.  Glass as a thicker slab.
+   Same lighting as BEVEL, but the pane itself is heavier: more blur, more
+   saturation lift, a softer and wider rim, and a deeper cast shadow. Tests
+   whether "liquid glass" here wants MORE GLASS rather than more edge detail.
+   ========================================================================== */
+.v-deep .spine-card {
+  -webkit-backdrop-filter: blur(30px) saturate(1.35) brightness(1.03);
+          backdrop-filter: blur(30px) saturate(1.35) brightness(1.03);
+  box-shadow:
+    inset 0 1px 0 rgba(242,242,238,0.10),
+    0 36px 90px rgba(0,0,0,calc(var(--glass-lift) * 1.3));
+}
+.v-deep .spine-card__glass {
+  background-image:
+    radial-gradient(150% 120% at calc(50% + var(--lit-x) * 50%) 0%,
+      rgba(255,255,255,calc(var(--glass-sheen) * 1.4)) 0%, transparent 70%);
+  box-shadow:
+    inset calc(var(--lit-x) * 4px) 0 0 0 rgba(255,255,255,calc(var(--glass-rim) * 0.8)),
+    inset calc(var(--lit-x) * 34px) 0 48px -16px rgba(255,255,255,calc(var(--glass-rim) * 0.5)),
+    inset calc(var(--lit-x) * -5px) 0 0 0 rgba(0,0,0,var(--glass-dark)),
+    inset 0 3px 0 0 rgba(255,255,255,calc(var(--glass-rim) * 0.3));
+}
+
+/* ==========================================================================
+   READING 7 — REFRACT.  THE REAL THING, AND IT IS CHROME-ONLY.
+
+   Everything above PAINTS the lens. This one actually bends the star field:
+   `backdrop-filter` takes an SVG filter reference, and feDisplacementMap
+   against low-frequency fractal noise gives a genuine liquid warp of whatever
+   is behind the card -- the nebula visibly moves through the glass.
+
+   IT IS HERE TO BE SEEN, NOT TO BE SHIPPED, and it was added after the first
+   pass precisely because "liquid glass" is what was asked for and ruling the
+   real thing out in prose is not the same as looking at it.
+
+   MEASURED Aug 11 2026: Chrome 151 accepts `backdrop-filter: url(#x)` --
+   CSS.supports() returns true and the computed value survives as url("#x").
+   Safari and Firefox drop it; they get the painted rim and no warp, which is
+   a soft failure rather than a broken card.
+
+   THE COSTS, so the choice is honest:
+     - A filter over a LIVE animated backdrop. The star field is already
+       animating underneath; this re-runs a displacement over it.
+     - It is an ancestor-level filter on the card, which is the family of thing
+       V2HANDOFF 25's "do not do these" warns about for the carousel. The card
+       is not the carousel, but the warning's reasoning is about raster cost
+       and it applies here too.
+     - Unmeasured on this project's frame budget. Nothing below 1440x900 has
+       been run at all.
+   ========================================================================== */
+.v-refract .spine-card {
+  /* url() LAST: filter functions apply in order, so the blur happens first and
+     the displacement warps the already-blurred backdrop rather than the other
+     way round. The -webkit- line deliberately omits url() -- Safari would
+     otherwise drop the ENTIRE declaration and lose the blur with it. */
+  -webkit-backdrop-filter: blur(7px) saturate(1.25);
+          backdrop-filter: blur(7px) saturate(1.25) url(#liquid-lens);
+}
+.v-refract .spine-card__glass {
+  background-image:
+    linear-gradient(to right,
+      rgba(var(--node-color), calc(var(--glass-chroma) * 0.22)) 0px,
+      transparent 4px),
+    radial-gradient(130% 100% at calc(50% + var(--lit-x) * 50%) 0%,
+      rgba(255,255,255,var(--glass-sheen)) 0%, transparent 62%);
+  box-shadow:
+    inset calc(var(--lit-x) * 2px) 0 0 0 rgba(255,255,255,var(--glass-rim)),
+    inset calc(var(--lit-x) * 7px) 0 0 0 rgba(0,0,0,0.65),
+    inset calc(var(--lit-x) * 12px) 0 0 0 rgba(255,255,255,calc(var(--glass-rim) * 0.42)),
+    inset calc(var(--lit-x) * -4px) 0 0 0 rgba(0,0,0,calc(var(--glass-dark) * 1.15)),
+    inset 0 2px 0 0 rgba(255,255,255,calc(var(--glass-rim) * 0.35));
+}
+.side-left.v-refract .spine-card__glass {
+  background-image:
+    linear-gradient(to left,
+      rgba(var(--node-color), calc(var(--glass-chroma) * 0.22)) 0px,
+      transparent 4px),
+    radial-gradient(130% 100% at calc(50% + var(--lit-x) * 50%) 0%,
+      rgba(255,255,255,var(--glass-sheen)) 0%, transparent 62%);
+}
+
+/* ==========================================================================
+   READING 6 — BREATHE.  LENS, riding the energy pass.
+   This is option (c) from the interview, built so it can be judged rather than
+   argued about. The rim brightness rises and falls over --spine-ui-energy-ms,
+   the same period the comet takes to travel the column, so the card appears to
+   catch the light as the energy passes it.
+
+   IT COSTS NOTHING EXTRA. This is a CSS animation on opacity of a layer that
+   already exists -- no rAF, no sampling, no JS. It is the one place a moving
+   value was affordable, which is exactly why it is worth looking at.
+
+   THE HONEST OBJECTION: the card is a READING surface. A rim that never quite
+   settles may be the wrong thing to put beside body copy. That is the call.
+   ========================================================================== */
+.v-breathe .spine-card__glass {
+  background-image:
+    linear-gradient(to right,
+      rgba(var(--node-color), calc(var(--glass-chroma) * 0.22)) 0px,
+      transparent 4px),
+    radial-gradient(130% 100% at calc(50% + var(--lit-x) * 50%) 0%,
+      rgba(255,255,255,var(--glass-sheen)) 0%, transparent 62%);
+  box-shadow:
+    inset calc(var(--lit-x) * 1px) 0 0 0 rgba(255,255,255,var(--glass-rim)),
+    inset calc(var(--lit-x) * 4px) 0 0 -2px rgba(0,0,0,0.55),
+    inset calc(var(--lit-x) * 9px) 0 0 -6px rgba(255,255,255,calc(var(--glass-rim) * 0.5)),
+    inset calc(var(--lit-x) * 20px) 0 34px -26px rgba(255,255,255,calc(var(--glass-rim) * 0.8)),
+    inset calc(var(--lit-x) * -3px) 0 0 -1px rgba(0,0,0,calc(var(--glass-dark) * 1.15)),
+    inset 0 1px 0 0 rgba(255,255,255,calc(var(--glass-rim) * 0.3));
+  animation: glass-breathe var(--spine-ui-energy-ms, 7000ms) var(--ease-standard) infinite;
+}
+.side-left.v-breathe .spine-card__glass {
+  background-image:
+    linear-gradient(to left,
+      rgba(var(--node-color), calc(var(--glass-chroma) * 0.22)) 0px,
+      transparent 4px),
+    radial-gradient(130% 100% at calc(50% + var(--lit-x) * 50%) 0%,
+      rgba(255,255,255,var(--glass-sheen)) 0%, transparent 62%);
+}
+@keyframes glass-breathe {
+  0%, 100% { opacity: 0.55; }
+  46%      { opacity: 1; }
+}
+
+/* ==========================================================================
+   THE FALLBACK — today's card, exactly.
+   Owner's call: where the glass cannot render, do not invent a degraded
+   version of it, return to the surface that is already tuned. The @supports
+   test is on backdrop-filter because that is what the whole effect sits on;
+   without it the glass layer is lighting a solid panel, which reads as a
+   sticker.
+   ========================================================================== */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .spine-card__glass { display: none; }
+}
+
+/* Reduced motion KEEPS the glass and drops only the breathing. The rim is not
+   motion; the pulse is. */
+@media (prefers-reduced-motion: reduce) {
+  .v-breathe .spine-card__glass { animation: none; opacity: 0.85; }
+}
+
+/* ==========================================================================
+   LAB FURNITURE — none of this ports.
+   ========================================================================== */
+html, body { height: auto; min-height: 100%; }
+body { margin: 0; }
+
+.lab {
+  position: relative; z-index: 5;
+  padding: 96px 40px 120px;
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 72px 40px; justify-items: center;
+  max-width: 1500px; margin: 0 auto;
+}
+.lab__head {
+  position: relative; z-index: 5;
+  padding: 40px 40px 0; max-width: 1500px; margin: 0 auto;
+  font-family: var(--font-mono); color: var(--color-gray-400);
+  font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase;
+}
+.lab__head b { color: var(--color-bone); font-weight: 500; }
+
+.cell { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.cell__name {
+  font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.22em;
+  text-transform: uppercase; color: var(--color-bone);
+}
+.cell__note {
+  font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.06em;
+  color: var(--color-gray-500); text-align: center; max-width: 34ch;
+  line-height: 1.6; text-transform: none;
+}
+
+/* The card ships absolute + invisible; the lab lays it out in a grid and holds
+   it open. Nothing else about it is overridden. */
+.lab .spine-card {
+  position: relative; opacity: 1; visibility: visible; pointer-events: auto;
+  transform: none; z-index: 5; width: 340px;
+}
+.lab .spine-card::before, .lab .spine-card::after { display: none; }
+
+/* The controls */
+.ctl {
+  /* Top-right, not bottom-right: with seven readings the grid's last row
+     reaches the bottom of the viewport and the controls sat on top of a card. */
+  position: fixed; right: 20px; top: 20px; z-index: 90;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.ctl button {
+  font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.14em;
+  text-transform: uppercase; padding: 9px 14px; cursor: pointer;
+  background: rgba(5,5,5,0.88); color: var(--color-bone);
+  border: 1px solid rgba(216,208,190,0.28);
+}
+.ctl button:hover { border-color: rgba(var(--node-color),0.8); }
+.ctl button[aria-pressed="true"] { border-color: rgb(var(--node-color)); color: #fff; }
+
+/* Simulation of the no-backdrop-filter fallback, so it can be SEEN rather than
+   trusted. Mirrors the @supports rule above. */
+html.sim-fallback .spine-card__glass { display: none; }
+html.sim-fallback .spine-card {
+  -webkit-backdrop-filter: none; backdrop-filter: none;
+  background: var(--card-bg-solid);
+}
+</style>
+</head>
+<body>
+
+<!-- The displacement REFRACT references. Low frequency and only two octaves:
+     high-frequency noise reads as frosted static rather than as moving liquid,
+     and the point is that the nebula behind the card visibly bends. Kept out
+     of the flow at 0x0 -- it is a definition, not a graphic. -->
+<svg class="glass-filters" width="0" height="0" aria-hidden="true"
+     style="position:absolute;width:0;height:0;overflow:hidden">
+  <defs>
+    <filter id="liquid-lens" x="-15%" y="-15%" width="130%" height="130%"
+            color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="0.006 0.011"
+                    numOctaves="2" seed="7" result="noise"/>
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="26"
+                         xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+  </defs>
+</svg>
+
+<div class="lab__head">
+  <b>Spine card — liquid glass</b> &middot; six readings &middot; the spine is the light source,
+  so each card is lit on the edge nearest the column it opened from &middot;
+  <b>FROST</b> is today's card, unchanged, and is here to be the thing the others are judged against
+</div>
+
+<div class="lab" id="lab"></div>
+
+<div class="ctl">
+  <button type="button" id="flip"     aria-pressed="false">Flip light side</button>
+  <button type="button" id="fallback" aria-pressed="false">Preview fallback</button>
+  <button type="button" id="motion"   aria-pressed="false">Reduce motion</button>
+</div>
+
+<script>
+/* Builds the six cells from one template, so the six cards are provably the
+   same markup and only the variant class differs. Anything else and a
+   difference could be coming from the content rather than from the glass. */
+(function () {
+  'use strict';
+
+  var READINGS = [
+    ['v-frost',   'FROST',   'Today’s card, unchanged. The control.'],
+    ['v-bevel',   'BEVEL',   'One lit lip on the spine side, one shaded lip opposite, a wash between.'],
+    ['v-chroma',  'CHROMA',  'BEVEL plus a prismatic split — warm outside the lit lip, cool just inside.'],
+    ['v-lens',    'LENS',    'Bright lip, dark line, second lip. Reads as a thick bevelled pane.'],
+    ['v-deep',    'DEEP',    'Heavier pane: 30px blur, more saturation, wider rim, deeper shadow.'],
+    ['v-breathe', 'BREATHE', 'LENS, riding the energy pass. Free — but it never fully settles.'],
+    ['v-refract', 'REFRACT', 'Real displacement — the sky actually bends. Chrome only.']
+  ];
+
+  var CARD =
+    '<span class="spine-card__glass" aria-hidden="true"></span>' +
+    '<div class="spine-card__head">' +
+      '<span class="spine-card__idx">02 / 06</span>' +
+      '<span class="spine-card__flag">Active</span>' +
+    '</div>' +
+    '<span class="label spine-card__eyebrow">The Work</span>' +
+    '<h2 class="spine-card__title">Our Story</h2>' +
+    '<div class="spine-card__rule"></div>' +
+    '<div class="spine-card__body">' +
+      '<p>Knowledge hidden in plain sight. The column is the light in this ' +
+      'scene, and a card that opens beside it should catch that light on the ' +
+      'edge nearest the spine.</p>' +
+      '<p>Body copy sits here so the rim can be judged against the thing it ' +
+      'actually has to sit next to.</p>' +
+    '</div>' +
+    '<a class="spine-card__cta" href="#"><span class="cta-text">Explore</span> ' +
+      '<span class="arrow" aria-hidden="true">&rarr;</span></a>';
+
+  var lab = document.getElementById('lab');
+  READINGS.forEach(function (r) {
+    var cell = document.createElement('div');
+    cell.className = 'cell ' + r[0];
+    cell.innerHTML =
+      '<article class="spine-card is-open">' + CARD + '</article>' +
+      '<span class="cell__name">' + r[1] + '</span>' +
+      '<span class="cell__note">' + r[2] + '</span>';
+    lab.appendChild(cell);
+  });
+
+  function toggle(btn, fn) {
+    btn.addEventListener('click', function () {
+      var on = btn.getAttribute('aria-pressed') !== 'true';
+      btn.setAttribute('aria-pressed', String(on));
+      fn(on);
+    });
+  }
+
+  /* Flipping the side is the real test of the light model: every gradient and
+     every inset multiplies by --lit-x, so if one layer is lit the wrong way it
+     shows up here and nowhere else. */
+  toggle(document.getElementById('flip'), function (on) {
+    document.querySelectorAll('.spine-card').forEach(function (c) {
+      c.classList.toggle('side-left', on);
+    });
+  });
+
+  toggle(document.getElementById('fallback'), function (on) {
+    document.documentElement.classList.toggle('sim-fallback', on);
+  });
+
+  /* The media query cannot be forced, so the lab mirrors its one rule. */
+  toggle(document.getElementById('motion'), function (on) {
+    document.querySelectorAll('.v-breathe .spine-card__glass').forEach(function (g) {
+      g.style.animation = on ? 'none' : '';
+      g.style.opacity   = on ? '0.85' : '';
+    });
+  });
+
+  window.__glassLab = { readings: READINGS };
+})();
+</script>
+</body>
+</html>

@@ -53,13 +53,16 @@
      same language; do not drift it. */
   --coil-color:    240, 165, 92;
   --coil-color-b:  255, 236, 208;  /* the second strand's tone at split 1 */
-  --coil-split:    0.5;    /* how far apart the two strands are told */
-  --coil-turns:    5;      /* per strand, base to crown */
-  --coil-beam:     0.4;    /* the lit central channel and its reach */
+  --coil-split:    0.58;    /* how far apart the two strands are told */
+  --coil-turns:    3.5;      /* per strand, base to crown */
+  --coil-beam:     0.12;    /* the lit central channel and its reach */
   --coil-hug:      1;      /* 1 = follow the measured silhouette, 0 = constant */
-  --coil-clear:    14;     /* viewBox units of air between bone and coil */
-  --coil-far:      1;      /* presence of the half that passes behind the bone */
-  --coil-ms:       2800;   /* length of the one shot */
+  --coil-clear:    3;     /* viewBox units of air between bone and coil */
+  --coil-far:      0.64;      /* presence of the half that passes behind the bone */
+  --coil-blend:    0.35;   /* width of the front/back crossover blend, in sin(theta).
+                              0 = the original hard split. Safe up to ~0.6; past that
+                              the back canvas starts painting where the bone covers it. */
+  --coil-ms:       900;   /* length of the one shot */
 }
 
 body { margin: 0; min-height: 100vh; }
@@ -158,20 +161,22 @@ body { margin: 0; min-height: 100vh; }
     </span>
   </div>
 
-  <div class="hud__row"><label>Turns <b id="vTurns">5</b></label>
-    <input type="range" id="sTurns" min="1" max="10" step="0.5" value="5"></div>
-  <div class="hud__row"><label>Beam <b id="vBeam">0.40</b></label>
-    <input type="range" id="sBeam" min="0" max="1" step="0.02" value="0.4"></div>
+  <div class="hud__row"><label>Turns <b id="vTurns">3.5</b></label>
+    <input type="range" id="sTurns" min="1" max="10" step="0.5" value="3.5"></div>
+  <div class="hud__row"><label>Beam <b id="vBeam">0.12</b></label>
+    <input type="range" id="sBeam" min="0" max="1" step="0.02" value="0.12"></div>
   <div class="hud__row"><label>Hug <b id="vHug">1.00</b></label>
     <input type="range" id="sHug" min="0" max="1" step="0.02" value="1"></div>
-  <div class="hud__row"><label>Split <b id="vSplit">0.50</b></label>
-    <input type="range" id="sSplit" min="0" max="1" step="0.02" value="0.5"></div>
-  <div class="hud__row"><label>Clearance <b id="vClear">14</b></label>
-    <input type="range" id="sClear" min="0" max="40" step="1" value="14"></div>
-  <div class="hud__row"><label>Far half <b id="vFar">1.00</b></label>
-    <input type="range" id="sFar" min="0" max="1.6" step="0.02" value="1"></div>
-  <div class="hud__row"><label>Duration <b id="vMs">2800</b>ms</label>
-    <input type="range" id="sMs" min="900" max="6000" step="100" value="2800"></div>
+  <div class="hud__row"><label>Split <b id="vSplit">0.58</b></label>
+    <input type="range" id="sSplit" min="0" max="1" step="0.02" value="0.58"></div>
+  <div class="hud__row"><label>Clearance <b id="vClear">3</b></label>
+    <input type="range" id="sClear" min="0" max="40" step="1" value="3"></div>
+  <div class="hud__row"><label>Far half <b id="vFar">0.64</b></label>
+    <input type="range" id="sFar" min="0" max="1.6" step="0.02" value="0.64"></div>
+  <div class="hud__row"><label>Crossover blend <b id="vBlend">0.35</b></label>
+    <input type="range" id="sBlend" min="0" max="0.6" step="0.01" value="0.35"></div>
+  <div class="hud__row"><label>Duration <b id="vMs">900</b>ms</label>
+    <input type="range" id="sMs" min="900" max="6000" step="100" value="900"></div>
 
   <div class="hud__facts" id="facts"></div>
   <p class="hud__note">
@@ -225,6 +230,7 @@ body { margin: 0; min-height: 100vh; }
     { id: 'Split', v: '--coil-split', fix: 2 },
     { id: 'Clear', v: '--coil-clear', fix: 0 },
     { id: 'Far',   v: '--coil-far',   fix: 2 },
+    { id: 'Blend', v: '--coil-blend', fix: 2 },
     { id: 'Ms',    v: '--coil-ms',    fix: 0 }
   ];
   SLIDERS.forEach(function (s) {

@@ -151,19 +151,23 @@
        palette does not otherwise carry — set --coil-color-b if you want it. */
     colorB: '255, 236, 208',
     core:   '255, 250, 244',
-    split:  0.5,     /* 0 = the two strands identical, 1 = full separation */
+    split:  0.58,    /* 0 = the two strands identical, 1 = full separation */
 
-    turns:  5,       /* per strand, base to crown. Twin wants fewer than one. */
-    beam:   0.4,     /* strength of the lit channel and the reach above it */
+    turns:  3.5,     /* per strand, base to crown. Twin wants fewer than one. */
+    beam:   0.12,    /* strength of the lit channel and the reach above it */
     hug:    1,       /* 1 = follow the measured envelope, 0 = constant radius */
-    clear:  14,      /* viewBox units of air between silhouette and coil */
-    far:    1,       /* multiplier on the far half's presence — see below */
+    clear:  3,       /* viewBox units of air between silhouette and coil */
+    far:    0.64,    /* multiplier on the far half's presence — see below */
+
+    /* HOW WIDE THE FRONT/BACK CROSSOVER IS BLENDED, in sin(theta) units.
+       0 restores the original hard split. See the block above drawRun. */
+    blend:  0.35,
 
     samples:   280,  /* points per strand per canvas */
     buckets:   12,   /* recency quantisation; see the note on drawRun */
     tailTurns: 0.18, /* fraction of one turn over which the head tapers away */
 
-    durationMs: 2800,
+    durationMs: 900,
     holdMs:      280,
     fadeMs:      760,
     inFrac:     0.06 /* fraction of the run spent fading the coil in */
@@ -180,6 +184,7 @@
     '--coil-hug':     'hug',
     '--coil-clear':   'clear',
     '--coil-far':     'far',
+    '--coil-blend':   'blend',
     '--coil-ms':      'durationMs'
   };
 
@@ -192,6 +197,14 @@
            (a[1] + (b[1] - a[1]) * t).toFixed(0) + ',' +
            (a[2] + (b[2] - a[2]) * t).toFixed(0);
   }
+  /* Quantisation levels for the crossover blend. It rides along in the run key
+     exactly as recency and taper do, so a blended handoff still costs a handful
+     of strokes rather than one per sample. 6 is enough that the cross-fade
+     reads as continuous — at the authored blend width that is a step every
+     ~0.12 of sin(theta), well under the eye's ability to pick out a boundary in
+     a moving beam. */
+  var BLEND_STEPS = 6;
+
   function clamp01(v) { return v < 0 ? 0 : v > 1 ? 1 : v; }
   function smooth(t) { return t * t * (3 - 2 * t); }
 
@@ -345,8 +358,10 @@
     function walk(ctx, yF, uF, phase, near, si) {
       var S = Math.max(40, cfg.samples | 0);
       var B = Math.max(2, cfg.buckets | 0), T = 8;
+      var BL = (cfg.blend > 0.001) ? BLEND_STEPS : 0;   /* 0 = hard split */
+      var bl = cfg.blend;
       var tailU = Math.max(0.004, cfg.tailTurns / Math.max(cfg.turns, 0.25));
-      var pts = null, key = -1, kRec = 0, kTap = 0, px = 0, py = 0, has = false;
+      var pts = null, key = -1, kRec = 0, kTap = 0, kBl = BL, px = 0, py = 0, has = false;
 
       for (var i = 0; i <= S; i++) {
         var y = Y_BOT + (yF - Y_BOT) * (i / S);
@@ -357,10 +372,17 @@
         /* +ry for the near half: the eye is above, so the half of the ring
            nearest the viewer projects LOWER on screen (canvas y grows down). */
         var nx = CX + g.rx * Math.cos(th), ny = y + g.ry * d;
-        var on = (d > 0) === near;
 
-        var k = -1, rb = 0, tb = 0;
-        if (on) {
+        /* THIS CANVAS'S SHARE OF THE POINT.
+           Hard split: 1 on your own half, 0 on the other. Blended: a
+           smoothstep across |sin th| < blend, so both canvases carry the point
+           near the crossover and neither owns it outright. */
+        var f = (BL === 0) ? ((d > 0) ? 1 : 0)
+                           : smooth(clamp01((d + bl) / (2 * bl)));
+        var dw = near ? f : 1 - f;
+
+        var k = -1, rb = 0, tb = 0, bb = BL;
+        if (dw > 0.004) {
           /* recency — the leading turn is the bright one, everything behind it
              is the trail it has already laid. Cubed-ish so the falloff is fast
              enough that the crown reads as a single travelling event. */
@@ -368,28 +390,61 @@
           var t = smooth(clamp01((uF - u) / tailU));
           rb = Math.min(B - 1, Math.floor(rec * B));
           tb = Math.min(T, Math.round(t * T));
-          k = rb * (T + 1) + tb;
+          bb = (BL === 0) ? 0 : Math.round(dw * BL);
+          k = (rb * (T + 1) + tb) * (BL + 1) + bb;
         }
         if (k !== key) {
-          if (pts && pts.length >= 4) drawRun(ctx, pts, near, si, kRec, kTap);
+          if (pts && pts.length >= 4) drawRun(ctx, pts, near, si, kRec, kTap, kBl, BL);
           pts = (k >= 0) ? (has ? [px, py, nx, ny] : [nx, ny]) : null;
-          key = k; kRec = rb; kTap = tb;
+          key = k; kRec = rb; kTap = tb; kBl = bb;
         } else if (pts) {
           pts.push(nx, ny);
         }
         px = nx; py = ny; has = true;
       }
-      if (pts && pts.length >= 4) drawRun(ctx, pts, near, si, kRec, kTap);
+      if (pts && pts.length >= 4) drawRun(ctx, pts, near, si, kRec, kTap, kBl, BL);
     }
 
-    function drawRun(ctx, pts, near, si, rb, tb) {
+    /* THE CROSSOVER SEAM, AND WHY IT NEEDED A BLEND.
+
+       The strand is one helix walked twice and split by depth: sin(theta) > 0
+       goes on the front canvas, < 0 on the back, with the spine PNG painted
+       between them. At the two crossover points the strand hands off from one
+       canvas to the other — and the two halves are deliberately drawn very
+       differently, because the far half has to fight the bone to read at all.
+       At full recency that handoff was a step from w 7.4 to 3.8 and alpha 0.94
+       to 0.50, in one sample. It read as the beam being severed and restarted.
+
+       Blending is safe precisely AT the crossover and nowhere else, which is
+       worth understanding before widening it: x = CX + rx*cos(theta), so
+       sin = 0 means |cos| = 1 — the ring's extreme left and right, where the
+       strand is furthest from the column and occluded by nothing. blend 0.5
+       still keeps the whole blended arc within 13% of that extreme. Push it
+       toward 1 and the back canvas starts painting where the bone covers it,
+       which is not a blend, it is a disappearance.
+
+       WIDTH IS SHARED, ALPHA IS SPLIT. Both canvases compute the SAME lerped
+       width at a given point, so there is no step in the silhouette to see.
+       Each then draws in its own colour at its own alpha scaled by its share,
+       so the two overlap and cross-fade through the handoff. */
+    function drawRun(ctx, pts, near, si, rb, tb, bb, BL) {
       var B = Math.max(2, cfg.buckets | 0), T = 8;
       var rec = (rb + 0.5) / B, t = tb / T;
       if (t <= 0) return;
+
+      /* dw: this canvas's share. f: how NEAR the point is, shared by both
+         canvases so their widths agree. */
+      var dw = (BL > 0) ? (bb / BL) : 1;
+      if (dw <= 0.004) return;
+      var f = near ? dw : 1 - dw;
+
       var w, a, col, p = pal[si];
+      var wNear = (3.6 + 3.8 * rec) * t * weight[si];
+      var wFar  = (2.7 + 1.1 * rec) * t * weight[si];
+      w = wFar + (wNear - wFar) * f;
+
       if (near) {
-        w = (3.6 + 3.8 * rec) * t * weight[si];
-        a = (0.34 + 0.60 * rec) * t * alphaF[si];
+        a = (0.34 + 0.60 * rec) * t * alphaF[si] * dw;
         col = p.near[rb];
       } else {
         /* THE FAR HALF WAS TOO FAINT TO READ AS A STRAND. It sat at 0.09-0.22
@@ -397,9 +452,11 @@
            coil read as crescents. 0.20-0.50 here, with a glow on the leading
            part, and it stays a strand all the way round. It cannot spill in
            front of the column no matter how bright it gets — it is on the back
-           canvas, which the spine is painted over. */
-        w = (2.7 + 1.1 * rec) * t * weight[si];
-        a = (0.20 + 0.30 * rec) * t * cfg.far * alphaF[si];
+           canvas, which the spine is painted over.
+
+           Width comes from the shared lerp above, NOT from its own formula —
+           that is what removes the step in the silhouette at the crossover. */
+        a = (0.20 + 0.30 * rec) * t * cfg.far * alphaF[si] * dw;
         col = p.far[rb];
       }
       if (a <= 0.004 || w <= 0.06) return;

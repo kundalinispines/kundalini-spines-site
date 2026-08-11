@@ -217,9 +217,43 @@
     return this;
   };
 
+  /* ---- THE REGISTRATION SNAP.
+
+     Land misregistered, hold that for one painted frame, then pull true.
+
+     THE DOUBLE requestAnimationFrame IS THE WHOLE TRICK. The offset state has
+     to be COMMITTED — computed, and actually painted — before the class that
+     produces it is removed, or the browser coalesces "apply offsets" and
+     "remove offsets" into one style recalculation, finds no change in the
+     computed transform, and starts no transition at all. The lockup then simply
+     appears in register and the effect reads as not working rather than as
+     fast. One rAF gets you the style flush; the second guarantees a paint has
+     gone out. Cheap insurance for something that fails invisibly.
+
+     is-instant covers the arrival itself so the displaced state does not
+     animate INTO existence — only out of it. */
+  Wordmark.prototype.snap = function () {
+    if (!this.laidOut) { this.layout(); }
+    this.played = true;
+    var el = this.el;
+
+    el.classList.add('is-instant', 'is-snapping');
+    el.classList.remove('is-holding');
+    el.classList.add('is-inked');
+    void el.offsetWidth;
+    el.classList.remove('is-instant');
+
+    var raf = (typeof requestAnimationFrame === 'function')
+      ? requestAnimationFrame : function (f) { return setTimeout(f, 16); };
+    raf(function () {
+      raf(function () { el.classList.remove('is-snapping'); });
+    });
+    return this;
+  };
+
   Wordmark.prototype.reset = function () {
     this.played = false;
-    this.el.classList.remove('is-inked');
+    this.el.classList.remove('is-inked', 'is-snapping', 'is-instant');
     return this;
   };
 

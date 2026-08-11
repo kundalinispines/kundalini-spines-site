@@ -107,6 +107,15 @@
   --wm-gap:          0em;    /* the rule sits tight between the lines */
   --wm-rule-on:        1;    /* 0 hides the rule, ticks and reticle outright */
 
+  /* ---- the registration snap. See the block by .wm__ink.
+     7px is read against a ~138px cap height: about 5%, which is a plainly
+     visible misprint without being a slide. --wm-snap-ms stays well inside the
+     cut's budget — at 24fps, 150ms is under four frames, so the correction is
+     over before the eye has finished reading the new shot. Past about 330ms it
+     stops being a cut and becomes an animation that happens to start at one. */
+  --wm-snap:          7px;
+  --wm-snap-ms:     150ms;
+
   --wm-dev-ms:      2300ms;  /* one line's development, start to solid */
   --wm-line-lead:   380ms;   /* SPINES behind KUNDALINI */
   --wm-start-ms:    300ms;   /* after play(), before anything moves */
@@ -293,12 +302,63 @@
 
 /* The justification. --sx is written per line by the module; the long line
    always resolves to 1 and is therefore undistorted. transform-origin is centre
-   so the scaled ink grows symmetrically out of the centred line box. */
+   so the scaled ink grows symmetrically out of the centred line box.
+
+   TRANSLATE BEFORE SCALE, and the order is not cosmetic. A CSS transform list
+   applies right-to-left to the element, so `translate(...) scaleX(s)` scales
+   the glyphs first and then moves them in the PARENT's coordinate space —
+   meaning the snap offset below is the number of pixels you asked for on both
+   lines. Written the other way round, SPINES' offset would be multiplied by its
+   1.51 scale and the two lines would come out of register by different amounts
+   than intended. */
 .wm__ink {
   display: inline-block;
-  transform: scaleX(var(--sx, 1));
+  transform: translate3d(var(--wm-snap-x, 0px), var(--wm-snap-y, 0px), 0)
+             scaleX(var(--sx, 1));
   transform-origin: 50% 50%;
+  transition: transform var(--wm-snap-ms) cubic-bezier(0.16, 1, 0.3, 1);
 }
+
+/* ---------------------------------------------------------------------------
+   ARRIVAL: THE REGISTRATION SNAP.
+
+   The lockup lands MISREGISTERED — the two lines and the rule each displaced a
+   few pixels in different directions — and pulls true. It is a misprint
+   correcting itself.
+
+   Chosen over a print-on or a flash because the lockup is already speaking this
+   language: it carries a registration rule with tick marks and a centre
+   reticle, and those are alignment instruments. Making the arrival an alignment
+   event means the mark between the two words is explaining the gesture rather
+   than decorating it.
+
+   The offsets OPPOSE each other. Displacing both lines the same way is a
+   nudge — the eye reads it as the whole lockup sliding, which is motion, not
+   misregistration. Opposed, there is no rigid movement to read and the only
+   available interpretation is that the two impressions were laid down out of
+   true. The vertical components are much smaller than the horizontal because
+   press misregistration is mostly cross-web.
+
+   Custom properties drive a transform that is itself transitioned. That works
+   because --wm-snap-x is not being animated: it changes discretely, the
+   computed transform changes with it, and the transition interpolates the
+   resulting matrices. No @property registration is needed.
+   --------------------------------------------------------------------------- */
+.wm.is-snapping .wm__line:first-of-type .wm__ink {
+  --wm-snap-x: var(--wm-snap);
+  --wm-snap-y: calc(var(--wm-snap) * -0.26);
+}
+.wm.is-snapping .wm__line:last-of-type .wm__ink {
+  --wm-snap-x: calc(var(--wm-snap) * -0.82);
+  --wm-snap-y: calc(var(--wm-snap) * 0.2);
+}
+/* The rule goes the other way again, and further, because it is a hairline —
+   a 1px line has to move more than a 190px letterform to register as having
+   moved at all. */
+.wm.is-snapping .wm__rule {
+  transform: translate3d(calc(var(--wm-snap) * 1.4), 0, 0);
+}
+.wm__rule { transition: transform var(--wm-snap-ms) cubic-bezier(0.16, 1, 0.3, 1); }
 
 /* ---------------------------------------------------------------------------
    THE REGISTRATION RULE — hairline, ticks, centre reticle.
@@ -403,15 +463,23 @@
 
    Applied, flushed, and removed inside one frame by settle(). */
 .wm.is-instant .wm__line,
+.wm.is-instant .wm__ink,
+.wm.is-instant .wm__rule,
 .wm.is-instant .wm__rule::before,
 .wm.is-instant .wm__tick,
 .wm.is-instant .wm__reticle { transition: none !important; }
 
 @media (prefers-reduced-motion: reduce) {
   .wm__line,
+  .wm__ink,
+  .wm__rule,
   .wm__rule::before,
   .wm__tick,
   .wm__reticle { transition: none !important; }
+  /* and the snap never displaces anything in the first place */
+  .wm.is-snapping .wm__line:first-of-type .wm__ink,
+  .wm.is-snapping .wm__line:last-of-type .wm__ink { --wm-snap-x: 0px; --wm-snap-y: 0px; }
+  .wm.is-snapping .wm__rule { transform: none; }
 }
 
 /* Phone. The measure goes wider because there is less of it, and the lockup

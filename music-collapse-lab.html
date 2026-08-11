@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<!-- ==========================================================================
+     MUSIC COLLAPSE LAB — four readings of "the navigator collapses to a thin
+     lit line beside the Music panel"
+
+     Built Aug 11 2026, before any of the Music immersive wrap was written, so
+     the collapse could be judged as motion rather than argued about in prose.
+     The owner asked to see versions first; this is that.
+
+     WHAT IS REAL HERE
+       css/spine-ui.css and js/spine-ui.js, unmodified. The spine you are
+       looking at is the navigator, not a drawing of it — so what you judge is
+       what ships. The four variants are expressed entirely as overrides of the
+       navigator's own tokens (--axis-shift, --spine-anat-w, --spine-anat-opacity
+       and the children's opacities), which is the whole point: if a variant
+       needs a new mechanism to exist, it is not a collapse, it is a rebuild.
+
+     WHAT IS A MOCK
+       The Music panel. It is five static boxes and a block of type, sized to
+       the MEASURED geometry of the real track experience at 1440x900 — hero
+       490x490, arc box 640 tall, focus panel 288.5 with its -287.75 top margin
+       already folded in, total ink 879.5px. It is here so the rail is judged
+       against something the right size and weight, not against empty space.
+       It is deliberately NOT the real carousel: track-experience.js has not
+       been wired yet, and wiring it to judge a rail would be judging two
+       things at once.
+
+     THE ONE THING THIS MOCK DOES THAT THE REAL BUILD MUST NOT
+       .mus fades in via opacity on an ancestor. Measured Aug 11 2026 (see
+       css/track-experience.css:169-183): a card inside the carousel's 3D
+       context rasterises at 612 where the identical image outside it reads
+       1087, and ANY ancestor carrying opacity < 1, filter, backdrop-filter,
+       mask or contain:paint forces that intermediate raster. On a mock of
+       static <img>s it costs nothing. On the real carousel it silently
+       softens every cover. The real build's beat is the spine collapse plus
+       the overlay above — never a fade on the panel's own ancestor.
+     ========================================================================== -->
+<html lang="en" data-variant="a">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Music collapse — four variants</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/star-bg.css">
+<link rel="stylesheet" href="css/spine-ui.css">
+
+<style>
+:root {
+  /* The sky is held still, exactly as entrance-lab.html holds it. This lab is
+     judging the rail, and a nebula flashing on a kick behind it would be a
+     second variable. The real Music wrap brings these back up — see
+     entrance-lab.html's note on why zeroes must not ship as authored defaults. */
+  --kick: 0; --snare: 0; --charge: 0;
+  --kick-stars: 0; --kick-cloud: 0; --snare-bolt: 0;
+
+  /* Where the rail lands. Expressed from the LEFT EDGE and converted to an
+     axis shift below, because --axis-shift is measured from the centre and
+     "54px from the edge" is the thing actually being designed. */
+  --rail-x:       54px;
+  --rail-gutter:  128px;   /* where the Music panel's box starts */
+  --collapse-ms:  520ms;   /* matches --ent-hand-ms in entrance-lab.html */
+}
+
+html, body { height: 100%; }
+body { margin: 0; overflow: hidden; background: var(--color-black, #050505); }
+
+/* --------------------------------------------------------------------------
+   THE COLLAPSE, SHARED BY ALL FOUR VARIANTS
+   Everything below is a transition on tokens css/spine-ui.css already owns.
+   -------------------------------------------------------------------------- */
+.spine        { transition: left var(--collapse-ms) var(--ease-standard, cubic-bezier(.4,0,.2,1)); }
+.spine__anat  { transition: width var(--collapse-ms) var(--ease-standard, cubic-bezier(.4,0,.2,1)),
+                            opacity var(--collapse-ms) var(--ease-standard, cubic-bezier(.4,0,.2,1)); }
+.spine__cord,
+.spine__energy,
+.spine__nodes,
+.spine__marker { transition: opacity var(--collapse-ms) var(--ease-standard, cubic-bezier(.4,0,.2,1)); }
+
+/* Open state: the axis walks from centre to the rail. -50vw puts it on the
+   left edge; --rail-x walks it back in. One expression, correct at any width,
+   which is why the stage's padding cannot do this job (see the --axis-shift
+   note in css/spine-ui.css: absolutely positioned children resolve 50%
+   against the padding box and would not move). */
+html.is-open { --axis-shift: calc(-50vw + var(--rail-x)); }
+
+/* Nodes go inert on open. Q9: inert for this pass, live later — six labelled
+   hit targets in a 54px strip is its own design problem and solving it inside
+   the Music build means judging two things at once. */
+html.is-open .spine__nodes  { opacity: 0; pointer-events: none; }
+html.is-open .spine__marker { opacity: 0; }
+html.is-open .spine-hint    { opacity: 0; pointer-events: none; }
+
+/* --------------------------------------------------------------------------
+   VARIANT A · RAIL — the bone survives, cropped to a strip
+   The wireframe narrows from clamp(240px,28vw,380px) to 74px, so what is left
+   is the vertebral column itself with the sacred-geometry wings cropped away
+   by .spine__anat's own overflow:hidden. Reads as: the spine is still running,
+   it has just stood aside.
+   -------------------------------------------------------------------------- */
+html[data-variant="a"].is-open .spine__anat { width: 74px; opacity: 0.52; }
+
+/* --------------------------------------------------------------------------
+   VARIANT B · CORD — pure light, no anatomy
+   The wireframe leaves entirely; only .spine__cord (1px luminous thread) and
+   the rising comet remain. The most restrained reading, and the only one that
+   does not put an image at the edge of a page whose whole subject is imagery.
+   -------------------------------------------------------------------------- */
+html[data-variant="b"].is-open .spine__anat { width: 74px; opacity: 0; }
+
+/* --------------------------------------------------------------------------
+   VARIANT C · GHOST — the outlier, shown deliberately
+   The spine does NOT move. It stays centred at full width and drops to a
+   ghost, and the cards float in front of it: "you are inside the spine" read
+   literally rather than as a side rail. This contradicts the settled answer
+   ("a thin lit line on its side") and it is here precisely because the
+   boundary is worth seeing once. Note it is also a plate by another name,
+   which Q10 ruled out.
+   -------------------------------------------------------------------------- */
+html[data-variant="c"].is-open { --axis-shift: 0px; }
+html[data-variant="c"].is-open .spine__anat   { opacity: 0.13; }
+html[data-variant="c"].is-open .spine__cord   { opacity: 0.18; }
+html[data-variant="c"].is-open .spine__energy { opacity: 0.35; }
+
+/* --------------------------------------------------------------------------
+   VARIANT D · TICKS — cord plus six inert vertebra marks
+   B, but the six NODES[] positions survive as small marks on the cord, so the
+   spine's structure stays legible as six vertebrae without being clickable.
+   This is the one that leaves a door open to Q9's "live nodes later" — the
+   marks are already in the right places.
+   -------------------------------------------------------------------------- */
+html[data-variant="d"].is-open .spine__anat { width: 74px; opacity: 0; }
+
+/* left MUST carry --axis-shift, exactly as .spine__nodes does. Written as a
+   bare 50% first and the six marks stacked down the centre of the page while
+   the rail sat empty — the same error as .rail-exit, from the same cause:
+   everything that references the axis reads --axis-shift, and anything that
+   forgets it silently stays at the old centre. */
+.rail-ticks { position: absolute; inset: 0; left: calc(50% + var(--axis-shift)); width: 0; z-index: 18;
+              opacity: 0;
+              transition: left var(--collapse-ms) var(--ease-standard, cubic-bezier(.4,0,.2,1)),
+                          opacity var(--collapse-ms) var(--ease-standard, cubic-bezier(.4,0,.2,1)); }
+html[data-variant="d"].is-open .rail-ticks { opacity: 1; }
+.rail-ticks i {
+  position: absolute; left: 0; top: var(--y); transform: translate(-50%, -50%);
+  width: 9px; height: 1px; background: rgba(242,242,238,0.55);
+  box-shadow: 0 0 4px rgba(242,242,238,0.5);
+}
+/* The two ends carry a longer mark, the way .spine__marker's ticks do, so the
+   run reads as a measured axis rather than six equal dashes. */
+.rail-ticks i:first-child, .rail-ticks i:last-child { width: 15px; background: rgba(242,242,238,0.75); }
+
+/* --------------------------------------------------------------------------
+   VARIANT E · NODES — the rail, the real node string, no wireframe
+   Added Aug 11 2026 at the owner's request after seeing A-D: "the rail with
+   the current nodes and node settings from the navigation minus the spine
+   image."
+
+   Nothing here retunes a node. --node-size, --node-color, --node-glow, the
+   ring sizes, the reticle and the ping delays are all css/spine-ui.css's own
+   values, untouched — the only overrides are the two that MUST change because
+   the axis moved:
+
+   1. The nodes stay up and stay interactive. That reopens Q9, which had
+      settled on inert; see the label problem below for why it is not free.
+   2. Left-side labels are flipped to the right. .spine-node[data-side="left"]
+      anchors its label with `right: var(--node-label-offset)` — 180px to the
+      LEFT of an axis that now sits 54px from the viewport edge, i.e. 126px
+      off-screen. Nodes 02, 04 and 06 are left-side, so half the string would
+      point into nothing.
+
+   WHAT THIS SHOT IS FOR, and it is the honest part: --node-label-offset is
+   180px, measured to push labels clear of the centred spine's glow. On the
+   rail that puts a label's near edge at x=234, and the Music panel's ink
+   starts at x=194. Labels therefore land ON the carousel. At rest that costs
+   nothing — labels are opacity 0 until hover/focus (see the
+   `.spine-node:hover .spine-node__label` rules) — so judge the rest state and
+   the hover state as two separate questions. The hover capture shows it.
+   -------------------------------------------------------------------------- */
+html[data-variant="e"].is-open .spine__anat  { width: 74px; opacity: 0; }
+html[data-variant="e"].is-open .spine__nodes { opacity: 1; pointer-events: auto; }
+html[data-variant="e"].is-open .spine-node[data-side="left"] .spine-node__label {
+  right: auto; left: var(--node-label-offset); text-align: left;
+}
+
+/* --------------------------------------------------------------------------
+   VARIANT F · CONTEXT — E, but the six nodes change job inside Music
+   The owner's idea, approved Aug 11 2026: keep the node string and repurpose
+   it. 01 CLOSE / 02 INDEX / 03 DECODE / 04 SIGNAL / 05 SHARE / 06 SKY.
+
+   WHY THIS BEATS E. E's live nodes made Music one stop on an axis you can
+   jump off — a better navigator and a weaker moment. These act WITHIN Music
+   and never leave it, so the immersive frame survives and the spine still
+   does something. Same six dots, same y positions, different job: a morph,
+   not a swap. A swap would read as a different component arriving.
+
+   THREE OVERRIDES, and each one is paid for by the new copy being short:
+
+   1. --node-label-offset 180px -> 30px. The 180 was measured to push labels
+      clear of the CENTRED spine's glow; on a 54px rail it threw them onto the
+      carousel (measured Aug 11: labels spanned x 228.8-384.5 against panel
+      ink starting at 194). "CLOSE" and "INDEX" do not need 180px of clearance
+      the way "THE MESSENGERS" did.
+   2. Labels are VISIBLE AT REST here, where the navigator hides them until
+      hover. Opposite calls, both right: six long names on a centred spine is
+      clutter, six short verbs on a rail is a toolbar, and a toolbar that only
+      names itself on hover is a guessing game.
+   3. .kind is hidden. "Immersive - later" / "Card" describe a navigator
+      destination; these are actions and the word says nothing about them.
+   -------------------------------------------------------------------------- */
+html[data-variant="f"].is-open  { --node-label-offset: 30px; }
+html[data-variant="f"].is-open .spine__anat  { width: 74px; opacity: 0; }
+html[data-variant="f"].is-open .spine__nodes { opacity: 1; pointer-events: auto; }
+html[data-variant="f"].is-open .spine-node[data-side="left"] .spine-node__label {
+  right: auto; left: var(--node-label-offset); text-align: left;
+}
+html[data-variant="f"].is-open .spine-node__label { opacity: 0.72; }
+html[data-variant="f"].is-open .spine-node:hover .spine-node__label,
+html[data-variant="f"].is-open .spine-node:focus-visible .spine-node__label,
+html[data-variant="f"].is-open .spine-node.is-prefocus .spine-node__label { opacity: 1; }
+html[data-variant="f"].is-open .spine-node__label .kind { display: none; }
+
+/* The vertical rail-exit label is the OTHER five variants' way out. Here node
+   01 is CLOSE, so the label is a second control saying the same word — and it
+   sat across 06 SKY at the foot of the rail. Two exits is not twice as clear.
+   Hidden here only; A-E still need it. */
+html[data-variant="f"].is-open .rail-exit { opacity: 0; pointer-events: none; }
+
+/* The lab's own readout for the five actions that are NOT built. Clicking
+   DECODE here reports what DECODE would do; it does not do it. Saying so on
+   screen is cheaper than the owner discovering it by clicking. */
+.act {
+  position: absolute; left: 50%; bottom: 26px; transform: translateX(-50%);
+  z-index: 70; padding: 9px 16px; border: 1px solid #2a2a2a; background: rgba(5,5,5,0.9);
+  font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.06em;
+  color: var(--color-bone, #D8D0BE); opacity: 0; pointer-events: none;
+  transition: opacity 200ms linear;
+}
+.act.is-up { opacity: 1; }
+
+/* --------------------------------------------------------------------------
+   THE EXIT AFFORDANCE — identical in all six, so it is not the variable
+   -------------------------------------------------------------------------- */
+/* Anchored to the RAIL, not to the stage. It read left:50% first and rendered
+   the label vertically down the middle of the page, straight through the track
+   description — the stage is the containing block, so 50% is 720px, not the
+   rail. Variant C has no rail to hang this on, which is one of the arguments
+   against it rather than a bug in the label. */
+.rail-exit {
+  position: absolute; left: var(--rail-x); bottom: 34px; transform: translateX(-50%) rotate(180deg);
+  writing-mode: vertical-rl; z-index: 22;
+  font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.22em;
+  text-transform: uppercase; color: var(--color-gray-500);
+  background: none; border: 0; padding: 10px 6px; cursor: pointer;
+  opacity: 0; pointer-events: none;
+  transition: opacity var(--collapse-ms) var(--ease-standard, cubic-bezier(.4,0,.2,1)), color 180ms linear;
+}
+html.is-open .rail-exit { opacity: 1; pointer-events: auto; }
+.rail-exit:hover, .rail-exit:focus-visible { color: var(--color-bone, #D8D0BE); outline: none; }
+
+/* --------------------------------------------------------------------------
+   THE MUSIC PANEL — MOCK. Measured proportions, static content.
+   -------------------------------------------------------------------------- */
+.mus {
+  position: absolute; top: 0; bottom: 0; left: var(--rail-gutter); right: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  z-index: 12; opacity: 0; pointer-events: none;
+  transition: opacity var(--collapse-ms) var(--ease-standard, cubic-bezier(.4,0,.2,1));
+}
+html.is-open .mus { opacity: 1; pointer-events: auto; }
+
+/* 879.5px of ink: 590 of arc + 289.5 of panel. The real component's numbers,
+   measured Aug 11 2026 at 1440x900 — it fits inside 900 with 20.5px to spare
+   and only after the intro eyebrow and h2 are gone. */
+.mus__ink { width: 100%; max-width: 1180px; height: 879.5px; display: flex; flex-direction: column; }
+
+.mus__arc { position: relative; height: 590px; flex: none; }
+.mus__card {
+  position: absolute; top: 50%; left: 50%; border-radius: 2px; overflow: hidden;
+  background: #0b0b0b; box-shadow: 0 0 0 1px rgba(242,242,238,0.04);
+}
+.mus__card img { display: block; width: 100%; height: 100%; object-fit: cover; }
+/* Hero 490x490 — .track-hero-layer's measured box. Sides recede and dim the
+   way render() does, approximated: this is a proportion study, not the arc. */
+.mus__card--hero { width: 490px; height: 490px; transform: translate(-50%,-50%); z-index: 5; }
+.mus__card--n1l  { width: 300px; height: 300px; transform: translate(-138%,-50%) rotateY(26deg); opacity: 0.78; filter: blur(0.6px); z-index: 4; }
+.mus__card--n1r  { width: 300px; height: 300px; transform: translate(38%,-50%) rotateY(-26deg);  opacity: 0.78; filter: blur(0.6px); z-index: 4; }
+.mus__card--n2l  { width: 210px; height: 210px; transform: translate(-268%,-50%) rotateY(34deg); opacity: 0.42; filter: blur(2.4px); z-index: 3; }
+.mus__card--n2r  { width: 210px; height: 210px; transform: translate(168%,-50%) rotateY(-34deg); opacity: 0.42; filter: blur(2.4px); z-index: 3; }
+
+.mus__panel { width: 490px; margin: 0 auto; text-align: center; flex: none; }
+.mus__nav { display: flex; align-items: center; justify-content: space-between;
+            font-family: var(--font-mono); font-size: 12px; color: var(--color-gray-400); margin-bottom: 16px; }
+.mus__nav b { color: var(--color-bone, #D8D0BE); font-weight: 500; }
+.mus__eyebrow { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.22em;
+                text-transform: uppercase; color: var(--color-gray-400); display: block; margin-bottom: 10px; }
+.mus__desc { font-family: var(--font-serif, "Source Serif 4", serif); font-size: 17px; line-height: 1.55;
+             color: #fff; margin: 0 0 20px; text-shadow: 0 1px 12px rgba(0,0,0,0.75); }
+.mus__player { display: flex; align-items: center; gap: 14px; }
+.mus__player button { width: 40px; height: 40px; flex: none; border-radius: 50%; cursor: pointer;
+                      border: 1px solid var(--color-white, #F2F2EE); background: rgba(5,5,5,0.6);
+                      color: var(--color-white, #F2F2EE); font-size: 12px; }
+.mus__bar { flex: 1; height: 2px; background: rgba(242,242,238,0.18); }
+.mus__bar i { display: block; width: 34%; height: 100%; background: var(--color-bone, #D8D0BE); }
+/* Q5 + Q20: the intro eyebrow and h2 are gone, .track-experience__note survives
+   demoted, and .track-focus-panel__actions is hidden — so this one sentence is
+   the only streaming explanation on the page. */
+.mus__note { font-family: var(--font-mono); font-size: 10.5px; line-height: 1.7; letter-spacing: 0.04em;
+             color: var(--color-gray-500); margin: 22px 0 0; }
+
+/* --------------------------------------------------------------------------
+   THE BEAT'S OVERLAY (Q21b) — a black plane ABOVE everything that fades out.
+   Above, never around: an ancestor cannot carry the fade without dragging the
+   carousel into an intermediate raster. See the header note.
+   -------------------------------------------------------------------------- */
+.beat {
+  position: absolute; inset: 0; z-index: 60; background: #050505;
+  opacity: 0; pointer-events: none;
+}
+.beat.is-running { animation: beat-out var(--collapse-ms) var(--ease-standard, cubic-bezier(.4,0,.2,1)) forwards; }
+@keyframes beat-out { from { opacity: 1; } to { opacity: 0; } }
+
+/* --------------------------------------------------------------------------
+   LAB CHROME
+   -------------------------------------------------------------------------- */
+.lab {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 200;
+  display: flex; align-items: center; gap: 18px; padding: 10px 16px;
+  background: rgba(5,5,5,0.82); border-bottom: 1px solid #1C1C1C;
+  font-family: var(--font-mono); font-size: 11px; color: var(--color-gray-400);
+}
+.lab__tag { letter-spacing: 0.18em; text-transform: uppercase; color: var(--color-bone, #D8D0BE); }
+.lab__set { display: flex; gap: 6px; }
+.lab button {
+  font: inherit; padding: 5px 11px; cursor: pointer; letter-spacing: 0.1em; text-transform: uppercase;
+  background: transparent; border: 1px solid #2a2a2a; color: var(--color-gray-400);
+}
+.lab button:hover { border-color: #4a4a4a; color: var(--color-bone, #D8D0BE); }
+.lab button[aria-pressed="true"] { border-color: rgba(var(--node-color), 0.9); color: rgb(var(--node-color)); }
+.lab__hint { margin-left: auto; color: var(--color-gray-500); }
+.lab__desc { color: var(--color-gray-500); max-width: 520px; }
+html.is-open .spine-stage { padding-top: 0; }
+</style>
+</head>
+<body>
+
+<div class="lab">
+  <span class="lab__tag">Music collapse</span>
+  <span class="lab__set" role="group" aria-label="Variant">
+    <button type="button" data-v="a" aria-pressed="true">1 · Rail</button>
+    <button type="button" data-v="b" aria-pressed="false">2 · Cord</button>
+    <button type="button" data-v="c" aria-pressed="false">3 · Ghost</button>
+    <button type="button" data-v="d" aria-pressed="false">4 · Ticks</button>
+    <button type="button" data-v="e" aria-pressed="false">5 · Nodes</button>
+    <button type="button" data-v="f" aria-pressed="false">6 · Context</button>
+  </span>
+  <button type="button" id="toggle">Open Music</button>
+  <span class="lab__desc" id="desc"></span>
+  <span class="lab__hint">1–6 variants · O or Space toggles · Esc closes</span>
+</div>
+
+<main class="spine-stage" id="spine-nav-stage">
+
+  <svg class="spine-connectors" aria-hidden="true">
+    <path class="conn-active"></path>
+    <path class="conn-head"></path>
+  </svg>
+
+  <div class="spine" aria-hidden="true">
+    <div class="spine__anat"></div>
+    <div class="spine__cord"></div>
+    <div class="spine__energy"></div>
+    <p class="spine__marker spine__marker--start"><span>Start</span>Entry<i class="tick"></i></p>
+    <p class="spine__marker spine__marker--end"><i class="tick"></i><span>Continue</span>Arrow keys</p>
+  </div>
+
+  <!-- Variant D's inert vertebra marks. The six y values are NODES[]'s own,
+       read from window.__spineLab.nodes at boot rather than retyped — the
+       hand-copied duplicate in hero-scrub-lab.html is exactly what the
+       js/spine-ui.js extraction existed to kill. -->
+  <div class="rail-ticks" id="rail-ticks" aria-hidden="true"></div>
+
+  <div class="spine__nodes" id="spine-nav" role="toolbar" aria-orientation="vertical" aria-label="Spine navigation"></div>
+
+  <article class="spine-card" id="spine-card" role="dialog" aria-modal="false" aria-labelledby="spine-card-title" hidden>
+    <button type="button" class="spine-card__close" aria-label="Close">&times;</button>
+    <div class="spine-card__head">
+      <span class="spine-card__idx"></span>
+      <span class="spine-card__flag">Active</span>
+    </div>
+    <span class="label spine-card__eyebrow"></span>
+    <h2 class="spine-card__title" id="spine-card-title"></h2>
+    <div class="spine-card__rule"></div>
+    <div class="spine-card__body"></div>
+    <a class="spine-card__cta" href="#"><span class="cta-text">Explore</span> <span class="arrow" aria-hidden="true">&rarr;</span></a>
+  </article>
+
+  <p class="spine-hint" id="spine-hint"><span class="label">Hover a node &middot; click to open &middot; Esc to close</span></p>
+
+  <button type="button" class="rail-exit" id="rail-exit">Close &middot; Back to the spine</button>
+
+  <!-- MOCK. See the header note on why this is not the real carousel. -->
+  <div class="mus" aria-hidden="true">
+    <div class="mus__ink">
+      <div class="mus__arc">
+        <div class="mus__card mus__card--n2l"><img src="assets/music/spic-n-span-cover.webp" alt=""></div>
+        <div class="mus__card mus__card--n1l"><img src="assets/music/graveyard-shift-cover.webp" alt=""></div>
+        <div class="mus__card mus__card--hero"><img src="assets/music/skeleton-keys-cover.webp" alt=""></div>
+        <div class="mus__card mus__card--n1r"><img src="assets/music/spine-glow-cover.webp" alt=""></div>
+        <div class="mus__card mus__card--n2r"><img src="assets/music/first-48-cover.webp" alt=""></div>
+      </div>
+      <div class="mus__panel">
+        <div class="mus__nav"><span>&#10094;</span><span><b>1</b> / 28</span><span>&#10095;</span></div>
+        <span class="mus__eyebrow">Rise Up &middot; 2026</span>
+        <p class="mus__desc">Skeleton Keys is about the access nobody&rsquo;s supposed to have &mdash; and what you find once you&rsquo;re through the door.</p>
+        <div class="mus__player">
+          <button type="button" aria-label="Pause sample">&#10074;&#10074;</button>
+          <div class="mus__bar"><i></i></div>
+        </div>
+        <p class="mus__note"><b>Rise Up</b> isn&rsquo;t on streaming platforms yet &mdash; 20-second samples are available here for every track now. Full streaming and download links go live once each platform is connected.</p>
+      </div>
+    </div>
+  </div>
+
+  <p class="act" id="act" role="status" aria-live="polite"></p>
+
+  <div class="beat" id="beat" aria-hidden="true"></div>
+</main>
+
+<script src="js/spine-ui.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  var root   = document.documentElement;
+  var toggle = document.getElementById('toggle');
+  var beat   = document.getElementById('beat');
+  var desc   = document.getElementById('desc');
+  var btns   = Array.prototype.slice.call(document.querySelectorAll('.lab [data-v]'));
+
+  var DESC = {
+    a: 'Bone survives, cropped to a 74px strip. The spine stood aside.',
+    b: 'Anatomy gone. Cord and comet only — the most restrained reading.',
+    c: 'OUTLIER: does not move. Centred ghost, no rail to exit from.',
+    d: 'Cord plus six inert vertebra marks at the real NODES[] positions.',
+    e: 'The real node string on the rail, no wireframe. Nodes live. Hover one.',
+    f: 'Same six dots, new jobs. Labels always up. Click one.'
+  };
+
+  /* The Music-context node table, keyed by the navigator's own node ids so the
+     six dots keep their y positions, their ping delays and their comet sync.
+     `does` is the lab's honest readout: of these six only CLOSE is built, and
+     the readout says so rather than letting a click look broken. */
+  var MUSIC_NODES = [
+    { id: 'music',    idx: '01', title: 'Close',
+      does: 'CLOSE — built. Leaves Music. The node you came in by.' },
+    { id: 'story',    idx: '02', title: 'Index',
+      does: 'INDEX — not built. All 28 covers as a grid, click to jump. Fixes the +/-1 stepping.' },
+    { id: 'members',  idx: '03', title: 'Decode',
+      does: 'DECODE — not built. Title, duration, and visualTheme.geometry (metatron / vesica / vignette).' },
+    { id: 'ethos',    idx: '04', title: 'Signal',
+      does: 'SIGNAL — not built. Jumps to a random track.' },
+    { id: 'archive',  idx: '05', title: 'Share',
+      does: 'SHARE — not built. Copies #music/skeleton-keys to the clipboard.' },
+    { id: 'timeline', idx: '06', title: 'Sky',
+      does: 'SKY — not built. Toggles the reactive background.' }
+  ];
+
+  /* Variant D's ticks come from the navigator's own node table. js/spine-ui.js
+     publishes it on window.__spineLab.nodes for exactly this — reading it is
+     the contract, retyping it is the bug the extraction removed. */
+  (function buildTicks() {
+    var host  = document.getElementById('rail-ticks');
+    var nodes = (window.__spineLab && window.__spineLab.nodes) || [];
+    nodes.forEach(function (n) {
+      var i = document.createElement('i');
+      i.style.setProperty('--y', n.y + '%');
+      host.appendChild(i);
+    });
+  })();
+
+  /* ------------------------------------------------------------------------
+     THE MORPH. The navigator's labels are captured once at boot and restored
+     verbatim on the way out, so leaving Music cannot leave the navigator
+     wearing Music's copy. Only the label's INNER HTML changes — the button,
+     its dataset, its ping delay and its position are all untouched, which is
+     what makes this a morph rather than a rebuild.
+     ------------------------------------------------------------------------ */
+  var navEls = {}, navLabelHTML = {};
+  MUSIC_NODES.forEach(function (m) {
+    var el = document.querySelector('.spine-node[data-id="' + m.id + '"]');
+    if (!el) return;                       // node table changed under us
+    navEls[m.id] = el;
+    navLabelHTML[m.id] = el.querySelector('.spine-node__label').innerHTML;
+  });
+
+  function inMusicContext() {
+    return root.getAttribute('data-variant') === 'f' && root.classList.contains('is-open');
+  }
+
+  function paintLabels() {
+    var music = inMusicContext();
+    MUSIC_NODES.forEach(function (m) {
+      var el = navEls[m.id];
+      if (!el) return;
+      var label = el.querySelector('.spine-node__label');
+      if (music) {
+        label.innerHTML = '<span class="idx">' + m.idx + '</span>' + m.title.toUpperCase();
+        el.setAttribute('aria-label', m.title);
+      } else {
+        label.innerHTML = navLabelHTML[m.id];
+        el.removeAttribute('aria-label');
+      }
+    });
+  }
+
+  /* Intercept in the CAPTURE phase on the container. js/spine-ui.js binds its
+     click to each button in the bubble phase, so stopping propagation here
+     runs before activate() and the reading card never opens. Patching the
+     module for a lab would be the wrong direction entirely. */
+  document.getElementById('spine-nav').addEventListener('click', function (e) {
+    if (!inMusicContext()) return;
+    var btn = e.target.closest ? e.target.closest('.spine-node') : null;
+    if (!btn) return;
+    e.stopPropagation();
+    e.preventDefault();
+    var m = MUSIC_NODES.filter(function (n) { return n.id === btn.dataset.id; })[0];
+    if (!m) return;
+    if (m.id === 'music') { close(); return; }
+    say(m.does);
+  }, true);
+
+  var actEl = document.getElementById('act'), actTimer = null;
+  function say(text) {
+    actEl.textContent = text;
+    actEl.classList.add('is-up');
+    clearTimeout(actTimer);
+    actTimer = setTimeout(function () { actEl.classList.remove('is-up'); }, 2600);
+  }
+
+  function setVariant(v) {
+    root.setAttribute('data-variant', v);
+    btns.forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.v === v)); });
+    desc.textContent = DESC[v] || '';
+    paintLabels();
+  }
+
+  function open() {
+    if (root.classList.contains('is-open')) return;
+    root.classList.add('is-open');
+    toggle.textContent = 'Close Music';
+    /* Restart the overlay by removing the class, forcing a reflow, re-adding —
+       the same flush the wordmark's settle() needed (V2HANDOFF 24 finding 11).
+       Without the reflow the second open replays nothing: the class never
+       left the computed style, so the animation never re-triggers. */
+    beat.classList.remove('is-running');
+    void beat.offsetWidth;
+    beat.classList.add('is-running');
+    paintLabels();
+  }
+
+  function close() {
+    root.classList.remove('is-open');
+    toggle.textContent = 'Open Music';
+    paintLabels();
+  }
+
+  toggle.addEventListener('click', function () {
+    root.classList.contains('is-open') ? close() : open();
+  });
+  document.getElementById('rail-exit').addEventListener('click', close);
+  btns.forEach(function (b) { b.addEventListener('click', function () { setVariant(b.dataset.v); }); });
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key === '1') setVariant('a');
+    else if (e.key === '2') setVariant('b');
+    else if (e.key === '3') setVariant('c');
+    else if (e.key === '4') setVariant('d');
+    else if (e.key === '5') setVariant('e');
+    else if (e.key === '6') setVariant('f');
+    else if (e.key === 'o' || e.key === 'O' || e.key === ' ') {
+      e.preventDefault();
+      root.classList.contains('is-open') ? close() : open();
+    } else if (e.key === 'Escape') close();
+  });
+
+  setVariant('a');
+})();
+</script>
+</body>
+</html>

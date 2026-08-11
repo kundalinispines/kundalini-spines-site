@@ -937,6 +937,15 @@
     if (currentSample.status) currentSample.status.textContent = 'Play Sample';
     section.classList.remove('is-playing');
     setSamplePlaying(false);
-    currentSample = null;
+    // currentSample is deliberately KEPT. It used to be nulled here, which made
+    // the player inert until the track changed: playSample() and toggleSample()
+    // both bail on !currentSample, and only updatePanel() rebuilds it. Since
+    // js:252 binds Escape -> stopSample() unguarded at document level, ONE
+    // Escape anywhere on the page — even with nothing open — killed the play
+    // button, so Music opened silently ever after. Measured Aug 11 2026: clean
+    // open played; open after any Escape did not.
+    // Nulling was never load-bearing: updatePanel() calls stopSample() and then
+    // immediately hands the field a fresh element via wireSamplePlayer(), and
+    // the no-sampleUrl branch there nulls it explicitly on its own.
   }
 })();

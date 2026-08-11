@@ -237,7 +237,11 @@
      2026 during the extraction — the only line in this file whose text had to
      change to survive the move. Matches star-bg.css and spine-bg.css, which
      have always used ../assets/. */
-  background-image: url("../assets/hero/spine-ui-wire.png");
+  /* webp, not the 626 KB png. Same 1200x2150 artwork at 256 KB (-59.1%). The
+     image is two RGB colours over a soft alpha mask, so RGB `quality` is nearly
+     inert and alpha_quality is the real dial: 75 is the last step before the
+     low-alpha glow bands into visible blotches. The png is kept on disk. */
+  background-image: url("../assets/hero/spine-ui-wire.webp");
   background-repeat: no-repeat;
   background-position: center center;
   background-size: auto 100%;

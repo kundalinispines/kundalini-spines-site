@@ -1,5 +1,11 @@
 <!doctype html>
-<html lang="en" class="page-entrance">
+<!-- page-home JOINS page-entrance, it does not replace it. css/spine-bg.css:518
+     scopes `--spine-on: 0` to html.page-home and that is the only way to get
+     the reactive SKY without the reactive spine COLUMN (the owner's call,
+     2026-08-06). Everywhere else the two classes appear — star-bg.css:1009,
+     spine-bg.css:1184 — page-home sits in the same selector list as :root with
+     identical declarations, so adding it changes no other value on this page. -->
+<html lang="en" class="page-entrance page-home">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -57,24 +63,41 @@
 <link rel="stylesheet" href="css/tokens.css">
 <link rel="stylesheet" href="css/base.css">
 <link rel="stylesheet" href="css/star-bg.css">
+<!-- THE MUSIC NODE'S THREE. Order is the one music-lab.html uses and it is not
+     arbitrary: the focus panel's shipped appearance is the UNION of
+     track-experience.css and spine-bg.css. spine-bg.css:1027-1158 repaints it
+     for legibility and :925 sets `.track-experience { background: transparent }`,
+     overriding track-experience.css:65's opaque black. Both, in this order,
+     before spine-ui.css. -->
+<link rel="stylesheet" href="css/components.css">
+<link rel="stylesheet" href="css/track-experience.css">
+<link rel="stylesheet" href="css/spine-bg.css">
 <link rel="stylesheet" href="css/spine-ui.css">
 <link rel="stylesheet" href="css/shutter-text.css">
 <link rel="stylesheet" href="css/text-scramble.css">
 <link rel="stylesheet" href="css/wordmark.css">
+<!-- Last: it overrides tokens owned by spine-ui.css and track-experience.css. -->
+<link rel="stylesheet" href="css/music-wrap.css">
 
 <style>
 :root {
-  /* Idle the reactive sky: with no audio engine on this page the kick/snare
-     consumers resolve to 0 and star-bg.css computes its rest state.
+  /* Idle stubs for the reactive sky. These are the PRE-DETECTOR rest values:
+     js/spine-bg.js writes --kick and --snare inline once a sample plays.
 
-     DELIBERATE, and it is the whole answer to "what is the sky doing during
-     the entrance": nothing. It stays still until Music is opened, which is
-     what makes Music the moment the site comes alive. When js/spine-bg.js is
-     eventually attached here these zeroes must come OUT — the detector writes
-     the same variables inline and a page that ships zeroes as its authored
-     defaults has simply pinned the sky to rest. */
+     --kick-stars / --kick-cloud / --snare-bolt USED TO BE PINNED TO 0 HERE and
+     came out Aug 11 2026, exactly as the note that stood in this place said
+     they must: "when js/spine-bg.js is eventually attached here these zeroes
+     must come OUT — the detector writes the same variables inline and a page
+     that ships zeroes as its authored defaults has simply pinned the sky to
+     rest." spine-bg.js is now attached. star-bg.css owns those three (0/1/1)
+     and re-declaring them here would hold the sky still while looking like the
+     detector was wired up.
+
+     The answer to "what is the sky doing during the entrance" is unchanged —
+     nothing, because nothing is playing yet. It stays still until Music is
+     opened, which is what makes Music the moment the site comes alive. It is
+     now still for the honest reason rather than because it was nailed down. */
   --kick: 0; --snare: 0; --charge: 0;
-  --kick-stars: 0; --kick-cloud: 0; --snare-bolt: 0;
 
   --ent-settle-ms: 620ms;   /* video -> star field. Long, because it is a
                                cross-fade between two near-identical images and
@@ -521,6 +544,72 @@ body { margin: 0; overflow: hidden; }   /* nothing on this page scrolls, ever */
   </article>
 
   <p class="spine-hint" id="spine-hint"><span class="label">Hover a node &middot; click to open &middot; Esc to close</span></p>
+
+  <!-- ======================================================================
+       THE MUSIC PANEL — the same block music-lab.html carries, verbatim.
+
+       The .track-experience markup is index.html:85-118 VERBATIM. Do not
+       "tidy" it toward this page's conventions -- the whole point is that the
+       component is unmodified, and everything this page changes about it is a
+       rule in css/music-wrap.css.
+
+       IT MUST BE IN THE DOM AT LOAD, and this is not a preference.
+       js/spine-bg.js:183 does `document.querySelector('.track-experience')`
+       ONCE, and line 234 guards the entire kick/snare detector on the result.
+       Markup injected when Music opens would find that guard already failed,
+       and the reactive sky could never come alive. Being inside a
+       [aria-hidden] stage that is not yet live costs nothing: the query is for
+       the element, not for its visibility.
+       ====================================================================== -->
+  <div class="music" id="music">
+
+    <section class="track-experience" id="tracks" aria-label="Music and Tracks">
+      <div class="track-arc-wrap">
+        <div class="track-experience__intro container">
+          <span class="label">Music</span>
+          <h2 class="text-stencil">Enter the Tracks</h2>
+          <p class="track-experience__note" role="status"><strong>Rise Up</strong> isn&rsquo;t on streaming platforms yet &mdash; 20-second samples are available here for every track now. Full streaming and download links go live once each platform is connected.</p>
+        </div>
+
+        <div class="track-arc-viewport">
+          <ul class="track-arc" role="listbox" aria-label="Available tracks"></ul>
+        </div>
+
+        <div class="track-focus-panel" aria-label="Selected track">
+          <div class="track-focus-nav">
+            <button type="button" class="track-focus-nav__btn" data-dir="prev" aria-label="Previous track">&#10094;</button>
+            <p class="track-focus-nav__counter" role="status" aria-live="polite">
+              <span class="track-focus-nav__index">1</span><span class="track-focus-nav__sep">/</span><span class="track-focus-nav__total">1</span>
+            </p>
+            <button type="button" class="track-focus-nav__btn" data-dir="next" aria-label="Next track">&#10095;</button>
+          </div>
+          <span class="label track-focus-panel__eyebrow"></span>
+          <h3 class="track-focus-panel__title sr-only"></h3>
+          <p class="track-focus-panel__desc"></p>
+          <div class="track-sample-player">
+            <button type="button" class="track-sample-player__btn" aria-label="Play sample">
+              <span aria-hidden="true">&#9654;</span>
+            </button>
+            <div class="track-sample-player__bar"><div class="track-sample-player__bar-fill"></div></div>
+            <span class="track-sample-player__status" role="status" aria-live="polite">Play Sample</span>
+          </div>
+          <button type="button" class="track-focus-panel__close">&times; Close</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- INDEX. Sibling of the carousel, never a child: a wrapper around
+         .track-experience would be a new ancestor, and new ancestors are how
+         the hero-overlay sharpness fix gets broken. -->
+    <div class="mindex" id="mindex" role="group" aria-label="All tracks">
+      <p class="mindex__head"><b>Index</b> &mdash; all <span id="mindex-count">28</span> &middot; click to jump</p>
+      <div class="mindex__grid" id="mindex-grid"></div>
+    </div>
+
+  </div>
+
+  <p class="toast" id="toast" role="status" aria-live="polite"></p>
+  <div class="beat" id="beat" aria-hidden="true"></div>
 </main>
 
 <script src="js/spine-ui.js"></script>
@@ -528,6 +617,15 @@ body { margin: 0; overflow: hidden; }   /* nothing on this page scrolls, ever */
 <script src="js/shutter-text.js"></script>
 <script src="js/text-scramble.js"></script>
 <script src="js/wordmark.js"></script>
+
+<!-- MUSIC, AND THE ORDER IS LOAD-BEARING. spine-ui.js above builds the node
+     string music-wrap.js then morphs; track-experience.js builds the carousel;
+     spine-bg.js captures .track-experience and binds its ks:sample-ready
+     listener, so it must run after that markup exists (it does -- the markup is
+     static). music-wrap.js last, because it reaches all three. -->
+<script src="js/track-experience.js"></script>
+<script src="js/spine-bg.js"></script>
+<script src="js/music-wrap.js"></script>
 
 <script>
 /* ==========================================================================
@@ -1253,6 +1351,34 @@ body { margin: 0; overflow: hidden; }   /* nothing on this page scrolls, ever */
       };
     }
   };
+})();
+</script>
+
+<!-- ==========================================================================
+     A #music DEEP LINK SKIPS THE ENTRANCE.
+
+     js/music-wrap.js opens Music on its own when the hash matches, and it has
+     no idea an entrance exists. Without this the panel would open UNDERNEATH
+     the entrance layer: .ent is still painting, still on top, and the reader
+     would hear a sample playing behind a video they cannot see past.
+
+     settle(true) BEFORE hand(), and the order matters for one specific reason:
+     the entrance's keydown handler bails on `settled` and otherwise swallows
+     Escape into skip() with preventDefault(). Handing over without settling
+     would leave Escape captured by an entrance that is no longer on screen, so
+     Escape would not close Music. settle(true) is the cut path, which is the
+     right one here -- there is no beat to play to somebody who arrived by URL.
+
+     Runs after the entrance IIFE because it needs window.__entrance. Music's
+     own open is async (it waits on data/tracks.json), so it cannot outrun this.
+     ========================================================================== -->
+<script>
+(function () {
+  if (!/^#music\b/.test(location.hash)) return;
+  var e = window.__entrance;
+  if (!e) return;
+  e.settle(true);
+  e.hand();
 })();
 </script>
 </body>

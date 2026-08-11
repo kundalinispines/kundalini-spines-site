@@ -73,6 +73,10 @@
 
   let currentSample = null; // { audio, fill, status, btn, icon }
   let running = false;      // is the rAF loop alive?
+  // True while the carousel is gliding to a destination setFocus() already
+  // chose. See the guard in render() — it is what stops the animation from
+  // "following" every track it passes over on the way there.
+  let snapping = false;
   let samplePlaying = false;// card video only rolls while the track is audible
   let flattenHero = false;  // settled: hero drops its 3D transform (see render)
 
@@ -188,6 +192,7 @@
       if (e.button !== 0) return;
       dragging = true;
       dragMoved = false;
+      snapping = false;   // a hand on the carousel outranks any snap in flight
       dragStartX = e.clientX;
       dragStartTranslate = current;
       dragPointerId = e.pointerId;
@@ -337,7 +342,7 @@
   // the card that drifted under the center during a drag.
   function setFocus(i, snap) {
     const idx = Math.max(0, Math.min(tracks.length - 1, i));
-    if (snap) { target = centeredFor(idx); kick(); }
+    if (snap) { target = centeredFor(idx); snapping = true; kick(); }
     if (idx === focusedIndex && panelIndex === idx) return;
     focusedIndex = idx;
     updatePanel(idx);
@@ -569,7 +574,28 @@
 
     // Follow whatever card has drifted under the centre (drag / hover-pan)
     // without fighting the translate that put it there.
-    if (nearestIdx !== focusedIndex) setFocus(nearestIdx, false);
+    //
+    // NOT while snapping, and that guard is load-bearing. A click on a side
+    // card runs `setFocus(idx, true); playSample();` (js:168-169) — focus and
+    // panel are already correct for the DESTINATION on the first frame, and
+    // the sample is already playing. But the carousel then GLIDES there, and
+    // for every frame of that glide the card nearest the centre is one of the
+    // tracks in between. Without this guard each of those re-entered
+    // setFocus -> updatePanel -> stopSample() + wireSamplePlayer(fresh Audio),
+    // so the sample that had just started was paused ~10ms later and thrown
+    // away, and the panel landed on the right track holding an Audio nobody
+    // ever played.
+    //
+    // That was the "jumps land paused" defect in V2HANDOFF 25, measured Aug 11
+    // 2026 and wrongly attributed there to call ordering inside wireSamplePlayer
+    // (it is synchronous, so ordering was never the problem) — the probe that
+    // settled it counted `ks:sample-ready` events, which fire once per rewire:
+    // a one-card click rewired 3 times, a jump across 8 tracks rewired 8.
+    // It was never Music-specific; index.html's carousel had it too.
+    //
+    // Cleared when the glide settles (see tick) and on pointerdown, so a drag
+    // that interrupts a snap goes straight back to following the cards.
+    if (!snapping && nearestIdx !== focusedIndex) setFocus(nearestIdx, false);
     if (nearestIdx !== heroIndex) { heroIndex = nearestIdx; updateCardVideos(nearestIdx); }
   }
 
@@ -654,6 +680,7 @@
     const settled = !dragging && Math.abs(target - current) < 0.05;
     if (settled) {
       current = target;
+      snapping = false;               // arrived; follow the centre again
       render();                       // final exact placement, still in 3D
       running = false;
       row.classList.remove('is-animating');

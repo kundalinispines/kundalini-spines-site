@@ -495,8 +495,20 @@
       b.className = 'mindex__cell';
       b.dataset.i = i;
       b.setAttribute('aria-label', t.title + (t.duration ? ' — ' + t.duration : ''));
+      /* THUMBNAILS, not the full covers. The index renders 28 covers into cells
+         that are 161px at a 1280 viewport and 253px at 1920; the originals are
+         1254x1254 and 10.1 MB for the set, which is why they visibly streamed
+         in on a cold cache (V2HANDOFF 25, open item 2). assets/music/thumbs/
+         holds a 448px webp per cover under the SAME filename, so this is a pure
+         prefix swap and needs no lookup table. Measured Aug 11 2026:
+         10.1 MB -> 1.05 MiB, an 89.6% reduction.
+
+         ONLY the index gets thumbs. The carousel still, the hero preload and
+         the release card all read `artwork` at full size and must keep doing
+         so — a 448px file in the 490x490 hero would be visibly soft. */
       b.innerHTML = '<span class="mindex__n">' + String(i + 1).padStart(2, '0') + '</span>' +
-                    '<img src="' + t.artwork + '" alt="" loading="lazy" draggable="false">';
+                    '<img src="' + t.artwork.replace('assets/music/', 'assets/music/thumbs/') +
+                    '" alt="" loading="lazy" decoding="async" width="448" height="448" draggable="false">';
       b.addEventListener('click', function () {
         jumpTo(i);
         root.classList.remove('is-index');   /* jumping returns you to the carousel */

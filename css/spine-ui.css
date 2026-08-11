@@ -416,7 +416,11 @@
 }
 .spine-node[data-side="left"]  .spine-node__label { right: var(--node-label-offset); text-align: right; }
 .spine-node[data-side="right"] .spine-node__label { left: var(--node-label-offset);  text-align: left; }
-.spine-node__label .idx { color: var(--color-bone); margin-right: 6px; }
+/* .idx is no longer emitted into the node label (see js/spine-ui.js). The rule
+   is kept as a backstop, not as styling: if numbering ever comes back it must
+   come back through a deliberate edit rather than by a stray span inheriting
+   the label's colour and sitting flush against the word. */
+.spine-node__label .idx { display: none; }
 .spine-node__label .kind {
   display: block; font-size: 10px; letter-spacing: 0.16em;
   color: var(--color-gray-300); margin-top: 3px;

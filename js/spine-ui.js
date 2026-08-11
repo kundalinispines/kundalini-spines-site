@@ -123,7 +123,12 @@
       '<span class="spine-node__ring spine-node__ring--2"></span>' +
       '<span class="spine-node__ping"></span>' +
       '<span class="spine-node__dot"></span>' +
-      '<span class="spine-node__label"><span class="idx">' + n.idx + '</span>' + n.title.toUpperCase() +
+      /* NO NUMBERING ON THE NODES. The labels carried 01-06 and the owner
+         removed them Aug 11 2026, extending to the navigator the same call
+         already made for the Music rail. `idx` stays on NODES because the
+         reading card still reads it (populateCard: "02 / 06") — it just no
+         longer reaches the node label. */
+      '<span class="spine-node__label">' + n.title.toUpperCase() +
         '<span class="kind">' + (n.kind === 'immersive' ? 'Immersive · later' : 'Card') + '</span></span>';
     navbar.appendChild(btn);
     nodeEls[n.id] = btn;

@@ -64,10 +64,12 @@ touched.
 
 - Branch `feature/spine-ui-v2`, worktree
   `C:\Users\Haight\Desktop\kundalini-spines-spine-ui`.
-- Session start `bf71782`; seven commits, ending **`010bffc`**:
+- Session start `bf71782`; nine commits, ending **`0a8babe`**, pushed, working
+  tree clean, local and remote identical (`0 0`):
   `41f6f8b` the two carousel fixes · `efe8812` the full stack · `862d6fd` this
   handoff · `cba3921` the glass lab · `9a5aa35` the thumbnails · `6830c36` the
-  glass port · `010bffc` the four card fixes.
+  glass port · `010bffc` the four card fixes · `5fc45f1`/`7ef95c2` handoff
+  updates · `0a8babe` the field lab.
 - `main` = `origin/main` = **`13083d9`**, untouched. No PR opened.
 - **`js/track-experience.js` and `css/spine-ui.css` WERE modified**, which
   breaks 25's "zero production files modified" streak. That was a constraint of
@@ -186,6 +188,9 @@ now play.
 
 9. **The glass port** — see the section below.
 
+10. **`spine-field-lab.html` + `css/field/` + `js/field/`** — six readings of
+    "fill the empty space", awaiting the owner's pick. See its section below.
+
 ---
 
 ## THE READING CARDS ARE GLASS
@@ -244,6 +249,67 @@ dropped on port. **The lab is not wrong, the sample size is different**; do not
 
 ---
 
+## THE FIELD LAB — six readings, and a decision waiting
+
+**The problem, in the owner's words:** the spine is the centrepiece and the star
+field is the background, but with no card open the screen reads as **empty** —
+the left and right thirds of a 1440×900 stage carry nothing.
+
+**THE OWNER'S IDEA WAS KEPT AND ITS SUBJECT CHANGED.** They proposed setting the
+wordmark in huge thin-line type behind the spine, using the spine itself as a
+letterform, revealed on mouseover. Reveal-on-approach is exactly right — the
+entrance headline is literally *"Knowledge Hidden in Plain Sight"*, so hiding
+something until the reader finds it is the brand thesis enacted rather than
+decoration. Two things about the execution were not:
+
+1. The wordmark plays at full size in the entrance about four seconds earlier.
+   Restating it is a film putting its title card up twice.
+2. For the spine to be a letter **and** stay centred, the word must break
+   asymmetrically — `KUNDALIN|I|` is six letters left and two right — against a
+   layout that is otherwise rigorously centred.
+
+So the graphic move survives as CROP and the subject becomes **the chakra
+system**: it fills the same space, it is thematically exact for a project called
+Kundalini Spines, and it does the one thing the wordmark cannot — **it gives the
+visitor a key.** Today they see a beautiful diagram with no legend.
+
+**Six readings, each a different theory of *why* it feels empty**, plus NONE as
+the control — kept for the same reason the collapse lab keeps GHOST and the
+glass lab keeps FROST: *"it was already fine"* has to stay available as an
+answer.
+
+| reading | theory | what it does |
+|---|---|---|
+| NONE | — | the control, exactly as it ships |
+| PLATE | it lacks **structure** | leader lines to margin callouts; Metatron web; corner brackets; a `FIG. I` edge caption |
+| GRATICULE | it lacks **measurement** | targeting overlay, edge tick rules, ordinate, frequencies only — it never names anything |
+| HALO | it lacks **company**, not marks | name left / Hz right at true heights over a seed-of-life; the most restrained |
+| MANDALA | it wants to be a **diagram** | a 13-circle Metatron centred on the **heart**, the seven registered on its rim |
+| CROP | it lacks **graphic weight** | enormous cropped outline type, alternating sides, revealed by a pointer torch |
+| READOUT | it lacks **density** | instrument columns as texture, every value real repo data |
+
+**THE MODULE CONTRACT is what lets six coexist in one page.** Each registers
+`window.__field.<name>` with `mount(root)` / `unmount(root)` and **scopes every
+CSS rule under its own `html.v-<name>`**. The host owns `#field` (absolute,
+`z-index: 1` — under `.spine` at 10 and everything above it, `pointer-events:
+none`), mirrors the stage's `is-card` onto `<html>`, and calls mount/unmount on
+switch. All seven share one chakra dataset so they are directly comparable.
+
+**Built by five agents in parallel, and every one of them built BLIND** — none
+was permitted to launch a browser, because concurrent Chrome launches lag this
+box and one was needed for rendering. That is the single most important caveat
+on the whole set: **every alpha value is a first guess against a star field
+nobody could see.** Each module exposes its dials as named custom properties at
+the top of its CSS.
+
+**A NOTE FOR WHOEVER JUDGES THESE.** The lab's own control panel is fixed at
+top-left, ~190px wide, z-index 90, over a field at z-index 1 — it covers the
+top-left corner of *every* reading. Hide it (`.lab-ctl { display: none }`)
+before screenshotting or PLATE's registration bracket, GRATICULE's ordinate and
+READOUT's entire first column get judged on half of themselves.
+
+---
+
 ## Measured findings
 
 All Aug 11 2026 via Playwright against `scripts/serve.py`, 1440×900.
@@ -291,6 +357,22 @@ All Aug 11 2026 via Playwright against `scripts/serve.py`, 1440×900.
     This is the check that should have existed at port time. A computed-style
     read of `--lit-x` and the border colours passed while the bevel was lit on
     the wrong edge; a screenshot at 3× device scale showed it in one look.
+11. **All six field modules comply, checked rather than trusted.** Every rule
+    scoped under its own `html.v-*`; both recede rules present; **clicks pass
+    through to the spine nodes in all six**; zero console errors.
+12. **NO IDLE LOOPS SURVIVED THE PARALLEL BUILD.** The one
+    `requestAnimationFrame` in the set (READOUT) is a **coalescing** call
+    guarded by a `pending` flag — one frame per burst of pointer movement,
+    never re-arming — and MANDALA's `setTimeout` is a resize debounce. An idle
+    page still schedules nothing, which is the property 25's finding 3 measured
+    at 0.00/s.
+13. **A PROBE THAT READ THE WRONG ELEMENT.** Four modules appeared not to
+    recede under `is-card`, reading `opacity: 1`. They were right and the check
+    was wrong: they dim an INNER wrapper (`.pl`, `.gr`, `.crop`, `.ro`) rather
+    than `#field`, which is the better implementation — it keeps a
+    raster-forcing opacity off a full-viewport container. **Second time this
+    session a check measured the wrong thing and blamed the code** (the first
+    was the inverted bevel). Both times the code was correct.
 
 ---
 
@@ -329,6 +411,17 @@ Escape binding needs no edit. Additionally:
   INSIDE the card displaces the card's own fill and smears it. It needs the
   card made transparent and its fill moved above the ring.
 - **Do not run two passes that write the same files.** See finding 9.
+- **Do not let a field module drop its `html.v-<name>` scope.** Six variants
+  share one page and one `#field`; an unscoped rule bleeds into the other five
+  and quietly ruins the comparison rather than failing loudly.
+- **Do not put the recede `opacity` on `#field` itself.** It is full-viewport;
+  an `opacity < 1` there forces exactly the intermediate raster this project
+  measured at 612 against 1087. Dim an inner wrapper, as all six do.
+- **Do not "improve" GRATICULE by adding the chakra names back.** Its author
+  left a note asking for this explicitly: PLATE explains and GRATICULE
+  measures, and merging them leaves the comparison with nothing to decide.
+- **Do not tune a field module's geometry around the lab's control panel.**
+  That is furniture which does not ship; hide it and judge the reading.
 
 ---
 
@@ -369,6 +462,19 @@ Escape binding needs no edit. Additionally:
 - **The glass filter's cost is unmeasured.** It is static (fixed `feTurbulence`
   seed, nothing re-renders it) so there is no per-frame work, but it was never
   profiled against the project's standing raster rules.
+- **EVERY FIELD MODULE WAS BUILT BLIND.** No agent could open a browser, so
+  every alpha, every type size and every geometry placement is a first guess
+  against a star field none of them could see. They render, they comply, and
+  they are internally reasoned — but **none of the aesthetic values has been
+  tuned against what is actually on screen.** Treat the six as sketches at
+  full fidelity, not as finished work.
+- **CROP's torch cost is reasoned, not profiled.** Its author restricted the
+  mask to a 640×640 lens (0.41 Mpx against 1.30 for a naive full-field mask)
+  precisely because a full-viewport masked layer is the raster-forcing shape
+  this project forbids — but no measurement was taken.
+- **Nothing in the field lab has been seen below 1440×900**, and several
+  modules carry media queries (READOUT drops its inner ladders below 1180px)
+  that were reasoned from fixed-px geometry and never rendered.
 - **No mobile pass.** Nothing was run below 1440×900. The glass has never been
   seen at 375px, where `--card-w` clamps to 280 and the 26px bevel bands are a
   much larger share of the card.
@@ -386,24 +492,31 @@ Escape binding needs no edit. Additionally:
    untested assumption now shipping on every page.
 2. **Mobile** — the entrance headline breaks at 375px (24's item 1); Music has
    never been run there, and neither has the glass.
-3. **What PURCHASE should actually do.** Still a toast. `links.download` is
+3. **PICK A FIELD READING.** Six are built and waiting in
+   `spine-field-lab.html`; number keys 1–7 switch. Judge them with the lab
+   panel hidden. **CROP must be seen in motion** — a screenshot cannot show a
+   pointer torch. Once picked, the winner ports into `css/spine-ui.css` the way
+   the glass did, and its alphas get tuned against the real sky for the first
+   time. An obvious hybrid exists if none wins outright: PLATE's callouts over
+   MANDALA's geometry.
+4. **What PURCHASE should actually do.** Still a toast. `links.download` is
    null on all 28 and the "$1" is hardcoded at `track-experience.js:804`.
    Needs a decision: Bandcamp/Gumroad, Stripe, or email capture.
-4. **The metadata + controls redesign.** 25's finding 15 is its spec.
-5. **Deploy.** Pages is disabled and DNS is unset — the single blocker on
+5. **The metadata + controls redesign.** 25's finding 15 is its spec.
+6. **Deploy.** Pages is disabled and DNS is unset — the single blocker on
    anything being reachable, and now the blocker on closing Range for real.
-6. **Profile the glass filter** against the standing raster rules. Static, so
+7. **Profile the glass filter** against the standing raster rules. Static, so
    there is no per-frame work, but it has never been measured.
-7. **The EDGE hybrid**, if rim-only refraction is ever wanted: it needs
+8. **The EDGE hybrid**, if rim-only refraction is ever wanted: it needs
    `.spine-card` made transparent and its fill moved above the ring, because
    `backdrop-filter` samples the parent's own paint. The reading is kept in
    `spine-card-glass-lab.html` with the smear intact so the obstacle is visible.
-8. **`assets/messengers/*.jpg` → webp**, 331 → 208 KB. Keep the `.jpg` for
+9. **`assets/messengers/*.jpg` → webp**, 331 → 208 KB. Keep the `.jpg` for
    `transmissions/001.html`'s `og:image`; social scrapers are the one place a
    JPEG fallback still earns its keep. Both files are 928×1152 but every `<img>`
    declares `width="1200" height="1500"` — same ratio, wrong numbers.
-9. **Layer 2 and 5 of the Range plan.**
-10. **Tuner integration, Archive wrap** — unchanged from 19.
+10. **Layer 2 and 5 of the Range plan.**
+11. **Tuner integration, Archive wrap** — unchanged from 19.
 
 **A NOTE ON METHOD, since it happened three times this session.** The sheen
 bug, the inverted bevel and all three of the owner's card notes were caught by

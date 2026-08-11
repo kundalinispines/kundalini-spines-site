@@ -112,6 +112,26 @@ body { margin: 0; overflow: hidden; }
 .lab-ctl button i { display: block; font-style: normal; font-size: 9px;
   letter-spacing: 0.04em; text-transform: none; color: var(--color-gray-500);
   margin-top: 2px; }
+
+/* HIDING THE PANEL IS NOT A CONVENIENCE, IT IS PART OF JUDGING.
+   Every one of the six readings puts something in the top-left -- PLATE's
+   registration bracket, GRATICULE's ordinate numerals, READOUT's entire first
+   column -- and this panel is fixed there at z-index 90 over a field at
+   z-index 1. All five module authors flagged it independently. Judge a reading
+   with the panel up and you are judging it on three quarters of itself.
+   H toggles, or click the tab. Deliberately NOT auto-hiding on mouse-out: a
+   panel that vanishes while you are reaching for it is worse than one you
+   dismiss. */
+html.ctl-off .lab-ctl__body { display: none; }
+.lab-ctl__tab {
+  align-self: flex-start;
+  font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.18em;
+  text-transform: uppercase; padding: 6px 10px; cursor: pointer;
+  background: rgba(5,5,5,0.7); color: var(--color-gray-500);
+  border: 1px solid rgba(216,208,190,0.18);
+}
+.lab-ctl__tab:hover { color: var(--color-bone); border-color: rgba(var(--node-color),0.6); }
+.lab-ctl__body { display: flex; flex-direction: column; gap: 6px; }
 </style>
 </head>
 <body>
@@ -153,7 +173,10 @@ body { margin: 0; overflow: hidden; }
 </main>
 
 <nav class="lab-ctl" id="labctl" aria-label="Field readings">
-  <span class="lab-ctl__head">Field reading</span>
+  <button type="button" class="lab-ctl__tab" id="ctltab" aria-expanded="true">Panel &middot; H</button>
+  <div class="lab-ctl__body" id="ctlbody">
+    <span class="lab-ctl__head">Field reading</span>
+  </div>
 </nav>
 
 <script src="js/spine-ui.js"></script>
@@ -180,7 +203,7 @@ body { margin: 0; overflow: hidden; }
 
   var root   = document.documentElement;
   var field  = document.getElementById('field');
-  var ctl    = document.getElementById('labctl');
+  var ctl    = document.getElementById('ctlbody');
   var stage  = document.getElementById('spine-nav-stage');
   var active = null;
 
@@ -229,9 +252,23 @@ body { margin: 0; overflow: hidden; }
 
   /* Number keys jump between readings — the fastest way to A/B two of them is
      to flip back and forth without moving the pointer to a button. */
+  var tab = document.getElementById('ctltab');
+  function togglePanel() {
+    var off = root.classList.toggle('ctl-off');
+    tab.setAttribute('aria-expanded', String(!off));
+  }
+  tab.addEventListener('click', togglePanel);
+
   document.addEventListener('keydown', function (e) {
     var i = '1234567'.indexOf(e.key);
-    if (i >= 0 && READINGS[i]) { show(READINGS[i][0]); }
+    if (i >= 0 && READINGS[i]) { show(READINGS[i][0]); return; }
+    /* H for the panel, and the arrows for stepping — the fastest way to judge
+       six readings is to hold the pointer still and change only the thing
+       being judged. */
+    if (e.key === 'h' || e.key === 'H') { togglePanel(); return; }
+    var cur = READINGS.map(function (r) { return r[0]; }).indexOf(active);
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { show(READINGS[(cur + 1) % READINGS.length][0]); }
+    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   { show(READINGS[(cur - 1 + READINGS.length) % READINGS.length][0]); }
   });
 
   var wanted = (location.hash || '').replace('#', '');

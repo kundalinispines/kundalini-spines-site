@@ -17,8 +17,10 @@ was the carousel's own animation loop following the tracks it passed over. A
 **second, undiagnosed defect** was found in the same area — one Escape anywhere
 on the page left the play button inert. Both are fixed in
 `js/track-experience.js`. The navigator is unnumbered, the Music wrap's CSS is
-now a shared file, and **the entrance, the navigator and Music are one page**.
-`main` was not touched.
+now a shared file, **the entrance, the navigator and Music are one page**, and
+**the reading cards are liquid glass** — a painted bevel everywhere, real
+displacement of the star field where the browser can run it. `main` was not
+touched.
 
 ---
 
@@ -51,8 +53,10 @@ now a shared file, and **the entrance, the navigator and Music are one page**.
 
 - Branch `feature/spine-ui-v2`, worktree
   `C:\Users\Haight\Desktop\kundalini-spines-spine-ui`.
-- Session start `bf71782`; two commits, `41f6f8b` then **`efe8812`**, plus this
-  handoff and the thumbnail set.
+- Session start `bf71782`; six commits, ending **`6830c36`**:
+  `41f6f8b` the two carousel fixes · `efe8812` the full stack · `862d6fd` this
+  handoff · `cba3921` the glass lab · `9a5aa35` the thumbnails · `6830c36` the
+  glass port.
 - `main` = `origin/main` = **`13083d9`**, untouched. No PR opened.
 - **`js/track-experience.js` and `css/spine-ui.css` WERE modified**, which
   breaks 25's "zero production files modified" streak. That was a constraint of
@@ -153,14 +157,63 @@ now play.
    Without it Music opened *underneath* the entrance layer.
 
 6. **Index thumbnails.** 28 covers at 448px webp in `assets/music/thumbs/`,
-   under the same filenames so the wiring is a pure prefix swap. **10.1 MB →
-   ~1 MB.** Only the index uses them; the carousel still, the hero preload and
-   the release card keep full size.
+   under the same filenames so the wiring is a pure prefix swap. **10.1 MiB →
+   1.1 MiB, 89.1%.** Only the index uses them; the carousel still, the hero
+   preload and the release card keep full size — a 448px file in the 490×490
+   hero would be visibly soft. Verified by **decoding all 28**, not by trusting
+   an exit code: 28/28 valid 448×448, none zero-byte, truncated or missing,
+   originals byte-identical.
 
 7. **`spine-ui-wire.webp`** is now what `css/spine-ui.css` loads. 626 KB → 256
    KB. The png stays on disk. The image is two RGB colours over a soft alpha
    mask, so RGB `quality` is nearly inert and `alpha_quality` is the real dial;
    75 is the last step before the low-alpha glow bands into visible blotches.
+
+8. **`spine-card-glass-lab.html`** — eight readings of liquid glass, one of
+   them (FROST) deliberately the current card so the boundary stays visible.
+   Kept, like `music-collapse-lab.html`.
+
+9. **The glass port** — see the section below.
+
+---
+
+## THE READING CARDS ARE GLASS
+
+The owner asked for liquid glass and pointed at an Apple-Tahoe React component
+(SVG `feDisplacementMap` + WebGL). **Two facts settled it before any code:**
+
+- **This is not a React project.** No `package.json`, no `node_modules`, no
+  TypeScript, Tailwind, shadcn or build step. Every instruction in that
+  component — shadcn CLI, `/components/ui`, `@/lib/utils`, `cn()` — had no
+  target. The **technique** was ported; the component was not.
+- **That component never refracts the page behind it.** `feDisplacementMap`
+  cannot reach a live DOM backdrop. It draws its own `bgImage` inside its
+  viewport and displaces the copy — it only looks like refraction because it
+  owns its background. These cards float over a reactive star field. There is
+  no `bgImage` to give it.
+
+**Settled by looking at eight readings, not by argument:**
+
+| | |
+|---|---|
+| Reading | LENS — bright lip, dark line, second lip. Reads as a thick bevelled pane |
+| Default | **REFRACT** — real displacement, added by `@supports` |
+| Fallback | **LENS** — the painted bevel, which every browser gets |
+| Light source | **THE SPINE**, not a viewport lamp |
+| Surface | reading cards only; the Music panel keeps no plate |
+| Cost | no idle rAF; a static filter with a fixed `feTurbulence` seed |
+| Dials | `--glass-rim`, `--glass-sheen`, `--glass-sheen-y`, `--glass-chroma`, `--glass-dark` |
+
+**THE LIGHT IS THE SPINE and that is the whole reason this belongs to the
+project.** The column is the lit object — the energy pass runs up it, the nodes
+ping — so a card catches light on the edge **nearest the column**. `--lit-x` is
+−1 or +1 off the side class and every inset multiplies by it, so a card cannot
+come out half-lit the wrong way.
+
+**INJECTED FROM `js/spine-ui.js`, not written into markup.** Five pages carry
+the `.spine-card` block; hand-adding a span to all five is five chances to miss
+one. The module already owns the card's contents. `::before` and `::after` were
+both unavailable — the stacked ghost frames use them.
 
 ---
 
@@ -185,6 +238,20 @@ All Aug 11 2026 via Playwright against `scripts/serve.py`, 1440×900.
    and `Accept-Ranges: bytes` on the plain `200`, which is the header
    `scripts/serve.py` identifies as the one Chrome reads for `seekable`. See
    the caveat under "Verified vs asserted".
+7. **Chrome 151 accepts `backdrop-filter: url(#x)`.** `CSS.supports()` returns
+   true and the computed value survives as `url("#x")`. This is what makes
+   REFRACT possible at all, and it is the whole basis of the `@supports` split.
+8. **The glass reaches every host with no edit of its own.** `music-lab`,
+   `spine-lab` and `music-collapse-lab` each resolve exactly one
+   `.spine-card__glass` and one `#spine-lens-filter`, zero errors.
+9. **THE ENCODE WAS NEVER SLOW — IT WAS DEADLOCKED.** Three passes ended up
+   writing the same 28 thumbnails at once and blocked on Windows file locks:
+   ~30 minutes at **1.25s / 0.9s / 0.05s of CPU burned**, i.e. no progress at
+   near-zero CPU, which reads exactly like a slow job and is not one. Cleared
+   to a single writer and parallelised over the box's **24 cores**, the whole
+   set encodes in **0.79s**. There is no GPU path — libwebp is CPU-only and
+   NVENC does video codecs, not stills. The fix was concurrency, not hardware.
+   **Diagnose a "slow" job by looking at CPU before waiting on it.**
 
 ---
 
@@ -204,6 +271,19 @@ Escape binding needs no edit. Additionally:
   `css/music-wrap.css` now.
 - **Do not renumber the rail or the navigator.** Both are deliberate; the
   reading card's `02 / 06` is the one place numbering is still correct.
+- **Do not use a negative spread on the glass lips.** `inset Xpx 0 0 0` paints
+  a BAND; a negative spread eats it back to a hairline. The first pass did
+  exactly that and every reading was invisible, including against FROST.
+- **Do not move `--glass-sheen-y` back to 0%.** It is a legibility number, not
+  a taste one — at 0% the wash sits on the lit top corner, which is where the
+  head row lives, and washes `02 / 06`, `ACTIVE` and the close glyph out.
+- **Do not give `.spine-card__close` `position: relative`.** It is already
+  absolute and would drop out of its corner; it needs the `z-index` only.
+- **Do not try the rim-band displacement again without reading the EDGE note.**
+  `backdrop-filter` samples everything painted beneath the element, so a ring
+  INSIDE the card displaces the card's own fill and smears it. It needs the
+  card made transparent and its fill moved above the ring.
+- **Do not run two passes that write the same files.** See finding 9.
 
 ---
 
@@ -215,16 +295,37 @@ Escape binding needs no edit. Additionally:
 - Deep link landing in Music with the entrance at `display: none`.
 - `music-lab.html` re-verified after the CSS extraction.
 - The navigator unnumbered, the reading card still `02 / 06`.
-- Thumbnails serving from `assets/music/thumbs/`, 28 cells.
-- Screenshots taken and **actually looked at** at every stage.
+- Thumbnails serving from `assets/music/thumbs/`, 28 cells, 0 broken images,
+  natural size 448×448.
+- The glass on both sides: `side-left` resolves `--lit-x: +1` with the right
+  border lit (0.45) and the left dark (0.22); `side-right` the mirror.
+  `.spine-card__close` still `position: absolute` after the z-index lift.
+- Screenshots taken and **actually looked at** at every stage. **They caught a
+  bug every automated assertion passed:** the specular wash was centred at 0%,
+  the lit top corner, which is exactly where the head row lives — it washed
+  `02 / 06`, the `ACTIVE` chip and the close glyph out to nearly illegible on
+  right-lit cards. `--glass-sheen-y: 32%` moves it onto the title and body.
+  **That is the third time this project has been saved by looking at a
+  picture** (25's finding 5 was the first two).
 
 **Asserted / NOT verified:**
 - **Production Range support is answered BY PROXY.** GitHub Pages was measured
   on a live Pages-served binary, not on this project's own URL, because
   **nothing is deployed**: Pages is disabled and `kundalinispines.com` still
   points at Namecheap parking. Re-verify against a real asset on first deploy.
-- **No mobile pass.** Nothing was run below 1440×900.
-- **`prefers-reduced-motion` still coded and not tested** on either page.
+- **SAFARI AND FIREFOX FALLING BACK CLEANLY IS REASONED, NOT SEEN.** Chrome 151
+  was measured. There is no other browser on this box, so "they drop `url()`
+  and keep the painted bevel" is an inference from spec support, not an
+  observation. **Check it on a real device before this reaches production** —
+  it is the one assumption the whole `@supports` split rests on.
+- **The glass filter's cost is unmeasured.** It is static (fixed `feTurbulence`
+  seed, nothing re-renders it) so there is no per-frame work, but it was never
+  profiled against the project's standing raster rules.
+- **No mobile pass.** Nothing was run below 1440×900. The glass has never been
+  seen at 375px, where `--card-w` clamps to 280 and the 26px bevel bands are a
+  much larger share of the card.
+- **`prefers-reduced-motion` still coded and not tested** on either page. The
+  glass needs no rule — it does not move.
 - **The entrance's own sequence was not re-timed** after Music was added. The
   handoff was driven programmatically in verification, not by watching ENTER.
 
@@ -232,25 +333,34 @@ Escape binding needs no edit. Additionally:
 
 ## Still open
 
-1. **Mobile** — the entrance headline breaks at 375px (24's item 1); Music has
-   never been run there.
-2. **What PURCHASE should actually do.** Still a toast. `links.download` is
+1. **Confirm the glass fallback in Safari and Firefox.** Cheap, and the whole
+   `@supports` split rests on it. Top of the list because it is the only
+   untested assumption now shipping on every page.
+2. **Mobile** — the entrance headline breaks at 375px (24's item 1); Music has
+   never been run there, and neither has the glass.
+3. **What PURCHASE should actually do.** Still a toast. `links.download` is
    null on all 28 and the "$1" is hardcoded at `track-experience.js:804`.
    Needs a decision: Bandcamp/Gumroad, Stripe, or email capture.
-3. **The metadata + controls redesign.** 25's finding 15 is its spec.
-4. **Deploy.** Pages is disabled and DNS is unset — the single blocker on
+4. **The metadata + controls redesign.** 25's finding 15 is its spec.
+5. **Deploy.** Pages is disabled and DNS is unset — the single blocker on
    anything being reachable, and now the blocker on closing Range for real.
-5. **`assets/messengers/*.jpg` → webp**, 331 → 208 KB. Keep the `.jpg` for
+6. **Profile the glass filter** against the standing raster rules. Static, so
+   there is no per-frame work, but it has never been measured.
+7. **The EDGE hybrid**, if rim-only refraction is ever wanted: it needs
+   `.spine-card` made transparent and its fill moved above the ring, because
+   `backdrop-filter` samples the parent's own paint. The reading is kept in
+   `spine-card-glass-lab.html` with the smear intact so the obstacle is visible.
+8. **`assets/messengers/*.jpg` → webp**, 331 → 208 KB. Keep the `.jpg` for
    `transmissions/001.html`'s `og:image`; social scrapers are the one place a
    JPEG fallback still earns its keep. Both files are 928×1152 but every `<img>`
    declares `width="1200" height="1500"` — same ratio, wrong numbers.
-6. **Layer 2 and 5 of the Range plan.**
-7. **Tuner integration, Archive wrap** — unchanged from 19.
+9. **Layer 2 and 5 of the Range plan.**
+10. **Tuner integration, Archive wrap** — unchanged from 19.
 
 **Closed since 25:** the paused-after-jump defect; the Escape/player defect
 found alongside it; navigator numbering; the Music CSS duplication; the
-entrance integration (open since 19); index cover weight; the wire png; and
-Range support, answered by proxy.
+entrance integration (open since 19); index cover weight; the wire png; Range
+support, answered by proxy; and the reading cards' glass treatment.
 
 ---
 
@@ -275,5 +385,6 @@ editing.
 A good opening message:
 
 > Here's the latest V2 handoff for Kundalini Spines (Spine UI V2 branch). The
-> full stack runs in entrance-lab.html now. Mobile has never been run — start
-> there.
+> full stack runs in entrance-lab.html now and the reading cards are glass.
+> The glass fallback has never been seen in Safari or Firefox, and nothing has
+> been run below 1440×900 — start there.

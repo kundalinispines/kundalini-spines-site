@@ -361,6 +361,68 @@
 }
 
 /* ==========================================================================
+   READING 8 — EDGE.  LENS's painted bevel PLUS real displacement, but only in
+   a band around the rim. The synthesis, and the thing the interview actually
+   settled on before REFRACT overshot it.
+
+   THE REASONING. A flat pane of glass does not refract in its middle -- it
+   refracts where its THICKNESS CHANGES, which is at the edge. REFRACT warps
+   the entire card face including the area behind the body copy, which is why
+   it reads as striking and slightly unreadable at the same time. Confining the
+   same filter to a rim band gives the real optical effect exactly where the
+   eye expects it and leaves the reading surface alone.
+
+   HOW THE BAND IS CUT. A ring element with padding equal to the band width and
+   two masks composited to exclude: the content-box mask removes the middle, so
+   the element -- and therefore its backdrop-filter -- survives only in the
+   frame. Same mask-exclude trick the Apple component uses for its rim, which
+   is the one idea from it that ports cleanly.
+
+   STILL CHROME-ONLY for the warp itself, but it degrades better than REFRACT:
+   where url() is dropped the ring simply contributes nothing and LENS's
+   painted bevel is still doing all the work underneath.
+   ========================================================================== */
+.spine-card__lensring {
+  position: absolute; inset: 0; z-index: 0;
+  border-radius: inherit; pointer-events: none;
+  display: none;                 /* only the EDGE reading turns it on */
+  padding: var(--glass-band, 16px);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+          mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+}
+.v-edge .spine-card__lensring {
+  display: block;
+  backdrop-filter: url(#liquid-lens);
+  /* No -webkit- line on purpose: Safari cannot do url() here and a prefixed
+     declaration it half-understands is worse than none. */
+}
+.v-edge .spine-card__glass {
+  background-image:
+    linear-gradient(to right,
+      rgba(var(--node-color), calc(var(--glass-chroma) * 0.22)) 0px,
+      transparent 4px),
+    radial-gradient(130% 100% at calc(50% + var(--lit-x) * 50%) 0%,
+      rgba(255,255,255,var(--glass-sheen)) 0%, transparent 62%);
+  box-shadow:
+    inset calc(var(--lit-x) * 2px) 0 0 0 rgba(255,255,255,var(--glass-rim)),
+    inset calc(var(--lit-x) * 7px) 0 0 0 rgba(0,0,0,0.65),
+    inset calc(var(--lit-x) * 12px) 0 0 0 rgba(255,255,255,calc(var(--glass-rim) * 0.42)),
+    inset calc(var(--lit-x) * 26px) 0 38px -14px rgba(255,255,255,calc(var(--glass-rim) * 0.5)),
+    inset calc(var(--lit-x) * -4px) 0 0 0 rgba(0,0,0,calc(var(--glass-dark) * 1.15)),
+    inset 0 2px 0 0 rgba(255,255,255,calc(var(--glass-rim) * 0.35));
+}
+.side-left.v-edge .spine-card__glass {
+  background-image:
+    linear-gradient(to left,
+      rgba(var(--node-color), calc(var(--glass-chroma) * 0.22)) 0px,
+      transparent 4px),
+    radial-gradient(130% 100% at calc(50% + var(--lit-x) * 50%) 0%,
+      rgba(255,255,255,var(--glass-sheen)) 0%, transparent 62%);
+}
+
+/* ==========================================================================
    THE FALLBACK — today's card, exactly.
    Owner's call: where the glass cannot render, do not invent a degraded
    version of it, return to the surface that is already tuned. The @supports
@@ -490,11 +552,17 @@ html.sim-fallback .spine-card {
     ['v-lens',    'LENS',    'Bright lip, dark line, second lip. Reads as a thick bevelled pane.'],
     ['v-deep',    'DEEP',    'Heavier pane: 30px blur, more saturation, wider rim, deeper shadow.'],
     ['v-breathe', 'BREATHE', 'LENS, riding the energy pass. Free — but it never fully settles.'],
-    ['v-refract', 'REFRACT', 'Real displacement — the sky actually bends. Chrome only.']
+    ['v-refract', 'REFRACT', 'Real displacement across the whole face. The sky bends. Chrome only.'],
+    ['v-edge',    'EDGE',    'THE HYBRID — LENS everywhere, real displacement in the rim band only.']
   ];
 
   var CARD =
     '<span class="spine-card__glass" aria-hidden="true"></span>' +
+    /* The rim-band displacement layer. Present on every card and display:none
+       except under EDGE -- an element carrying a backdrop-filter is not free
+       even when it paints nothing, so it is switched off rather than left
+       running invisibly. */
+    '<span class="spine-card__lensring" aria-hidden="true"></span>' +
     '<div class="spine-card__head">' +
       '<span class="spine-card__idx">02 / 06</span>' +
       '<span class="spine-card__flag">Active</span>' +

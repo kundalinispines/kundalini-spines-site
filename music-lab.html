@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<!-- ==========================================================================
+     MUSIC LAB — the Music immersive wrap
+
+     V2HANDOFF 23 specified it in one line: "cards over the reactive sky, spine
+     column off, music playing, background animating." This is that, built
+     Aug 11 2026 after the collapse was settled on music-collapse-lab.html
+     (variant 6, CONTEXT).
+
+     WRAP, NOT REBUILD — and it held completely.
+     js/track-experience.js is loaded UNMODIFIED. So is js/spine-ui.js, and so
+     is js/spine-bg.js. The carousel's markup is index.html:85-118 verbatim.
+     Not one tuned number moved: --arc-h is still 640, --card-w still 250, and
+     .track-focus-panel's -287.75px top margin is untouched. Every change this
+     page makes to the component is a CSS rule in this file or a synthetic
+     event dispatched at it.
+
+     THE FIT, MEASURED Aug 11 2026 at 1440x900 against the real index.html:
+     as shipped the section is 1045.92 tall and overflows 900 by 145.92. The
+     four trims below free 162.06px -- ink drops to 787.86 and the section box
+     to 883.86. --arc-h was expected to have to shrink (which would have forced
+     re-deriving the -287.75 margin, since the CSS derives one from the other).
+     It does not. The trims alone are enough, with 112.14px of slack.
+
+     WHY html.page-home
+     It is the home page's shipped class and it carries --spine-on: 0. The
+     reactive SPINE COLUMN stays off (the owner disliked it; 23 settled this);
+     the reactive SKY stays on. css/star-bg.css consumes the kick/snare
+     envelopes 30 times independently of css/spine-bg.css, which is what makes
+     "keep the sky, drop the column" a clean split rather than a compromise.
+
+     WHY css/spine-bg.css IS LOADED even though the column is off
+     Because the focus panel's shipped appearance is the UNION of two
+     stylesheets. spine-bg.css:1027-1158 repaints it for legibility over the
+     lit column -- the description white instead of --text-secondary, a
+     color-mix lift on the eyebrow, rgba(5,5,5,0.72) fills on ghost buttons,
+     text-shadows throughout -- and spine-bg.css:925 sets
+     `.track-experience { background: transparent }`, which OVERRIDES
+     track-experience.css:65's `background: var(--color-black)`. Loading only
+     track-experience.css would give the panel an opaque black plate and the
+     wrong type colour. "Cards over the reactive sky" needs both files.
+     ========================================================================== -->
+<html lang="en" class="page-home">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Music — immersive wrap</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&family=Big+Shoulders+Stencil:wght@700;900&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/star-bg.css">
+<link rel="stylesheet" href="css/components.css">
+<link rel="stylesheet" href="css/track-experience.css">
+<link rel="stylesheet" href="css/spine-bg.css">
+<link rel="stylesheet" href="css/spine-ui.css">
+
+<style>
+:root {
+  /* Idle stubs ONLY. js/spine-bg.js writes --kick and --snare inline once a
+     sample plays, so these are just the pre-detector rest values.
+
+     --kick-stars / --kick-cloud / --snare-bolt are DELIBERATELY ABSENT here.
+     entrance-lab.html pins all three to 0 to hold its sky still and carries a
+     note saying they must come out when the audio engine is attached. This is
+     that page. star-bg.css owns them (0 / 1 / 1) and a page that redeclared
+     them as zeroes would have pinned the sky to rest while looking like it
+     had wired the detector up. */
+  --kick: 0; --snare: 0; --charge: 0;
+
+  --rail-x:       54px;    /* the collapsed axis, measured from the left edge */
+  --rail-gutter:  194px;   /* where the Music panel starts. The six rail labels
+                              run x 78.8 -> 159.7 at --node-label-offset 30px,
+                              so this clears the longest of them by 34.3px. */
+  --collapse-ms:  520ms;   /* matches --ent-hand-ms in entrance-lab.html */
+}
+
+html, body { height: 100%; }
+body { margin: 0; overflow: hidden; }   /* nothing on this page scrolls, ever */
+
+/* ==========================================================================
+   THE FOUR TRIMS
+   All display:none, all reversible, none of them touching the component's JS.
+   ========================================================================== */
+
+/* 1 + 2. The intro's eyebrow and h2. In a panel opened from a node labelled
+   01 MUSIC, "Music / Enter the Tracks" restates the door you just walked
+   through. The .track-experience__note survives -- it is the only thing in
+   that block that is information rather than a restatement.
+
+   THE INTRO ELEMENT ITSELF MUST STAY, and so must its margin-bottom. That
+   162px is the hero card's clearance, not decoration: the 490px hero box tops
+   out 137px ABOVE the arc viewport, and track-experience.css:225 derives the
+   margin as 0.48 * card + 42px from measurements at nine widths. Deleting the
+   block collides the hero with whatever sits above it. */
+.track-experience__intro .label,
+.track-experience__intro h2 { display: none; }
+
+/* 3. The actions block -- four streaming buttons and a download button, all
+   five inert. data/tracks.json's `links` object is 140 null cells across all
+   28 tracks, so the <a> branch at track-experience.js:796-798 has never once
+   executed and every button renders as <span aria-disabled="true">. Its note
+   duplicates .track-experience__note, which we kept.
+   HIDDEN, NOT DELETED -- the owner asked to keep them available. Drop these
+   two rules and the block returns exactly as it was. */
+.track-focus-panel__actions,
+.track-focus-panel__actions-note { display: none; }
+
+/* 4. The panel's "x Close". track-experience.js:242 says it plainly:
+   "Nothing to 'close' to any more -- stop playback and move on down the
+   page." It calls section.nextElementSibling.scrollIntoView(), and in a panel
+   there is no next sibling, so the handler would throw on null. Node 01 CLOSE
+   on the rail is this page's close control, which makes the button a fourth
+   exit doing something meaningless. Hiding it removes both problems without
+   touching the module. */
+.track-focus-panel__close { display: none; }
+
+/* ==========================================================================
+   THE PANEL
+   ========================================================================== */
+.music {
+  position: absolute; top: 0; right: 0; bottom: 0; left: var(--rail-gutter);
+  z-index: 12;
+  display: flex; align-items: center; justify-content: center;
+  /* VISIBILITY, NEVER OPACITY. An ancestor carrying opacity < 1 (or filter,
+     backdrop-filter, mask, contain:paint) forces an intermediate raster, and
+     css/track-experience.css:169-183 measured what that costs: a card inside
+     the carousel's 3D context rasterises at 612 where the identical image
+     outside it reads 1087. visibility:hidden suppresses painting without
+     creating a raster context, and -- the part that matters for the build
+     order below -- it still LAYS OUT, so getBoundingClientRect() returns real
+     numbers and setFocus()'s width read at init is correct. */
+  visibility: hidden; pointer-events: none;
+}
+html.is-music .music { visibility: visible; pointer-events: auto; }
+
+/* The section's own 32/32 page padding is page furniture, not component
+   tuning. Zeroing it takes the box from 883.86 to 819.86 in a 900px viewport. */
+.music .track-experience { padding-block: 0; width: 100%; }
+
+/* ==========================================================================
+   THE COLLAPSE  (music-collapse-lab.html, variant 6 CONTEXT)
+   Every rule is an override of a token css/spine-ui.css already owns.
+   ========================================================================== */
+.spine        { transition: left var(--collapse-ms) var(--ease-standard); }
+.spine__anat  { transition: width var(--collapse-ms) var(--ease-standard),
+                            opacity var(--collapse-ms) var(--ease-standard); }
+.spine__cord,
+.spine__energy,
+.spine__nodes { transition: opacity var(--collapse-ms) var(--ease-standard); }
+
+/* -50vw puts the axis on the left edge; --rail-x walks it back in. One
+   expression, correct at every width. Stage padding cannot do this job: the
+   nodes and the card resolve 50% against the padding box and would not move
+   (see the --axis-shift note in css/spine-ui.css). */
+html.is-music {
+  --axis-shift: calc(-50vw + var(--rail-x));
+  /* 180px was measured to push labels clear of the CENTRED spine's glow. On a
+     54px rail it threw them to x 228.8-384.5, on top of panel ink starting at
+     194. CLOSE and INDEX do not need what THE MESSENGERS needed. */
+  --node-label-offset: 30px;
+}
+
+html.is-music .spine__anat  { width: 74px; opacity: 0; }
+html.is-music .spine-hint   { opacity: 0; pointer-events: none; }
+html.is-music .spine__marker { opacity: 0; }
+
+/* Labels visible AT REST here, where the navigator hides them until hover.
+   Opposite calls, both right: six long destination names on a centred spine
+   is clutter; six short verbs on a rail is a toolbar, and a toolbar that only
+   names itself on hover is a guessing game. */
+html.is-music .spine-node__label { opacity: 0.72; }
+html.is-music .spine-node:hover .spine-node__label,
+html.is-music .spine-node:focus-visible .spine-node__label,
+html.is-music .spine-node.is-prefocus .spine-node__label { opacity: 1; }
+
+/* All six labels to the right of the rail. .spine-node[data-side="left"]
+   anchors with `right: var(--node-label-offset)` -- 30px to the LEFT of an
+   axis sitting 54px from the edge, i.e. 02, 04 and 06 pointing off-screen. */
+html.is-music .spine-node[data-side="left"] .spine-node__label {
+  right: auto; left: var(--node-label-offset); text-align: left;
+}
+/* "Immersive - later" / "Card" describe a navigator destination. These are
+   actions and the word says nothing true about them. */
+html.is-music .spine-node__label .kind { display: none; }
+
+/* The active-node treatment is a navigator idea -- one destination open, the
+   rest receding. Every node here is a live control and dimming five of them
+   because you touched one is wrong. */
+html.is-music .spine-node.is-active .spine-node__label { opacity: 1; }
+
+/* ==========================================================================
+   THE BEAT  (Q21: spine collapse + an overlay ABOVE, never an ancestor)
+   ========================================================================== */
+.beat {
+  position: absolute; inset: 0; z-index: 60; background: var(--color-black, #050505);
+  opacity: 0; pointer-events: none;
+}
+.beat.is-running { animation: beat-out var(--collapse-ms) var(--ease-standard) forwards; }
+@keyframes beat-out { from { opacity: 1; } to { opacity: 0; } }
+
+/* ==========================================================================
+   02 INDEX — the 28-cover directory. REPLACES the carousel, never overlays it.
+   The owner's constraint was that nothing busy the tracks section because it
+   is the main event; the resolution is that you are either in the carousel or
+   in the directory, never half in both.
+
+   This is also the page music.html's preserved comment asked for:
+   "a flat, scannable directory of all 28 with stream and download buttons,
+   for people who already know what they want."
+   ========================================================================== */
+.mindex {
+  position: absolute; inset: 0; z-index: 14;
+  display: none; flex-direction: column; justify-content: center;
+  padding: 0 40px;
+}
+html.is-index .mindex { display: flex; }
+/* The carousel goes non-painting but stays laid out, so returning from the
+   index needs no re-measure. */
+html.is-index .track-experience { visibility: hidden; }
+
+/* AND THE HERO OVERLAY, EXPLICITLY. This rule is not redundant and removing
+   it breaks the index visibly.
+
+   visibility is not display: a descendant can UN-hide itself, and
+   css/track-experience.css:195 does exactly that --
+   `.track-hero-layer.is-showing { visibility: visible; }`. So hiding
+   .track-experience left the settled 490x490 hero cover painting at
+   z-index 900 straight through the grid, which showed up as Blue Pills
+   bleeding across the middle two rows of the index while
+   getComputedStyle(.track-experience).visibility still read "hidden" and
+   every automated check passed. Caught by looking at the screenshot,
+   Aug 11 2026. */
+html.is-index .track-hero-layer.is-showing { visibility: hidden; }
+
+.mindex__head {
+  display: flex; align-items: baseline; gap: 14px; margin-bottom: 18px;
+  font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.22em;
+  text-transform: uppercase; color: var(--color-gray-500);
+}
+.mindex__head b { color: var(--color-bone); font-weight: 500; }
+.mindex__grid {
+  display: grid; grid-template-columns: repeat(7, 1fr); gap: 12px;
+}
+.mindex__cell {
+  position: relative; padding: 0; border: 0; background: none; cursor: pointer;
+  aspect-ratio: 1; overflow: hidden; border-radius: 2px;
+  outline: 1px solid rgba(242,242,238,0.06); outline-offset: -1px;
+  transition: outline-color 160ms linear, transform 160ms var(--ease-standard);
+}
+.mindex__cell img { display: block; width: 100%; height: 100%; object-fit: cover;
+                    opacity: 0.74; transition: opacity 160ms linear; }
+.mindex__cell:hover, .mindex__cell:focus-visible {
+  outline-color: rgba(var(--node-color), 0.8); transform: translateY(-2px);
+}
+.mindex__cell:hover img, .mindex__cell:focus-visible img { opacity: 1; }
+.mindex__cell[aria-current="true"] { outline-color: rgba(var(--node-color), 0.95); }
+.mindex__cell[aria-current="true"] img { opacity: 1; }
+.mindex__n {
+  position: absolute; left: 5px; top: 4px; z-index: 2;
+  font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.1em;
+  color: var(--color-bone); text-shadow: 0 1px 4px #000;
+}
+
+/* ==========================================================================
+   03 DECODE — swaps the focus panel's contents. Costs zero new pixels.
+   The panel is already the metadata region; DECODE toggles what is in it
+   rather than adding a surface. It also puts `title` and `duration` on screen
+   for the first time: title is .sr-only by design (the artwork carries it,
+   css/track-experience.css:295-297) and duration is populated on all 28 and
+   rendered NOWHERE in this component.
+
+   visualTheme is the largest unused surface in the data -- 84 non-null values
+   across 28 tracks that no line of code in the repo reads. effect and
+   geometry are 1:1 locked (geometry<->metatron, fog<->vignette,
+   distortion<->vesica), so they encode one axis, not two, and only `geometry`
+   is shown here.
+   ========================================================================== */
+html.is-decode .track-focus-panel__desc { display: none; }
+.mdecode { display: none; }
+html.is-decode .mdecode { display: block; }
+.mdecode__title {
+  font-family: var(--font-display, "Big Shoulders Display", sans-serif);
+  font-weight: 800; font-size: 30px; line-height: 1.05; letter-spacing: 0.01em;
+  text-transform: uppercase; color: var(--color-white); margin: 0 0 10px;
+  text-shadow: 0 1px 12px rgba(0,0,0,0.8);
+}
+.mdecode__rows {
+  display: flex; justify-content: center; gap: 26px; flex-wrap: wrap;
+  font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.18em;
+  text-transform: uppercase; color: var(--color-gray-400); margin: 0 0 4px;
+}
+.mdecode__rows b { color: var(--color-bone); font-weight: 500; margin-left: 7px; }
+
+/* ==========================================================================
+   06 SKY — the explicit off switch for the reactive background.
+   Also the manual equivalent of prefers-reduced-motion for anyone who has
+   never set the OS preference.
+   ========================================================================== */
+html.is-sky-off { --kick-stars: 0; --kick-cloud: 0; --snare-bolt: 0; }
+
+/* ==========================================================================
+   05 SHARE — the only node that needs a surface, and it is momentary.
+   ========================================================================== */
+.toast {
+  position: absolute; left: 50%; bottom: 30px; transform: translateX(-50%);
+  z-index: 70; padding: 10px 18px;
+  border: 1px solid rgba(var(--node-color), 0.45); background: rgba(5,5,5,0.92);
+  font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.06em;
+  color: var(--color-bone); white-space: nowrap;
+  opacity: 0; pointer-events: none; transition: opacity 200ms linear;
+}
+.toast.is-up { opacity: 1; }
+
+/* ==========================================================================
+   REDUCED MOTION
+   The sky stays DEAD, deliberately. js/spine-bg.js:553 already bails the
+   detector under this preference, and the kick response is a flash on every
+   beat -- precisely what the preference exists to stop. Substituting a
+   "gentler" animation would be second-guessing an explicit request. Audio and
+   the carousel work normally; the collapse becomes a cut.
+   ========================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  :root { --collapse-ms: 0ms; }
+  .beat.is-running { animation: none; }
+}
+</style>
+</head>
+<body>
+
+<main class="spine-stage" id="spine-nav-stage">
+
+  <svg class="spine-connectors" aria-hidden="true">
+    <path class="conn-active"></path>
+    <path class="conn-head"></path>
+  </svg>
+
+  <div class="spine" aria-hidden="true">
+    <div class="spine__anat"></div>
+    <div class="spine__cord"></div>
+    <div class="spine__energy"></div>
+  </div>
+
+  <div class="spine__nodes" id="spine-nav" role="toolbar" aria-orientation="vertical" aria-label="Spine navigation"></div>
+
+  <article class="spine-card" id="spine-card" role="dialog" aria-modal="false" aria-labelledby="spine-card-title" hidden>
+    <button type="button" class="spine-card__close" aria-label="Close">&times;</button>
+    <div class="spine-card__head">
+      <span class="spine-card__idx"></span>
+      <span class="spine-card__flag">Active</span>
+    </div>
+    <span class="label spine-card__eyebrow"></span>
+    <h2 class="spine-card__title" id="spine-card-title"></h2>
+    <div class="spine-card__rule"></div>
+    <div class="spine-card__body"></div>
+    <a class="spine-card__cta" href="#"><span class="cta-text">Explore</span> <span class="arrow" aria-hidden="true">&rarr;</span></a>
+  </article>
+
+  <p class="spine-hint" id="spine-hint"><span class="label">Hover a node &middot; click to open &middot; Esc to close</span></p>
+
+  <!-- ======================================================================
+       THE MUSIC PANEL
+
+       The .track-experience block below is index.html:85-118 VERBATIM. Do not
+       "tidy" it toward this page's conventions -- the whole point is that the
+       component is unmodified, and the four things this page changes about it
+       are the four display:none rules in the stylesheet above.
+
+       IT MUST BE IN THE DOM AT LOAD, and this is not a preference.
+       js/spine-bg.js:183 does `document.querySelector('.track-experience')`
+       ONCE, and line 234 guards the entire kick/snare detector on the result.
+       Markup injected when Music opens would find that guard already failed,
+       and the reactive sky -- the whole point of this page -- could never come
+       alive. The same element is also the ks:sample-ready dispatch target
+       (track-experience.js:885 -> spine-bg.js:676) and carries the is-playing
+       class spine-bg.js:183-191 mirrors onto <html>.
+       ====================================================================== -->
+  <div class="music" id="music">
+
+    <section class="track-experience" id="tracks" aria-label="Music and Tracks">
+      <div class="track-arc-wrap">
+        <div class="track-experience__intro container">
+          <span class="label">Music</span>
+          <h2 class="text-stencil">Enter the Tracks</h2>
+          <p class="track-experience__note" role="status"><strong>Rise Up</strong> isn&rsquo;t on streaming platforms yet &mdash; 20-second samples are available here for every track now. Full streaming and download links go live once each platform is connected.</p>
+        </div>
+
+        <div class="track-arc-viewport">
+          <ul class="track-arc" role="listbox" aria-label="Available tracks"></ul>
+        </div>
+
+        <div class="track-focus-panel" aria-label="Selected track">
+          <div class="track-focus-nav">
+            <button type="button" class="track-focus-nav__btn" data-dir="prev" aria-label="Previous track">&#10094;</button>
+            <p class="track-focus-nav__counter" role="status" aria-live="polite">
+              <span class="track-focus-nav__index">1</span><span class="track-focus-nav__sep">/</span><span class="track-focus-nav__total">1</span>
+            </p>
+            <button type="button" class="track-focus-nav__btn" data-dir="next" aria-label="Next track">&#10095;</button>
+          </div>
+          <span class="label track-focus-panel__eyebrow"></span>
+          <h3 class="track-focus-panel__title sr-only"></h3>
+          <p class="track-focus-panel__desc"></p>
+          <div class="track-sample-player">
+            <button type="button" class="track-sample-player__btn" aria-label="Play sample">
+              <span aria-hidden="true">&#9654;</span>
+            </button>
+            <div class="track-sample-player__bar"><div class="track-sample-player__bar-fill"></div></div>
+            <span class="track-sample-player__status" role="status" aria-live="polite">Play Sample</span>
+          </div>
+          <button type="button" class="track-focus-panel__close">&times; Close</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 02 INDEX. Sibling of the carousel, never a child: a wrapper around
+         .track-experience would be a new ancestor, and new ancestors are how
+         the hero-overlay sharpness fix gets broken. -->
+    <div class="mindex" id="mindex" role="group" aria-label="All tracks">
+      <p class="mindex__head"><b>Index</b> &mdash; all <span id="mindex-count">28</span> &middot; click to jump</p>
+      <div class="mindex__grid" id="mindex-grid"></div>
+    </div>
+
+  </div>
+
+  <p class="toast" id="toast" role="status" aria-live="polite"></p>
+  <div class="beat" id="beat" aria-hidden="true"></div>
+</main>
+
+<!-- ORDER IS LOAD-BEARING. spine-ui.js builds the node string this page then
+     morphs; track-experience.js builds the carousel; spine-bg.js captures
+     .track-experience and binds its ks:sample-ready listener, so it must run
+     after the markup exists (it does -- the markup is static) and it wires the
+     analyser regardless of when the carousel finishes building, because the
+     listener is on the ELEMENT, not on the module. -->
+<script src="js/spine-ui.js"></script>
+<script src="js/track-experience.js"></script>
+<script src="js/spine-bg.js"></script>
+<script src="js/music-wrap.js"></script>
+</body>
+</html>

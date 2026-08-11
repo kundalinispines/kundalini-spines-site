@@ -1,0 +1,428 @@
+/* ============================================================================
+   WORDMARK — the two-line KUNDALINI SPINES lockup, and its ink development.
+   Pairs with js/wordmark.js, which owns the measuring. Built Aug 10 2026.
+
+   WHAT THIS IS. A compressed poster-gothic lockup: two stacked lines justified
+   to a shared measure, a hairline registration rule with tick marks and a
+   centre reticle between them, and a letterpress grain over the ink. It
+   replaces the single-line .sh-eyebrow that was the entrance headline while the
+   hero clip plays.
+
+   ---------------------------------------------------------------------------
+   THE FACE BAND, AND WHY THIS SITS LOW
+
+   The lockup is anchored to the BOTTOM of its stage, not centred, and that is
+   a measurement rather than a taste. The hero clip's two messengers walk toward
+   camera for the first ~4.2 seconds; sampled every 200ms at 1440x900, their
+   heads and masks occupy y 115..355 across that whole stretch, rising and
+   growing as they approach. Centred, the lockup lands straight across both
+   faces — which is exactly what the owner rejected on the first specimen.
+
+   Anchored at --wm-bottom (9%), the lockup's top edge sits near y 440 in a
+   900px viewport: ~85px of clear air under the lowest face pixel. Everything
+   below that band is coat, glove and the glowing spine, which the type can sit
+   over without hiding anything the shot is about.
+
+   If the stage aspect changes enough to move that band, RE-MEASURE IT. The
+   clip is object-fit:cover, so a taller or shorter viewport recrops it and the
+   115..355 figure is specific to 1440x900.
+
+   ---------------------------------------------------------------------------
+   ONE MECHANISM, TWO JOBS
+
+   The grain mask IS the reveal. A single mask layer carries the letterpress
+   texture at rest, and the development animates that same layer's SCALE:
+
+     --wm-grain-from   1100%   a few enormous soft blobs — the letters arrive
+                               broken into chunks of ink, most of them missing
+     --wm-grain-to      190%   fine speckle — the letters read solid, and what
+                               is left is the letterpress
+
+   Shrinking the tile raises the number of holes while shrinking each one, so
+   coverage climbs and detail arrives together. That is what ink developing
+   looks like, and it costs one animated property on one element rather than a
+   second effect layered over the first.
+
+   THE MASK IS ON .wm__line, NOT .wm__ink, and that is load-bearing. .wm__ink
+   carries the per-line scaleX that justifies the two lines to one measure
+   (SPINES runs about 1.5x). A mask on the scaled element scales with it, so
+   SPINES would wear grain stretched half again as wide as KUNDALINI's — two
+   different textures on one lockup. Masking the unscaled parent keeps one
+   grain across both lines. mask-repeat is left at repeat so the scaled ink
+   overflowing its line box is still covered.
+
+   ---------------------------------------------------------------------------
+   ALPHA, NOT LUMINANCE
+
+   The grain is an SVG data URI whose feColorMatrix writes the turbulence into
+   the ALPHA channel and forces RGB to white. mask-mode: luminance would be the
+   obvious route and is not used: -webkit-mask-image treats every source as
+   alpha regardless, so a luminance-authored tile masks correctly in Firefox and
+   comes out as a solid block in WebKit. Authoring the alpha directly is the one
+   form both agree on.
+   ============================================================================ */
+
+.wm {
+  /* ---- THE FACE.
+
+     font-stretch: 62% IS NOT DECORATION, IT IS THE MATCH KEY. Google serves
+     this cut as three @font-face blocks all declaring
+
+         font-family: 'Archivo'; font-weight: 900; font-stretch: 62%;
+
+     A rule asking for Archivo 900 at the default stretch (100%) does not match
+     any of them, so the browser falls back — silently, to something 20% wider,
+     which then gets measured and justified as if it were the real thing.
+
+     font-variation-settings: "wdth" 62 is NOT a substitute. It sets the axis
+     on a face that has already been selected; it plays no part in selecting
+     one. Both are here: the descriptor picks the file, the axis pins the
+     instance. */
+  --wm-font:      "Archivo", "Arial Narrow", sans-serif;
+  --wm-weight:    900;
+  --wm-stretch:   62%;
+
+  /* TRACKING IS PART OF THE FACE HERE, not a refinement on top of it. In the
+     reference the letters very nearly touch, and that is what lets the type be
+     set large enough to read as a heavy slab. At default tracking the same face
+     has to come down in size to fit the measure and immediately looks lighter
+     than the reference — which is exactly how Teko first presented against
+     Archivo, and it was tracking, not weight.
+
+     SETTLED POSITIVE, at +0.046em, which is the opposite of what the reference
+     suggested and is the owner's call from the tuner. At this measure Archivo
+     900/62 is heavy enough that tightening closes the counters and the lockup
+     turns into a solid block; the air is what keeps KUNDALINI legible at nine
+     characters. The reference gets away with touching letters because it is
+     printed at three times this cap height. */
+  --wm-track:  0.046em;
+
+  /* ---- the authored numbers. All tunable; all measured where noted. */
+  /* SETTLED IN THE TUNER, Aug 10 2026, by the owner against the live clip.
+     These are read values, not proposals — do not "tidy" them toward rounder
+     numbers, the halves and thousandths are where they were left. */
+  --wm-measure:    0.585;    /* fraction of the stage the LONG line spans */
+  --wm-bottom:     34.5%;    /* clear of the measured face band — see above */
+  --wm-shift:        0px;    /* horizontal nudge off centre */
+  --wm-gap:          0em;    /* the rule sits tight between the lines */
+  --wm-rule-on:        1;    /* 0 hides the rule, ticks and reticle outright */
+
+  --wm-dev-ms:      2300ms;  /* one line's development, start to solid */
+  --wm-line-lead:   380ms;   /* SPINES behind KUNDALINI */
+  --wm-start-ms:    300ms;   /* after play(), before anything moves */
+  --wm-rule-ms:     760ms;   /* the rule drawing across */
+  --wm-rule-delay: 1250ms;   /* into the development, not before it */
+  --wm-mark-ms:     420ms;   /* ticks + reticle fading up after the rule lands */
+
+  /* PIXELS, NOT PERCENT. mask-size in % resolves against each line's own box,
+     and the two lines have very different boxes (KUNDALINI 533px, SPINES
+     352px) because the justification is done by scaling the ink, not the box.
+     A shared percentage therefore renders the grain at two different physical
+     scales — coarse on the short line, fine on the long one, one lockup wearing
+     two textures. Absolute lengths are the same grain everywhere. */
+  --wm-grain-from: 2600px;   /* only used by the parked development */
+
+  /* 180px, and the number comes from matching the reference's TEXTURE-TO-CAP
+     ratio rather than from taste. The tile's 512px width was harvested at the
+     reference's own scale, where the caps are ~430px tall. The entrance sets
+     caps at ~145px (Archivo at 199px, cap ~0.73em), a ratio of 0.337 — so the
+     tile has to come down to 512 * 0.337 = 173px for the speckle to sit on the
+     letters the same way it does in the reference. Rounded to 180. Set it to
+     512px and you get the reference's grain at three times the size, which
+     reads as damage rather than print. */
+  --wm-grain-to:    180px;
+
+  /* HOW OPAQUE THE DISTRESS IS — the "black in the text".
+
+       0   the marks are fully transparent, so the FOOTAGE shows through every
+           speck and the grain changes as the clip moves behind it
+       1   the marks are fully inked: no breakup at all, solid type
+
+     Anything between is a partial punch-through. This is a mask FLOOR, added to
+     the grain's own alpha in .wm__line, so it lifts the holes without touching
+     what was already solid — the texture keeps its exact shape and only its
+     depth changes. Note this is NOT opacity on the element: that would fade the
+     letterforms along with the distress, which is a different and much worse
+     effect.
+
+     SETTLED AT 0.25 by the owner in the tuner. Measured for the record: floor 0
+     renders at 84.2% of the unmasked ink — so the grain removes 15.8%, the same
+     10-15% band the reference print sits in — climbing monotonically to exactly
+     100.0% at floor 1.0. 0.25 keeps the breakup clearly readable while stopping
+     the tile's vertical striations from reading as scan-lines once the clip
+     reaches the nebula. */
+  --wm-grain-floor:  0.25;
+
+  /* The letterpress tile.
+
+     THE ALPHA ROW IS A THRESHOLD, NOT A TINT, and getting it wrong is what made
+     the first build read as camouflage rather than print. fractalNoise at 4
+     octaves lands roughly normal about 0.5; the first matrix (1.6R - 0.35)
+     therefore left ~50% of every glyph transparent and the words became static.
+
+     7R - 1.5 puts full opacity at R >= 0.357 and full transparency below
+     R = 0.214, which is ~90% solid ink with the rest broken — measured at 92.4%
+     retention against the unmasked type. That is distress; 50% was destruction. */
+  --wm-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' seed='11' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 7 0 0 0 -1.5'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)'/%3E%3C/svg%3E");
+
+  /* THE REAL GRAIN, LIFTED OUT OF THE OWNER'S OWN REFERENCE.
+     assets/hero/wordmark-grain.png, built from
+     assets/reference/wordmark-teko-bold-letterpress.png.
+
+     The extraction is worth knowing, because the obvious route does not work.
+     Ink and paper are the SAME BRIGHTNESS in that reference — measured mean
+     224.8 inside the K stem against 227.2 on bare background — so no luminance
+     threshold can separate them. What separates them is texture: local standard
+     deviation is 15.2 inside ink and 0.7 outside. The glyph mask is therefore a
+     VARIANCE mask, morphologically closed to fill the smooth patches inside
+     strokes that would otherwise read as holes.
+
+     The tile is then quilted from 12 harvested 32x224 strips of clean ink,
+     each normalised to a common mean and contrast, butted with STOCHASTIC
+     seams and wrapped the same way. Both of those are corrections: unnormalised
+     strips banded into corduroy, and linear cross-fades averaged two speckle
+     fields into soft grey columns, halving the contrast at every seam.
+
+     The procedural feTurbulence tile above is the stand-in this replaced. It is
+     kept only as a record of what the wrong answer looked like — isotropic soft
+     cloud, which reads as camouflage rather than print. Do not point
+     --wm-grain-src back at it.
+
+     ../ IS LOAD-BEARING. url() resolves against the STYLESHEET, not the
+     document, so "assets/hero/..." from inside css/ points at
+     css/assets/hero/ and 404s away to nothing. This project has already lost an
+     afternoon to exactly that — V2HANDOFF 23, finding 8, where moving the
+     wireframe's background-image into css/ silently unhooked it and presented
+     as 86,872 differing pixels shaped like the spine column. A missing MASK
+     fails even more quietly: mask-image:none simply means no mask, so the type
+     renders clean and looks merely untextured rather than broken. */
+  --wm-grain-src: url("../assets/hero/wordmark-grain.png");
+
+  position: absolute;
+  left: 50%;
+  bottom: var(--wm-bottom);
+  transform: translateX(calc(-50% + var(--wm-shift)));
+  z-index: 2;
+
+  /* width is written by js/wordmark.js from the measured natural widths — the
+     rule spans the MEASURE, which is not any line's own box. */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  line-height: 0.82;
+  text-transform: uppercase;
+  color: var(--color-bone);
+  pointer-events: none;
+}
+
+/* THE SHUTTER DRIVER'S HANDLE, and the reason it is a separate element.
+
+   js/shutter-text.js fades the outgoing eyebrow by writing element.style
+   .opacity AND .transform directly (translateY(-6px)). .wm carries
+   translateX(-50%) for its own centring, so handing .wm to the driver would
+   have that overwritten the first frame of the cross-fade and the lockup would
+   jump half its width to the right. The driver gets .wm__inner, which owns no
+   position of its own. This is the same trap css/shutter-text.css's own note
+   describes; it applies with more force here because the element is offset. */
+.wm__inner {
+  display: block; width: 100%;
+  font-family: var(--wm-font);
+  font-weight: var(--wm-weight);
+  font-stretch: var(--wm-stretch);
+  font-variation-settings: "wdth" 62;
+  letter-spacing: var(--wm-track);
+}
+
+/* ---------------------------------------------------------------------------
+   THE LINES
+   --------------------------------------------------------------------------- */
+.wm__line {
+  display: block;
+  white-space: nowrap;
+  text-align: center;
+
+  /* TWO MASK LAYERS, ADDED TOGETHER.
+
+     Layer 1 is the letterpress tile. Layer 2 is a flat sheet of alpha
+     --wm-grain-floor, and mask-composite: add means the result is
+     min(1, grain + floor). So the floor lifts the transparent specks toward
+     solid while leaving everything already at alpha 1 exactly where it was.
+     That is why the texture does not soften as it fills in: nothing is being
+     blended, only raised.
+
+     BOTH COMPOSITE PROPERTIES ARE REQUIRED. mask-composite: add is the standard
+     one; -webkit-mask-composite predates it and takes an entirely different
+     keyword set, where the equivalent is source-over. Ship only the standard
+     name and WebKit falls back to its default (source-over on a per-layer
+     basis is not the same thing) — ship only the -webkit- one and modern
+     Chrome ignores it. */
+  --wm-floor-sheet: linear-gradient(rgba(0,0,0,var(--wm-grain-floor)),
+                                    rgba(0,0,0,var(--wm-grain-floor)));
+
+  -webkit-mask-image: var(--wm-grain-src), var(--wm-floor-sheet);
+          mask-image: var(--wm-grain-src), var(--wm-floor-sheet);
+  -webkit-mask-size: var(--wm-grain-from) auto, 100% 100%;
+          mask-size: var(--wm-grain-from) auto, 100% 100%;
+  -webkit-mask-position: center, center;
+          mask-position: center, center;
+  -webkit-mask-repeat: repeat, no-repeat;
+          mask-repeat: repeat, no-repeat;
+  -webkit-mask-composite: source-over;
+          mask-composite: add;
+
+  opacity: 0;
+
+  transition:
+    -webkit-mask-size var(--wm-dev-ms) cubic-bezier(0.22, 0.61, 0.36, 1),
+            mask-size var(--wm-dev-ms) cubic-bezier(0.22, 0.61, 0.36, 1),
+              opacity calc(var(--wm-dev-ms) * 0.55) linear;
+}
+
+/* SPINES trails KUNDALINI. Delay rather than a second clock: the two lines are
+   the same gesture arriving twice, and a stagger is all that separates them. */
+.wm__line:last-of-type {
+  transition-delay: var(--wm-line-lead), var(--wm-line-lead), var(--wm-line-lead);
+}
+
+.wm.is-inked .wm__line {
+  -webkit-mask-size: var(--wm-grain-to) auto, 100% 100%;
+          mask-size: var(--wm-grain-to) auto, 100% 100%;
+  opacity: 1;
+}
+
+/* The justification. --sx is written per line by the module; the long line
+   always resolves to 1 and is therefore undistorted. transform-origin is centre
+   so the scaled ink grows symmetrically out of the centred line box. */
+.wm__ink {
+  display: inline-block;
+  transform: scaleX(var(--sx, 1));
+  transform-origin: 50% 50%;
+}
+
+/* ---------------------------------------------------------------------------
+   THE REGISTRATION RULE — hairline, ticks, centre reticle.
+
+   Kept from the owner's reference because the navigator already speaks this
+   language: css/spine-ui.css draws a reticle on the active node, so the mark
+   between the two words reads as the same instrument rather than decoration.
+   --------------------------------------------------------------------------- */
+/* display:block is load-bearing — this is a <span>, and width does not apply to
+   an inline box. Without it the rule collapses to its content, which is nothing
+   but absolutely-positioned children, so it measured ~40px and parked the
+   reticle and both tick clusters in a huddle at the left edge of the lockup.
+   Verified at 1440x900: the marks sat at x 300..335 against a lockup spanning
+   317..1123. */
+.wm__rule {
+  display: block;
+  position: relative;
+  width: 100%;
+  height: 14px;
+  margin: var(--wm-gap) 0;
+  opacity: var(--wm-rule-on);
+  /* the rule sits on footage, not on ink, and the clip's refinery towers are
+     the brightest thing in the frame behind it */
+  filter: drop-shadow(0 0 6px rgba(0, 0, 0, 0.9));
+}
+
+.wm__rule::before {
+  content: "";
+  position: absolute; top: 50%; left: 0; right: 0;
+  height: 1px;
+  background: rgba(216, 208, 190, 0.55);
+  transform: scaleX(0);
+  transform-origin: 50% 50%;
+  transition: transform var(--wm-rule-ms) cubic-bezier(0.22, 0.61, 0.36, 1);
+  transition-delay: var(--wm-rule-delay);
+}
+.wm.is-inked .wm__rule::before { transform: scaleX(1); }
+
+/* scaleX on a 1px line, drawn from the centre out — the compositor handles it
+   without touching layout, which a width animation would not. */
+
+.wm__tick,
+.wm__reticle {
+  position: absolute; top: 50%;
+  opacity: 0;
+  transition: opacity var(--wm-mark-ms) linear;
+  transition-delay: calc(var(--wm-rule-delay) + var(--wm-rule-ms) * 0.7);
+}
+.wm.is-inked .wm__tick,
+.wm.is-inked .wm__reticle { opacity: 1; }
+
+.wm__tick {
+  display: flex; gap: 3px;
+  transform: translateY(-50%);
+}
+.wm__tick--l { left: 10px; }
+.wm__tick--r { right: 10px; }
+.wm__tick i { display: block; width: 1px; height: 7px; background: rgba(216, 208, 190, 0.75); }
+
+.wm__reticle {
+  left: 50%;
+  width: 16px; height: 16px;
+  transform: translate(-50%, -50%);
+}
+.wm__reticle::before,
+.wm__reticle::after { content: ""; position: absolute; background: rgba(216, 208, 190, 0.9); }
+.wm__reticle::before { left: 50%; top: 0; bottom: 0; width: 1px; transform: translateX(-50%); }
+.wm__reticle::after  { top: 50%; left: 0; right: 0; height: 1px; transform: translateY(-50%); }
+.wm__reticle i {
+  position: absolute; left: 50%; top: 50%;
+  width: 9px; height: 9px;
+  border: 1px solid rgba(216, 208, 190, 0.9);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+/* ---------------------------------------------------------------------------
+   THE FONT GATE.
+
+   Nothing paints until js/wordmark.js has measured against the real face. The
+   module measures natural line widths to compute both the font-size and the
+   per-line scaleX, so measuring the fallback produces a lockup justified to the
+   wrong numbers — and it fails SILENTLY, as a lockup that merely looks a bit
+   off rather than as an error.
+
+   This is not hypothetical. entrance-lab.html linked no webfont at all until
+   this build: '800 56px "Big Shoulders Display"' measured 536.79px there
+   against 351.01px on shutter-lab.html, byte-identical to a nonsense family.
+   document.fonts.check() returned true on the broken page. It cannot be
+   trusted; the module's width comparison can.
+   --------------------------------------------------------------------------- */
+.wm.is-holding { visibility: hidden; }
+
+/* AN INSTANT JUMP TO THE INKED STATE — the cut, and the reduced-motion path.
+
+   This class exists because setting element.style.transition = 'none' on .wm
+   does NOT stop any of the transitions above: transition is not an inherited
+   property, and every one of them is declared on a CHILD. The module's settle()
+   did exactly that and looked correct in code while actually fading the lockup
+   up over 1265ms. For a reveal called "cut on the edit" that is not a small
+   error — it is the whole gesture, missed.
+
+   Applied, flushed, and removed inside one frame by settle(). */
+.wm.is-instant .wm__line,
+.wm.is-instant .wm__rule::before,
+.wm.is-instant .wm__tick,
+.wm.is-instant .wm__reticle { transition: none !important; }
+
+@media (prefers-reduced-motion: reduce) {
+  .wm__line,
+  .wm__rule::before,
+  .wm__tick,
+  .wm__reticle { transition: none !important; }
+}
+
+/* Phone. The measure goes wider because there is less of it, and the lockup
+   comes up off the bottom edge — at 375 the clip is cropped hard and the
+   messengers fill more of the frame, so the clear band is shallower. */
+@media (max-width: 600px) {
+  .wm {
+    --wm-measure: 0.82;
+    --wm-bottom: 14%;
+    --wm-grain-to: 260%;   /* the tile is fixed px, so it needs to be coarser
+                              relative to much smaller type or the speckle
+                              closes up and the letterpress disappears */
+  }
+}

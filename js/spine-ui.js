@@ -141,6 +141,52 @@
     btn.addEventListener('blur', function () { clearPreFocus(n.id); });
   });
 
+  // ---- the card's glass layer + the lens filter it references
+  //
+  // INJECTED RATHER THAN WRITTEN INTO EACH PAGE'S MARKUP. Five files carry the
+  // .spine-card block -- entrance-lab, music-lab, spine-lab, music-collapse-lab
+  // and hero-scrub-lab -- and hand-adding a span to all five is five chances to
+  // miss one. This module already owns the card's contents (populateCard writes
+  // every field in it), so it owns this too.
+  //
+  // WHY A REAL ELEMENT AND NOT A PSEUDO: .spine-card::before and ::after are
+  // both already spoken for by the stacked ghost frames (see the CSS), which
+  // build the "emergence from the spine" depth. Taking one would delete that.
+  //
+  // Prepended, so it sits UNDER the card's own content -- the CSS lifts the
+  // real children to z-index 1 above it.
+  (function buildGlass() {
+    if (!card || card.querySelector('.spine-card__glass')) return;
+    var g = document.createElement('span');
+    g.className = 'spine-card__glass';
+    g.setAttribute('aria-hidden', 'true');
+    card.insertBefore(g, card.firstChild);
+
+    // The displacement the glass references where the browser can run it.
+    // Low frequency and two octaves: high-frequency noise reads as frosted
+    // static rather than as a lens, and the point is that the star field
+    // behind the card visibly bends. Chrome-only in practice -- Safari and
+    // Firefox drop url() in backdrop-filter and fall back to the painted
+    // bevel, which is the whole reason the bevel is painted and not assumed.
+    if (document.getElementById('spine-lens-filter')) return;
+    var ns = 'http://www.w3.org/2000/svg';
+    var svg = document.createElementNS(ns, 'svg');
+    svg.setAttribute('id', 'spine-lens-filter');
+    svg.setAttribute('aria-hidden', 'true');
+    svg.setAttribute('width', '0');
+    svg.setAttribute('height', '0');
+    svg.style.cssText = 'position:absolute;width:0;height:0;overflow:hidden';
+    svg.innerHTML =
+      '<defs><filter id="spine-lens" x="-15%" y="-15%" width="130%" height="130%"' +
+      ' color-interpolation-filters="sRGB">' +
+      '<feTurbulence type="fractalNoise" baseFrequency="0.006 0.011"' +
+      ' numOctaves="2" seed="7" result="noise"/>' +
+      '<feDisplacementMap in="SourceGraphic" in2="noise" scale="26"' +
+      ' xChannelSelector="R" yChannelSelector="G"/>' +
+      '</filter></defs>';
+    document.body.appendChild(svg);
+  })();
+
   // ---- decorative energy-points: faint light nodes spaced along the cord
   //      between the real destinations (non-interactive ambience, per the
   //      reference images' string of dots).

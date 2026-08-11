@@ -652,6 +652,130 @@
 .spine-card.is-immersive .spine-card__body { color: var(--text-secondary); }
 
 /* --------------------------------------------------------------------------
+   THE GLASS  — ported from spine-card-glass-lab.html (reading: LENS), Aug 11 2026
+
+   Settled with the owner by LOOKING at eight readings side by side, not by
+   argument. The lab is kept; go there to change any of this.
+
+   THE LIGHT IS THE SPINE. Not a fixed lamp at the top of the viewport, which
+   is what the Apple component this started from does. The column is the lit
+   object in this scene -- the energy pass runs up it and the nodes ping -- so
+   a card that opens beside it catches light on the edge NEAREST the column.
+   That is the one decision that makes this belong to the project rather than
+   being borrowed, and it is why --lit-x keys off the side class.
+
+   --lit-x is -1 when the light arrives from the LEFT and +1 from the RIGHT.
+   A node with data-side="left" opens its card to the LEFT of the spine, which
+   puts the spine on the card's RIGHT. Every inset below multiplies by it
+   rather than being written twice, so a card cannot end up half-lit the wrong
+   way.
+
+   REFRACT IS THE DEFAULT, LENS IS THE FALLBACK -- the owner's call, and it is
+   ordinary progressive enhancement: the painted bevel is the base layer that
+   every browser gets, and the real displacement is added on top only where
+   backdrop-filter accepts a filter reference. Measured Aug 11 2026: Chrome 151
+   accepts it. Safari and Firefox drop it and keep the bevel, which is why the
+   bevel is painted properly rather than treated as a degraded mode.
+   -------------------------------------------------------------------------- */
+.spine-card            { --lit-x: -1; }   /* card right of the spine: lit from left */
+.spine-card.side-left  { --lit-x:  1; }   /* card left of the spine:  lit from right */
+
+/* THE DIALS. The only numbers here worth reaching for. */
+.spine-card {
+  --glass-rim:    1.0;    /* 0-1, brightness of the lit lip */
+  --glass-sheen:  0.22;   /* 0-1, the specular wash across the face */
+  --glass-sheen-y: 32%;   /* WHERE the wash is centred vertically, and it is a
+                             legibility number rather than a taste one. At 0%
+                             it sits on the lit top corner -- which is exactly
+                             where the head row lives -- and washed "02 / 06",
+                             the ACTIVE chip and the close glyph out to nearly
+                             illegible on right-lit cards. Caught by looking at
+                             a screenshot; every automated check passed. Pushed
+                             down to a third of the way so the brightest part
+                             of the wash lands on the title and body instead. */
+  --glass-chroma: 1.0;    /* 0-1, prismatic sliver at the lit edge */
+  --glass-dark:   0.55;   /* 0-1, the shaded far edge */
+}
+
+/* THE FAR BORDER IS DARKENED, and this is a real fix rather than polish. The
+   card's `border: 1px solid var(--card-border-lit)` is equally bright on all
+   four sides, which directly contradicts a light arriving from one of them --
+   the lit edge stops reading as lit when the opposite edge is just as bright.
+   The far side drops to --card-border (0.22 against 0.45). */
+.spine-card:not(.side-left) { border-right-color: var(--card-border); }
+.spine-card.side-left       { border-left-color:  var(--card-border); }
+
+.spine-card__glass {
+  position: absolute; inset: 0; z-index: 0;
+  border-radius: inherit; pointer-events: none;
+  background-image:
+    /* the prismatic sliver, hard against the lit edge */
+    linear-gradient(to right,
+      rgba(var(--node-color), calc(var(--glass-chroma) * 0.22)) 0px, transparent 4px),
+    /* the specular wash, falling away from the light */
+    radial-gradient(130% 100% at calc(50% + var(--lit-x) * 50%) var(--glass-sheen-y),
+      rgba(255,255,255,var(--glass-sheen)) 0%, transparent 62%);
+  /* BANDS, NOT HAIRLINES, and the spread being 0 is the whole reason this
+     reads. `inset Xpx 0 0 0` paints a solid band X wide against the lit edge;
+     the first entry sits on top, so these stack outside-in and each is visible
+     only in the gap the one above leaves. That produces lip / dark line / lip
+     -- the sequence the eye reads as a thick bevelled pane rather than as a
+     flat panel with a highlight drawn on it. An earlier pass used negative
+     spreads and collapsed every band to a hairline; nothing was visible. */
+  box-shadow:
+    inset calc(var(--lit-x) * 2px)  0 0 0 rgba(255,255,255,var(--glass-rim)),
+    inset calc(var(--lit-x) * 7px)  0 0 0 rgba(0,0,0,0.65),
+    inset calc(var(--lit-x) * 12px) 0 0 0 rgba(255,255,255,calc(var(--glass-rim) * 0.42)),
+    inset calc(var(--lit-x) * 26px) 0 38px -14px rgba(255,255,255,calc(var(--glass-rim) * 0.5)),
+    inset calc(var(--lit-x) * -4px) 0 0 0 rgba(0,0,0,calc(var(--glass-dark) * 1.15)),
+    inset 0 2px 0 0 rgba(255,255,255,calc(var(--glass-rim) * 0.35));
+}
+/* The sliver gradients are written left-to-right; a right-lit card needs them
+   mirrored. scaleX on the layer would mirror the sheen too, so they are
+   re-declared rather than transformed. */
+.spine-card.side-left .spine-card__glass {
+  background-image:
+    linear-gradient(to left,
+      rgba(var(--node-color), calc(var(--glass-chroma) * 0.22)) 0px, transparent 4px),
+    radial-gradient(130% 100% at calc(50% + var(--lit-x) * 50%) var(--glass-sheen-y),
+      rgba(255,255,255,var(--glass-sheen)) 0%, transparent 62%);
+}
+
+/* The card's real content has to clear the glass. Its children are static, so
+   without this the glass paints over the title. .spine-card__close is excluded
+   because it is already position:absolute and giving it position:relative
+   would drop it out of its corner -- it only needs the z-index. */
+.spine-card > *:not(.spine-card__glass):not(.spine-card__close) {
+  position: relative; z-index: 1;
+}
+.spine-card__close { z-index: 1; }
+
+/* THE ENHANCEMENT. Real displacement of the star field, where it can run.
+   url() LAST in the list: filter functions apply in order, so the blur happens
+   first and the displacement warps an already-blurred backdrop rather than the
+   reverse. The -webkit- declaration deliberately has NO url() -- Safari would
+   drop the entire declaration and lose the blur along with it.
+
+   Static, not animated: feTurbulence has a fixed seed and nothing re-renders
+   it, so there is no motion here and prefers-reduced-motion needs no rule. */
+@supports (backdrop-filter: url("#spine-lens")) {
+  .spine-card {
+    -webkit-backdrop-filter: blur(7px) saturate(1.25);
+            backdrop-filter: blur(7px) saturate(1.25) url("#spine-lens");
+  }
+}
+
+/* THE FALLBACK, and it is today's card exactly. Where backdrop-filter is not
+   available at all the glass layer would be lighting an opaque panel, which
+   reads as a sticker rather than as glass. Owner's call: do not invent a
+   degraded version, return to the surface that is already tuned. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .spine-card__glass { display: none; }
+  .spine-card:not(.side-left) { border-right-color: var(--card-border-lit); }
+  .spine-card.side-left       { border-left-color:  var(--card-border-lit); }
+}
+
+/* --------------------------------------------------------------------------
    HINT  (bottom-center, fades once the user has interacted)
    -------------------------------------------------------------------------- */
 .spine-hint {

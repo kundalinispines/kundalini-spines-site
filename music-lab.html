@@ -72,9 +72,16 @@
   --kick: 0; --snare: 0; --charge: 0;
 
   --rail-x:       54px;    /* the collapsed axis, measured from the left edge */
-  --rail-gutter:  194px;   /* where the Music panel starts. The six rail labels
-                              run x 78.8 -> 159.7 at --node-label-offset 30px,
-                              so this clears the longest of them by 34.3px. */
+  --rail-gutter:  282px;   /* where the Music panel starts. Sized to the
+                              LONGEST label, which is "02 PURCHASE RISE UP" --
+                              nearly twice the width of the six that were here
+                              before it (they ran x 78.8 -> 159.7 and cleared a
+                              194px gutter). The panel can afford it: the
+                              shortage in this layout is vertical, not
+                              horizontal, and the carousel's ink is 1180 wide
+                              inside the 1158 that is left, so it simply
+                              centres tighter. Verified against the measured
+                              label extent rather than estimated. */
   --collapse-ms:  520ms;   /* matches --ent-hand-ms in entrance-lab.html */
 }
 
@@ -179,8 +186,23 @@ html.is-music {
   --axis-shift: calc(-50vw + var(--rail-x));
   /* 180px was measured to push labels clear of the CENTRED spine's glow. On a
      54px rail it threw them to x 228.8-384.5, on top of panel ink starting at
-     194. CLOSE and INDEX do not need what THE MESSENGERS needed. */
-  --node-label-offset: 30px;
+     194. CLOSE and INDEX do not need what THE MESSENGERS needed.
+
+     50, not 30, and the 20px difference is not arbitrary. It was 30 while the
+     labels carried "01 " etc; the number plus its 6px margin measured 19.5px,
+     so the first letter sat 49.5px off the axis and the hover rule ran 41.5px
+     to reach it. Dropping the numbering would have collapsed the rule to
+     ~17px — the one thing about this rail the owner had explicitly signed off
+     ("just that amber line coming out"). Moving the offset by what the number
+     used to occupy leaves every word within half a pixel of where it already
+     was and the rule exactly as long.
+
+     55, not the 50 that arithmetic suggested. Measured after the change: at 50
+     the first letter landed at x=98.8 against 103.5 before, so the rule came
+     out 36.8px instead of 41.5 — the offset does not resolve from the axis but
+     from the node's own box, and the ~5px difference is that box. Corrected
+     against the measurement rather than the sum. */
+  --node-label-offset: 55px;
 }
 
 html.is-music .spine__anat  { width: 74px; opacity: 0; }
@@ -213,9 +235,66 @@ html.is-music .spine-node__label .kind { display: none; }
    wide centred on a dot at x=48.8, so roughly half of it hangs off the left
    of the viewport and the rest runs sideways INTO the label: a line coming
    out of the navigation with nowhere to go.
-   It is also redundant here. The reticle's job is to say which node you are
-   on, and in Music every label is visible at rest already. */
+   It is replaced by the one-sided rule below. */
 html.is-music .spine-node__reticle { display: none; }
+
+/* THE SEVENTH NODE. Cloned by js/music-wrap.js and parked outside Music, so
+   the navigator is still exactly the six destinations js/spine-ui.js owns. */
+.spine-node.is-music-only { display: none; }
+html.is-music .spine-node.is-music-only { display: block; }
+
+/* THE HOVER RULE — one-sided, and it points at the word.
+   Grows rightward from the dot and stops 8px short of the first letter, while
+   the number fades out as it arrives: the rule ends up occupying the space
+   the number held and aiming at the name. Nothing points left.
+
+   --rule-len is MEASURED per node by music-wrap.js, not derived here. It
+   depends on --node-label-offset, the number's rendered width and its 6px
+   margin, and "05" is not the same width as "01" in every face. Guessing it
+   in CSS would drift the first time any of those changed.
+
+   There is no number to fade any more — the rail is unnumbered, and
+   --node-label-offset absorbed the width the number used to hold so the rule
+   is the same length it was. Kept as an ordinary grow-on-hover. */
+html.is-music .spine-node::after {
+  content: ""; position: absolute; left: 50%; top: 50%;
+  width: 0; height: 1px;
+  background: linear-gradient(90deg,
+    rgba(var(--node-color), 0.15), rgba(var(--node-color), 0.85));
+  transform: translateY(-50%);
+  transition: width 200ms var(--ease-standard);
+  pointer-events: none;
+}
+html.is-music .spine-node:hover::after,
+html.is-music .spine-node:focus-visible::after,
+html.is-music .spine-node.is-prefocus::after { width: var(--rule-len, 0px); }
+
+/* THE GREY LINE UNDER THE AMBER ONE — the connector overlay, not the reticle.
+   js/spine-ui.js:133 calls preFocus() on mouseenter, which draws
+   `.conn-active.is-preview` in --connector-preview: a grey rule running from
+   the spine toward where that node's reading CARD would open. On the centred
+   axis it is the card's approach line. On the rail it is a grey stub pointing
+   at nothing, on whichever side data-side says -- left for 03/05/07, right for
+   01/04/06 -- with the amber hover rule sitting on top of it and not quite
+   covering it.
+
+   THE DIAGNOSIS CAME FROM THE ONE NODE THAT LOOKED RIGHT. 02 PURCHASE was
+   correct while its six neighbours were not, and the only thing special about
+   it is that its id is not in spine-ui.js's NODES table, so preFocus('purchase')
+   matches nothing and draws nothing. That is the whole difference.
+
+   There are no reading cards in Music -- every node is an action -- so the
+   overlay has no job here at all. Hidden wholesale rather than restyled: a
+   connector that draws to a card that cannot open is wrong at any colour.
+   .is-prefocus still lands on the node, so the label and the amber rule keep
+   their hover states. */
+html.is-music .spine-connectors { display: none; }
+
+/* Belt and braces: css/spine-ui.css styles .idx for the navigator's labels,
+   and nothing in Music emits one. If a future change reintroduces numbering
+   it should be a deliberate edit here, not something that reappears because a
+   template string grew a span back. */
+html.is-music .spine-node__label .idx { display: none; }
 
 /* The active-node treatment is a navigator idea -- one destination open, the
    rest receding. Every node here is a live control and dimming five of them

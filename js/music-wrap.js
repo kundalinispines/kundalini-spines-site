@@ -125,7 +125,32 @@
      follows, which is what makes the sky answer. */
   function jumpTo(i) {
     var card = row.querySelector('.track-card[data-i="' + i + '"]');
-    if (card) card.click();
+    if (!card) return;
+    /* Held across the whole stop-then-start the module performs when it swaps
+       samples, so the shuffle watcher above does not read our own outgoing
+       track as a completed one. Two frames is enough: the module stops and
+       starts inside the same click handler. */
+    jumping = true;
+    card.click();
+    /* KNOWN DEFECT, measured Aug 11 2026 and NOT fixed — see V2HANDOFF 25.
+       A synthetic card click changes the track but lands PAUSED. Two seconds
+       after the click the section has no is-playing class, the status reads
+       "Play Sample" and the button is enabled showing the play glyph, even
+       though track-experience.js:168-169 does `setFocus(idx, true);
+       playSample();` and clearly intends to play. Not the autoplay policy:
+       play() rejecting would set "Sample unavailable" (js:894-896). The
+       likeliest cause is ordering — the focus change rebuilds the panel and
+       wireSamplePlayer() hands it a FRESH Audio() element, so playSample()
+       acts before the element it needs exists.
+
+       A nudge was tried here (press the play button 140ms later, guarded on
+       is-playing) and it is deliberately NOT in the code: it produced a
+       DOUBLE advance under shuffle — 15 -> 25 -> 26 in one completion — and a
+       fix that introduces a second bug is not a fix. Diagnose the ordering
+       properly before trying again. */
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () { jumping = false; });
+    });
   }
 
   /* ------------------------------------------------------------------------
@@ -136,23 +161,91 @@
      copy is captured once at boot and restored verbatim on the way out. A
      morph, not a swap: a swap would read as a different component arriving.
      ------------------------------------------------------------------------ */
+  /* SEVEN entries against the navigator's six nodes. The seventh, `purchase`,
+     is created by this file and lives only in Music -- see makePurchaseNode.
+     Order is the owner's: Purchase sits at 02 and everything below moves down
+     one. */
   var ACTIONS = [
-    { id: 'music',    idx: '01', title: 'Close',  act: closeMusic },
-    { id: 'story',    idx: '02', title: 'Index',  act: toggleIndex },
-    { id: 'members',  idx: '03', title: 'Decode', act: toggleDecode },
-    { id: 'ethos',    idx: '04', title: 'Signal', act: randomTrack },
-    { id: 'archive',  idx: '05', title: 'Share',  act: shareTrack },
-    { id: 'timeline', idx: '06', title: 'Sky',    act: toggleSky }
+    { id: 'music',    title: 'Close',            act: closeMusic },
+    { id: 'purchase', title: 'Purchase Rise Up', act: purchase },
+    { id: 'story',    title: 'Index',            act: toggleIndex },
+    { id: 'members',  title: 'Decode',           act: toggleDecode },
+    { id: 'ethos',    title: 'Shuffle',          act: toggleShuffle },
+    { id: 'archive',  title: 'Share',            act: shareTrack },
+    { id: 'timeline', title: 'Sky',              act: toggleSky }
   ];
+  ACTIONS.forEach(function (a, i) { a.idx = ('0' + (i + 1)).slice(-2); });
 
-  var els = {}, navLabel = {}, navAria = {};
+  var els = {}, navLabel = {}, navAria = {}, navY = {}, navPing = {};
+
+  /* The seventh node. Cloned from a real one rather than hand-built, so it
+     inherits the reticle / ring / ping / dot structure and every CSS rule
+     that keys off it. Kept in the DOM and display:none'd outside Music --
+     removing and re-adding it would drop the ping animation's phase, which is
+     what keeps the node flashes synced to the rising comet. */
+  function makePurchaseNode() {
+    var seed = navbar.querySelector('.spine-node');
+    if (!seed) return null;
+    var el = seed.cloneNode(true);
+    el.dataset.id = 'purchase';
+    el.dataset.kind = 'immersive';
+    el.className = 'spine-node is-music-only';
+    el.tabIndex = -1;
+    el.removeAttribute('aria-expanded');
+    /* Inserted after node 01 so DOM order matches visual order, which is what
+       a screen reader reads and what Tab follows. */
+    seed.parentNode.insertBefore(el, seed.nextSibling);
+    return el;
+  }
+
   ACTIONS.forEach(function (a) {
     var el = navbar.querySelector('.spine-node[data-id="' + a.id + '"]');
+    if (!el && a.id === 'purchase') el = makePurchaseNode();
     if (!el) return;
     els[a.id] = el;
     navLabel[a.id] = el.querySelector('.spine-node__label').innerHTML;
     navAria[a.id]  = el.getAttribute('aria-label');
+    navY[a.id]     = el.style.getPropertyValue('--y');
+    navPing[a.id]  = el.querySelector('.spine-node__ping').style.animationDelay;
   });
+
+  /* ------------------------------------------------------------------------
+     RE-LAYING OUT THE RAIL FOR SEVEN
+     The navigator's six sit at y = 14/29/44/59/74/88. Seven need the same
+     extent divided six ways: 14 -> 88 in steps of 12.333.
+
+     The ping delay is NOT decoration and cannot be left alone. css/spine-ui.css
+     drives a single upward energy pass over --spine-ui-energy-ms, and
+     js/spine-ui.js gives each node a NEGATIVE animation-delay so its flash
+     lands when the rising comet reaches it:  -(y-8)/84 * energyMs. Move a node
+     without recomputing that and its flash fires at the wrong height, which
+     reads as the string having come loose from the comet. Same formula,
+     restated here rather than imported because the module does not export it.
+     ------------------------------------------------------------------------ */
+  var energyMs = parseFloat(getComputedStyle(root).getPropertyValue('--spine-ui-energy-ms')) || 7000;
+  function pingDelay(y) {
+    var f = Math.max(0, Math.min(1, (y - 8) / 84));
+    return (-f * energyMs).toFixed(0) + 'ms';
+  }
+  function layoutRail() {
+    var n = ACTIONS.length, top = 14, bottom = 88;
+    var step = (bottom - top) / (n - 1);
+    ACTIONS.forEach(function (a, i) {
+      var el = els[a.id];
+      if (!el) return;
+      var y = top + step * i;
+      el.style.setProperty('--y', y.toFixed(2) + '%');
+      el.querySelector('.spine-node__ping').style.animationDelay = pingDelay(y);
+    });
+  }
+  function restoreRail() {
+    ACTIONS.forEach(function (a) {
+      var el = els[a.id];
+      if (!el) return;
+      if (navY[a.id]) el.style.setProperty('--y', navY[a.id]);
+      el.querySelector('.spine-node__ping').style.animationDelay = navPing[a.id] || '';
+    });
+  }
 
   function paintNodes() {
     ACTIONS.forEach(function (a) {
@@ -160,7 +253,19 @@
       if (!el) return;
       var label = el.querySelector('.spine-node__label');
       if (musicOn) {
-        label.innerHTML = '<span class="idx">' + a.idx + '</span>' + a.title.toUpperCase();
+        /* NO NUMBERING. The rail carried 01-07 for a while, mirroring the
+           navigator's own numbered destinations, and it was removed Aug 11
+           2026 on the owner's call: the navigator numbers a fixed set of
+           places you can go, which is a map; these are actions, and numbering
+           actions implies an order to perform them in that does not exist.
+           `idx` is still computed on ACTIONS above because it documents the
+           settled order and the verification reads it — it just never
+           reaches the DOM.
+
+           The word keeps its own span. The hover rule measures where the
+           first LETTER starts rather than deriving it from a font size and a
+           letter-spacing that would drift the moment either changed. */
+        label.innerHTML = '<span class="word">' + a.title.toUpperCase() + '</span>';
         el.setAttribute('aria-label', a.title);
       } else {
         label.innerHTML = navLabel[a.id];
@@ -171,8 +276,41 @@
         el.removeAttribute('aria-pressed');
       }
     });
+    if (musicOn) { layoutRail(); measureRuleLengths(); } else { restoreRail(); }
     syncToggleStates();
   }
+
+  /* ------------------------------------------------------------------------
+     THE HOVER RULE
+     On hover a line grows RIGHTWARD from the dot and stops just short of the
+     word's first letter, and the number fades out as it arrives — so the rule
+     ends up occupying the space the number held and pointing at the name.
+
+     Nothing points LEFT. The navigator's .spine-node__reticle is a crosshair
+     drawn symmetrically about the node, which on a rail 54px from the edge
+     put half its width off the viewport; it is hidden in Music and this
+     replaces it.
+
+     The length is MEASURED, not derived. --node-label-offset, the number's
+     width and its 6px margin all feed it, and "05" is not the same width as
+     "01" in every face. Re-measured on every morph and on resize.
+     ------------------------------------------------------------------------ */
+  function measureRuleLengths() {
+    if (!musicOn) return;
+    ACTIONS.forEach(function (a) {
+      var el = els[a.id];
+      if (!el) return;
+      var word = el.querySelector('.word');
+      if (!word) return;
+      var dot = el.getBoundingClientRect();
+      var w   = word.getBoundingClientRect();
+      /* From the node's centre to the first letter, less an 8px breathing gap
+         so the rule points at the word rather than touching it. */
+      var len = Math.max(0, (w.left - (dot.left + dot.width / 2)) - 8);
+      el.style.setProperty('--rule-len', len.toFixed(1) + 'px');
+    });
+  }
+  window.addEventListener('resize', measureRuleLengths);
 
   /* INDEX, DECODE and SKY are toggles and should say so to a screen reader.
      CLOSE, SIGNAL and SHARE are one-shot actions and must NOT carry
@@ -182,6 +320,7 @@
     if (!musicOn) return;
     if (els.story)    els.story.setAttribute('aria-pressed', String(root.classList.contains('is-index')));
     if (els.members)  els.members.setAttribute('aria-pressed', String(root.classList.contains('is-decode')));
+    if (els.ethos)    els.ethos.setAttribute('aria-pressed', String(shuffleOn));
     if (els.timeline) els.timeline.setAttribute('aria-pressed', String(!root.classList.contains('is-sky-off')));
   }
 
@@ -219,9 +358,32 @@
   /* Same interception for the keyboard. spine-ui.js's roving tabindex still
      moves focus along the string; only activation is ours. */
   navbar.addEventListener('keydown', function (e) {
-    if (e.key !== 'Enter' && e.key !== ' ') return;
     var btn = e.target.closest ? e.target.closest('.spine-node') : null;
-    if (btn) handleNode(e, btn);
+    if (!btn) return;
+    if (e.key === 'Enter' || e.key === ' ') { handleNode(e, btn); return; }
+
+    /* MUSIC OWNS ITS OWN ROVING, and it has to.
+       js/spine-ui.js:185-194 rolls the arrow keys over NODES[] -- its own six
+       -- and bails with `if (i === -1) return` for any id it does not know.
+       The seventh node's id is `purchase`, which is not in that table, so
+       landing on it would silently kill arrow navigation for the rest of the
+       string. Rather than teach the module about a node that only exists
+       inside Music, Music takes the whole job while it is open: same keys,
+       same wrap-around, same roving tabindex, over ACTIONS instead. */
+    if (!musicOn) return;
+    var order = ACTIONS.map(function (a) { return a.id; });
+    var i = order.indexOf(btn.dataset.id);
+    if (i === -1) return;
+    var next = null;
+    if (e.key === 'ArrowDown' || e.key === 'ArrowRight') next = order[(i + 1) % order.length];
+    else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') next = order[(i - 1 + order.length) % order.length];
+    else if (e.key === 'Home') next = order[0];
+    else if (e.key === 'End') next = order[order.length - 1];
+    if (!next) return;
+    e.stopPropagation();
+    e.preventDefault();
+    ACTIONS.forEach(function (a) { if (els[a.id]) els[a.id].tabIndex = -1; });
+    if (els[next]) { els[next].tabIndex = 0; els[next].focus(); }
   }, true);
 
   /* ------------------------------------------------------------------------
@@ -391,17 +553,117 @@
       (t.release ? '<span>Release<b>' + t.release + '</b></span>' : '');
   }
 
-  /* 04 SIGNAL — a real answer to 28 tracks behind +/-1 stepping. */
-  function randomTrack() {
-    if (tracks.length < 2) return;
+  /* 02 PURCHASE RISE UP
+     There is nothing to buy against yet: data/tracks.json's links.download is
+     null on all 28 tracks, and the "Download — $1" price in
+     track-experience.js:804 is hardcoded into a template string rather than
+     coming from the data. So this reports the same thing the hidden actions
+     note says, in the same words, rather than pretending at a checkout. */
+  function purchase() {
+    toast('Rise Up — purchase opens once payment is set up');
+  }
+
+  /* 05 SHUFFLE — shuffle PLAY, not a one-shot jump.
+     It replaced SIGNAL (which only jumped to a random track) because INDEX
+     already solves reaching any of the 28, which left SIGNAL a novelty. The
+     real gap this fills is that the player cannot run on its own at all:
+     track-experience.js:865's `ended` handler resets the fill bar and the
+     status text and stops there, and the 20s cap at js:863 does the same.
+     Nothing ever advances. With shuffle on, Music is something you can leave
+     playing. */
+  var shuffleOn = false;
+  function toggleShuffle() {
+    shuffleOn = !shuffleOn;
+    toast(shuffleOn ? 'Shuffle on — plays through at random' : 'Shuffle off');
+    syncToggleStates();
+  }
+  function randomOther() {
+    if (tracks.length < 2) return -1;
     var cur = currentIndex(), i = cur;
     while (i === cur) i = Math.floor(Math.random() * tracks.length);
-    jumpTo(i);
-    if (root.classList.contains('is-index')) {
-      root.classList.remove('is-index');
-      syncToggleStates();
-    }
+    return i;
   }
+
+  /* TELLING "IT FINISHED" FROM "YOU PAUSED IT", without touching the module.
+     Both end the same way -- .track-experience loses is-playing, the fill
+     resets to 0% and the status returns to "Play Sample" -- so the class alone
+     cannot distinguish them, and advancing on a deliberate pause would be
+     the worst possible behaviour. The one thing that does differ is how far
+     the bar got: a completed 20s sample is at ~100% the instant before it
+     resets, a pause is wherever you stopped. So the peak is sampled while
+     playing and read once playback stops.
+
+     Sampled on an interval rather than rAF, and only while audible: the
+     carousel deliberately runs NO idle rAF loop (measured Aug 11 2026 -- four
+     registrations in an entire session) and adding one to watch a progress
+     bar would undo that. */
+  var fillEl = section.querySelector('.track-sample-player__bar-fill');
+  var peak = 0, peakTimer = null, wasPlaying = false;
+
+  /* Set BEFORE the module's own handler runs (capture phase on the button), so
+     by the time is-playing flips, the reason is already known. Every
+     deliberate stop goes through this button -- including this file's own
+     autoplay()/stopSample(), which call .click() precisely so they are
+     indistinguishable from the user pressing it. */
+  var userToggled = false;
+  if (playBtn) playBtn.addEventListener('click', function () { userToggled = true; }, true);
+
+  /* Why the last stop was or was not treated as a completion. Exposed on
+     window.__music because this decision is invisible from the DOM — the whole
+     problem is that a pause and a finish look identical from outside. */
+  var lastStop = null;
+
+  /* jumpTo() dispatches a card click, and the module stops the outgoing sample
+     to start the incoming one -- so is-playing drops mid-jump with nobody
+     having pressed anything. Without this guard that reads as "finished" and
+     shuffle advances again, from inside its own advance. */
+  var jumping = false;
+
+  function watchFill(on) {
+    clearInterval(peakTimer);
+    if (!on) return;
+    peak = 0;
+    peakTimer = setInterval(function () {
+      var w = parseFloat(fillEl && fillEl.style.width) || 0;
+      if (w > peak) peak = w;
+    }, 200);
+  }
+
+  new MutationObserver(function () {
+    var playing = section.classList.contains('is-playing');
+    if (playing === wasPlaying) return;      /* class churn, not a transition */
+    wasPlaying = playing;
+    if (playing) { userToggled = false; watchFill(true); return; }
+
+    /* THREE SIGNALS, because no single one is trustworthy. A completed sample
+       and a deliberate pause end identically as far as the DOM is concerned:
+       is-playing drops, the fill resets to 0% and the status returns to
+       "Play Sample". Advancing on a pause would be the worst possible
+       behaviour, so:
+         - userToggled  : somebody pressed the button. Never a completion.
+         - jumping      : we caused this stop ourselves.
+         - peak         : how far the bar actually got.
+
+       The peak threshold is 70, not 95. It was 95 on the assumption that a
+       capped 20s sample ends at 100%, and it does not: the cap at
+       track-experience.js:863 only fires if the FILE is longer than
+       sampleDuration, and where the mp3 is shorter the audio simply `ended`
+       first -- at a fill of length/20, which for an 18s sample is 90% and for
+       a 15s one is 75%. Measured Aug 11 2026: shuffle silently never advanced
+       because of exactly this. 70 clears every real sample and still sits well
+       above a plausible early pause, and the two flags above are the real
+       discriminators anyway. */
+    var finished = !userToggled && !jumping && peak >= 70;
+    lastStop = { peak: peak, userToggled: userToggled, jumping: jumping,
+                 finished: finished, shuffleOn: shuffleOn, musicOn: musicOn,
+                 at: Math.round(performance.now()) };
+    watchFill(false);
+    userToggled = false;
+    if (musicOn && shuffleOn && finished) {
+      var i = randomOther();
+      if (i >= 0) jumpTo(i);
+    }
+  }).observe(section, { attributes: true, attributeFilter: ['class'] });
 
   /* 05 SHARE — a copy-link, not platform buttons. data/tracks.json's `links`
      object is 140 null cells; there is nothing to share TO yet. */
@@ -522,8 +784,11 @@
      the page itself. */
   window.__music = {
     open: openMusic, close: closeMusic,
-    index: toggleIndex, decode: toggleDecode,
-    signal: randomTrack, share: shareTrack, sky: toggleSky,
-    currentIndex: currentIndex, isOpen: function () { return musicOn; }
+    index: toggleIndex, decode: toggleDecode, purchase: purchase,
+    shuffle: toggleShuffle, share: shareTrack, sky: toggleSky,
+    currentIndex: currentIndex, isOpen: function () { return musicOn; },
+    isShuffling: function () { return shuffleOn; },
+    lastStop: function () { return lastStop; },
+    actions: ACTIONS
   };
 })();

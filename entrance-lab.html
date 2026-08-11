@@ -32,6 +32,27 @@
      put a seam in the one place the design cannot afford one.
      ========================================================================== -->
 
+<!-- THIS PAGE LINKED NO WEBFONT UNTIL Aug 10 2026, AND NOTHING SAID SO.
+
+     Measured: '800 56px "Big Shoulders Display"' rendered "KUNDALINI SPINES" at
+     536.79px here — byte-identical to a deliberately nonsense family — against
+     351.01px on shutter-lab.html, which does link Google Fonts. document.fonts
+     .size was 0. So every headline on this page was browser fallback, 53% wider
+     than the intended face, and document.fonts.check() answered TRUE throughout;
+     it is not a usable probe. Width against a nonsense family is.
+
+     It also means css/shutter-text.css's slat grid — derived from measured type
+     metrics, with its own comment warning that fallback metrics "misplace every
+     boundary, silently" — was being computed against the wrong face the entire
+     time the reveal was being judged.
+
+     Archivo is requested on BOTH axes: wdth 62 is its narrowest cut and the
+     reason it was chosen over Anton for the wordmark. Asking for wght alone
+     silently returns the normal width. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62,900&family=Teko:wght@600;700&family=Big+Shoulders+Display:wght@700;800&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+
 <!-- REAL identity + REAL atmosphere, reused unchanged. -->
 <link rel="stylesheet" href="css/tokens.css">
 <link rel="stylesheet" href="css/base.css">
@@ -39,6 +60,7 @@
 <link rel="stylesheet" href="css/spine-ui.css">
 <link rel="stylesheet" href="css/shutter-text.css">
 <link rel="stylesheet" href="css/text-scramble.css">
+<link rel="stylesheet" href="css/wordmark.css">
 
 <style>
 :root {
@@ -128,17 +150,32 @@ body { margin: 0; overflow: hidden; }   /* nothing on this page scrolls, ever */
 .ent__stack { display: grid; place-items: center; }
 .ent__stack > * { grid-area: 1 / 1; }
 
-/* KUNDALINI SPINES IS THE HEADLINE WHILE THE CLIP PLAYS — display scale, not
-   the small mono .label it inherits. The whole point of the sequence is that
-   the sentence is not on screen yet: it arrives, and it can only arrive if
-   there was something else there first. */
-.ent__stack .sh-eyebrow {
-  font-family: var(--font-display); font-weight: 800; font-size: var(--fs-h1);
-  line-height: var(--lh-heading); letter-spacing: var(--tracking-display);
-  text-transform: uppercase;
-  color: var(--color-bone);
-  white-space: nowrap;
-}
+/* KUNDALINI SPINES IS THE HEADLINE WHILE THE CLIP PLAYS. The whole point of the
+   sequence is that the sentence is not on screen yet: it arrives, and it can
+   only arrive if there was something else there first.
+
+   It is now the two-line lockup in css/wordmark.css — a compressed poster
+   gothic (Archivo 900 at width 62) with a registration rule between the lines
+   and a letterpress grain that doubles as its reveal. The single tracked-out
+   .sh-eyebrow line it replaced is gone.
+
+   THE LOCKUP IS NO LONGER IN .ent__stack, and that reverses an earlier
+   decision, so here is why. The stack existed to cross-fade the eyebrow and the
+   headline IN PLACE, one slot two occupants. That was right when both were
+   centred single-ish lines. It is not right now, because the two have different
+   constraints:
+
+     - the LOCKUP shares the screen with the messengers, who walk toward camera
+       for the clip's first ~4.2s with their heads in y 115..355 (sampled every
+       200ms at 1440x900). Centred, it lands across both faces. It has to sit
+       low.
+     - the HEADLINE arrives after the video has gone. There is nothing to clear,
+       and low would just be bottom-heavy over an empty star field.
+
+   So the lockup is absolutely positioned near the bottom by css/wordmark.css
+   and the stack keeps the headline alone. The cross-fade is still in place in
+   the sense that matters — the lockup fades out exactly as the headline fades
+   in — but they no longer occupy one cell. */
 
 /* THE HEADLINE DOES NOT EXIST UNTIL THE REVEAL.
 
@@ -260,6 +297,89 @@ body { margin: 0; overflow: hidden; }   /* nothing on this page scrolls, ever */
   .ent__video { transition-duration: 1ms; }
 }
 
+/* --------------------------------------------------------------------------
+   THE WORDMARK TUNE PANEL — only present with ?tune on the URL.
+
+   Same construction as spine-lab.html's panel, and for the same reason: the
+   position of the lockup depends on what is BEHIND it at any given moment, and
+   the thing behind it moves for 8.7 seconds. Three rounds of me picking a
+   number, capturing it and asking is slower and worse than one round of the
+   owner dragging it while scrubbing the clip underneath.
+
+   The video scrub is the field that makes the rest usable — position judged
+   against frame 0 alone is position judged against a sixth of the problem.
+
+   NOT accent-color, matching spine-lab.html: the track and thumb are rebuilt
+   below for a 1px bone hairline, and accent-color is dead CSS once
+   appearance:none is set. The other labs use accent-color precisely because
+   they DON'T rebuild the track.
+   -------------------------------------------------------------------------- */
+.wtune {
+  position: fixed; top: 0; right: 0; bottom: 0; z-index: 200;
+  width: 310px; max-width: 92vw;
+  display: flex; flex-direction: column;
+  background: rgba(8,9,12,0.92); border-left: 1px solid rgba(216,208,190,0.16);
+  backdrop-filter: blur(8px);
+  font-family: var(--font-mono); font-size: 11px; color: var(--text-secondary);
+  transition: transform 260ms var(--ease-standard);
+}
+.wtune.is-collapsed { transform: translateX(100%); }
+.wtune__head {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 12px 14px; border-bottom: 1px solid rgba(216,208,190,0.16); flex: 0 0 auto;
+  letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-primary);
+}
+.wtune__body { flex: 1 1 auto; overflow-y: auto; overscroll-behavior: contain; padding: 10px 14px 20px; }
+.wtune__foot {
+  flex: 0 0 auto; display: flex; gap: 6px; flex-wrap: wrap;
+  padding: 10px 14px; border-top: 1px solid rgba(216,208,190,0.16);
+  background: rgba(5,5,5,0.5);
+}
+.wtune-tab {
+  position: fixed; top: 50%; right: 0; z-index: 201; transform: translateY(-50%);
+  padding: 12px 7px; writing-mode: vertical-rl;
+  background: rgba(8,9,12,0.9); border: 1px solid rgba(216,208,190,0.22); border-right: 0;
+  color: var(--color-bone); font-family: var(--font-mono); font-size: 10px;
+  letter-spacing: 0.18em; text-transform: uppercase; cursor: pointer;
+  opacity: 0; pointer-events: none; transition: opacity 200ms var(--ease-standard);
+}
+.wtune-tab.is-shown { opacity: 1; pointer-events: auto; }
+
+.wfld { margin-bottom: 13px; }
+.wfld__top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.wfld__val { color: var(--text-primary); font-variant-numeric: tabular-nums; }
+.wfld.is-dirty .wfld__lab { color: rgb(240,165,92); }
+.wfld__tip { display: block; color: var(--color-gray-500); font-size: 10px; margin-top: 2px; line-height: 1.45; }
+.wfld input[type="range"] {
+  -webkit-appearance: none; appearance: none;
+  width: 100%; height: 14px; margin: 5px 0 0; background: transparent; cursor: ew-resize;
+}
+.wfld input[type="range"]::-webkit-slider-runnable-track { height: 1px; background: rgba(216,208,190,0.34); }
+.wfld input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none; margin-top: -5px;
+  width: 11px; height: 11px; border-radius: 50%; background: var(--color-bone); border: 0;
+}
+.wfld input[type="range"]:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 3px rgba(240,165,92,0.45); }
+.wtune-btn {
+  flex: 1 1 auto; padding: 7px 9px; cursor: pointer;
+  background: transparent; border: 1px solid rgba(216,208,190,0.34);
+  color: var(--text-secondary); font-family: inherit; font-size: 10px;
+  letter-spacing: 0.14em; text-transform: uppercase;
+}
+.wtune-btn:hover { color: var(--text-primary); border-color: var(--color-bone); }
+.wtune-out {
+  width: 100%; height: 120px; margin-top: 8px; display: none;
+  background: rgba(5,5,5,0.7); border: 1px solid rgba(216,208,190,0.24);
+  color: var(--text-secondary); font-family: inherit; font-size: 10px; line-height: 1.5;
+  padding: 7px; resize: vertical; white-space: pre;
+}
+.wtune-out.is-shown { display: block; }
+.wtune-sec {
+  margin: 16px 0 9px; padding-top: 12px; border-top: 1px solid rgba(216,208,190,0.12);
+  font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--color-bone);
+}
+.wtune-sec:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
+
 /* Phone: the headline is already handled by css/shutter-text.css (its grid is
    derived from measured type metrics, not fixed px). This is only about the
    furniture. */
@@ -303,19 +423,35 @@ body { margin: 0; overflow: hidden; }   /* nothing on this page scrolls, ever */
   </video>
   <div class="ent__scrim" aria-hidden="true"></div>
 
+  <!-- THE WORDMARK — outside .ent__copy entirely, because it is anchored to the
+       bottom of .ent rather than centred with the rest of the copy. See the
+       .ent__stack note above for why it left the shared cell.
+
+       .wm__inner is what js/shutter-text.js is handed as its eyebrow: the
+       driver writes element.style.transform directly to lift it 6px, and .wm
+       itself carries translateX(-50%) for centring, which that write would
+       destroy. The inner element owns no position, so the driver can have it.
+
+       The rule is aria-hidden — it is a registration mark, and the accessible
+       name should be the two words and nothing else. -->
+  <div class="wm" id="wordmark">
+    <span class="wm__inner">
+      <span class="wm__line"><span class="wm__ink">Kundalini</span></span>
+      <span class="wm__rule" aria-hidden="true">
+        <i class="wm__tick wm__tick--l"><i></i><i></i><i></i></i>
+        <span class="wm__reticle"><i></i></span>
+        <i class="wm__tick wm__tick--r"><i></i><i></i><i></i></i>
+      </span>
+      <span class="wm__line"><span class="wm__ink">Spines</span></span>
+    </span>
+  </div>
+
   <div class="ent__copy">
-    <!-- ONE SLOT, TWO OCCUPANTS. The eyebrow and the headline are stacked in
-         the same grid cell so the cross-fade happens IN PLACE — KUNDALINI
-         SPINES is the headline while the clip plays, and the reveal replaces it
-         where it stands rather than beside it.
-
-         Grid rather than absolute positioning because the shutter driver puts
-         its own transform on the eyebrow (the 6px lift) and on the slats; an
-         absolutely centred element would need translate(-50%,-50%) and the
-         driver would overwrite it. -->
+    <!-- The stack now holds the headline alone. It is kept rather than
+         flattened because the shutter driver still puts transforms on the
+         headline and its slats, and the grid cell is what gives those a stable
+         box to move inside. -->
     <div class="ent__stack">
-      <span class="label sh-eyebrow" id="eyebrow">Kundalini Spines</span>
-
       <!-- TWO LINES, TWO SHUTTERS — one grid across both would put a slat
            boundary through the interline gap. .sh-hold keeps it dark until the
            webfont has landed, because the slat grid is measured against the
@@ -391,6 +527,7 @@ body { margin: 0; overflow: hidden; }   /* nothing on this page scrolls, ever */
 <script src="js/spine-coil.js"></script>
 <script src="js/shutter-text.js"></script>
 <script src="js/text-scramble.js"></script>
+<script src="js/wordmark.js"></script>
 
 <script>
 /* ==========================================================================
@@ -413,6 +550,46 @@ body { margin: 0; overflow: hidden; }   /* nothing on this page scrolls, ever */
 
   var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   var settled = false, handed = false;
+
+  /* HOW THE WORDMARK ARRIVES — the owner's choice, Aug 10 2026: 'cut'.
+
+       'cut'      not on screen at all while the messengers are walking, then
+                  simply THERE on the frame the clip cuts away from them. No
+                  fade, no development — the film's own edit is the reveal.
+       'develop'  the ink-development built into js/wordmark.js. Implemented in
+                  full and not chosen; it stays because it costs nothing to keep.
+       'none'     inked from the first frame.
+
+     Why 'cut' won: it is a single gesture that takes no time at all, and the
+     entrance already spends a shutter reveal and a scramble decode in the four
+     seconds AFTER this. A slow arrival here would have been the third. */
+  var WM_ARRIVAL = 'cut';
+
+  /* THE CUT, MEASURED — not estimated, and not a round number by accident.
+
+     The clip runs at 24.000fps (frame duration 0.04167s, read off
+     requestVideoFrameCallback's own mediaTime deltas). Scanning 4.10..4.25 at
+     0.01s, the frames at 4.14 / 4.15 / 4.16 are PIXEL-IDENTICAL and 4.17 jumps
+     by 37.4 mean levels — the messengers are gone and the lattice fills the
+     frame. So frame 99 spans 4.1250..4.1667 and frame 100 begins at 4.1667
+     exactly: 100/24.
+
+     Written as the fraction rather than 4.1667 so it stays exact, and so it is
+     obvious what it means if the clip is ever recut or re-encoded. */
+  var WM_CUT_AT = 100 / 24;
+  var cutArmed = true;
+
+  /* TUNING HOLD. Set once the ?tune panel exists, and it suppresses every
+     automatic settle for the rest of the session — the 1400ms paused-video
+     watchdog, the 'ended' handler, and skip().
+
+     It exists because tuning is incompatible with the sequence running itself.
+     Pausing the clip to look at the lockup is precisely the condition the
+     watchdog treats as "autoplay was refused", so it settles, fades the video
+     out and reveals star-bg.css behind it — and because the clip's closing
+     nebula and the star field are near-identical by design, that looks like the
+     video is still there while showing the wrong layer entirely. */
+  var tuneHold = false;
 
   /* ---- the seek guard.
 
@@ -453,6 +630,7 @@ body { margin: 0; overflow: hidden; }   /* nothing on this page scrolls, ever */
      frame, so the picture on screen is mid-clip rather than the nebula and
      lingering on it only advertises the jump. */
   function settle(cut) {
+    if (tuneHold) return;      /* the ?tune panel owns playback — see above */
     if (settled) return;
     settled = true;
     ent.classList.add(cut ? 'is-cut' : 'is-settled');
@@ -492,6 +670,14 @@ body { margin: 0; overflow: hidden; }   /* nothing on this page scrolls, ever */
      star field already, the two routes look almost identical anyway. */
   function skip() {
     if (settled) return;
+
+    /* DISARM THE CUT. Skip seeks to the last frame, which is well past
+       WM_CUT_AT, so the next presented frame would satisfy the cue and the
+       lockup would snap on — about 120ms before settle() hands over and the
+       shutter immediately fades it out again. A wordmark that appears for an
+       eighth of a second on its way out is worse than one that never appears,
+       and the reader who pressed skip has said they do not want this beat. */
+    cutArmed = false;
     if (canSeek(video) && isFinite(video.duration)) {
       video.currentTime = Math.max(0, video.duration - 0.05);
       // 'ended' does not reliably fire from a seek to the very end
@@ -541,8 +727,84 @@ body { margin: 0; overflow: hidden; }   /* nothing on this page scrolls, ever */
 
   enter.addEventListener('click', hand);
 
-  /* ---- the reveal itself. Mounted now, played at settle. */
-  var shutter = ShutterText.mount(title, { eyebrow: document.getElementById('eyebrow') });
+  /* ---- the wordmark. Mounted now; it holds itself invisible until the webfont
+     has landed, because it justifies the two lines from measured widths and
+     fallback metrics would silently justify it to the wrong numbers.
+
+     It plays when the clip does, NOT on DOM ready: the development is scored to
+     the footage. The messengers walk toward camera through the first ~4.2s, and
+     the ink consolidating over that stretch is the wordmark arriving with them.
+     By the time the clip cuts to the lattice at ~4.5s the lockup is solid and
+     simply holds until settle. */
+  var wordmark = Wordmark.mount(document.getElementById('wordmark'), {
+    family: 'Archivo', weight: 900,
+    stage: ent,
+    /* THE TUNER ALWAYS SHOWS IT, and that is not a shortcut. Under 'cut' the
+       lockup does not exist for the clip's first 4.17 seconds, and a lockup
+       that is not on screen cannot be positioned. Placement and timing are
+       separate jobs; the panel owns the first, a reload without ?tune shows
+       the second.
+
+       Reduced motion also gets it immediately. A hard cut is not really motion,
+       but arriving from nothing is still an event, and the setting asks for
+       fewer of those. */
+    onready: function (wm) {
+      if (tuneHold || reduce || WM_ARRIVAL === 'none') { wm.settle(); return; }
+      if (WM_ARRIVAL === 'develop') { wm.play(); return; }
+      armCut();
+    }
+  });
+
+  /* ---- the cut cue.
+
+     requestVideoFrameCallback, NOT timeupdate. timeupdate fires about four
+     times a second, so it can be up to 250ms — SIX FRAMES at 24fps — late, and
+     a cut that lands six frames after the edit is not a cut, it is a mistake
+     that looks like a bug. rVFC hands back the mediaTime of the frame actually
+     being presented, which is precisely the quantity WM_CUT_AT is defined
+     against, so the lockup and the new shot appear on the same paint.
+
+     The timeupdate path below is a real fallback for browsers without rVFC, and
+     it is knowingly less accurate. It is still much better than nothing: being
+     a few frames late is survivable, never arriving is not. */
+  function armCut() {
+    if (!cutArmed) { return; }
+
+    if (typeof video.requestVideoFrameCallback === 'function') {
+      var step = function (now, meta) {
+        if (!cutArmed) { return; }
+        if (meta.mediaTime >= WM_CUT_AT - 0.001) { fireCut(); return; }
+        video.requestVideoFrameCallback(step);
+      };
+      video.requestVideoFrameCallback(step);
+      return;
+    }
+
+    var onTime = function () {
+      if (!cutArmed) { video.removeEventListener('timeupdate', onTime); return; }
+      if (video.currentTime >= WM_CUT_AT) {
+        video.removeEventListener('timeupdate', onTime);
+        fireCut();
+      }
+    };
+    video.addEventListener('timeupdate', onTime);
+  }
+
+  /* settle(), not play(): the module's settle is the instant, transition-free
+     jump to the inked state. play() would run the development. */
+  function fireCut() {
+    if (!cutArmed) { return; }
+    cutArmed = false;
+    wordmark.settle();
+  }
+
+  /* ---- the reveal itself. Mounted now, played at settle.
+
+     The shutter's eyebrow is .wm__inner, not .wm. The driver writes
+     element.style.transform to lift the outgoing eyebrow 6px, and .wm carries
+     translateX(-50%) for its own centring — hand it .wm and the lockup jumps
+     half its own width sideways on the first frame of the cross-fade. */
+  var shutter = ShutterText.mount(title, { eyebrow: document.querySelector('.wm__inner') });
 
   /* ---- the door's label. Mounted now so the slot grid is measured while the
      button is laid out but still invisible; played at openDoor. Mounting is
@@ -550,11 +812,302 @@ body { margin: 0; overflow: hidden; }   /* nothing on this page scrolls, ever */
      would visibly resize the moment the first decode ran. */
   var scramble = window.TextScramble ? TextScramble.mount(enter) : null;
 
+  /* ======================================================================
+     THE WORDMARK TUNE PANEL.  ?tune on the URL, nothing otherwise.
+
+     Every field writes a custom property on #wordmark and re-runs layout().
+     COPY VALUES emits a paste-ready :root block for css/wordmark.css, so the
+     numbers reach the stylesheet as the owner set them rather than as I
+     transcribed them.
+
+     THE VIDEO SCRUB SUPPRESSES THE WATCHDOG, and that is not optional.
+     entrance-lab.html settles itself 1400ms in if the video is paused, which
+     fades the clip out and reveals star-bg.css behind it. Since the clip's
+     closing nebula and the star field are near-identical by design, the result
+     is a scrub that appears to work while actually showing the wrong layer —
+     it cost a whole measurement pass earlier today before it was spotted.
+     ====================================================================== */
+  if (/[?&]tune\b/.test(location.search)) { buildTunePanel(); }
+
+  function buildTunePanel() {
+    tuneHold = true;               /* nothing auto-settles from here on */
+    var wmEl = document.getElementById('wordmark');
+
+    /* [prop, label, min, max, step, unit, default, tip] */
+    /* Defaults MUST match css/wordmark.css. They are the owner's settled values
+       as of Aug 10 2026 — a panel default that disagrees with the stylesheet
+       turns RESET from a revert into a silent edit. */
+    var FIELDS = [
+      ['--wm-bottom',  'vertical',    0,   46,  0.5, '%',  34.5,
+       'Distance up from the bottom edge. The messengers’ heads occupy y 115-355 at 1440x900 for the clip’s first 4.17s, so this is about as low as the lockup can sit before it crosses faces.'],
+      ['--wm-shift',   'horizontal',  -320, 320, 1,  'px', 0,
+       'Nudge off centre. 0 is centred on the spine. NOTE: this panel sits OVER ' +
+       'the stage, so at 0 the lockup looks pushed right while the panel is open — ' +
+       'hit HIDE before judging horizontal, or you will dial in a shift that is ' +
+       'really just the panel’s width.'],
+      ['--wm-measure', 'width',       0.28, 0.95, 0.005, '', 0.585,
+       'Fraction of the stage the LONG line spans. Type size follows from this — the lockup is sized so KUNDALINI fills the measure, never stretched to it.'],
+      ['--wm-track',   'tracking',   -0.09, 0.10, 0.002, 'em', 0.046,
+       'Letter-spacing. NEGATIVE is what matches the reference — its letters ' +
+       'nearly touch, which is what lets the type be set big enough to read as a ' +
+       'heavy slab. Tightening also sizes the lockup UP, because the measure is ' +
+       'fixed and the type grows to fill it.'],
+      ['--wm-gap',     'line gap',    0,   0.5, 0.005, 'em', 0,
+       'Air above and below the registration rule.'],
+      ['--wm-rule-on', 'rule',        0,   1,   1,   '',  1,
+       'The hairline, ticks and reticle between the words. 0 removes them.'],
+      /* 180 matches css/wordmark.css. A panel default that disagrees with the
+         stylesheet makes RESET a silent edit rather than a revert. */
+      ['--wm-grain-to','grain scale', 60,  900, 5,   'px', 180,
+       'Size of the letterpress tile lifted from your reference. 180px matches ' +
+       'the reference’s own texture-to-cap ratio; bigger reads as damage, smaller ' +
+       'closes up into flat noise.'],
+      ['--wm-grain-floor','grain opacity', 0, 1, 0.01, '', 0.25,
+       'How opaque the BLACK marks in the type are. 0 = fully transparent, so the ' +
+       'footage shows through every speck and the grain changes as the clip moves ' +
+       'behind it — watch it across the whole opening, it looks very different over ' +
+       'the messengers than over the nebula. 1 = fully inked, no breakup at all. ' +
+       'This raises the mask floor rather than fading the element, so the letterforms ' +
+       'themselves never lose density.']
+    ];
+
+    var panel = document.createElement('aside');
+    panel.className = 'wtune';
+    panel.innerHTML =
+      '<div class="wtune__head"><span>Wordmark</span>' +
+        '<button type="button" class="wtune-btn" data-hide style="flex:0 0 auto">hide</button></div>' +
+      '<div class="wtune__body">' +
+        '<div class="wtune-sec">Face</div><div data-face></div>' +
+        '<div class="wtune-sec">Placement</div><div data-fields></div>' +
+        '<div class="wtune-sec">Clip</div><div data-clip></div></div>' +
+      '<div class="wtune__foot">' +
+        '<button type="button" class="wtune-btn" data-reset>reset</button>' +
+        '<button type="button" class="wtune-btn" data-copy>copy values</button>' +
+        '<textarea class="wtune-out" data-out readonly></textarea></div>';
+    document.body.appendChild(panel);
+
+    var tab = document.createElement('button');
+    tab.type = 'button'; tab.className = 'wtune-tab'; tab.textContent = 'Wordmark';
+    document.body.appendChild(tab);
+
+    var host = panel.querySelector('[data-fields]');
+    var out  = panel.querySelector('[data-out]');
+    var live = {};
+
+    /* ---- the face.
+       Teko is here because the owner's reference turned out to BE Teko Bold —
+       the filename said so — and it was not in the specimen sheet the first
+       choice was made from. Archivo 900/62 is what that sheet produced.
+       font-stretch is per-face and load-bearing: Archivo's compressed cut is
+       selected by the 62% descriptor and falls back silently without it, while
+       Teko has no width axis and must ask for 100%. */
+    var FACES = {
+      archivo: ['"Archivo", "Arial Narrow", sans-serif', '900', '62%',  '"wdth" 62'],
+      teko:    ['"Teko", "Arial Narrow", sans-serif',    '700', '100%', 'normal']
+    };
+    var faceWrap = document.createElement('div');
+    faceWrap.className = 'wfld';
+    faceWrap.innerHTML =
+      '<div class="wfld__top"><span class="wfld__lab">typeface</span></div>' +
+      '<select style="width:100%;margin-top:5px;background:rgba(5,5,5,0.7);' +
+      'border:1px solid rgba(216,208,190,0.28);color:var(--text-primary);' +
+      'font-family:inherit;font-size:11px;padding:5px">' +
+      '<option value="archivo">Archivo 900 / width 62</option>' +
+      '<option value="teko">Teko Bold 700 — the reference’s own face</option>' +
+      '</select>' +
+      '<span class="wfld__tip">Teko is what the reference image was set in. ' +
+      'Switching re-runs the justification, so the size and scaleX both change.</span>';
+    panel.querySelector('[data-face]').appendChild(faceWrap);
+
+    var faceSel = faceWrap.querySelector('select');
+    faceSel.addEventListener('change', function () {
+      var f = FACES[faceSel.value];
+      wmEl.style.setProperty('--wm-font', f[0]);
+      wmEl.style.setProperty('--wm-weight', f[1]);
+      wmEl.style.setProperty('--wm-stretch', f[2]);
+      wmEl.querySelector('.wm__inner').style.fontVariationSettings = f[3];
+      live['--wm-font'] = f[0];
+      live['--wm-weight'] = f[1];
+      live['--wm-stretch'] = f[2];
+      wordmark.layout();
+    });
+
+    FIELDS.forEach(function (f) {
+      var prop = f[0], lab = f[1], min = f[2], max = f[3], step = f[4],
+          unit = f[5], def = f[6], tip = f[7];
+      var wrap = document.createElement('div');
+      wrap.className = 'wfld';
+      wrap.innerHTML =
+        '<div class="wfld__top"><span class="wfld__lab">' + lab + '</span>' +
+        '<span class="wfld__val"></span></div>' +
+        '<input type="range" min="' + min + '" max="' + max + '" step="' + step + '">' +
+        '<span class="wfld__tip">' + tip + '</span>';
+      var input = wrap.querySelector('input');
+      var val   = wrap.querySelector('.wfld__val');
+      input.value = def;
+
+      function apply() {
+        var v = parseFloat(input.value);
+        live[prop] = v + unit;
+        wmEl.style.setProperty(prop, v + unit);
+        val.textContent = v + unit;
+        wrap.classList.toggle('is-dirty', v !== def);
+        /* width and gap change the box, so the justification has to be redone —
+           the scale factors are ratios of MEASURED widths, not of the settings */
+        wordmark.layout();
+      }
+      input.addEventListener('input', apply);
+      wrap.querySelector('.wfld__val').textContent = def + unit;
+      host.appendChild(wrap);
+      f.push(input, apply, wrap);
+      apply();
+    });
+
+    /* ---- the clip scrub. */
+    var clipWrap = document.createElement('div');
+    clipWrap.className = 'wfld';
+    clipWrap.innerHTML =
+      '<div class="wfld__top"><span class="wfld__lab">time</span>' +
+      '<span class="wfld__val">live</span></div>' +
+      '<input type="range" min="0" max="8.76" step="0.02" value="0">' +
+      '<span class="wfld__tip">Scrub the clip and judge the lockup against any frame. ' +
+      'Messengers 0.00-4.17s, lattice 4.17-7s, nebula 7s to the end 8.77s. The cut ' +
+      'out of the messengers is on frame 100, t=4.1667 (the clip is 24.00fps). ' +
+      'Scrubbing pauses; use play below to resume.</span>';
+    panel.querySelector('[data-clip]').appendChild(clipWrap);
+
+    var clip = clipWrap.querySelector('input');
+    var clipVal = clipWrap.querySelector('.wfld__val');
+
+    /* Undo anything a settle managed to apply before the panel took over, and
+       put the video back on screen. Called before every transport action. */
+    function reclaim() {
+      ent.classList.remove('is-settled', 'is-cut');
+      video.classList.remove('is-dropped');
+      video.style.opacity = '1';
+    }
+
+    function showTime() {
+      clipVal.textContent = video.paused
+        ? video.currentTime.toFixed(2) + 's  paused'
+        : video.currentTime.toFixed(2) + 's';
+    }
+
+    clip.addEventListener('input', function () {
+      reclaim();
+      try { video.pause(); } catch (e) {}
+      if (canSeek(video)) {
+        video.currentTime = parseFloat(clip.value);
+        showTime();
+      } else {
+        clipVal.textContent = 'NO RANGE — server has no 206';
+      }
+      syncTransport();
+    });
+
+    /* ---- transport: pause/play and restart.
+
+       The scrub used to set the sequence's own `settled` flag to disarm the
+       watchdog. That worked but it was a lie — it told the rest of the page the
+       entrance had finished when it had not, so anything later keying off
+       `settled` would have read the wrong state. tuneHold says what is actually
+       true: the tuner has taken the wheel. */
+    var trans = document.createElement('div');
+    trans.className = 'wfld';
+    trans.innerHTML =
+      '<div style="display:flex;gap:6px;margin-top:2px">' +
+      '<button type="button" class="wtune-btn" data-play style="flex:2 1 auto"></button>' +
+      '<button type="button" class="wtune-btn" data-restart style="flex:1 1 auto">restart</button>' +
+      '</div>' +
+      '<span class="wfld__tip">The sequence will NOT settle or hand off to the ' +
+      'navigator while this panel is open — it holds on the last frame instead, ' +
+      'so the lockup stays put while you work. Reload without ?tune to see the ' +
+      'whole thing run.</span>';
+    panel.querySelector('[data-clip]').appendChild(trans);
+
+    var playBtn = trans.querySelector('[data-play]');
+
+    function syncTransport() {
+      playBtn.textContent = video.paused ? '▶  play' : '‖  pause';
+      showTime();
+    }
+
+    playBtn.addEventListener('click', function () {
+      reclaim();
+      if (video.paused) {
+        /* holding on the very last frame: rewind rather than refuse, otherwise
+           the button looks broken at the end of the clip */
+        if (video.currentTime >= video.duration - 0.05 && canSeek(video)) {
+          video.currentTime = 0;
+        }
+        var pr = video.play();
+        if (pr && pr.catch) { pr.catch(function () {}); }
+      } else {
+        video.pause();
+      }
+      syncTransport();
+    });
+
+    trans.querySelector('[data-restart]').addEventListener('click', function () {
+      reclaim();
+      if (canSeek(video)) { video.currentTime = 0; }
+      video.pause();
+      clip.value = 0;
+      syncTransport();
+    });
+
+    /* Keep the slider and the label honest while it plays, without a rAF loop —
+       timeupdate is coarse (~4/sec) and that is plenty for a readout. */
+    video.addEventListener('timeupdate', function () {
+      if (!video.paused) { clip.value = video.currentTime; }
+      showTime();
+    });
+    video.addEventListener('play', syncTransport);
+    video.addEventListener('pause', syncTransport);
+
+    /* Hold on the last frame instead of settling. */
+    video.addEventListener('ended', function () {
+      reclaim();
+      syncTransport();
+    });
+
+    syncTransport();
+
+    panel.querySelector('[data-reset]').addEventListener('click', function () {
+      FIELDS.forEach(function (f) { f[8].value = f[6]; f[9](); });
+      out.classList.remove('is-shown');
+    });
+
+    panel.querySelector('[data-copy]').addEventListener('click', function () {
+      var lines = [];
+      /* the face first, and only when it is not the authored default —
+         otherwise the pasted block silently re-states what is already there */
+      ['--wm-font', '--wm-weight', '--wm-stretch'].forEach(function (k) {
+        if (live[k]) { lines.push('  ' + k + ': ' + live[k] + ';'); }
+      });
+      FIELDS.forEach(function (f) {
+        lines.push('  ' + f[0] + ': ' + f[8].value + f[5] + ';');
+      });
+      out.value = '.wm {\n' + lines.join('\n') + '\n}';
+      out.classList.add('is-shown');
+      out.select();
+      try { document.execCommand('copy'); } catch (e) {}
+    });
+
+    function setOpen(open) {
+      panel.classList.toggle('is-collapsed', !open);
+      tab.classList.toggle('is-shown', !open);
+    }
+    panel.querySelector('[data-hide]').addEventListener('click', function () { setOpen(false); });
+    tab.addEventListener('click', function () { setOpen(true); });
+  }
+
   /* ---- verification hook. The captures and the page take the same path — a
      lab where they differ is a lab that cannot be trusted. */
   window.__entrance = {
     settle: settle, skip: skip, hand: hand,
     shutter: shutter,
+    wordmark: wordmark,
     /* scramble-lab.html sets window.__scramble itself; the MODULE does not, so
        a consuming page has to expose its own instance or every seek() in a
        capture script silently no-ops against undefined and the frames come
@@ -568,7 +1121,10 @@ body { margin: 0; overflow: hidden; }   /* nothing on this page scrolls, ever */
         cls: ent.className,
         videoT: +video.currentTime.toFixed(3),
         seekable: video.seekable.length ? [video.seekable.start(0), +video.seekable.end(0).toFixed(3)] : [],
-        navOpacity: getComputedStyle(stage).opacity
+        navOpacity: getComputedStyle(stage).opacity,
+        wmFontLoaded: wordmark.fontLoaded,
+        wmMetrics: wordmark.metrics || null,
+        wmCls: document.getElementById('wordmark').className
       };
     }
   };

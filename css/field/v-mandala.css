@@ -1,0 +1,204 @@
+/* ==========================================================================
+   FIELD VARIANT — MANDALA                        (partner: js/field/v-mandala.js)
+
+   The JS owns the geometry; this file owns nothing but weight. Every rule is
+   scoped under html.v-mandala because five variants share one host page and an
+   unscoped selector here would quietly restyle the other four's SVG — they all
+   draw circles and lines into the same .field container.
+
+   HOW LOUD THIS IS, AND WHY
+   The restrained variants sit at 0.04-0.12. This one is roughly double at the
+   load-bearing lines — the read-me subset is 0.26 and the rim 0.30 — because
+   MANDALA is the reading that asks whether the composition wants to be a
+   DIAGRAM, and a diagram nobody can read has not tested anything. A figure at
+   0.08 does not fill the thirds; it just puts something faint in them, which
+   is what the other four already do better with type.
+
+   Where the restraint actually lives is the SPINE BAND. The figure is masked
+   down to 0.4 across a 500px lane on the axis (see SPINE_BAND in the JS), so
+   the densest part of the construction — centre circle, inner ring, all six
+   spoke crossings — never reaches full strength anywhere near the subject.
+   Loud in the thirds, quiet on the spine. If the owner's read is that it still
+   overpowers, take --m-frame and --m-rim down together and leave the rest;
+   dropping everything uniformly just makes it a worse version of PLATE.
+
+   ALL FIVE OPACITY KNOBS ARE ON .field, so a single block is the whole dial.
+   ========================================================================== */
+
+html.v-mandala .field {
+  /* the web is the full 78 chords; the frame is the thirty that make the cube
+     legible; they are separate numbers because their ratio IS the drawing */
+  --m-web:    0.085;
+  --m-circle: 0.16;
+  --m-frame:  0.26;
+  --m-rim:    0.30;
+  --m-chord:  0.09;   /* the seven horizontal chords — the least mandala-like
+                         mark in the figure and the first one to cut */
+  --m-node:   0.34;
+  --m-lit:    0.55;   /* amber: the centre circle and the marks on its row */
+  --m-tick:   0.62;
+  --m-num:    0.30;
+  --m-hz:     0.40;
+  --m-name:   0.20;
+
+  opacity: 1;
+  transition: opacity var(--motion-base) var(--ease-standard);
+}
+
+/* IT RECEDES, and the two cases are not the same case.
+
+   A reading card is a thing you look THROUGH the field at, so the field stays
+   present at 0.12 — enough that the diagram is still the room the card is in.
+   Music replaces the scene outright, so the field leaves entirely rather than
+   sitting under a cover at 0.12 and reading as dirt on the glass. */
+html.v-mandala.is-card  .field { opacity: 0.12; }
+html.v-mandala.is-music .field { opacity: 0; }
+
+html.v-mandala .field .mnd {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;   /* the rim runs past the foot of the stage by design;
+                          .spine-stage's own overflow:hidden is what clips it */
+}
+
+/* --------------------------------------------------------------------------
+   THE CONSTRUCTION
+   Hairlines throughout. The stroke widths matter more than the opacities for
+   whether this reads as engineering or as decoration: nothing here is thicker
+   than the navigator's own connector (--connector-w, 1.5px), so the field can
+   never out-weigh the line that carries meaning.
+   -------------------------------------------------------------------------- */
+html.v-mandala .mnd-web {
+  fill: none;
+  stroke: var(--color-bone);
+  stroke-width: 0.75px;
+  stroke-opacity: var(--m-web);
+}
+html.v-mandala .mnd-frame {
+  fill: none;
+  stroke: var(--color-bone);
+  stroke-width: 1px;
+  stroke-opacity: var(--m-frame);
+}
+html.v-mandala .mnd-circle {
+  fill: none;
+  stroke: var(--color-bone);
+  stroke-width: 1px;
+  stroke-opacity: var(--m-circle);
+}
+/* the centre circle is the only element in the figure that is amber, and it
+   earns it: it is centred on Anahata, which is the one exact coincidence
+   between the construction's rows and the seven heights (see COINCIDE in the
+   JS). Everything else in bone. */
+html.v-mandala .mnd-circle--lit {
+  stroke: rgba(var(--node-color), var(--m-lit));
+  stroke-opacity: 1;
+  stroke-width: 1.25px;
+}
+html.v-mandala .mnd-rim {
+  fill: none;
+  stroke: var(--color-bone);
+  stroke-width: 1.25px;
+  stroke-opacity: var(--m-rim);
+}
+html.v-mandala .mnd-chord {
+  fill: none;
+  stroke: var(--color-bone);
+  stroke-width: 1px;
+  stroke-opacity: var(--m-chord);
+}
+
+/* the thirteen centres */
+html.v-mandala .mnd-node {
+  fill: var(--color-bone);
+  fill-opacity: var(--m-node);
+}
+html.v-mandala .mnd-node--lit {
+  fill: rgba(var(--node-color), 0.85);
+  fill-opacity: 1;
+}
+html.v-mandala .mnd-node-idx {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: var(--tracking-label);
+  fill: rgba(var(--node-color), 0.7);
+}
+
+/* THE LENS — the figure re-stated inside a soft disc that follows the pointer.
+   0.45 rather than 1: this is meant to read as the diagram catching light, not
+   as a second diagram. It is the only reactive thing in the variant and it
+   costs two setAttribute calls per pointermove; there is no frame loop. */
+html.v-mandala .mnd-lens { opacity: 0.45; }
+
+/* --------------------------------------------------------------------------
+   THE REGISTER
+   Seven marks where the chakra heights cut the rim, and the type hung off
+   them. Unmasked — it sits out past the rim, clear of the spine lane.
+   -------------------------------------------------------------------------- */
+html.v-mandala .mnd-tick {
+  fill: rgba(var(--node-color), var(--m-tick));
+}
+
+/* The numeral is the biggest thing in the variant and still not large: at 34px
+   in a condensed display face it is roughly the height of the reading card's
+   title, which is the correct ceiling — the field may equal the foreground's
+   scale but must never exceed it. */
+html.v-mandala .mnd-num {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 34px;
+  letter-spacing: var(--tracking-display);
+  fill: var(--color-bone);
+  fill-opacity: var(--m-num);
+}
+html.v-mandala .mnd-hz {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: var(--tracking-label);
+  fill: var(--color-bone);
+  fill-opacity: var(--m-hz);
+}
+html.v-mandala .mnd-name {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: var(--tracking-label);
+  fill: var(--color-gray-400);
+  fill-opacity: 1;
+}
+
+/* --------------------------------------------------------------------------
+   REDUCED MOTION
+   Nothing here animates — there is no rotation, deliberately (a mandala
+   turning under an open reading card is read as the paragraph drifting). The
+   only driven movement is the pointer lens, and it goes. The JS also declines
+   to bind the listener under this query, so this rule is the belt to its
+   braces rather than the only defence.
+   -------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  html.v-mandala .mnd-lens { display: none; }
+}
+
+/* --------------------------------------------------------------------------
+   NARROW
+   The register's horizontal position is derived from a circle intersection, so
+   it collapses toward the axis as the frame narrows — below about 900px the
+   crown and root labels would be sitting on the spine rather than beside it.
+   The type goes first and the figure goes quiet, in that order, because a
+   figure with no labels is still a figure and labels with no room are just a
+   collision.
+   -------------------------------------------------------------------------- */
+@media (max-width: 900px) {
+  html.v-mandala .mnd-register { display: none; }
+}
+@media (max-width: 760px) {
+  html.v-mandala .field {
+    --m-web:    0.05;
+    --m-circle: 0.10;
+    --m-frame:  0.14;
+    --m-rim:    0.16;
+    --m-chord:  0.05;
+    --m-node:   0.20;
+  }
+  html.v-mandala .mnd-lens { display: none; }
+}

@@ -1,0 +1,289 @@
+/* ==========================================================================
+   FIELD VARIANT — PLATE  (presentation)
+   Partner file: js/field/v-plate.js. Mounted into the host's
+   <div class="field" id="field"> and live only while <html> carries .v-plate.
+
+   EVERY RULE IN THIS FILE IS SCOPED UNDER html.v-plate. Five variants share
+   one host page and one container class; an unscoped `.pl-cb` here would paint
+   itself over whichever variant the owner is actually judging, and the
+   comparison would be quietly worthless. If a rule below ever needs to lose
+   its prefix, the answer is a different selector, not a shorter one.
+
+   THE READING: an anatomical plate. Specimen centred, key in the margins,
+   leader lines from the structure out to the caption. Registration brackets
+   at the four corners the way a plate is squared up on a copy stand. The
+   whole layer is drawn in one ink at a handful of alphas — a plate is
+   PRINTED, so it does not get to have a second colour for emphasis.
+
+   The one exception is the leader terminal, which is amber: that is the point
+   where the caption touches the specimen, and amber is already the site's
+   word for "energy is here" (--node-color). It is the only place the field
+   and the navigator agree to use the same ink.
+   ========================================================================== */
+
+html.v-plate .field .pl,
+html.v-plate .field .pl * {
+  /* Belt and braces on top of the host's own pointer-events:none. This layer
+     sits under the nodes (z-index 1 vs 20) but it spans the full stage, and a
+     single element that forgets to opt out would swallow clicks across both
+     empty thirds — the exact failure that is hardest to spot by looking.
+     `*` rather than the wrapper alone because pointer-events is inherited but
+     an SVG child can re-assert its own; this closes that door. */
+  pointer-events: none;
+}
+
+html.v-plate .field {
+  /* --- the ink. --color-bone as an RGB triplet.
+     CSS gives no way to peel alpha off a hex token, and this layer is nothing
+     but one colour at eight alphas, so the triplet is the useful form. Keep
+     it in sync with --color-bone (#D8D0BE) in tokens.css by hand; there is no
+     mechanism that can do it for us. */
+  --pl-ink: 216, 208, 190;
+
+  /* --- the dials worth reaching for.
+     Authored blind (no browser was opened while this was written — another
+     process owned the machine's Chrome), so these are conservative first
+     guesses over a star field, not measured values. Expect to move the two
+     geometry alphas first. */
+  --pl-web-a:    0.075;  /* the 78 connecting lines of the cube */
+  --pl-ring-a:   0.045;  /* its 13 circles — lower, or the rings read as the
+                            subject and the cube reads as noise inside them */
+  --pl-lead-a:   0.14;   /* leader hairlines */
+  --pl-name-a:   0.46;   /* the transliterated name at rest */
+  --pl-meta-a:   0.28;   /* function + frequency at rest */
+  --pl-reg-a:    0.20;   /* corner brackets */
+
+  /* --- where the margins begin.
+     6vw rather than a fixed inset because the whole point of this variant is
+     that the callouts OCCUPY the empty thirds; a fixed inset pins them to the
+     edge on a wide screen and lets the third go empty again behind them. */
+  --pl-inset: clamp(20px, 5.5vw, 88px);
+  --pl-reg-inset: clamp(14px, 2vw, 28px);
+
+  /* --- where a leader stops.
+     It terminates on the SILHOUETTE of the wireframe, not at an arbitrary
+     distance, which is what makes it read as a plate leader rather than as a
+     rule that happens to point inward. --spine-anat-w is the wireframe's own
+     width token from css/spine-ui.css; the clamp is repeated only as a
+     fallback for a page that mounts the field without the navigator. */
+  --pl-gap: calc(var(--spine-anat-w, clamp(240px, 28vw, 380px)) / 2 + 10px);
+
+  /* --- the figure.
+     Extent is 250/256ths of the box, so this is very nearly the drawn size:
+     88vh tall at 900 puts the outer ring's edge ~63px from the top and bottom
+     of the stage, and 62vw caps it before it can reach the caption column. */
+  --pl-geo-size: min(88vh, 62vw);
+}
+
+html.v-plate .field .pl {
+  position: absolute; inset: 0;
+  opacity: 1;
+  transition: opacity var(--motion-base) var(--ease-standard);
+}
+
+/* IT RECEDES, IT DOES NOT LEAVE. With a reading card open the field drops to
+   a twelfth of its strength: still there under the glass, so the card reads
+   as sitting ON something, but nowhere near competing with body copy. Music
+   is the one state that gets it to zero — that wrap takes the whole viewport
+   and anything left underneath is just haze behind the covers. */
+html.v-plate.is-card  .field .pl { opacity: 0.12; }
+html.v-plate.is-music .field .pl { opacity: 0; }
+
+/* --------------------------------------------------------------------------
+   GEOMETRY — Metatron's cube, centred on the spine axis
+   The motif is not invented here: it is already in the entrance video and is
+   already named per-track in data/tracks.json as visualTheme.geometry. This
+   layer is where it becomes structural instead of incidental.
+   -------------------------------------------------------------------------- */
+html.v-plate .field .pl-geo {
+  position: absolute;
+  top: 50%; left: calc(50% + var(--axis-shift, 0px));
+  width: var(--pl-geo-size); height: var(--pl-geo-size);
+  transform: translate(-50%, -50%);
+  overflow: visible;
+  fill: none;
+}
+html.v-plate .field .pl-geo__web {
+  stroke: rgba(var(--pl-ink), var(--pl-web-a));
+  stroke-width: 1;
+  /* non-scaling-stroke because the viewBox is scaled up ~1.55x at 1440x900 —
+     without it a 1-unit stroke lands at 1.55px and the "faint substrate"
+     becomes a visible cage. Where it is unsupported the figure survives at
+     1.55px of a 0.075 alpha, which is degraded rather than broken. */
+  vector-effect: non-scaling-stroke;
+}
+html.v-plate .field .pl-geo__rings {
+  stroke: rgba(var(--pl-ink), var(--pl-ring-a));
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+/* --------------------------------------------------------------------------
+   REGISTRATION — the four corner brackets
+   A plate is squared up before it is shot. These say the frame is deliberate:
+   the composition ends HERE, and the emptiness inside the brackets is part of
+   the picture rather than the picture failing to reach the edge.
+   -------------------------------------------------------------------------- */
+html.v-plate .field .pl-reg {
+  position: absolute;
+  width: 30px; height: 30px;
+  border: 0 solid rgba(var(--pl-ink), var(--pl-reg-a));
+}
+html.v-plate .field .pl-reg--tl { top:    var(--pl-reg-inset); left:  var(--pl-reg-inset); border-top-width: 1px;    border-left-width: 1px;  }
+html.v-plate .field .pl-reg--tr { top:    var(--pl-reg-inset); right: var(--pl-reg-inset); border-top-width: 1px;    border-right-width: 1px; }
+html.v-plate .field .pl-reg--bl { bottom: var(--pl-reg-inset); left:  var(--pl-reg-inset); border-bottom-width: 1px; border-left-width: 1px;  }
+html.v-plate .field .pl-reg--br { bottom: var(--pl-reg-inset); right: var(--pl-reg-inset); border-bottom-width: 1px; border-right-width: 1px; }
+
+/* The plate caption, set vertically against the left edge.
+   IT IS ON THE EDGE ON PURPOSE, and the choice is defensive as much as it is
+   typographic. Every other resting place on this stage is spoken for:
+   spine-ui.css moves .spine-hint to bottom-left whenever axis markers exist,
+   the ?tune panel owns the right-hand side, and the top of a consuming page
+   is wherever its nav happens to be. A rotated line at x=22 mid-height
+   collides with none of them, and edge-set captions are native to the idiom
+   this variant is quoting anyway.
+
+   If it ever does collide with something on the host page, delete this rule
+   and the .pl-fig div in the JS — it is the one purely rhetorical element in
+   the variant and nothing else depends on it. */
+html.v-plate .field .pl-fig {
+  position: absolute;
+  left: 22px; top: 50%;
+  transform: translateY(-50%) rotate(180deg);
+  writing-mode: vertical-rl;
+  font-family: var(--font-mono); font-size: 9px;
+  letter-spacing: 0.22em; text-transform: uppercase;
+  white-space: nowrap;
+  color: rgba(var(--pl-ink), 0.22);
+}
+
+/* --------------------------------------------------------------------------
+   CALLOUTS — the key
+   One row per centre: [ caption ][ leader ][ terminal ], with the right-hand
+   rows reversed so the terminal always lands on the specimen side. The row
+   itself is a zero-decision flex line — the caption is a fixed column and the
+   leader takes whatever is left, so the leader length changes with viewport
+   width while the caption column stays a stable measure.
+   -------------------------------------------------------------------------- */
+html.v-plate .field .pl-callouts { position: absolute; inset: 0; }
+
+html.v-plate .field .pl-cb {
+  position: absolute;
+  top: var(--y);
+  transform: translateY(-50%);   /* --y is the CENTRE of the row, not its top */
+  display: flex; align-items: center; gap: 10px;
+}
+html.v-plate .field .pl-cb--l {
+  left: var(--pl-inset);
+  right: calc(50% - var(--axis-shift, 0px) + var(--pl-gap));
+  flex-direction: row;
+  text-align: right;             /* ragged edge outward, aligned to the leader */
+}
+html.v-plate .field .pl-cb--r {
+  left: calc(50% + var(--axis-shift, 0px) + var(--pl-gap));
+  right: var(--pl-inset);
+  flex-direction: row-reverse;
+  text-align: left;
+}
+
+html.v-plate .field .pl-cb__lab {
+  flex: 0 0 clamp(90px, 9vw, 132px);
+  display: block; line-height: 1.25;
+  transition: color var(--motion-base) var(--ease-standard);
+}
+html.v-plate .field .pl-cb__name {
+  display: block;
+  font-family: var(--font-mono); font-size: 11px;
+  letter-spacing: var(--tracking-label); text-transform: uppercase;
+  color: rgba(var(--pl-ink), var(--pl-name-a));
+  /* The same scrim .spine-node__label uses. The caption sits over a star
+     field and, at the widest sizes, over the outer ring of the cube; without
+     it a name can land on a bright star and lose a letter. */
+  text-shadow: 0 0 6px rgba(5,5,5,0.9), 0 1px 2px rgba(5,5,5,0.95);
+  transition: color var(--motion-base) var(--ease-standard);
+}
+html.v-plate .field .pl-cb__meta {
+  display: block; margin-top: 3px;
+  font-family: var(--font-mono); font-size: 9px;
+  letter-spacing: 0.16em; text-transform: uppercase;
+  color: rgba(var(--pl-ink), var(--pl-meta-a));
+  text-shadow: 0 0 6px rgba(5,5,5,0.9);
+  transition: color var(--motion-base) var(--ease-standard);
+}
+
+/* The leader. It fades out as it approaches the specimen rather than arriving
+   at full strength: the terminal dot is the thing that has to be seen where
+   the line meets the wireframe, and a hairline running at full alpha into a
+   glowing column just reads as a scratch on the plate. */
+html.v-plate .field .pl-cb__lead {
+  flex: 1 1 auto; height: 1px; min-width: 24px;
+  transition: background var(--motion-base) var(--ease-standard);
+}
+html.v-plate .field .pl-cb--l .pl-cb__lead {
+  background: linear-gradient(90deg,
+    rgba(var(--pl-ink), var(--pl-lead-a)) 0%,
+    rgba(var(--pl-ink), var(--pl-lead-a)) 72%,
+    rgba(var(--pl-ink), calc(var(--pl-lead-a) * 0.35)) 100%);
+}
+html.v-plate .field .pl-cb--r .pl-cb__lead {
+  background: linear-gradient(270deg,
+    rgba(var(--pl-ink), var(--pl-lead-a)) 0%,
+    rgba(var(--pl-ink), var(--pl-lead-a)) 72%,
+    rgba(var(--pl-ink), calc(var(--pl-lead-a) * 0.35)) 100%);
+}
+
+/* The terminal — where the caption touches the specimen. */
+html.v-plate .field .pl-cb__dot {
+  flex: 0 0 auto;
+  width: 4px; height: 4px; margin: 0 -2px;   /* negative margin so the dot's
+                                                CENTRE lands on --pl-gap, not
+                                                its inside edge */
+  border-radius: 50%;
+  background: rgba(var(--node-color), 0.42);
+  box-shadow: 0 0 5px rgba(var(--node-color), 0.28);
+  transition: background var(--motion-base) var(--ease-standard),
+              box-shadow var(--motion-base) var(--ease-standard);
+}
+
+/* ---- the pointer read.
+   The rest state is deliberately near the floor of legibility — a plate's key
+   is not meant to be read at a glance, it is meant to be there when you look
+   for it. Bringing the pointer to a centre's height raises that one row to a
+   proper reading contrast and lights its terminal. This is the ONLY reactive
+   behaviour in the variant, and it is a class toggle driven by pointermove;
+   there is no loop anywhere in this layer. */
+html.v-plate .field .pl-cb.is-near .pl-cb__name { color: rgba(242, 242, 238, 0.92); }
+html.v-plate .field .pl-cb.is-near .pl-cb__meta { color: rgba(var(--pl-ink), 0.55); }
+html.v-plate .field .pl-cb.is-near .pl-cb__dot {
+  background: rgba(var(--node-color), 0.95);
+  box-shadow: 0 0 10px rgba(var(--node-color), 0.6);
+}
+html.v-plate .field .pl-cb--l.is-near .pl-cb__lead {
+  background: linear-gradient(90deg,
+    rgba(var(--pl-ink), 0.34) 0%, rgba(var(--pl-ink), 0.34) 72%,
+    rgba(var(--pl-ink), 0.12) 100%);
+}
+html.v-plate .field .pl-cb--r.is-near .pl-cb__lead {
+  background: linear-gradient(270deg,
+    rgba(var(--pl-ink), 0.34) 0%, rgba(var(--pl-ink), 0.34) 72%,
+    rgba(var(--pl-ink), 0.12) 100%);
+}
+
+/* --------------------------------------------------------------------------
+   NARROW
+   The callouts are the first thing to go, and they go completely rather than
+   shrinking. Below ~900px the leader has no run left — the wireframe is
+   28vw wide, the caption column will not compress under about 90px, and what
+   survives is a caption jammed against a 20px stub, which reads as a mistake.
+   The geometry and the corner brackets stay: they never needed the margins.
+   -------------------------------------------------------------------------- */
+@media (max-width: 900px) {
+  html.v-plate .field .pl-callouts { display: none; }
+  html.v-plate .field .pl-fig { display: none; }
+  html.v-plate .field { --pl-geo-size: min(70vh, 92vw); }
+}
+
+/* prefers-reduced-motion needs no rule here. Nothing in this layer animates;
+   the only transitions are opacity and colour, and tokens.css already
+   collapses --motion-base to 0ms under the reduce query, which turns those
+   into instant swaps rather than something to suppress. */

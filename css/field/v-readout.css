@@ -1,0 +1,277 @@
+/* ==========================================================================
+   FIELD VARIANT — READOUT  (presentation)
+   Partner file: js/field/v-readout.js (content + the pointer lift). Six
+   variants share the .field container and only one is mounted at a time, so
+   EVERY rule in this file is scoped under html.v-readout. An unscoped rule
+   here does not just leak — it silently changes what the other five look
+   like, and the comparison they exist for stops being a comparison.
+
+   WHAT THIS IS
+     Four columns of instrument data in the outer thirds — two per side, an
+     outer panel and an inner ladder. The inner ladders are positioned at real
+     heights (the seven chakras on the left, the six node bearings on the
+     right) so they agree with the spine instead of merely flanking it.
+
+   THE RESTRAINT, WHICH IS THE ENTIRE RISK
+     Cockpit UI turns into a cliché the moment it is legible from across the
+     room. The whole panel therefore lives under ONE opacity envelope —
+     --ro-opacity, 0.18 — and every colour inside it is set at near-full alpha
+     so that the envelope is the honest, single lever. Turn the envelope down
+     and everything recedes together; nothing is secretly compensating.
+
+     Corollary worth stating, because it is counter-intuitive and someone will
+     undo it: hierarchy inside the panel is expressed as ALPHA OF A LIGHT
+     COLOUR, never as a darker colour. On this background --color-gray-400
+     under a 0.18 envelope resolves to about rgb(19,19,19) — indistinguishable
+     from the black behind it. Bone at a lower alpha stays bone.
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   THE ENVELOPE
+   -------------------------------------------------------------------------- */
+html.v-readout .field .ro {
+  /* 0.18. The brief asked for 0.10-0.20 and this sits at the top of it on
+     purpose: the panel is 9px mono over a star field that is not actually
+     black — the nebula lifts the local background in places — and below about
+     0.15 the columns stop reading as texture and start reading as smudges,
+     which is a worse failure than being slightly too present. If the eye goes
+     to the margins before it goes to the spine, this number is the fix, and it
+     is the only number that needs touching. */
+  --ro-opacity: 0.18;
+
+  position: absolute;
+  inset: 0;
+  pointer-events: none;          /* belt and braces — the host sets it too */
+  font-family: var(--font-mono);
+  font-size: 9px;
+  opacity: var(--ro-opacity);
+  transition: opacity var(--motion-base) var(--ease-standard);
+}
+
+/* A reading card is open: the panel is no longer even ambient context, it is
+   competition for a body of text. 0.10 rather than the ~0.12 in the brief —
+   at these levels 0.18 -> 0.12 is a 33% drop that simply does not read as
+   receding, and 0.10 is the smallest step that visibly yields. If it goes too
+   far, this is a one-token change. */
+html.v-readout.is-card .field .ro { --ro-opacity: 0.10; }
+
+/* Music takes the whole screen. Gone, not dimmed. */
+html.v-readout.is-music .field .ro { --ro-opacity: 0; }
+
+/* --------------------------------------------------------------------------
+   COLUMN GEOMETRY
+
+   Fixed px, not vw. The spine is clamp(240px, 28vw, 380px) centred, so at the
+   1440x900 target its column runs 530-910; the four panels below sit at
+   34-202, 214-370, 1070-1226 and 1238-1406, i.e. entirely inside the "outer
+   thirds" the brief drew and never closer than 160px to the wireframe.
+   Percentage widths would let the inner ladders walk into the spine as the
+   viewport narrows, which is exactly the failure the media queries at the
+   bottom of this file are there to prevent instead.
+
+   Columns are given both top AND bottom so each is a box of known height:
+   .ro-foot positions against that box, and content flows from the top.
+
+   KNOWN OCCLUSION, and deliberately not worked around here: spine-field-lab's
+   own variant switcher is position:fixed at 20,20 with min-width:190px and
+   seven buttons — call it x 20-212, y 20-356 — sitting at z-index 90 over a
+   field at z-index 1. That eats the top ~300px of column A (the station head,
+   ACQUISITION, HARMONICS) in the lab and only in the lab. Moving the column to
+   dodge it would be tuning production geometry to furniture that does not
+   ship, and every one of the six variants fills that same corner, so the fix
+   belongs to the host once rather than to six modules six times. Screenshot
+   with the switcher hidden or the panel moved, or column A will be judged on
+   half of itself.
+   -------------------------------------------------------------------------- */
+html.v-readout .field .ro-col {
+  position: absolute;
+  top: 6%;
+  bottom: 6%;
+}
+html.v-readout .field .ro-col--a { left: 34px;  width: 168px; }
+html.v-readout .field .ro-col--b { left: 214px; width: 156px; text-align: right; }
+html.v-readout .field .ro-col--c { right: 214px; width: 156px; }
+html.v-readout .field .ro-col--d { right: 34px;  width: 168px; }
+
+/* --------------------------------------------------------------------------
+   THE LINE — one 13px baseline, no exceptions
+
+   Fixed height rather than line-height alone, so a font that loads late (or
+   falls back to Courier New) cannot reflow the grid underneath the absolutely
+   positioned ladders. nowrap + hidden because this file was authored blind:
+   every string was budgeted against the column width by character advance,
+   and if one of them is a character or two long I would rather it clip
+   invisibly at the margin than wrap and break the rhythm of the whole panel.
+   -------------------------------------------------------------------------- */
+html.v-readout .field .ro-l {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  height: 13px;
+  line-height: 13px;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  overflow: hidden;
+}
+html.v-readout .field .ro-col--b .ro-l { justify-content: flex-end; }
+
+/* One blank line between blocks. A panel whose groups do not share the grid
+   stops reading as one instrument and starts reading as several stickers. */
+html.v-readout .field .ro-b + .ro-b { margin-top: 13px; }
+
+/* --------------------------------------------------------------------------
+   THE TIERS
+
+   Four levels, all of them alpha on a light colour (see the header note).
+   opacity lives on the LEAF SPAN in every case — never on the line — because
+   opacity multiplies down the tree and a mixed convention would put two lines
+   of the same tier at different effective alphas depending on their markup.
+
+   The second number in each calc is the pointer lift's range. Note that the
+   ranges are deliberately unequal and inverted against the base: the FAINTEST
+   tier has the LARGEST lift. Approaching the panel does not brighten it
+   uniformly, it flattens the hierarchy — what was hidden comes up the most.
+   That is the site's own headline behaving like a mechanism rather than a
+   slogan, and it is the reason this variant has reactivity at all.
+   -------------------------------------------------------------------------- */
+html.v-readout .field .ro-t,
+html.v-readout .field .ro-k,
+html.v-readout .field .ro-v {
+  color: var(--color-bone);
+  transition: opacity var(--motion-fast) var(--ease-standard);
+}
+
+/* plain single-span line (identifiers, the station name) */
+html.v-readout .field .ro-t { opacity: calc(0.80 + var(--lift, 0) * 0.20); }
+
+/* key / value pair — the value is the signal, so it sits above the key */
+html.v-readout .field .ro-k { opacity: calc(0.50 + var(--lift, 0) * 0.42); }
+html.v-readout .field .ro-v { opacity: calc(0.74 + var(--lift, 0) * 0.26); }
+
+/* the texture tier: log rows, the duration run, the thesis at the foot */
+html.v-readout .field .ro-l--dim .ro-t { opacity: calc(0.30 + var(--lift, 0) * 0.58); }
+
+/* Block headings. The only amber in the panel, and the only place the wider
+   label tracking is used — it is what separates a heading from its rows at a
+   size where weight and size cannot. rgb() not rgba(): --node-color is a bare
+   triplet, and the alpha is carried by opacity so the lift can move it. */
+html.v-readout .field .ro-l--h {
+  /* 18 border-box (13 line + 4 pad + 1 rule) + 8 margin = 26px, i.e. exactly
+     two grid rows. Everything in base.css is border-box, so the height here
+     includes the padding and the rule; a heading measured any other way puts
+     every block below it off the baseline by a few pixels, which at this size
+     is the difference between a panel and a pile. */
+  height: 18px;
+  padding-bottom: 4px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid rgba(var(--node-color), 0.26);
+  letter-spacing: var(--tracking-label);
+}
+html.v-readout .field .ro-l--h .ro-t {
+  color: rgb(var(--node-color));
+  opacity: calc(0.70 + var(--lift, 0) * 0.30);
+}
+
+/* --------------------------------------------------------------------------
+   THE LADDERS  (inner columns)
+
+   Each entry is two lines centred on its true height, so 963 Hz sits level
+   with the crown and node 06 sits level with node 06. translateY(-50%) on a
+   26px pair does that without the JS needing to know the line height.
+   -------------------------------------------------------------------------- */
+html.v-readout .field .ro-cal {
+  position: absolute;
+  transform: translateY(-50%);
+}
+html.v-readout .field .ro-col--b .ro-cal { right: 0; }
+html.v-readout .field .ro-col--c .ro-cal { left: 0; }
+
+/* The rail and the ticks are the instrument furniture that turns two stacks of
+   text into two scales. They are held very low on purpose — under the 0.18
+   envelope the rail resolves to roughly 3% white, i.e. barely a suggestion.
+
+   JUDGEMENT CALL, flagged for the comparison: a rail plus ticks is adjacent to
+   what GRATICULE is testing, and a tick pointing at a node is adjacent to what
+   PLATE is testing. The defence is that these are 8px stubs and a hairline,
+   never a line that spans the gap to the spine — the alignment is meant to be
+   felt, not drawn. If READOUT reads as a weak GRATICULE in the line-up, delete
+   these two rules first; the columns lose nothing but the correspondence goes
+   quiet, which is the intended trade.
+   -------------------------------------------------------------------------- */
+html.v-readout .field .ro-col--b::after,
+html.v-readout .field .ro-col--c::after {
+  content: '';
+  position: absolute;
+  top: 8%;
+  bottom: 6%;
+  width: 1px;
+  color: var(--color-bone);
+  background: currentColor;   /* currentColor + opacity is how a hex token gets
+                                 an alpha — there is no --color-bone triplet */
+  opacity: 0.16;
+}
+html.v-readout .field .ro-col--b::after { right: -6px; }
+html.v-readout .field .ro-col--c::after { left: -6px; }
+
+html.v-readout .field .ro-cal::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  width: 8px;
+  height: 1px;
+  color: rgb(var(--node-color));
+  background: currentColor;
+  opacity: calc(0.35 + var(--lift, 0) * 0.45);
+  transition: opacity var(--motion-fast) var(--ease-standard);
+}
+html.v-readout .field .ro-col--b .ro-cal::after { right: -14px; }
+html.v-readout .field .ro-col--c .ro-cal::after { left: -14px; }
+
+/* --------------------------------------------------------------------------
+   THE FEET
+
+   Anchored to the bottom of each outer column so the lower half of the margins
+   is not left empty — that emptiness is the complaint this whole exercise
+   exists to answer, and a panel that stops two thirds of the way down would
+   have answered only the top of it.
+
+   The left foot is held clear of the navigator's own hint line, which sits
+   bottom-left at var(--space-6) on any page carrying the end marker. Faint
+   decorative text landing on live instructional copy is a worse fault than a
+   gap, so the gap wins.
+   -------------------------------------------------------------------------- */
+html.v-readout .field .ro-foot {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 5%;
+}
+
+/* --------------------------------------------------------------------------
+   WHERE IT STOPS
+
+   The panel is a 1440x900 proposition. Rather than let it degrade by
+   squeezing — which for fixed-px columns means walking into the wireframe —
+   it drops in whole columns.
+
+   Inner ladders go first: they are the ones nearest the axis, and at 1180px
+   the spine's clamp has narrowed faster than the fixed 370px right edge of
+   column B, so they are the first thing that would collide.
+   -------------------------------------------------------------------------- */
+@media (max-width: 1180px) {
+  html.v-readout .field .ro-col--b,
+  html.v-readout .field .ro-col--c { display: none; }
+}
+
+/* Below this the outer pair has nowhere to be either, and a phone has no
+   pointer to reveal it with. The whole variant leaves. */
+@media (max-width: 900px) {
+  html.v-readout .field .ro { display: none; }
+}
+
+/* Short viewports: the columns are ~650px of content plus the feet, and on a
+   short window the flowed blocks would run into the anchored foot. The foot
+   is the expendable half of that collision. */
+@media (max-height: 840px) {
+  html.v-readout .field .ro-foot { display: none; }
+}

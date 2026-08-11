@@ -1,0 +1,269 @@
+/* ==========================================================================
+   FIELD VARIANT — HALO  (presentation)
+   Partner file: js/field/v-halo.js (structure + the approach reveal).
+
+   EVERY RULE IN THIS FILE IS SCOPED UNDER html.v-halo. Five variants share one
+   .field container and one host page; an unscoped rule here does not just style
+   the wrong thing, it silently contaminates the comparison the five exist to
+   settle. If a selector below ever loses its prefix, that is the bug.
+
+   THE RESTRAINT ARGUMENT, once, so a later pass does not undo it by halves:
+   this variant is the control. It fills the empty thirds with AIR AND RHYTHM
+   rather than with marks, to find out whether the composition wanted structure
+   or only company. Every temptation to add a tick, a rule, a bracket or a box
+   has already been considered and declined. Adding one turns HALO into a worse
+   copy of the variant next to it and the comparison learns nothing.
+   ========================================================================== */
+
+html.v-halo {
+  /* ---- The gutter: distance from the spine's axis to the inner edge of the
+     type. This is the single most load-bearing number in the variant.
+       - The anatomical wireframe is --spine-anat-w wide (380px at 1440), so
+         anything under 190px is ON the spine.
+       - .spine-node__label reveals on hover at --node-label-offset (180px) and
+         runs outward from there, so the type must clear that too.
+       - And it wants to sit roughly mid-third, not hard against the spine and
+         not hard against the frame, or "marginalia" becomes "a sidebar".
+     19vw lands at ~274px on a 1440 stage: clear of the labels by ~90px, with
+     roughly 280px of untouched air still outboard of the type. The air is the
+     design. Do not spend it. */
+  --halo-gutter: clamp(190px, 19vw, 300px);
+
+  /* ---- Rest and lit contrast for a chakra record. The gap between them IS the
+     "hidden in plain sight" idea: at rest the seven are present but below the
+     threshold of notice, and the hand that goes looking brings one up. Closing
+     the gap by raising --halo-rest is the first thing that will be suggested
+     and it is what kills the effect. */
+  --halo-rest: 0.42;
+  --halo-lit:  1;
+
+  /* ---- Substrate alphas. The brief's ceiling is 0.12 and these sit under it.
+     The substrate is the thing the composition should feel rather than read;
+     if you can describe its shape from across the room it is too strong. */
+  --halo-seed-a:  0.085;
+  --halo-bloom-a: 0.075;
+  --halo-ring-a:  0.06;
+  --halo-core-a:  0.13;
+}
+
+/* --------------------------------------------------------------------------
+   THE FIELD ITSELF
+
+   The host positions and layers .field; all this adds is the recede, and the
+   guarantee that the layer never eats a click no matter what lands in it later.
+   -------------------------------------------------------------------------- */
+html.v-halo .field {
+  pointer-events: none;
+  transition: opacity var(--motion-base) var(--ease-standard);
+}
+
+/* A reading card is the page's subject while it is open, and this variant is
+   typography — the one kind of field content that competes with prose. So it
+   goes further down than a purely graphic variant would need to. */
+html.v-halo.is-card .field { opacity: 0.12; }
+
+/* Music takes the whole surface. Nothing to negotiate: leave. */
+html.v-halo.is-music .field { opacity: 0; }
+
+html.v-halo .field .halo {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* --------------------------------------------------------------------------
+   GEOMETRY SUBSTRATE
+   A vesica / flower-of-life construction on the spine's axis. Curves only —
+   the straight-line Metatron construction belongs to a sibling variant and
+   duplicating it here would blur what each one is testing.
+   -------------------------------------------------------------------------- */
+html.v-halo .field .halo-geo {
+  position: absolute;
+  top: 0;
+  /* Full-size box SLID sideways by the axis token, rather than pinned to the
+     field: the rings then stay concentric with the spine when the ?tune panel
+     moves the axis. Everything in spine-ui.css that touches the axis reads
+     --axis-shift; this does too. Sized in percentages rather than left/right
+     insets because an inline <svg> with a viewBox carries an intrinsic ratio,
+     and auto sizing against over-constrained insets is exactly the kind of
+     thing that resolves differently in two engines. */
+  left: var(--axis-shift, 0px);
+  width: 100%;
+  height: 100%;
+
+  /* THE MASK IS WHAT MAKES THIS A SUBSTRATE INSTEAD OF A DIAGRAM.
+     It holds the construction out of the spine's own column — the centre is
+     erased entirely, so the circles read as arcs emerging from behind the
+     spine rather than as a wheel drawn over it — and it dissolves the outer
+     rings before they reach the frame, so nothing closes into a border.
+     The visible band, on a 1440x900 stage, runs from ~330px to ~560px from the
+     axis: precisely the empty third this variant was handed.
+     circle farthest-side keeps the falloff round; the default farthest-corner
+     ellipse would fade top and bottom sooner than the sides and the seven
+     records at 12% and 92% would lose their backdrop first.
+     The box is already slid onto the axis, so the mask centres at a plain 50%. */
+  -webkit-mask-image: radial-gradient(circle farthest-side at 50% 50%,
+      rgba(0,0,0,0) 0%, rgba(0,0,0,0) 18%, rgba(0,0,0,0.5) 30%,
+      #000 46%, #000 78%, rgba(0,0,0,0) 100%);
+          mask-image: radial-gradient(circle farthest-side at 50% 50%,
+      rgba(0,0,0,0) 0%, rgba(0,0,0,0) 18%, rgba(0,0,0,0.5) 30%,
+      #000 46%, #000 78%, rgba(0,0,0,0) 100%);
+}
+
+html.v-halo .field .halo-geo circle {
+  fill: none;
+  stroke: var(--color-bone);
+  stroke-width: 1;
+}
+
+html.v-halo .field .halo-geo__seed  circle { stroke-opacity: var(--halo-seed-a); }
+html.v-halo .field .halo-geo__bloom circle { stroke-opacity: var(--halo-bloom-a); }
+html.v-halo .field .halo-geo__rings circle { stroke-opacity: var(--halo-ring-a); }
+
+/* The one warm mark in the variant — the halo proper, in the node amber, so the
+   substrate is tied to the six lit destinations rather than floating free of
+   them. Stated once. It is not a family; do not give it siblings.
+
+   Note the redundant-looking `circle` in the selector: without it this rule is
+   one type-selector LESS specific than the .halo-geo circle base above and the
+   bone stroke wins, which is a silent, invisible failure — the circle is still
+   there, just the wrong colour, at an alpha low enough that nobody would spot
+   the difference on a screenshot. */
+html.v-halo .field .halo-geo circle.halo-geo__core {
+  stroke: rgba(var(--node-color), var(--halo-core-a));
+}
+
+/* --------------------------------------------------------------------------
+   MARGINALIA
+   The seven at their true heights, naming on the left, measure on the right.
+   -------------------------------------------------------------------------- */
+html.v-halo .field .halo-margins {
+  position: absolute;
+  inset: 0;
+}
+
+/* A zero-height rule across the stage carrying no ink of its own — see the note
+   in v-halo.js. Opacity lives HERE rather than on the two blocks so a chakra
+   lights as one record, and so the JS has exactly one element to write to. */
+html.v-halo .field .halo-row {
+  --halo-lift: 0;           /* the rest state, and the fallback the JS relies on
+                               when it removes the inline property */
+  position: absolute;
+  top: var(--y);
+  left: 0;
+  right: 0;
+  height: 0;
+  opacity: calc(var(--halo-rest) + (var(--halo-lit) - var(--halo-rest)) * var(--halo-lift));
+  transition: opacity var(--motion-fast) var(--ease-standard);
+}
+
+html.v-halo .field .halo-block {
+  position: absolute;
+  top: 0;
+  transform: translateY(-50%);
+  font-family: var(--font-mono);
+  line-height: 1.45;
+  white-space: nowrap;      /* the heights are the grid; a wrap would break it */
+}
+
+/* Anchored off the axis, not off the frame, for the same reason the geometry is:
+   the two margins must stay symmetrical about the spine, whatever the stage
+   width and wherever the axis has been pushed. */
+html.v-halo .field .halo-block--name {
+  right: calc(50% - var(--axis-shift, 0px) + var(--halo-gutter));
+  text-align: right;
+}
+html.v-halo .field .halo-block--measure {
+  left: calc(50% + var(--axis-shift, 0px) + var(--halo-gutter));
+  text-align: left;
+}
+
+html.v-halo .field .halo-name,
+html.v-halo .field .halo-english,
+html.v-halo .field .halo-hz,
+html.v-halo .field .halo-index {
+  display: block;
+}
+
+html.v-halo .field .halo-name {
+  font-size: 11px;
+  letter-spacing: var(--tracking-label);
+  color: var(--color-bone);
+  /* Two shadows doing unrelated jobs. The first is permanent and structural:
+     this type sits over a star field and a nebula, and a dark seat is what keeps
+     11px mono legible when a bright star lands behind a stem. The second is the
+     approach reveal — a warm bloom in the node amber that is literally absent at
+     rest, because its alpha is a multiple of the lift. */
+  text-shadow:
+    0 1px 2px rgba(5, 5, 5, 0.75),
+    0 0 calc(14px * var(--halo-lift)) rgba(var(--node-color), calc(0.4 * var(--halo-lift)));
+  transition: text-shadow var(--motion-fast) var(--ease-standard);
+}
+
+/* The english gloss is what turns this from decoration into a key — it is the
+   line that tells a first-time visitor what the spine in front of them IS.
+   Wider tracking and a lower colour than the name: it reads as subtitle without
+   needing a second typeface or a rule to separate it. */
+html.v-halo .field .halo-english {
+  margin-top: 3px;
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--color-gray-400);
+}
+
+html.v-halo .field .halo-hz {
+  font-size: 11px;
+  letter-spacing: var(--tracking-label);
+  color: rgba(var(--node-color), 0.62);
+  font-variant-numeric: tabular-nums;   /* seven numbers in a column want a column */
+  text-shadow:
+    0 1px 2px rgba(5, 5, 5, 0.75),
+    0 0 calc(14px * var(--halo-lift)) rgba(var(--node-color), calc(0.35 * var(--halo-lift)));
+  transition: text-shadow var(--motion-fast) var(--ease-standard);
+}
+
+/* HZ is a unit, not a value — it should never read at the same weight as the
+   number it qualifies, or the column stops scanning as seven frequencies. */
+html.v-halo .field .halo-unit {
+  font-size: 8.5px;
+  letter-spacing: 0.18em;
+  color: var(--color-gray-500);
+}
+
+html.v-halo .field .halo-index {
+  margin-top: 3px;
+  font-size: 8.5px;
+  letter-spacing: 0.3em;
+  color: var(--color-gray-500);
+}
+
+/* --------------------------------------------------------------------------
+   NARROWING
+
+   The gutter can shrink but the type cannot, so the field sheds information in
+   order of what the visitor can least afford to lose: the measure goes first
+   (a frequency is a detail), then the gloss, then the whole layer. It never
+   compresses toward the spine — crowding the centrepiece is the one failure
+   mode worse than an empty margin, which is after all the state this variant
+   was asked to improve on.
+   -------------------------------------------------------------------------- */
+
+/* Below ~1180 the right margin can no longer hold the measure at a gutter that
+   still clears the hover labels. Drop the column rather than pull it inward. */
+@media (max-width: 1180px) {
+  html.v-halo .field .halo-block--measure { display: none; }
+}
+
+/* Short viewports put the seven rows within ~80px of each other; two lines each
+   would start to look like a paragraph set sideways. Keep the names, lose the
+   gloss — the rhythm survives, the wall of text never forms. */
+@media (max-height: 640px) {
+  html.v-halo .field .halo-english { display: none; }
+}
+
+/* Phone: there is no empty third to fill. The problem this variant solves does
+   not exist here, so it removes itself rather than inventing a new one. */
+@media (max-width: 900px) {
+  html.v-halo .field .halo { display: none; }
+}

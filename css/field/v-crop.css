@@ -1,0 +1,358 @@
+/* ==========================================================================
+   FIELD VARIANT — CROP
+   Partner file: js/field/v-crop.js (builds the DOM, drives the torch).
+   Every rule in this file is scoped under `html.v-crop`. Five variants share
+   one host page and one #field container; an unscoped rule here would silently
+   restyle the other four and the comparison would be worthless.
+
+   WHAT THIS VARIANT IS
+   The seven chakra names set ENORMOUS, outline only, one per chakra at its
+   true anatomical height, each one running off the left or right edge of the
+   viewport so it is read as a field of texture rather than as a word. Behind
+   them, one Metatron construction drawn far larger than the stage so only
+   fragments of it survive inside the frame. Nothing here is meant to be read
+   at rest. The pointer does the revealing: a torch raises the contrast of
+   whatever is near it, so the type resolves into legibility exactly where the
+   reader is already looking. The entrance says "Knowledge Hidden in Plain
+   Sight"; this is that sentence as a mechanism rather than as decoration.
+
+   WHY THE WORDMARK IS NOT HERE
+   The owner's instinct was the wordmark set huge behind the spine. The GRAPHIC
+   MOVE is right and it is kept intact. The WORD is the part that had to go:
+   the entrance plays the wordmark at full size seconds earlier, so restating
+   it is redundant, and a word that has to double as a letterform cannot break
+   symmetrically against a rigorously centred spine. Chakra names solve both.
+   Nobody parses cropped 200px type as a title, so the redundancy never arises.
+
+   THE ONE DISCIPLINE THAT HOLDS THE COMPOSITION TOGETHER
+   The INNER edge of the type is constant (--crop-gutter-l / -r) and the OUTER
+   crop varies per row (js sets a different overshoot for each). Constant inner
+   edge = the spine keeps a clean, rigorous corridor and never has type over
+   it. Varied outer crop = the left and right margins do not read as a
+   mechanical repeat. Invert those two and the whole thing looks like a bug.
+
+   BUILT BLIND. No browser was opened while writing this (another process
+   needed the machine). Sizes, the optical nudge and the tag offset are
+   reasoned, not seen — they are all tokens at the top of this file so they can
+   be dialled in one place.
+   ========================================================================== */
+
+html.v-crop .crop {
+  /* --color-bone decomposed. tokens.css ships it as a hex and rgba() needs a
+     triplet; --node-color is already a triplet upstream so it is used as-is. */
+  --crop-bone: 216, 208, 190;
+
+  /* Ink. The base alphas are the whole balance of the variant: high enough
+     that the left and right thirds stop reading as empty, low enough that the
+     type never competes with six lit nodes. If this variant reads as "busy",
+     lower these two before touching anything else. */
+  --crop-ink:      rgba(var(--crop-bone), 0.105);
+  --crop-ink-lit:  rgba(var(--crop-bone), 0.52);
+  --crop-stroke-w: 1.15px;   /* hairline against 130-245px glyphs, deliberately */
+
+  --crop-geo:      rgba(var(--crop-bone), 0.055);
+  --crop-geo-lit:  rgba(var(--node-color), 0.30);   /* geometry WARMS under the
+                                                       torch while the type
+                                                       whitens — two materials,
+                                                       one light source */
+  --crop-tag:      rgba(var(--crop-bone), 0.20);
+  --crop-tag-lit:  rgba(var(--node-color), 0.85);
+
+  /* The clear corridor. The spine column is clamp(240px, 28vw, 380px) — at the
+     1440 target that is 380px, i.e. 37vw..63vw. 38/62 leaves it a hair of air
+     on each side and nothing crosses it. */
+  --crop-gutter-l: 38vw;
+  --crop-gutter-r: 62vw;
+
+  /* Uppercase sits high in its line box (cap centre is roughly 0.06em above
+     the box centre for a normal ascent/descent split), so the row is pushed
+     back down by that much to put the CAP centre — the thing the eye reads as
+     the word's height — on the chakra's y. Big Shoulders has an unusually tall
+     ascent, so this is the first number to check against a screenshot. */
+  --crop-optical:  0.06em;
+  --crop-tag-gap:  5px;
+
+  --crop-torch-d:  640px;   /* see the torch block — this is a cost dial */
+
+  /* Written by js on pointermove. Parked at the stage centre only so the
+     transform resolves before the first move; the torch is opacity 0 until
+     `.is-lit`, so this position is never seen. */
+  --mx: 50vw;
+  --my: 45vh;
+
+  /* Field size in px, written by js on mount and on resize. The torch's inner
+     layer is a second copy of the field and must be EXACTLY the field's size,
+     because the rows position themselves with top:% — a wrong height here and
+     the lit copy drifts vertically out of register with the base copy. */
+  --crop-field-w: 100vw;
+  --crop-field-h: 100svh;
+
+  position: absolute;
+  inset: 0;
+  pointer-events: none;   /* restated at every level: the field never takes a click */
+  user-select: none;
+  /* opacity is EXACTLY 1 at rest, which is the point: an ancestor at opacity
+     < 1 forces an intermediate raster (css/track-experience.css:169-183
+     measured that cost at 612 against 1087). The two states below are the only
+     times this element becomes a raster context, and both are states where the
+     field is nearly gone anyway. */
+  opacity: 1;
+  transition: opacity var(--motion-base) var(--ease-standard), visibility 0s;
+}
+
+/* RECEDE. A reading card is the page's subject while it is open; the field is
+   backdrop and has to admit it. Music takes the screen outright, so the field
+   goes to zero and then stops painting at all — the delayed visibility flip is
+   what makes that a real saving rather than a transparent full-screen layer
+   still being composited every frame. */
+html.v-crop.is-card  .crop { opacity: 0.12; }
+html.v-crop.is-music .crop {
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity var(--motion-base) var(--ease-standard),
+              visibility 0s linear var(--motion-base);
+}
+
+
+/* --------------------------------------------------------------------------
+   THE TYPE
+   -------------------------------------------------------------------------- */
+html.v-crop .crop__type {
+  position: absolute;
+  inset: 0;
+}
+
+html.v-crop .crop__row {
+  position: absolute;
+  top: var(--y);
+  width: max-content;      /* the box hugs the word, so the anchor below is the
+                              word's own edge and not a column's */
+  white-space: nowrap;
+  line-height: 1;
+  font-family: var(--font-display);
+  font-weight: 800;
+  /* --fs and --tr are unitless numbers written by js (vw). Sizing in vw rather
+     than px means the fit survives a resize with no listener and no reflow —
+     the ratio between a word's width and the viewport is what was solved for,
+     and vw preserves it for free. */
+  font-size: calc(var(--fs) * 1vw);
+  letter-spacing: calc(var(--tr) * 1vw);
+}
+
+/* Left rows are anchored by their RIGHT edge to the corridor and grow leftward
+   off the screen; right rows mirror it. translateX(-100%) does the anchoring
+   instead of `right: calc(100vw - ...)` on purpose: 100vw includes the
+   scrollbar gutter in several browsers, and being 15px out on the one edge
+   that must stay parallel to the spine is not worth the shorter rule. */
+html.v-crop .crop__row--l {
+  left: var(--crop-gutter-l);
+  transform: translate(-100%, calc(-50% + var(--crop-optical)));
+}
+html.v-crop .crop__row--r {
+  left: var(--crop-gutter-r);
+  transform: translate(0, calc(-50% + var(--crop-optical)));
+}
+
+html.v-crop .crop__word {
+  color: transparent;
+  -webkit-text-stroke: var(--crop-stroke-w) var(--crop-ink);
+  text-stroke: var(--crop-stroke-w) var(--crop-ink);
+}
+
+/* If text-stroke is ever missing, transparent text is INVISIBLE type, not
+   degraded type — so the fallback fills at an alpha low enough to still read
+   as a ghost rather than as a headline someone forgot to hide. */
+@supports not ((-webkit-text-stroke: 1px #000) or (text-stroke: 1px #000)) {
+  html.v-crop .crop__word { color: rgba(var(--crop-bone), 0.055); }
+}
+
+/* The callout. Mono is this project's annotation voice — record numbers,
+   frequencies, the technical register — and setting it at 11px against a 200px
+   glyph is the whole editorial point: two scales, no middle. It shares the
+   row's anchor, so all seven tags line up on the same invisible measure and
+   quietly frame the spine corridor. It must reset the row's giant font-size
+   and letter-spacing, both of which it would otherwise inherit. */
+html.v-crop .crop__tag {
+  position: absolute;
+  bottom: 100%;            /* i.e. just above the cap line of its own word */
+  margin-bottom: var(--crop-tag-gap);
+  font-family: var(--font-mono);
+  font-weight: 400;
+  font-size: 0.6875rem;
+  line-height: 1;
+  letter-spacing: var(--tracking-label);
+  color: var(--crop-tag);
+  white-space: nowrap;
+}
+html.v-crop .crop__row--l .crop__tag { right: 0; text-align: right; }
+html.v-crop .crop__row--r .crop__tag { left: 0;  text-align: left; }
+
+/* The crown's tag hangs BELOW its word instead. SAHASRARA sits at y=12% and
+   its line box is ~185px tall, so a tag half an em above the row's centre
+   lands 16px from the top of a 900px stage and clean off the top of anything
+   shorter than about 860px. Flipping it is safe because the row below is on
+   the opposite side of the corridor. Set in js on the first row only. */
+html.v-crop .crop__row--tagbelow .crop__tag {
+  bottom: auto;
+  top: 100%;
+  margin-bottom: 0;
+  margin-top: var(--crop-tag-gap);
+}
+
+
+/* --------------------------------------------------------------------------
+   THE GEOMETRY SUBSTRATE
+   One Metatron construction — thirteen circles of the Fruit of Life and all
+   seventy-eight lines between their centres — drawn at ~1.3x the stage so it
+   is cut by all four edges. A complete centred figure would read as a logo
+   sitting behind the spine; fragments read as substrate, which is what the
+   entrance video already established.
+
+   The centre is nudged off the stage centre (top/left below) for the same
+   reason: dead-centre would put the construction's convergence point directly
+   behind the spine, which is both a bullseye and the busiest possible place to
+   put one.
+
+   NO mask, NO filter, NO element opacity anywhere in here. The strokes carry
+   their own alpha as rgba, and the density split between circles and lines is
+   done with stroke-opacity, which is a paint-level alpha and does NOT create a
+   group raster the way `opacity` on the same <g> would.
+   -------------------------------------------------------------------------- */
+/* Sized 150% and pushed up and left so the construction's centre lands near
+   32%/49% of the stage — well off the spine axis, which matters more than it
+   sounds: all thirteen circles and all seventy-eight lines converge on that
+   point, and putting the densest square inch of the substrate directly behind
+   the navigator is the one placement that would actually hurt. At the 1440
+   target this resolves to ~450px per unit, so a single circle of the figure is
+   a 225px arc — sweeping, not fussy. overflow:visible is deliberate: with
+   preserveAspectRatio=slice the element box decides SCALE and POSITION only,
+   and .spine-stage's own overflow:hidden does the cropping. Otherwise the
+   element's right edge would slice a hard vertical line through the strokes. */
+html.v-crop .crop__geo {
+  position: absolute;
+  top: -26%; left: -43%;
+  width: 150%; height: 150%;
+  color: var(--crop-geo);   /* the <use>d source strokes with currentColor, so
+                               one definition serves both the base copy and the
+                               lit copy at two different colours */
+  overflow: visible;
+}
+html.v-crop .crop__defs {
+  position: absolute;
+  width: 0; height: 0;
+  overflow: hidden;
+}
+
+
+/* --------------------------------------------------------------------------
+   THE TORCH — the emotional centre, and the one real cost in this file
+
+   A masked layer is a raster context by definition, and a full-viewport masked
+   copy of 200px stroked type is exactly the shape this codebase has already
+   measured and rejected. So the masked element is NOT the field. It is a
+   640x640 lens that travels to the cursor, with overflow:hidden and a second
+   copy of the field inside it counter-translated by the same amount, so the
+   copy stays pinned to the stage while its window moves.
+
+   WHAT THAT BUYS, concretely, at the 1440x900 target:
+     masked + repainted area   640x640   = 0.41 Mpx
+     the naive full-field mask 1440x900  = 1.30 Mpx
+   A third of the pixels, and the browser can cull everything outside the lens
+   rather than painting seven giant words and ninety-one vectors per move.
+
+   The mask is ONE gradient on ONE element. It is never nested inside another
+   mask, and the torch is switched off entirely under .is-card so that the
+   field's own opacity (the only other raster context here) never has a mask
+   living inside it.
+
+   No requestAnimationFrame anywhere. js writes --mx/--my on pointermove — an
+   event that fires only while the pointer actually moves — and the 140ms
+   linear transition below is what makes the torch feel like it has weight.
+   Both transforms use the identical duration and easing, which is load
+   bearing: the lens and its counter-translated inner layer must interpolate in
+   lockstep or the revealed type slides out of register with the dim type
+   underneath it. Change one, change both.
+
+   `will-change: transform` is deliberately NOT set. The inner layer moves
+   relative to the mask on every event, so the lens has to repaint regardless
+   and a promoted layer would only pin memory for nothing.
+   -------------------------------------------------------------------------- */
+html.v-crop .crop__torch {
+  position: absolute;
+  top: 0; left: 0;
+  width: var(--crop-torch-d);
+  height: var(--crop-torch-d);
+  transform: translate3d(calc(var(--mx) - var(--crop-torch-d) / 2),
+                         calc(var(--my) - var(--crop-torch-d) / 2), 0);
+  -webkit-mask-image: radial-gradient(circle at 50% 50%,
+                #000 0%, #000 20%, rgba(0, 0, 0, 0.42) 50%, transparent 74%);
+          mask-image: radial-gradient(circle at 50% 50%,
+                #000 0%, #000 20%, rgba(0, 0, 0, 0.42) 50%, transparent 74%);
+  -webkit-mask-repeat: no-repeat;
+          mask-repeat: no-repeat;
+  overflow: hidden;
+  opacity: 0;
+  transition: transform 140ms linear,
+              opacity var(--motion-base) var(--ease-standard);
+}
+html.v-crop .crop.is-lit .crop__torch { opacity: 1; }
+
+/* Off while a card is open. opacity:0 rather than display:none so it fades out
+   with the field instead of snapping — and an element at opacity 0 is skipped
+   at paint time, so this is also what stops a mask living inside the field's
+   own raster context. */
+html.v-crop.is-card  .crop__torch,
+html.v-crop.is-music .crop__torch { opacity: 0; }
+
+html.v-crop .crop__torch-in {
+  position: absolute;
+  top: 0; left: 0;
+  width: var(--crop-field-w);
+  height: var(--crop-field-h);
+  transform: translate3d(calc(var(--crop-torch-d) / 2 - var(--mx)),
+                         calc(var(--crop-torch-d) / 2 - var(--my)), 0);
+  transition: transform 140ms linear;
+}
+
+html.v-crop .crop__torch .crop__word {
+  -webkit-text-stroke-color: var(--crop-ink-lit);
+          text-stroke-color: var(--crop-ink-lit);
+}
+html.v-crop .crop__torch .crop__tag { color: var(--crop-tag-lit); }
+html.v-crop .crop__torch .crop__geo { color: var(--crop-geo-lit); }
+
+
+/* --------------------------------------------------------------------------
+   REDUCED MOTION
+   A torch that chases the cursor is the one thing in here that is motion for
+   its own sake, so it goes. What replaces it is not "nothing" — it is the same
+   idea served flat: every word gets the contrast it would otherwise only get
+   when approached. js also declines to build the torch at all under this
+   query, so the mask never exists; the rules below are the belt to that
+   braces, and they matter because the media query can flip live.
+   -------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  html.v-crop .crop__torch { display: none; }
+  html.v-crop .crop__word {
+    -webkit-text-stroke-color: rgba(var(--crop-bone), 0.20);
+            text-stroke-color: rgba(var(--crop-bone), 0.20);
+  }
+  html.v-crop .crop__tag { color: rgba(var(--crop-bone), 0.34); }
+  html.v-crop .crop__geo { color: rgba(var(--crop-bone), 0.085); }
+}
+
+
+/* --------------------------------------------------------------------------
+   PHONE
+   Below 768px the spine column is clamp()ed to 28vw of a narrow screen but the
+   corridor tokens are absolute vw, so the type would run straight through the
+   spine. There is no honest small-screen version of "cropped by the viewport
+   edges" when the viewport is 375px wide — the crop would eat the word. So the
+   type layer is dropped and the geometry substrate carries the whole field on
+   its own, which it can: it was already only fragments.
+   -------------------------------------------------------------------------- */
+@media (max-width: 767px) {
+  html.v-crop .crop__type { display: none; }
+  html.v-crop .crop__torch { display: none; }
+  html.v-crop .crop__geo { color: rgba(var(--crop-bone), 0.075); }
+}

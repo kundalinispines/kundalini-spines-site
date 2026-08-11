@@ -1,0 +1,352 @@
+/* ==========================================================================
+   FIELD VARIANT — GRATICULE  (presentation)
+   Partner file: js/field/v-graticule.js. Mounted into the host's
+   <div class="field" id="field"> and live only while <html> carries
+   .v-graticule.
+
+   EVERY RULE IN THIS FILE IS SCOPED UNDER html.v-graticule. Five variants
+   share one host page and one container class; an unscoped `.gr-rule` here
+   would paint itself over whichever variant is actually being judged and the
+   comparison would be quietly worthless.
+
+   THE READING: a measurement overlay laid on the whole frame — the view
+   through an instrument rather than a picture of a specimen. Ruled edges, a
+   ruled field, an ordinate down the left margin, a targeting box around the
+   column, and a frequency scale beside the spine carrying numbers and nothing
+   else.
+
+   WHY EVERYTHING IS BUILT FROM repeating-linear-gradient AND NOT FROM SVG OR
+   FROM ELEMENTS. A graticule is hundreds of ticks. As elements that is
+   hundreds of DOM nodes on a layer that must never cost anything; as SVG it
+   is a large path string that has to be regenerated on every resize to keep
+   1px ticks at 1px. As a background gradient it is ONE painted layer per
+   edge, it reflows for free, and the ticks stay pixel-exact at any viewport.
+   The seven frequency ticks are real elements because they are the only ones
+   that carry a value.
+   ========================================================================== */
+
+html.v-graticule .field .gr,
+html.v-graticule .field .gr * {
+  /* Belt and braces over the host's own pointer-events:none. This layer spans
+     the entire stage; one element that forgets to opt out swallows clicks
+     across both margins, which is the hardest failure of all to see. */
+  pointer-events: none;
+}
+
+html.v-graticule .field {
+  /* --color-bone as an RGB triplet. CSS cannot peel alpha off a hex token and
+     this layer is one ink at a dozen alphas. Keep in sync with --color-bone
+     (#D8D0BE) in tokens.css by hand. */
+  --gr-ink: 216, 208, 190;
+
+  /* --- the dials. Authored blind — no browser was opened while this was
+     written, another process owned the machine's Chrome — so these are
+     conservative first guesses over a star field. The grid alpha is the one
+     to move first: it is the only value here that covers the whole frame, so
+     it is the only one that can turn the sky into graph paper. */
+  --gr-grid-a:  0.038;   /* the full-frame ruled field */
+  --gr-form-a:  0.055;   /* circles and squares of the construction */
+  --gr-axes-a:  0.075;   /* its axes and diagonals — struck lines read harder */
+  --gr-bear-a:  0.10;    /* bearing ticks on the outer circle */
+  --gr-rule-a:  0.20;    /* edge tick rules, minor marks */
+  --gr-rule-M:  0.30;    /* ...and major marks */
+  --gr-num-a:   0.30;    /* ordinate numerals */
+
+  --gr-inset: clamp(12px, 1.6vw, 24px);   /* edge rules sit this far in */
+  --gr-cell:  80px;                        /* ruled field pitch */
+
+  /* Two rails, both derived from the wireframe's own width token so they
+     track the column at every viewport instead of drifting off it.
+     --spine-anat-w lives in css/spine-ui.css; the clamp is restated only as a
+     fallback for a page that mounts the field without the navigator.
+
+     ORDER MATTERS AND IS EASY TO GET BACKWARDS: the targeting box has to sit
+     INSIDE the scales, or the box encloses its own instrument and stops
+     reading as a box around the spine. frame < scale, always. */
+  --gr-frame-x: calc(var(--spine-anat-w, clamp(240px, 28vw, 380px)) / 2 + 26px);
+  --gr-scale-x: calc(var(--spine-anat-w, clamp(240px, 28vw, 380px)) / 2 + 74px);
+
+  /* Near-full-bleed on purpose. This variant is a FRAME reading: the
+     construction should run out past where the eye expects a figure to stop,
+     so it feels like an overlay on the view rather than an object in it. */
+  --gr-geo-size: min(96vh, 76vw);
+}
+
+html.v-graticule .field .gr {
+  position: absolute; inset: 0;
+  opacity: 1;
+  transition: opacity var(--motion-base) var(--ease-standard);
+}
+
+/* IT RECEDES, IT DOES NOT LEAVE. A card open drops the instrument to a
+   twelfth — the reading surface has to win, but the frame should still be
+   sensed under it. Music takes it to zero: that wrap owns the viewport and a
+   graticule behind album art is just dirt on the lens. */
+html.v-graticule.is-card  .field .gr { opacity: 0.12; }
+html.v-graticule.is-music .field .gr { opacity: 0; }
+
+/* --------------------------------------------------------------------------
+   THE RULED FIELD
+   Both axes at one pitch. The radial mask is the load-bearing part: without
+   it the grid runs straight across the spine and the column reads as being
+   BEHIND graph paper. Masked, the ruling opens out around the axis and closes
+   again in the margins, so the instrument frames the subject instead of
+   overprinting it.
+   -------------------------------------------------------------------------- */
+html.v-graticule .field .gr-grid {
+  position: absolute; inset: 0;
+  background-image:
+    repeating-linear-gradient(90deg,  rgba(var(--gr-ink), var(--gr-grid-a)) 0 1px, transparent 1px var(--gr-cell)),
+    repeating-linear-gradient(180deg, rgba(var(--gr-ink), var(--gr-grid-a)) 0 1px, transparent 1px var(--gr-cell));
+  -webkit-mask-image: radial-gradient(46% 58% at calc(50% + var(--axis-shift, 0px)) 50%,
+                        transparent 0%, rgba(0,0,0,0.4) 52%, #000 84%);
+          mask-image: radial-gradient(46% 58% at calc(50% + var(--axis-shift, 0px)) 50%,
+                        transparent 0%, rgba(0,0,0,0.4) 52%, #000 84%);
+}
+
+/* --------------------------------------------------------------------------
+   GEOMETRY — ad quadratum, centred on the spine axis
+   Square, inscribed circle, square inscribed in that rotated 45, inward. The
+   substrate motif is already the site's (see visualTheme.geometry in
+   data/tracks.json); this variant takes the CONSTRUCTION half of it and
+   leaves the flower half to PLATE.
+   -------------------------------------------------------------------------- */
+html.v-graticule .field .gr-geo {
+  position: absolute;
+  top: 50%; left: calc(50% + var(--axis-shift, 0px));
+  width: var(--gr-geo-size); height: var(--gr-geo-size);
+  transform: translate(-50%, -50%);
+  overflow: visible;
+  fill: none;
+}
+html.v-graticule .field .gr-geo__form {
+  stroke: rgba(var(--gr-ink), var(--gr-form-a));
+  stroke-width: 1;
+  /* non-scaling-stroke: the 512 box is scaled to ~864px at 1440x900, so a
+     1-unit stroke would land at 1.7px and the substrate would become a cage.
+     Where unsupported the figure degrades to a fatter faint line rather than
+     breaking. */
+  vector-effect: non-scaling-stroke;
+}
+html.v-graticule .field .gr-geo__axes {
+  stroke: rgba(var(--gr-ink), var(--gr-axes-a));
+  stroke-width: 1; vector-effect: non-scaling-stroke;
+}
+html.v-graticule .field .gr-geo__bear {
+  stroke: rgba(var(--gr-ink), var(--gr-bear-a));
+  stroke-width: 1; vector-effect: non-scaling-stroke;
+}
+
+/* --------------------------------------------------------------------------
+   EDGE RULES
+   Two gradient layers per edge — majors at 5x the minor pitch and twice the
+   length — painted with background-size so the marks grow inward from their
+   own edge. The pitch (16 / 80) is deliberately a divisor of --gr-cell, so
+   every fifth minor tick lands on a grid line and the frame agrees with the
+   field. Change one and change the other.
+   -------------------------------------------------------------------------- */
+html.v-graticule .field .gr-rule {
+  position: absolute;
+  background-repeat: no-repeat;
+}
+html.v-graticule .field .gr-rule--t,
+html.v-graticule .field .gr-rule--b {
+  left: var(--gr-inset); right: var(--gr-inset); height: 13px;
+  background-image:
+    repeating-linear-gradient(90deg, rgba(var(--gr-ink), var(--gr-rule-M)) 0 1px, transparent 1px 80px),
+    repeating-linear-gradient(90deg, rgba(var(--gr-ink), var(--gr-rule-a)) 0 1px, transparent 1px 16px);
+  background-size: 100% 13px, 100% 6px;
+}
+html.v-graticule .field .gr-rule--t { top: var(--gr-inset);    background-position: 0 0,    0 0; }
+html.v-graticule .field .gr-rule--b { bottom: var(--gr-inset); background-position: 0 100%, 0 100%; }
+
+html.v-graticule .field .gr-rule--l,
+html.v-graticule .field .gr-rule--r {
+  top: var(--gr-inset); bottom: var(--gr-inset); width: 13px;
+  background-image:
+    repeating-linear-gradient(180deg, rgba(var(--gr-ink), var(--gr-rule-M)) 0 1px, transparent 1px 80px),
+    repeating-linear-gradient(180deg, rgba(var(--gr-ink), var(--gr-rule-a)) 0 1px, transparent 1px 16px);
+  background-size: 13px 100%, 6px 100%;
+}
+html.v-graticule .field .gr-rule--l { left: var(--gr-inset);  background-position: 0 0,    0 0; }
+html.v-graticule .field .gr-rule--r { right: var(--gr-inset); background-position: 100% 0, 100% 0; }
+
+/* --------------------------------------------------------------------------
+   ORDINATE — the left margin's numbered scale
+   Percent of frame height, 10 to 90. It is the reference the cursor readout
+   is measured against, which is the whole reason it carries numerals while
+   the other three edges carry bare ticks: one scale on the frame is legible,
+   four is wallpaper.
+   -------------------------------------------------------------------------- */
+html.v-graticule .field .gr-ord { position: absolute; inset: 0; }
+html.v-graticule .field .gr-ord span {
+  position: absolute;
+  left: calc(var(--gr-inset) + 22px);
+  top: var(--y); transform: translateY(-50%);
+  font-family: var(--font-mono); font-size: 9px;
+  letter-spacing: 0.14em;
+  color: rgba(var(--gr-ink), var(--gr-num-a));
+  text-shadow: 0 0 6px rgba(5,5,5,0.9);
+}
+/* its own major tick, reaching back toward the edge rule so the numeral is
+   attached to the frame rather than floating beside it */
+html.v-graticule .field .gr-ord span::before {
+  content: ""; position: absolute;
+  right: calc(100% + 6px); top: 50%;
+  width: 14px; height: 1px;
+  background: rgba(var(--gr-ink), var(--gr-rule-M));
+}
+
+/* --------------------------------------------------------------------------
+   TARGETING BOX — four corner crops around the column
+   Not a full rectangle. A closed box is a border and would read as chrome;
+   four crops read as a frame being HELD on a subject, which is the sentence
+   this variant is trying to say about the spine.
+   -------------------------------------------------------------------------- */
+html.v-graticule .field .gr-frame {
+  position: absolute;
+  top: 7%; bottom: 5%;
+  left:  calc(50% + var(--axis-shift, 0px) - var(--gr-frame-x));
+  width: calc(var(--gr-frame-x) * 2);
+}
+html.v-graticule .field .gr-frame i {
+  position: absolute; width: 22px; height: 22px;
+  border: 0 solid rgba(var(--gr-ink), 0.24);
+}
+html.v-graticule .field .gr-frame i:nth-child(1) { top: 0; left: 0;     border-top-width: 1px; border-left-width: 1px; }
+html.v-graticule .field .gr-frame i:nth-child(2) { top: 0; right: 0;    border-top-width: 1px; border-right-width: 1px; }
+html.v-graticule .field .gr-frame i:nth-child(3) { bottom: 0; left: 0;  border-bottom-width: 1px; border-left-width: 1px; }
+html.v-graticule .field .gr-frame i:nth-child(4) { bottom: 0; right: 0; border-bottom-width: 1px; border-right-width: 1px; }
+
+/* Centre mark. HORIZONTAL ARMS ONLY, with a gap through the middle: the
+   vertical arms of a crosshair would lie exactly along .spine__cord, which is
+   already a lit 1px line, and would either disappear into it or thicken it.
+   The one axis the spine does not occupy is the one worth drawing. */
+html.v-graticule .field .gr-ctr {
+  position: absolute; top: 50%;
+  left: calc(50% + var(--axis-shift, 0px)); width: 0; height: 1px;
+  transform: translateY(-50%);
+}
+html.v-graticule .field .gr-ctr::before,
+html.v-graticule .field .gr-ctr::after {
+  content: ""; position: absolute; top: 0;
+  width: 26px; height: 1px;
+  background: rgba(var(--gr-ink), 0.22);
+}
+html.v-graticule .field .gr-ctr::before { right: 30px; }
+html.v-graticule .field .gr-ctr::after  { left:  30px; }
+
+/* --------------------------------------------------------------------------
+   THE FREQUENCY SCALE  (and its unnumbered twin)
+   NUMBERS ONLY — no names anywhere in this variant. See the header note in
+   js/field/v-graticule.js before adding any.
+   -------------------------------------------------------------------------- */
+html.v-graticule .field .gr-scale { position: absolute; top: 0; bottom: 0; width: 0; }
+html.v-graticule .field .gr-scale--hz     { left: calc(50% + var(--axis-shift, 0px) + var(--gr-scale-x)); }
+html.v-graticule .field .gr-scale--mirror { left: calc(50% + var(--axis-shift, 0px) - var(--gr-scale-x)); }
+
+/* the rail, ending short of the frame top and bottom so it reads as a
+   measured span rather than as a border */
+html.v-graticule .field .gr-scale__rail {
+  position: absolute; top: 7%; bottom: 5%; left: 0; width: 1px;
+  background: linear-gradient(180deg,
+    transparent, rgba(var(--gr-ink), 0.26) 6%, rgba(var(--gr-ink), 0.26) 94%, transparent);
+}
+/* the minor ladder, on the OUTWARD side of each rail so the two ladders face
+   away from the spine and leave the column's own margin clean */
+html.v-graticule .field .gr-scale__rail::after {
+  content: ""; position: absolute; top: 0; bottom: 0; width: 5px;
+  background: repeating-linear-gradient(180deg,
+    rgba(var(--gr-ink), 0.18) 0 1px, transparent 1px 10px);
+}
+html.v-graticule .field .gr-scale--hz     .gr-scale__rail::after { left: 2px; }
+html.v-graticule .field .gr-scale--mirror .gr-scale__rail::after { right: 2px; }
+
+/* a centre's tick: a longer amber mark across the rail, plus its value */
+html.v-graticule .field .gr-tk {
+  position: absolute; top: var(--y); left: 0;
+  transform: translateY(-50%);
+  display: flex; align-items: center;
+}
+html.v-graticule .field .gr-tk::before {
+  content: ""; width: 17px; height: 1px;
+  background: rgba(var(--node-color), 0.40);
+  transition: background var(--motion-base) var(--ease-standard),
+              box-shadow var(--motion-base) var(--ease-standard);
+}
+html.v-graticule .field .gr-tk__hz {
+  margin-left: 8px;
+  font-family: var(--font-mono); font-style: normal; font-size: 10px;
+  letter-spacing: 0.14em;
+  color: rgba(var(--gr-ink), 0.42);
+  text-shadow: 0 0 6px rgba(5,5,5,0.9);
+  transition: color var(--motion-base) var(--ease-standard);
+}
+/* the mirror's ticks are shorter and face the other way — same seven heights,
+   no value, so the eye reads them as the far wall of one instrument */
+html.v-graticule .field .gr-scale--mirror .gr-tk { transform: translateY(-50%) translateX(-11px); }
+html.v-graticule .field .gr-scale--mirror .gr-tk::before { width: 11px; }
+
+/* --------------------------------------------------------------------------
+   THE CURSOR RULE
+   The single reactive element, driven by pointermove — no loop, no interval.
+   A hairline at the pointer's height with its ordinate printed against the
+   left scale, and the frequency tick it crosses lit as it passes.
+
+   --cy is written as a raw px length by the JS and consumed here as a
+   transform. It is deliberately NOT transitioned: a measurement cursor that
+   eases toward the pointer is lying about where the pointer is.
+   -------------------------------------------------------------------------- */
+html.v-graticule .field .gr-cursor {
+  position: absolute; left: 0; right: 0; top: 0; height: 0;
+  transform: translateY(var(--cy, 0px));
+  opacity: 0;
+  transition: opacity var(--motion-base) var(--ease-standard);
+}
+html.v-graticule .field .gr-cursor.is-live { opacity: 1; }
+html.v-graticule .field .gr-cursor__line {
+  position: absolute; left: var(--gr-inset); right: var(--gr-inset); top: 0; height: 1px;
+  background: linear-gradient(90deg,
+    transparent, rgba(var(--node-color), 0.26) 10%,
+    rgba(var(--node-color), 0.26) 90%, transparent);
+}
+/* the readout sits ON the ordinate column, over the numerals, because that is
+   what a cursor reading IS — the value read off the scale it covers. The dark
+   plate under it is not decoration: without it the digits would sit on top of
+   whichever ordinate numeral the rule happens to be crossing. */
+html.v-graticule .field .gr-cursor__read {
+  position: absolute; top: 0; left: calc(var(--gr-inset) + 16px);
+  transform: translateY(-50%);
+  padding: 1px 5px;
+  font-family: var(--font-mono); font-size: 9px;
+  letter-spacing: 0.12em;
+  color: rgba(242, 242, 238, 0.8);
+  background: rgba(5, 5, 5, 0.72);
+  border: 1px solid rgba(var(--node-color), 0.30);
+}
+
+html.v-graticule .field .gr-tk.is-lit::before {
+  background: rgba(var(--node-color), 0.95);
+  box-shadow: 0 0 8px rgba(var(--node-color), 0.55);
+}
+html.v-graticule .field .gr-tk.is-lit .gr-tk__hz { color: rgba(242, 242, 238, 0.95); }
+
+/* --------------------------------------------------------------------------
+   NARROW
+   Below ~900px the two rails would stand inside the column rather than beside
+   it (the wireframe is 28vw), so the scales go — and the ordinate goes with
+   them, since its only job is to be the reference the readout is measured
+   against. What survives is the frame reading: ruled edges, ruled field,
+   targeting crops. That is still this variant and not the other one.
+   -------------------------------------------------------------------------- */
+@media (max-width: 900px) {
+  html.v-graticule .field .gr-scale,
+  html.v-graticule .field .gr-ord,
+  html.v-graticule .field .gr-cursor { display: none; }
+  html.v-graticule .field { --gr-cell: 56px; --gr-geo-size: min(74vh, 96vw); }
+}
+
+/* prefers-reduced-motion needs no rule. Nothing here animates; the only
+   transitions are opacity and colour, and tokens.css already collapses
+   --motion-base to 0ms under that query, which turns them into instant swaps.
+   The cursor rule is intentionally untransitioned in every mode. */

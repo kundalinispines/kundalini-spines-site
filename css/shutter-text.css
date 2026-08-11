@@ -67,6 +67,26 @@
 
 .shutter { position: relative; }
 
+/* THE FONT GATE. Held dark until the webfont has landed and the slats have been
+   measured against it — metrics() on a fallback face returns Arial Narrow's cap
+   height and misplaces every boundary. Removed by the consuming page once
+   document.fonts.ready has resolved.
+
+   THIS RULE LIVED ONLY IN shutter-lab.html UNTIL Aug 11 2026, and that made it a
+   trap rather than a protection. entrance-lab.html applies .sh-hold — with a
+   comment explaining the safety it provides — and nothing declared it there, so
+   it computed to opacity 1 and gated nothing at all. A class that silently does
+   nothing on one consumer is worse than no class, because the comment next to it
+   reads as a guarantee.
+
+   Measured consequence on the unprotected page, with the font files delayed ~3s
+   and autoplay refused so the 1400ms watchdog fires: entrance-lab built its slat
+   grid at t=2977ms against the FALLBACK face — pitch 8 against the real 9.2, cap
+   40 against 45, every boundary 2-6px low, up to 0.67 of a slat — and ran the
+   whole reveal in Arial Narrow. shutter-lab under identical conditions built
+   zero slats and waited. It belongs with the module. */
+.sh-hold { opacity: 0; }
+
 /* The settled headline. It stays in the DOM and in the accessibility tree the
    whole time — the slats are aria-hidden copies. opacity, not visibility or
    display: visibility:hidden drops the text out of the a11y tree, which would

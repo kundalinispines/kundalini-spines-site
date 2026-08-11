@@ -124,10 +124,11 @@ main {
   line-height: var(--lh-body); color: var(--text-secondary); margin: 0;
 }
 
-/* Held dark until the webfont has landed and the slats have been measured
-   against it — capMetrics() on a fallback face returns Arial Narrow's cap
-   height and misplaces every slat boundary. Removed by the script. */
-.sh-hold { opacity: 0; }
+/* .sh-hold MOVED to css/shutter-text.css on Aug 11 2026 and is deliberately not
+   redeclared here. It was only ever in this file, which meant every OTHER
+   consumer applied the class and got nothing — entrance-lab.html computed
+   opacity 1 and built its slat grid on the fallback face. The gate belongs with
+   the module that needs it, not with the lab that happened to be written first. */
 
 .stage__hint {
   display: block; margin-top: var(--space-8);

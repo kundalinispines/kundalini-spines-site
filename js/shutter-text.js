@@ -126,6 +126,33 @@
      wrong place, and the failure is silent. */
   var metricCache = {};
 
+  /* THE CACHE KEY MUST CHANGE WHEN THE FACE DOES, AND THE FONT SHORTHAND DOES
+     NOT. Measured Aug 11 2026: before and after the webfont arrives the
+     shorthand is byte-identical —
+
+         normal 800 56px "Big Shoulders Display", "Arial Narrow", sans-serif
+
+     — because it is the CSS declaration, not the face that got selected from
+     it. So a build performed before the font landed cached the FALLBACK metrics
+     under a key every later build also computes, and every later build reused
+     them for the life of the page. Confirmed: with the real face loaded and the
+     line box back to its correct width, a fresh reset() + seek() still produced
+     the fallback grid 16 / 25.5 / 33.5 / 41.5 / 49.5.
+
+     A measured width is the cheap discriminator. It costs one measureText on a
+     context that gets created anyway, and it changes the instant the SELECTED
+     face changes — which is exactly the event the cache has to notice. Rounded
+     to 2dp so sub-pixel jitter between otherwise identical states cannot
+     fragment the cache. */
+  var FACE_PROBE = 'HKnowledge';
+
+  function faceStamp(font) {
+    var c = faceStamp._c ||
+            (faceStamp._c = document.createElement('canvas').getContext('2d'));
+    c.font = font;
+    return c.measureText(FACE_PROBE).width.toFixed(2);
+  }
+
   function metrics(font, text) {
     /* U+0000 as the separator, written as an ESCAPE and not as a raw byte.
        A literal NUL in the source makes grep and ripgrep classify this file as
@@ -133,7 +160,7 @@
        right: it is the one character that cannot occur in a font shorthand or
        in headline text, so ('12px A','BC') and ('12px AB','C') cannot collide
        the way they would with an empty or a space separator. Aug 10 2026. */
-    var key = font + '\u0000' + text;
+    var key = font + '\u0000' + faceStamp(font) + '\u0000' + text;
     if (metricCache[key]) return metricCache[key];
     var c = document.createElement('canvas').getContext('2d');
     c.font = font;

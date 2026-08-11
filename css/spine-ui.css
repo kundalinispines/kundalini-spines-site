@@ -604,14 +604,25 @@
               transform var(--card-enter-ms) var(--ease-standard);
   transform: translate(0, 0) scale(1);
 }
-.spine-card.is-open::before { opacity: 0.7; transform: translate(10px, 12px) scale(1.006); transition-delay: 60ms; }
-.spine-card.is-open::after  { opacity: 0.4; transform: translate(20px, 24px) scale(1.012); transition-delay: 120ms; }
+/* TIGHTENED Aug 11 2026, when the cards became glass. At 10/12 and 20/24 the
+   two frames fanned out far enough to read as stray outlines lying on the sky
+   beside the card rather than as depth behind it -- the owner's word was
+   "wonky". They were drawn for an opaque panel; a card that now has a lit
+   bevel and a refracted backdrop is already carrying its own depth, so these
+   only have to hint. Halved, and the opacities pulled down with them. */
+.spine-card.is-open::before { opacity: 0.45; transform: translate(5px, 6px) scale(1.003); transition-delay: 60ms; }
+.spine-card.is-open::after  { opacity: 0.20; transform: translate(10px, 12px) scale(1.006); transition-delay: 120ms; }
 /* on the left-side cards the depth stacks the other way */
-.spine-card.side-left.is-open::before { transform: translate(-10px, 12px) scale(1.006); }
-.spine-card.side-left.is-open::after  { transform: translate(-20px, 24px) scale(1.012); }
+.spine-card.side-left.is-open::before { transform: translate(-5px, 6px) scale(1.003); }
+.spine-card.side-left.is-open::after  { transform: translate(-10px, 12px) scale(1.006); }
 .spine-card__head {
   display: flex; align-items: baseline; justify-content: space-between;
   gap: var(--space-4); margin-bottom: var(--space-3);
+  /* CLEARANCE FOR THE CLOSE BUTTON, which is absolutely positioned at
+     top:10 right:10 and therefore knows nothing about this row. Without it the
+     30px button sat ON TOP of the ACTIVE flag -- its border crossing the
+     flag's border -- which is half of why the owner could not find the x. */
+  padding-right: 34px;
 }
 .spine-card__idx { font-family: var(--font-mono); font-size: var(--fs-mono);
   letter-spacing: var(--tracking-label); color: var(--color-gray-400); }
@@ -641,11 +652,19 @@
 .spine-card__close {
   position: absolute; top: 10px; right: 10px;
   width: 30px; height: 30px; line-height: 1;
-  background: transparent; border: 1px solid var(--border-subtle);
-  color: var(--text-muted); cursor: pointer; font-size: 16px;
-  transition: color var(--motion-fast), border-color var(--motion-fast);
+  /* LEGIBLE OVER GLASS. It was --text-muted (#8f8f8f) on a transparent ground
+     with a #2e2e2e border, which is a low-contrast glyph sitting on a
+     refracted star field -- the owner's "the x is hard to read and gets lost".
+     Contrast comes from three places now: the glyph goes to bone, the border
+     to a visible warm line, and a dark plate goes UNDER it so it never has to
+     compete with whatever the sky is doing behind the card. */
+  background: rgba(5,5,5,0.55); border: 1px solid rgba(216,208,190,0.38);
+  color: var(--color-bone); cursor: pointer; font-size: 16px;
+  transition: color var(--motion-fast), border-color var(--motion-fast),
+              background-color var(--motion-fast);
 }
-.spine-card__close:hover { color: var(--text-primary); border-color: var(--color-bone); }
+.spine-card__close:hover { color: var(--text-primary); border-color: var(--color-bone);
+  background: rgba(5,5,5,0.8); }
 
 /* immersive placeholder card reads as a stub, not a real destination yet */
 .spine-card.is-immersive { border-color: var(--card-border); }
@@ -679,6 +698,22 @@
    -------------------------------------------------------------------------- */
 .spine-card            { --lit-x: -1; }   /* card right of the spine: lit from left */
 .spine-card.side-left  { --lit-x:  1; }   /* card left of the spine:  lit from right */
+
+/* AND THE SHADOW SIGN IS THE OPPOSITE ONE. This is a genuine trap and it
+   shipped inverted for one commit.
+
+   --lit-x is a POSITION multiplier: `at calc(50% + var(--lit-x) * 50%)` puts a
+   gradient's centre on the lit edge, so light-from-left wants -1.
+
+   `box-shadow: inset` does not work that way. A POSITIVE offset-x casts its
+   band along the LEFT inner edge, as if the light were on the left -- so
+   light-from-left wants +1. Using --lit-x directly put every bevel band on the
+   card's far edge while the sheen correctly lit the near one, which is exactly
+   as wrong as it sounds and was invisible to computed-style checks: the border
+   colours were right, the bands were not. Only a zoomed screenshot showed it.
+
+   Two names, so the two conventions can never be confused again. */
+.spine-card { --lit-sx: calc(var(--lit-x) * -1); }
 
 /* THE DIALS. The only numbers here worth reaching for. */
 .spine-card {
@@ -715,19 +750,33 @@
     /* the specular wash, falling away from the light */
     radial-gradient(130% 100% at calc(50% + var(--lit-x) * 50%) var(--glass-sheen-y),
       rgba(255,255,255,var(--glass-sheen)) 0%, transparent 62%);
-  /* BANDS, NOT HAIRLINES, and the spread being 0 is the whole reason this
-     reads. `inset Xpx 0 0 0` paints a solid band X wide against the lit edge;
-     the first entry sits on top, so these stack outside-in and each is visible
-     only in the gap the one above leaves. That produces lip / dark line / lip
-     -- the sequence the eye reads as a thick bevelled pane rather than as a
-     flat panel with a highlight drawn on it. An earlier pass used negative
-     spreads and collapsed every band to a hairline; nothing was visible. */
+  /* ONE LIT LIP AND TWO SOFT FALLS. No hard dark bands anywhere.
+
+     This carried the lab's full LENS sequence -- lip, then a solid
+     rgba(0,0,0,0.65) line, then a second lip -- which is what makes a bevel
+     read as THICK on a large flat sample. On the real card, over the real sky,
+     the owner read that dark line as "a blackish gray strip on the inside of
+     the card", and they were right: at 400px wide with body copy starting
+     24px in, it is not a bevel, it is a stripe next to the text. Removed, and
+     the far edge went with it -- a hard band there was the same artefact
+     mirrored.
+
+     What is left: a 2px lit lip on the spine side, a soft wash falling inward
+     off it, and a soft shade on the far edge with a 26px blur so it reads as a
+     surface turning away rather than as an edge drawn on. Spread stays 0 on
+     the LIP -- `inset Xpx 0 0 0` paints a band X wide, and a negative spread
+     eats it back to a hairline, which is how the first pass ended up
+     invisible. The falls DO carry negative spread; that is what makes them
+     falls. */
   box-shadow:
-    inset calc(var(--lit-x) * 2px)  0 0 0 rgba(255,255,255,var(--glass-rim)),
-    inset calc(var(--lit-x) * 7px)  0 0 0 rgba(0,0,0,0.65),
-    inset calc(var(--lit-x) * 12px) 0 0 0 rgba(255,255,255,calc(var(--glass-rim) * 0.42)),
-    inset calc(var(--lit-x) * 26px) 0 38px -14px rgba(255,255,255,calc(var(--glass-rim) * 0.5)),
-    inset calc(var(--lit-x) * -4px) 0 0 0 rgba(0,0,0,calc(var(--glass-dark) * 1.15)),
+    /* the lit lip, on the edge nearest the spine */
+    inset calc(var(--lit-sx) * 2px) 0 0 0 rgba(255,255,255,var(--glass-rim)),
+    /* the light bleeding inward off it — this is the thickness */
+    inset calc(var(--lit-sx) * 24px) 0 36px -16px
+      rgba(255,255,255,calc(var(--glass-rim) * 0.5)),
+    /* the far edge, soft: a surface turning away, not a stripe */
+    inset calc(var(--lit-sx) * -20px) 0 26px -20px rgba(0,0,0,var(--glass-dark)),
+    /* a top lip, because the energy pass travels UP the column */
     inset 0 2px 0 0 rgba(255,255,255,calc(var(--glass-rim) * 0.35));
 }
 /* The sliver gradients are written left-to-right; a right-lit card needs them

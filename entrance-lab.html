@@ -574,19 +574,35 @@ body { margin: 0; overflow: hidden; }   /* nothing on this page scrolls, ever */
      mark explain the gesture instead of decorating it. */
   var WM_ARRIVAL = 'snap';
 
-  /* THE CUT, MEASURED — not estimated, and not a round number by accident.
+  /* THE CUE: THE RIGHT MESSENGER'S HAND, FULLY RAISED. Frame 76, t = 3.1667s.
 
-     The clip runs at 24.000fps (frame duration 0.04167s, read off
-     requestVideoFrameCallback's own mediaTime deltas). Scanning 4.10..4.25 at
-     0.01s, the frames at 4.14 / 4.15 / 4.16 are PIXEL-IDENTICAL and 4.17 jumps
-     by 37.4 mean levels — the messengers are gone and the lattice fills the
-     frame. So frame 99 spans 4.1250..4.1667 and frame 100 begins at 4.1667
-     exactly: 100/24.
+     The owner watched the entrance run and asked for the wordmark to land on
+     this gesture rather than on the film's edit. It is the better beat — the
+     wordmark answers something a person does, instead of something the cutting
+     room did.
 
-     Written as the fraction rather than 4.1667 so it stays exact, and so it is
-     obvious what it means if the clip is ever recut or re-encoded. */
-  var WM_CUT_AT = 100 / 24;
-  var cutArmed = true;
+     MEASURED, at the clip's true 24.000fps. Stepping frames 58..95 and tracking
+     the topmost dark pixel of the glove in a window that excludes both the
+     bright spine graphic (ends x~772) and the hood (starts x~950), the hand
+     rises to a PLATEAU across frames 74-77 at glove-top y 262-263 and is
+     descending by f78. Frame 76 is mid-plateau with the fingers fully spread.
+
+     Frames 58-61 read 230-233 in that scan and are a FALSE PEAK — that is the
+     window's own top edge, clipped by the messenger's shoulder while he is
+     still far enough away to sit inside it. Anyone re-running this measurement
+     will see them; they are not the hand.
+
+     THE OTHER LANDMARK, kept because it is still true and still useful: the
+     messengers -> lattice CUT is frame 100, t = 4.1667s exactly. Scanning
+     4.10..4.25 at 0.01s, frames 4.14/4.15/4.16 are pixel-identical and 4.17
+     jumps 37.4 mean levels. Set WM_CUE_AT to 100/24 to put the arrival back on
+     the edit.
+
+     Written as a fraction so it stays exact, and so it is obvious what it means
+     if the clip is ever recut or re-encoded. */
+  var WM_CUE_AT = 76 / 24;
+  var WM_CUT_FRAME = 100 / 24;    /* the edit, for reference and for the tuner */
+  var cueArmed = true;
 
   /* TUNING HOLD. Set once the ?tune panel exists, and it suppresses every
      automatic settle for the rest of the session — the 1400ms paused-video
@@ -707,12 +723,12 @@ body { margin: 0; overflow: hidden; }   /* nothing on this page scrolls, ever */
     if (settled) return;
 
     /* DISARM THE CUT. Skip seeks to the last frame, which is well past
-       WM_CUT_AT, so the next presented frame would satisfy the cue and the
+       WM_CUE_AT, so the next presented frame would satisfy the cue and the
        lockup would snap on — about 120ms before settle() hands over and the
        shutter immediately fades it out again. A wordmark that appears for an
        eighth of a second on its way out is worse than one that never appears,
        and the reader who pressed skip has said they do not want this beat. */
-    cutArmed = false;
+    cueArmed = false;
     if (canSeek(video) && isFinite(video.duration)) {
       video.currentTime = Math.max(0, video.duration - 0.05);
       // 'ended' does not reliably fire from a seek to the very end
@@ -786,7 +802,7 @@ body { margin: 0; overflow: hidden; }   /* nothing on this page scrolls, ever */
     onready: function (wm) {
       if (tuneHold || reduce || WM_ARRIVAL === 'none') { wm.settle(); return; }
       if (WM_ARRIVAL === 'develop') { wm.play(); return; }
-      armCut();
+      armCue();
     }
   });
 
@@ -796,19 +812,19 @@ body { margin: 0; overflow: hidden; }   /* nothing on this page scrolls, ever */
      times a second, so it can be up to 250ms — SIX FRAMES at 24fps — late, and
      a cut that lands six frames after the edit is not a cut, it is a mistake
      that looks like a bug. rVFC hands back the mediaTime of the frame actually
-     being presented, which is precisely the quantity WM_CUT_AT is defined
+     being presented, which is precisely the quantity WM_CUE_AT is defined
      against, so the lockup and the new shot appear on the same paint.
 
      The timeupdate path below is a real fallback for browsers without rVFC, and
      it is knowingly less accurate. It is still much better than nothing: being
      a few frames late is survivable, never arriving is not. */
-  function armCut() {
-    if (!cutArmed) { return; }
+  function armCue() {
+    if (!cueArmed) { return; }
 
     if (typeof video.requestVideoFrameCallback === 'function') {
       var step = function (now, meta) {
-        if (!cutArmed) { return; }
-        if (meta.mediaTime >= WM_CUT_AT - 0.001) { fireCut(); return; }
+        if (!cueArmed) { return; }
+        if (meta.mediaTime >= WM_CUE_AT - 0.001) { fireCue(); return; }
         video.requestVideoFrameCallback(step);
       };
       video.requestVideoFrameCallback(step);
@@ -816,10 +832,10 @@ body { margin: 0; overflow: hidden; }   /* nothing on this page scrolls, ever */
     }
 
     var onTime = function () {
-      if (!cutArmed) { video.removeEventListener('timeupdate', onTime); return; }
-      if (video.currentTime >= WM_CUT_AT) {
+      if (!cueArmed) { video.removeEventListener('timeupdate', onTime); return; }
+      if (video.currentTime >= WM_CUE_AT) {
         video.removeEventListener('timeupdate', onTime);
-        fireCut();
+        fireCue();
       }
     };
     video.addEventListener('timeupdate', onTime);
@@ -827,9 +843,9 @@ body { margin: 0; overflow: hidden; }   /* nothing on this page scrolls, ever */
 
   /* One place decides what "arriving" means, so the cue, the tuner's replay
      button and the reduced-motion path can never drift apart. */
-  function fireCut() {
-    if (!cutArmed) { return; }
-    cutArmed = false;
+  function fireCue() {
+    if (!cueArmed) { return; }
+    cueArmed = false;
     arrive();
   }
 
@@ -964,12 +980,14 @@ body { margin: 0; overflow: hidden; }   /* nothing on this page scrolls, ever */
       '</select>' +
       '<div style="display:flex;gap:6px;margin-top:7px">' +
       '<button type="button" class="wtune-btn" data-replay style="flex:1 1 auto">replay arrival</button>' +
-      '<button type="button" class="wtune-btn" data-atcut style="flex:1 1 auto">from the cut</button>' +
+      '<button type="button" class="wtune-btn" data-atcue style="flex:1 1 auto">run the cue</button>' +
       '</div>' +
-      '<span class="wfld__tip">The arrival fires on the clip’s own edit — frame 100, ' +
-      't=4.1667s, where the messengers are replaced by the lattice. REPLAY fires it ' +
-      'where you are now; FROM THE CUT parks at 4.10s, plays, and lets it land on the ' +
-      'real edit at 24fps.</span>';
+      '<span class="wfld__tip">The arrival fires when the RIGHT MESSENGER’S HAND IS ' +
+      'FULLY RAISED — frame 76, t=3.1667s. Measured: the glove plateaus across ' +
+      'frames 74-77 and is descending by 78. REPLAY fires it where you are parked; ' +
+      'RUN THE CUE starts a second early at 3.00s and lets it land on the real ' +
+      'gesture at 24fps. (The film’s own edit is frame 100, t=4.1667s, if you want ' +
+      'the arrival back there instead.)</span>';
     panel.querySelector('[data-arrival]').appendChild(arrWrap);
 
     var arrSel = arrWrap.querySelector('select');
@@ -984,14 +1002,18 @@ body { margin: 0; overflow: hidden; }   /* nothing on this page scrolls, ever */
       requestAnimationFrame(function () { requestAnimationFrame(arrive); });
     });
 
-    arrWrap.querySelector('[data-atcut]').addEventListener('click', function () {
+    arrWrap.querySelector('[data-atcue]').addEventListener('click', function () {
       if (!canSeek(video)) { return; }
       wordmark.reset();
-      cutArmed = true;
+      cueArmed = true;
       reclaim();
-      video.currentTime = 4.10;          /* ~1.6 frames before the edit */
-      clip.value = 4.10;
-      armCut();
+      /* a full second of run-up, not a couple of frames: the point of this
+         button is to see the hand RISE into the beat the wordmark answers, and
+         landing on the gesture only reads as landing on it if you watched the
+         gesture happen */
+      video.currentTime = 3.00;
+      clip.value = 3.00;
+      armCue();
       var pr = video.play();
       if (pr && pr.catch) { pr.catch(function () {}); }
       syncTransport();

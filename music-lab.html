@@ -137,6 +137,25 @@ body { margin: 0; overflow: hidden; }   /* nothing on this page scrolls, ever */
 }
 html.is-music .music { visibility: visible; pointer-events: auto; }
 
+/* THE HERO OVERLAY NEEDS ITS OWN GATE, and this cost three separate bugs
+   before it was written properly.
+
+   visibility is not display. A descendant can UN-hide itself, and
+   css/track-experience.css:195 does exactly that:
+   `.track-hero-layer.is-showing { visibility: visible; }`. So hiding .music
+   hid the carousel and left the settled 490x490 hero cover painting at
+   z-index 900 over everything -- over the whole navigator with Music closed
+   (the wireframe spine and all six nodes buried behind a Blue Pills cover),
+   and through the index grid. In every case
+   getComputedStyle('.music').visibility still read "hidden" and every
+   automated check passed. Only looking at it found any of them.
+
+   Written as default-hidden with one narrow re-enable, rather than as a list
+   of states to suppress: a suppression list has to be extended every time a
+   new state is added and silently regresses when someone forgets. */
+.track-hero-layer.is-showing { visibility: hidden; }
+html.is-music:not(.is-index) .track-hero-layer.is-showing { visibility: visible; }
+
 /* The section's own 32/32 page padding is page furniture, not component
    tuning. Zeroing it takes the box from 883.86 to 819.86 in a 900px viewport. */
 .music .track-experience { padding-block: 0; width: 100%; }
@@ -186,6 +205,17 @@ html.is-music .spine-node[data-side="left"] .spine-node__label {
 /* "Immersive - later" / "Card" describe a navigator destination. These are
    actions and the word says nothing true about them. */
 html.is-music .spine-node__label .kind { display: none; }
+
+/* THE RETICLE IS A CENTRED-SPINE IDEA AND IT DOES NOT SURVIVE THE MOVE.
+   .spine-node__reticle is a crosshair -- a horizontal rule (.rx) plus two end
+   squares -- drawn symmetrically about the node. On the centred axis it reads
+   as an instrument marking a point. On a rail 54px from the edge it is ~145px
+   wide centred on a dot at x=48.8, so roughly half of it hangs off the left
+   of the viewport and the rest runs sideways INTO the label: a line coming
+   out of the navigation with nowhere to go.
+   It is also redundant here. The reticle's job is to say which node you are
+   on, and in Music every label is visible at rest already. */
+html.is-music .spine-node__reticle { display: none; }
 
 /* The active-node treatment is a navigator idea -- one destination open, the
    rest receding. Every node here is a live control and dimming five of them
@@ -282,16 +312,27 @@ html.is-index .track-hero-layer.is-showing { visibility: hidden; }
 html.is-decode .track-focus-panel__desc { display: none; }
 .mdecode { display: none; }
 html.is-decode .mdecode { display: block; }
+/* max-width:none and auto side margins on BOTH, and they are load-bearing.
+   These are <p> elements inheriting the prose measure the stylesheets put on
+   paragraphs (.track-focus-panel__desc carries `max-width: 60ch; margin: 0
+   auto` for the same reason). With a measure but margin-left:0 the box is
+   narrower than the 760px panel AND pinned left, so `justify-content: center`
+   centred the row inside a box that was itself off to the side -- the
+   metadata sat ~185px left of the hero card while the panel around it was
+   correctly centred. Everything in this panel centres on the hero, which is
+   the only vertical axis the eye is using. */
 .mdecode__title {
   font-family: var(--font-display, "Big Shoulders Display", sans-serif);
   font-weight: 800; font-size: 30px; line-height: 1.05; letter-spacing: 0.01em;
-  text-transform: uppercase; color: var(--color-white); margin: 0 0 10px;
+  text-transform: uppercase; color: var(--color-white);
+  max-width: none; margin: 0 auto 10px; text-align: center;
   text-shadow: 0 1px 12px rgba(0,0,0,0.8);
 }
 .mdecode__rows {
   display: flex; justify-content: center; gap: 26px; flex-wrap: wrap;
   font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.18em;
-  text-transform: uppercase; color: var(--color-gray-400); margin: 0 0 4px;
+  text-transform: uppercase; color: var(--color-gray-400);
+  max-width: none; margin: 0 auto 14px;
 }
 .mdecode__rows b { color: var(--color-bone); font-weight: 500; margin-left: 7px; }
 
@@ -305,8 +346,16 @@ html.is-sky-off { --kick-stars: 0; --kick-cloud: 0; --snare-bolt: 0; }
 /* ==========================================================================
    05 SHARE — the only node that needs a surface, and it is momentary.
    ========================================================================== */
+/* Centred on the HERO CARD, not on the viewport. .toast is a child of
+   .spine-stage, so a bare left:50% is 720px — but the panel starts at
+   --rail-gutter and its content centres at 817px, which is the axis every
+   other thing on screen is using. Adding half the gutter walks it across:
+   720 + 97 = 817. This is the same mistake .rail-exit and .rail-ticks made in
+   music-collapse-lab.html, from the same cause: 50% of the stage is not 50%
+   of the space the content actually occupies. */
 .toast {
-  position: absolute; left: 50%; bottom: 30px; transform: translateX(-50%);
+  position: absolute; left: calc(50% + var(--rail-gutter) / 2); bottom: 30px;
+  transform: translateX(-50%);
   z-index: 70; padding: 10px 18px;
   border: 1px solid rgba(var(--node-color), 0.45); background: rgba(5,5,5,0.92);
   font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.06em;

@@ -1,0 +1,143 @@
+/* ==========================================================================
+   FUSION — PLATE's callouts over MANDALA's geometry
+   Partner file: js/field/v-fusion.js, which adds `v-plate` and `v-mandala` to
+   <html> so both parent stylesheets apply underneath this one.
+
+   THIS FILE ONLY SUBTRACTS. There is not a single new mark in it — no circle,
+   no leader, no label. Every rule below either removes a piece of a parent
+   that the other parent does better, or moves one number. If you find yourself
+   adding a component here, it belongs in a parent or in a seventh reading.
+
+   SPECIFICITY, since it is doing the work: the parents are scoped
+   `html.v-plate …` and `html.v-mandala …`, which is (0,2,0) at the front. Every
+   rule here leads with `html.v-fusion.v-plate` or `html.v-fusion.v-mandala`,
+   (0,3,0), so it wins without a single !important.
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   0. THE SLOTS.
+   js/field/v-fusion.js hands each parent a private div, because both of them
+   assign `root.innerHTML` and would otherwise erase each other -- PLATE mounts
+   second and did exactly that, silently, on the first build.
+
+   THE SLOT IS A REAL BOX, and `display: contents` was tried first and is
+   WRONG. It looked ideal -- a wrapper that generates no box, leaving every
+   absolutely-positioned child to resolve against .field exactly as it did when
+   its parent ran alone. What it also does is leave the slot with no rect at
+   all, and MANDALA sizes its entire construction from its container's
+   getBoundingClientRect(). Handed a boxless div it measured 0x0 and built
+   nothing, silently and without error: FUSION came up as PLATE's callouts over
+   an empty sky, which is a plausible-looking picture and the wrong reading.
+   PLATE survived only because it never measures its container.
+
+   `position: absolute; inset: 0` instead. The slot is then the same rect as
+   .field, so a parent measuring it gets the number it expects AND a parent
+   positioning against it lands where it always did. The two slots stack in DOM
+   order, which is exactly the order the composition wants: geometry beneath,
+   type above.
+   -------------------------------------------------------------------------- */
+html.v-fusion .field .fu-slot {
+  position: absolute; inset: 0;
+  pointer-events: none;   /* belt and braces; .field already has it */
+}
+
+/* --------------------------------------------------------------------------
+   1. PLATE'S GEOMETRY GOES.
+   PLATE draws its own Metatron web and rings at --pl-web-a 0.075 / --pl-ring-a
+   0.045. It is the weakest thing in PLATE and it is the exact thing MANDALA
+   exists to do properly -- and MANDALA's is centred on the heart rather than
+   on the stage, which PLATE's is not. Two Metatron constructions at different
+   centres, overlaid, would read as a printing error.
+   -------------------------------------------------------------------------- */
+html.v-fusion.v-plate .field .pl-geo { display: none; }
+
+/* --------------------------------------------------------------------------
+   2. MANDALA'S TYPE GOES — but not its MARKS, and the difference is the point.
+
+   Hidden: the numerals, the frequencies and the names on the rim. PLATE's
+   callouts already carry all three, better, and with a leader line joining
+   them to the body. Two labellings of the same seven centres is the one thing
+   this composition genuinely cannot afford.
+
+   KEPT: `.mnd-node` and `.mnd-tick`, the marks where each centre's height cuts
+   the rim. They are not labels -- they are the geometry acknowledging the
+   body, which is MANDALA's whole argument, and PLATE has no equivalent. They
+   say "this row is one of the seven" without saying which, and PLATE's callout
+   on the same row answers that.
+
+   `.mnd-node-idx` is in this list and was missed on the first pass, which is
+   worth recording: it is MANDALA's index numeral sitting beside the node mark,
+   and with the rest of the register gone it survived as a single orphaned "04"
+   floating in open sky next to ANAHATA's callout -- a stray that read as a
+   rendering fault rather than as a label. Caught by looking; nothing counted
+   it, because counting only ever finds what you already suspect.
+   -------------------------------------------------------------------------- */
+html.v-fusion.v-mandala .mnd-num,
+html.v-fusion.v-mandala .mnd-hz,
+html.v-fusion.v-mandala .mnd-name,
+html.v-fusion.v-mandala .mnd-node-idx { display: none; }
+
+/* --------------------------------------------------------------------------
+   3. THE SEVEN HORIZONTAL CHORDS GO, and this is the only genuine collision
+   between the two parents rather than a preference.
+
+   MANDALA draws a faint chord across the figure at each centre's height.
+   PLATE draws a leader hairline out to the margin at the same seven heights.
+   They are the same line, at the same y, in the same colour family -- so
+   together they read as one broken rule with a gap in the middle where the
+   spine is, which is worse than either alone. MANDALA's own author called
+   these "the least mandala-like mark in the figure and the first one to cut".
+   Cut.
+   -------------------------------------------------------------------------- */
+html.v-fusion.v-mandala .mnd-chord { display: none; }
+
+/* --------------------------------------------------------------------------
+   4. THE CONSTRUCTION STEPS BACK.
+
+   MANDALA runs its load-bearing lines at 0.26/0.30 because in MANDALA the
+   figure IS the composition and it has the frame to itself. Here it is the
+   room PLATE's callouts stand in, and seven leader lines now cross it. Held at
+   MANDALA's own levels the frame competes with the leaders at every crossing.
+
+   These are the FUSION values, and they are deliberately expressed as the same
+   tokens the parent uses rather than as new rules, so the parent's structure
+   is still the thing being adjusted:
+   -------------------------------------------------------------------------- */
+html.v-fusion.v-mandala .field {
+  --m-web:    0.055;   /* 0.085 — the 78 chords, now pure substrate */
+  --m-circle: 0.11;    /* 0.16 */
+  --m-frame:  0.16;    /* 0.26 — the biggest step back; this is what crossed */
+  --m-rim:    0.20;    /* 0.30 — still the line the marks register against */
+  --m-node:   0.30;    /* 0.34 — the marks stay near their own level */
+  --m-tick:   0.52;    /* 0.62 */
+  --m-lit:    0.50;    /* 0.55 — the amber heart circle, MANDALA's one warm mark */
+}
+
+/* --------------------------------------------------------------------------
+   5. PLATE STEPS FORWARD, slightly.
+   Its leader hairlines were tuned against an almost-empty field. Over a real
+   construction they have something to be read against, and at 0.14 they lose
+   the crossings. The names and meta are left exactly as PLATE set them --
+   those were judged over the sky and the sky has not changed behind them.
+   -------------------------------------------------------------------------- */
+html.v-fusion.v-plate .field {
+  --pl-lead-a: 0.22;   /* 0.14 */
+}
+
+/* --------------------------------------------------------------------------
+   6. ONE REGISTRATION SET, not two.
+   PLATE's corner brackets square the frame. MANDALA's rim already closes the
+   composition with a circle. Both together put a box and a circle around the
+   same picture, which is the visual equivalent of saying it twice -- so the
+   brackets drop back to a whisper rather than disappearing, because they are
+   what keeps the FRAME square while the rim keeps the FIGURE round.
+   -------------------------------------------------------------------------- */
+html.v-fusion.v-plate .field { --pl-reg-a: 0.12; }   /* 0.20 */
+
+/* --------------------------------------------------------------------------
+   7. RECEDE.
+   Both parents already carry their own is-card / is-music rules, scoped under
+   their own classes, and both classes are present here -- so the behaviour is
+   inherited twice over and correctly. Nothing to add. This comment exists so
+   the next reader does not "fix" the omission.
+   -------------------------------------------------------------------------- */

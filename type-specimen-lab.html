@@ -1,0 +1,402 @@
+<!doctype html>
+<html lang="en" class="page-specimen">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Type specimen — the KUNDALINI SPINES lockup</title>
+
+<!-- ==========================================================================
+     TYPE SPECIMEN — four candidate faces for the entrance wordmark.
+
+     WHY THIS PAGE EXISTS. The owner asked to change the entrance headline to a
+     compressed heavy poster gothic (reference: a two-line stacked lockup with a
+     registration rule between the lines and letterpress distress over the ink).
+     No free face is a dead match for that reference, so the choice gets made by
+     looking at real renders at real size over the real footage, not by reading
+     font names.
+
+     THE BUG THIS PAGE WAS BORN FROM. entrance-lab.html links no webfont at all.
+     Measured Aug 10 2026: on that page '800 56px "Big Shoulders Display"'
+     measures 536.79px for "KUNDALINI SPINES" — byte-identical to a deliberately
+     nonsense family — while on shutter-lab.html, which does link Google Fonts,
+     the same string measures 351.01px. The entrance has been rendering browser
+     fallback the whole time, 53% wider than the intended face.
+
+     document.fonts.check() returned TRUE on the broken page. It is not a
+     reliable probe. The canvas width comparison against a nonsense family is,
+     and this page runs that check on every candidate and says so on screen —
+     see the LOADED / FALLBACK badge. A specimen sheet that silently showed four
+     fallbacks would be worse than no specimen sheet at all.
+     ========================================================================== -->
+
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/base.css">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<!-- Archivo is requested on BOTH axes — wdth 62 is its narrowest cut and the
+     reason it is here at all; asking for wght alone returns the normal width and
+     the specimen would quietly compare the wrong thing.
+
+     Encode Sans Compressed was the original fourth candidate and is NOT here:
+     fonts.googleapis.com/css2 answers 400 for it in every form (bare,
+     :wght@900, :wght@100..900), checked Aug 10 2026. It has been withdrawn from
+     the API. The page's own load badge caught it before the specimen was
+     judged, which is exactly what that badge is for. -->
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wdth,wght@62,900&family=Saira+Extra+Condensed:wght@900&family=Big+Shoulders+Display:wght@800;900&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  /* REFERENCE size only — the real size is computed per candidate so that the
+     LONGEST line fills the measure naturally. Four faces of different widths
+     set at one shared font-size would each land on a different measure, which
+     is the one thing a specimen must not do. */
+  --spec-size: 132px;
+
+  /* The measure both lines are justified to, as a fraction of the stage. */
+  --spec-measure: 0.58;
+}
+
+body {
+  margin: 0;
+  background: #07080b;
+  color: var(--color-bone);
+  font-family: var(--font-mono), monospace;
+}
+
+.spec-head {
+  padding: 28px 32px 20px;
+  border-bottom: 1px solid rgba(216,208,190,0.14);
+}
+.spec-head h1 {
+  margin: 0 0 8px;
+  font-family: var(--font-mono), monospace;
+  font-size: 13px; font-weight: 500; letter-spacing: 0.18em;
+  text-transform: uppercase; color: var(--color-bone);
+}
+.spec-head p {
+  margin: 0; max-width: 76ch;
+  font-size: 12px; line-height: 1.7; color: rgba(216,208,190,0.6);
+}
+
+/* Each candidate gets the real footage behind it. The poster is frame 0 of the
+   hero clip — the two messengers — which is exactly what sits behind the
+   headline while the clip plays, so it is the honest backdrop to judge against.
+   The clip's later frames are darker and kinder to the type; frame 0 is the
+   hardest case and therefore the right one. */
+/* 620px, not the 460 this started at. At the computed sizes the lockup runs
+   470-520px tall and the narrowest candidate sizes UP the most to reach the
+   measure — Saira lands at 252px and had its whole bottom line clipped by the
+   overflow:hidden. A specimen that crops one candidate and not the others is
+   not a comparison. Caught by looking at the four captures side by side. */
+.spec {
+  position: relative;
+  min-height: 620px;
+  display: grid; place-items: center;
+  overflow: hidden;
+  border-bottom: 1px solid rgba(216,208,190,0.14);
+}
+.spec__bg {
+  position: absolute; inset: 0;
+  background: url("assets/hero/messengers-hero-video-poster.jpg") center/cover no-repeat;
+}
+/* The entrance's own scrim, matched, so contrast reads the same here as there. */
+.spec__scrim {
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(ellipse 62% 46% at 50% 46%, rgba(0,0,0,0.62), rgba(0,0,0,0.14) 62%, transparent 82%),
+    linear-gradient(180deg, rgba(7,8,11,0.42) 0%, rgba(7,8,11,0.06) 38%, rgba(7,8,11,0.58) 100%);
+}
+
+.spec__tag {
+  position: absolute; top: 14px; left: 18px; z-index: 4;
+  display: flex; align-items: center; gap: 10px;
+  font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase;
+  color: rgba(216,208,190,0.75);
+}
+.spec__badge {
+  padding: 3px 7px; border-radius: 2px; font-size: 9px; letter-spacing: 0.14em;
+  border: 1px solid currentColor;
+}
+.spec__badge.is-loaded   { color: #7BC08A; }
+.spec__badge.is-fallback { color: #E0574A; }
+
+.spec__metrics {
+  position: absolute; bottom: 12px; left: 18px; z-index: 4;
+  font-size: 10px; letter-spacing: 0.08em; color: rgba(216,208,190,0.42);
+}
+
+/* ---------------------------------------------------------------------------
+   THE LOCKUP.
+
+   Two lines, same cap height, each horizontally scaled to a shared measure.
+   scaleX rather than letter-spacing because the reference's SPINES has WIDER
+   LETTERFORMS than its KUNDALINI, not merely more air between them — tracking
+   the short word out to match leaves it looking like spaced-out small type
+   under a solid slab, which is the opposite of the reference's read.
+
+   transform-origin is centre so both lines stay centred as they scale, and the
+   scale is applied to an inner span so the outer .lock__line keeps its natural
+   box for the rule to measure against.
+   --------------------------------------------------------------------------- */
+.lock {
+  position: relative; z-index: 3;
+  width: 100%;
+  display: flex; flex-direction: column; align-items: center;
+  line-height: 0.82;
+  color: var(--color-bone);
+  text-transform: uppercase;
+}
+.lock__line { display: block; white-space: nowrap; }
+.lock__line > span {
+  display: inline-block;
+  transform: scaleX(var(--sx, 1));
+  transform-origin: 50% 50%;
+  will-change: transform;
+}
+
+/* THE REGISTRATION RULE. A hairline across the full measure, tick marks at both
+   ends, and a crosshair reticle at centre — the same reticle language the
+   navigator already speaks, which is why this detail was worth keeping from the
+   reference rather than treating as decoration. */
+.lock__rule {
+  position: relative;
+  width: 100%;
+  height: 12px;
+  margin: 0.10em 0;
+}
+.lock__rule::before {
+  content: ""; position: absolute; top: 50%; left: 0; right: 0; height: 1px;
+  background: rgba(216,208,190,0.55);
+}
+.lock__ticks {
+  position: absolute; top: 50%; transform: translateY(-50%);
+  display: flex; gap: 3px;
+}
+.lock__ticks--l { left: 10px; }
+.lock__ticks--r { right: 10px; }
+.lock__ticks i { display: block; width: 1px; height: 7px; background: rgba(216,208,190,0.75); }
+.lock__cross {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  width: 15px; height: 15px;
+}
+.lock__cross::before, .lock__cross::after {
+  content: ""; position: absolute; background: rgba(216,208,190,0.9);
+}
+.lock__cross::before { left: 50%; top: 0; bottom: 0; width: 1px; transform: translateX(-50%); }
+.lock__cross::after  { top: 50%; left: 0; right: 0; height: 1px; transform: translateY(-50%); }
+.lock__ring {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  width: 9px; height: 9px; border: 1px solid rgba(216,208,190,0.9); border-radius: 50%;
+}
+/* The rule sits on the page's own background, not the ink, so it needs the
+   scrim's help to stay legible over the bright refinery towers in frame 0. */
+.lock__rule { filter: drop-shadow(0 0 6px rgba(0,0,0,0.9)); }
+
+/* ---- the four candidates. Same size, same measure, only the family differs. */
+.f-anton   .lock { font-family: "Anton", sans-serif; font-weight: 400; }
+.f-archivo .lock { font-family: "Archivo", sans-serif; font-weight: 900;
+                   font-variation-settings: "wdth" 62; }
+.f-saira   .lock { font-family: "Saira Extra Condensed", sans-serif; font-weight: 900; }
+.f-bigsh   .lock { font-family: "Big Shoulders Display", sans-serif; font-weight: 900; }
+
+/* The reference size. layout() overwrites this inline per candidate. */
+.lock { font-size: var(--spec-size); }
+
+@media (max-width: 700px) {
+  :root { --spec-size: 62px; }
+  .spec { min-height: 300px; }
+}
+</style>
+</head>
+<body>
+
+<div class="spec-head">
+  <h1>Entrance wordmark — four candidates</h1>
+  <p>
+    Each row is the two-line lockup at display scale over frame 0 of the hero clip,
+    with the entrance's own scrim. Both lines are justified to a shared measure by
+    horizontal scale, and the registration rule carries the tick marks and centre
+    reticle from the reference. The badge beside each name is a real load check —
+    a canvas width comparison against a nonsense family, not
+    <code>document.fonts.check()</code>, which reports a false positive on a page
+    with no webfonts at all.
+  </p>
+</div>
+
+<section class="spec f-anton">
+  <div class="spec__bg"></div><div class="spec__scrim"></div>
+  <div class="spec__tag">Anton <span class="spec__badge" data-badge="Anton">…</span></div>
+  <div class="lock">
+    <span class="lock__line"><span>Kundalini</span></span>
+    <span class="lock__rule">
+      <span class="lock__ticks lock__ticks--l"><i></i><i></i><i></i></span>
+      <span class="lock__cross"></span><span class="lock__ring"></span>
+      <span class="lock__ticks lock__ticks--r"><i></i><i></i><i></i></span>
+    </span>
+    <span class="lock__line"><span>Spines</span></span>
+  </div>
+  <div class="spec__metrics" data-metrics></div>
+</section>
+
+<section class="spec f-archivo">
+  <div class="spec__bg"></div><div class="spec__scrim"></div>
+  <div class="spec__tag">Archivo 900 / width 62 <span class="spec__badge" data-badge="Archivo" data-wght="900">…</span></div>
+  <div class="lock">
+    <span class="lock__line"><span>Kundalini</span></span>
+    <span class="lock__rule">
+      <span class="lock__ticks lock__ticks--l"><i></i><i></i><i></i></span>
+      <span class="lock__cross"></span><span class="lock__ring"></span>
+      <span class="lock__ticks lock__ticks--r"><i></i><i></i><i></i></span>
+    </span>
+    <span class="lock__line"><span>Spines</span></span>
+  </div>
+  <div class="spec__metrics" data-metrics></div>
+</section>
+
+<section class="spec f-saira">
+  <div class="spec__bg"></div><div class="spec__scrim"></div>
+  <div class="spec__tag">Saira Extra Condensed 900 <span class="spec__badge" data-badge="Saira Extra Condensed">…</span></div>
+  <div class="lock">
+    <span class="lock__line"><span>Kundalini</span></span>
+    <span class="lock__rule">
+      <span class="lock__ticks lock__ticks--l"><i></i><i></i><i></i></span>
+      <span class="lock__cross"></span><span class="lock__ring"></span>
+      <span class="lock__ticks lock__ticks--r"><i></i><i></i><i></i></span>
+    </span>
+    <span class="lock__line"><span>Spines</span></span>
+  </div>
+  <div class="spec__metrics" data-metrics></div>
+</section>
+
+<section class="spec f-bigsh">
+  <div class="spec__bg"></div><div class="spec__scrim"></div>
+  <div class="spec__tag">Big Shoulders Display 900 — the incumbent <span class="spec__badge" data-badge="Big Shoulders Display">…</span></div>
+  <div class="lock">
+    <span class="lock__line"><span>Kundalini</span></span>
+    <span class="lock__rule">
+      <span class="lock__ticks lock__ticks--l"><i></i><i></i><i></i></span>
+      <span class="lock__cross"></span><span class="lock__ring"></span>
+      <span class="lock__ticks lock__ticks--r"><i></i><i></i><i></i></span>
+    </span>
+    <span class="lock__line"><span>Spines</span></span>
+  </div>
+  <div class="spec__metrics" data-metrics></div>
+</section>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ---- THE LOAD CHECK.
+
+     document.fonts.check() returns true for a family the browser cannot
+     actually paint — verified Aug 10 2026 on entrance-lab.html, which links no
+     webfont and still answered true for "Big Shoulders Display". The reliable
+     probe is to measure a string in the candidate and in a family that provably
+     does not exist: equal widths mean both resolved to the same fallback. */
+  var NONSENSE = '"Zzz No Such Face At All"';
+
+  function measure(family, weight) {
+    var c = measure._c || (measure._c = document.createElement('canvas').getContext('2d'));
+    c.font = (weight || 400) + ' 100px ' + family;
+    return c.measureText('KUNDALINI SPINES').width;
+  }
+
+  function isReal(family, weight) {
+    return Math.abs(measure('"' + family + '"', weight) - measure(NONSENSE, weight)) > 0.5;
+  }
+
+  /* ---- THE SHARED MEASURE.
+
+     SIZE FROM THE LONGEST LINE, THEN SCALE ONLY THE SHORTER ONES.
+
+     The first version of this fixed one font-size for every candidate and
+     stretched BOTH lines out to the measure. Measured result: SPINES came out
+     at scaleX 3.28 against KUNDALINI's 2.20 — a horizontal stretch that
+     obliterates the letterforms and makes every face look the same, which is
+     the exact opposite of what a specimen is for. Looked at, rejected, rebuilt.
+
+     Width scales linearly with font-size, so the whole thing closes in one
+     pass: set font-size so the longest line hits the measure naturally, and
+     every other line's factor is then just maxNatural / natural. The long line
+     lands on 1.00 — undistorted — and SPINES lands near 1.5, which is what the
+     reference actually shows: wider letterforms on the short line, not tracking.
+
+     Natural widths must be read with the transform CLEARED. Reading a scaled
+     box back returns the width it was last set to, and the value walks. */
+  function layout() {
+    var frac = parseFloat(getComputedStyle(document.documentElement)
+                 .getPropertyValue('--spec-measure'));
+    var refSize = parseFloat(getComputedStyle(document.documentElement)
+                    .getPropertyValue('--spec-size'));
+
+    document.querySelectorAll('.spec').forEach(function (spec) {
+      var lock  = spec.querySelector('.lock');
+      var lines = spec.querySelectorAll('.lock__line');
+      var target = lock.getBoundingClientRect().width * frac;
+
+      // measure at the shared reference size, unscaled
+      lock.style.fontSize = refSize + 'px';
+      var natural = [];
+      lines.forEach(function (line) {
+        var inner = line.firstElementChild;
+        inner.style.transform = 'none';
+        natural.push(inner.getBoundingClientRect().width);
+        inner.style.transform = '';
+      });
+
+      var maxNat = Math.max.apply(null, natural);
+      if (!(maxNat > 0)) return;
+
+      var size = refSize * target / maxNat;
+      lock.style.fontSize = size.toFixed(2) + 'px';
+
+      lines.forEach(function (line, i) {
+        line.style.setProperty('--sx', (maxNat / natural[i]).toFixed(4));
+      });
+
+      var m = spec.querySelector('[data-metrics]');
+      if (m) {
+        m.textContent =
+          'measure ' + Math.round(target) + 'px' +
+          '   size ' + Math.round(size) + 'px' +
+          '   scaleX ' + natural.map(function (n) {
+            return (maxNat / n).toFixed(2);
+          }).join(' / ');
+      }
+    });
+  }
+
+  function badges() {
+    document.querySelectorAll('[data-badge]').forEach(function (el) {
+      var fam = el.getAttribute('data-badge');
+      // the weight each candidate is actually set at, so the probe matches the render
+      var w = fam === 'Anton' ? 400 : 900;
+      var ok = isReal(fam, w);
+      el.title = fam + ' @ ' + w + ' — ' + Math.round(measure('"' + fam + '"', w)) +
+                 'px vs fallback ' + Math.round(measure(NONSENSE, w)) + 'px';
+      el.textContent = ok ? 'loaded' : 'FALLBACK';
+      el.classList.add(ok ? 'is-loaded' : 'is-fallback');
+    });
+  }
+
+  /* Everything here depends on real glyph metrics, so nothing runs until the
+     faces have actually arrived. This is the same gate .sh-hold provides for
+     the shutter — and the reason the entrance's slat grid is currently wrong is
+     that its faces never arrived at all. */
+  function go() { badges(); layout(); }
+
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(go);
+  } else {
+    window.addEventListener('load', go);
+  }
+  window.addEventListener('resize', layout);
+
+  window.__specimen = { layout: layout, isReal: isReal, measure: measure };
+})();
+</script>
+
+</body>
+</html>

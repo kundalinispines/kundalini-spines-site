@@ -60,9 +60,13 @@
                                         positioned cards resolve their 50% against
                                         the padding box, so they would not move. */
   --spine-ui-opacity:        1;
-  --spine-ui-line-w:         1.5px;
-  --spine-ui-line:           rgba(216, 208, 190, 0.22);   /* the cord — faint */
-  --spine-ui-line-lit:       rgba(242, 242, 238, 0.85);   /* signal white */
+  /* --spine-ui-line-w / --spine-ui-line / --spine-ui-line-lit were declared here
+     and read by nothing. Removed Aug 11 2026 after a full-repo audit: zero
+     `var(--spine-ui-line*)` in any .css/.js/.html, and zero mentions outside
+     their own declarations. The cord (.spine__cord) and the connectors were
+     always written with literal rgba()s, so the tokens never reached a pixel.
+     They are NOT the same idea as --connector-w/--connector-color, which do
+     drive the connector overlay and stay. */
   --spine-ui-breathe:        0.03;    /* amplitude of idle breath — restrained */
   --spine-ui-breathe-ms:     7600ms;
   --spine-ui-energy-ms:      7000ms;  /* vertical energy travel period */
@@ -80,8 +84,16 @@
   /* Nodes */
   --node-size:               10.5px;
   --node-idle-opacity:       0.79;
-  --node-hover-intensity:    1;
-  --node-active-intensity:   1;
+  /* --node-hover-intensity / --node-active-intensity were declared here and read
+     by nothing. Removed Aug 11 2026, same audit as the line tokens above. Note
+     for whoever finds them in the spec: they ARE named in the master prompt's
+     token list (§ near line 925), so this looks like an omission and is not.
+     Hover and active brightness are expressed as whole box-shadow + transform
+     states further down (`.spine-node:hover .spine-node__dot` and friends), not
+     as a scalar — a single intensity multiplier cannot say "grow the halo to
+     18px AND tighten the white core AND scale 1.15", which is what the look
+     actually is. Re-adding the scalars would need those rules rewritten, so
+     they are a design change, not a restoration. */
   --node-ring:               26px;    /* unfocused/hover ring size — smaller */
   --node-ring-active:        48px;    /* clicked/active — bigger concentric circles */
   --node-pulse-ms:           1350ms;
@@ -142,7 +154,12 @@
   --connector-ease:          cubic-bezier(0.4, 0, 0.2, 1);
 
   /* Cards — frosted glass so the nebula reads through */
-  --card-bg:                 rgba(12, 14, 18, 0.34);
+  /* --card-bg (rgba(12,14,18,0.34)) was declared here and read by nothing.
+     Removed Aug 11 2026. Only --card-bg-solid ever reached .spine-card, which
+     is deliberate: §28 asks the READING surface to be the near-opaque one, so
+     the lighter fill had no surface left to sit on once the card stopped being
+     translucent. Do not re-add it as a "hover/idle" pair without a rule to use
+     it — that is how it died the first time. */
   --card-bg-solid:           rgba(12, 14, 18, 0.42);
   --card-blur:               18px;
   --card-border:             rgba(216, 208, 190, 0.22);
@@ -244,7 +261,18 @@
   opacity: var(--cord-opacity);
 }
 
-/* START (ENTRY) / CONTINUE (SCROLL) axis markers, per the master concept */
+/* Axis end markers — the two schematic labels that terminate the spine.
+   They read START/ENTRY at the top and CONTINUE/ARROW KEYS at the base.
+
+   The bottom one said CONTINUE/SCROLL until Aug 11 2026, from the master
+   concept, back when the navigator was reached by scroll-scrubbing the hero.
+   V2HANDOFF 23 retired that entrance outright — there is no scroll anywhere in
+   V2 now — so the marker was naming an input the page does not accept. The
+   replacement names the one that actually moves you along the axis: js/spine-ui.js
+   binds ArrowUp/Down/Left/Right plus Home/End on the node toolbar. Pointer and
+   dismissal live on .spine-hint instead, so the two do not repeat each other.
+   The markup carrying this copy is in spine-lab.html; entrance-lab.html mounts
+   the navigator without markers, which is why it needed no edit. */
 .spine__marker {
   position: absolute; left: 50%; transform: translateX(-50%);
   text-align: center; pointer-events: none; white-space: nowrap;
@@ -343,7 +371,15 @@
   opacity: 0; pointer-events: none;
   transition: width var(--motion-base) var(--ease-standard), height var(--motion-base) var(--ease-standard);
 }
-.spine-node__ring--2 { width: var(--node-ring); height: var(--node-ring); }
+/* Ring 2 carries no size of its own. It used to re-declare
+       .spine-node__ring--2 { width: var(--node-ring); height: var(--node-ring) }
+   which is character-for-character what .spine-node__ring above already sets,
+   at the same (0,1,0) specificity — so it could never change anything, in any
+   state. Including the active state: `.spine-node.is-active { --node-ring:
+   var(--node-ring-active) }` retargets the variable, and both rules read the
+   variable, so they moved together to 48px either way. Removed Aug 11 2026.
+   What ring 2 DOES own is its half-cycle animation-delay, further down — that
+   line is load-bearing and is the reason the class exists at all. */
 
 /* the crosshair reticle — a horizontal axis with square endpoints, hidden until
    the node is focused/active, then it extends symmetrically (references 2 & 3). */
@@ -617,6 +653,56 @@
 }
 .spine-hint .label { color: var(--color-gray-400); }
 .spine-hint.is-hidden { opacity: 0; }
+
+/* On a page that carries axis end markers, the hint gives up the centre lane.
+
+   THE OVERLAP, measured Aug 11 2026, Chromium 1440x900, spine-lab.html,
+   getBoundingClientRect:
+     .spine__marker--end   top 826.5  bottom 886.5  left 688.8  right 751.2
+     .spine-hint           top 850.4  bottom 876.0  left 518.8  right 921.2
+   The hint box sat ENTIRELY inside the marker box vertically — 25.6px of vertical
+   overlap, 62.4px of horizontal — and the words CONTINUE and CLICK TO OPEN were
+   painted on top of each other. Both are centred on --axis-shift and both want
+   the foot of the stage, so it was never going to resolve itself.
+
+   WHY THE HINT MOVES SIDEWAYS AND NOT UP. Raising it was tried first and is
+   worse: at 1440x900 the foot of the axis is already full. Measured, top to
+   bottom — node 06 label 775.5-808.5, marker--end 826.5-886.5, viewport edge 900.
+   That leaves an 18px slot between node and marker for a 25.6px hint, and 13.5px
+   below the marker. `bottom: calc(1.5% + 76px)` clears the marker cleanly (16px
+   gap, verified) and lands the hint's baseline straight through the Timeline
+   node's dot at 786.75-797.25 — the amber point sat between the words CLICK and
+   OPEN. Trading a collision with static chrome for a collision with an
+   interactive element is not a fix. Do not re-try it without moving node 06.
+
+   So: the axis keeps the centre, the transient utility line steps out of it. The
+   hint is the right one to yield — it is instructional, it is not part of the
+   artwork, and it deletes itself (.is-hidden) the moment anything is hovered or
+   focused, while the markers are permanent.
+
+   Scoped with :has() rather than applied flat, because entrance-lab.html mounts
+   this same navigator WITHOUT markers, and there the centred hint is unopposed
+   and correct. The clearance exists only where the thing to clear does. A
+   browser without :has() falls through to the centred rule above — i.e. back to
+   today's overlap, and only on a page that has markers at all.
+
+   `left` is a plain edge inset, deliberately NOT calc(... + var(--axis-shift)):
+   out of the lane, the hint has no reason to track the ?tune panel's axis slide,
+   and the panel owns the right-hand side, so bottom-left stays clear either way. */
+.spine-stage:has(.spine__marker--end) .spine-hint {
+  left: var(--space-6);
+  transform: none;
+  text-align: left;
+  /* A fixed box with `left` set and `right` auto is shrink-to-fit, so the cap is
+     the only thing standing between this and the far edge: measured at 375px it
+     ran 24 -> 375.0, i.e. dead against the viewport edge with no inset on the
+     right. `right: var(--space-6)` would fix that too and is wrong here — it
+     would stretch the BOX to 24..1416 at desktop, so the box would once again
+     report as overlapping the marker in getBoundingClientRect even though the
+     left-aligned text never reaches it, and the next person measuring this would
+     think the fix had failed. A max-width leaves the box shrink-to-fit. */
+  max-width: calc(100vw - 2 * var(--space-6));
+}
 
 /* --------------------------------------------------------------------------
    RESPONSIVE  (prototype degrades gracefully; the two mobile candidates in

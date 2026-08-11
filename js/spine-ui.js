@@ -329,9 +329,24 @@
 
     var d;
     if (progress < 1) {
-      // preview: a short horizontal stub off the node
-      var stub = 70 * progress * 4; // ~70px at 0.25
-      d = 'M ' + nx + ' ' + ny + ' H ' + (nx + dir * stub);
+      // preview: a short horizontal stub off the node.
+      //
+      // This read `var stub = 70 * progress * 4; // ~70px at 0.25`, which is
+      // 280 * progress wearing a disguise. Checked Aug 11 2026 before touching
+      // it, because "it is just 70" is exactly the kind of claim that turns out
+      // to be load-bearing: 70 * 0.25 * 4 = 70.0 exactly, and drawConnector is
+      // called from three places — preFocus with 0.25, activate with 1, and the
+      // resize handler with 1. Only the 0.25 reaches this branch, so the
+      // expression had one possible value for the life of the file, and the
+      // "~" in the old comment was not even approximating anything.
+      //
+      // Written as a constant because the parameterisation was never real. If a
+      // second preview strength is ever wanted, scale from STUB deliberately —
+      // the old form would have handed you 252px at progress 0.9, a length
+      // nobody chose. Unrelated to the 46px elbow below, which is the full
+      // path's first run and is a different measurement.
+      var STUB = 70;
+      d = 'M ' + nx + ' ' + ny + ' H ' + (nx + dir * STUB);
     } else {
       // full rigid path to the card's near edge, then a step to its mid-height
       var cardRect = card.getBoundingClientRect();

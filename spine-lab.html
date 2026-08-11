@@ -241,8 +241,16 @@ body.has-tune.tune-collapsed { --axis-shift: 0px; }
     <div class="spine__anat"></div>
     <div class="spine__cord"></div>
     <div class="spine__energy"></div>
+    <!-- Axis end markers. The base one read "Continue / Scroll" until Aug 11 2026,
+         which named an input V2 no longer accepts — the scroll-scrubbed entrance
+         was retired in V2HANDOFF 23 and this navigator is keyboard and click only.
+         "Arrow keys" is the literal binding in js/spine-ui.js (ArrowUp/Down/
+         Left/Right, plus Home/End) on the node toolbar. Pointer and dismissal are
+         the hint's job at the foot of the page, so neither line repeats the other.
+         See the clearance note on .spine-hint in css/spine-ui.css — these two used
+         to be drawn on top of each other. -->
     <p class="spine__marker spine__marker--start"><span>Start</span>Entry<i class="tick"></i></p>
-    <p class="spine__marker spine__marker--end"><i class="tick"></i><span>Continue</span>Scroll</p>
+    <p class="spine__marker spine__marker--end"><i class="tick"></i><span>Continue</span>Arrow keys</p>
   </div>
 
   <!-- nodes: a real toolbar for keyboard + AT -->

@@ -512,6 +512,14 @@ html.hud-min .hud { background: none; padding: 8px 16px; }
 
 <div class="tip" id="tip" role="status" aria-live="polite"></div>
 
+<!-- Loaded for ONE thing: window.__spineLab.nodes, the single source of truth for
+     the six-node table. This page has none of the navigator markup spine-ui.js
+     looks for, so it early-returns after publishing that hook — no nodes built,
+     no listeners bound, no styles applied (css/spine-ui.css is not linked here;
+     this page dresses its own reduced navigator). Must stay ABOVE the inline
+     script below, which reads the hook at parse time. -->
+<script src="js/spine-ui.js"></script>
+
 <script>
 (function () {
   'use strict';
@@ -957,22 +965,32 @@ html.hud-min .hud { background: none; padding: 8px 16px; }
   // nodes sit at left 50% with no correction.
   var WIRE = { top: 34, bot: 2107, box: 2150 };
 
-  // Same six destinations, same order, same sides and y values as the node table
-  // in spine-lab.html. Kept in step by hand for now; the real fix is the
-  // css/spine-ui.css + js/spine-ui.js extraction that is already on the list.
-  // NOTE this is a REDUCED navigator — dot, mark ring, cord and label only. No
-  // cards, no reticle, no rising comet. Enough to judge the handoff, not the
-  // navigation itself.
-  var NAV_NODES = [
-    { idx: '01', title: 'Music',          side: 'right', y: 14 },
-    { idx: '02', title: 'Our Story',      side: 'left',  y: 29 },
-    { idx: '03', title: 'The Messengers', side: 'right', y: 44 },
-    { idx: '04', title: 'Our Ethos',      side: 'left',  y: 59 },
-    { idx: '05', title: 'Archive',        side: 'right', y: 74 },
-    { idx: '06', title: 'Timeline',       side: 'left',  y: 88 }
-  ];
+  // The six destinations, read from the ONE table that defines them.
+  //
+  // This file used to carry its own NAV_NODES literal — idx / title / side / y
+  // for all six, hand-synced with spine-lab.html and free to drift. That is the
+  // duplication js/spine-ui.js was extracted to end, and it is deleted as of
+  // Aug 11 2026 (V2HANDOFF 23, still-open item 9). The module is loaded above
+  // for this hook and nothing else: hero-scrub-lab.html has no #spine-nav-stage,
+  // #spine-nav or #spine-card, so spine-ui.js takes its no-markup early return,
+  // publishes window.__spineLab.nodes and does not build, bind or draw anything
+  // here. It also brings no CSS with it — css/spine-ui.css is deliberately NOT
+  // linked, because this page styles its reduced navigator itself.
+  //
+  // NOTE this is still a REDUCED navigator — dot, mark ring, cord and label
+  // only. No cards, no reticle, no rising comet. Enough to judge the handoff,
+  // not the navigation itself. So it reads four fields off each node and
+  // ignores the rest (kind, eyebrow, body, cta, href), which is why the table
+  // being richer than this page needs is not a problem.
+  var NAV_NODES = (window.__spineLab && window.__spineLab.nodes) || null;
 
   (function buildNav() {
+    if (!NAV_NODES) {
+      // Loud rather than a silently empty spine: without the table this page
+      // renders a bare cord and the handoff it exists to judge is not there.
+      console.error('hero-scrub-lab: js/spine-ui.js did not publish window.__spineLab.nodes — the reduced navigator has nothing to build from.');
+      return;
+    }
     var host = document.getElementById('navSpine');
     var artTop = WIRE.top / WIRE.box, artH = (WIRE.bot - WIRE.top) / WIRE.box;
     var cord = document.getElementById('navCord');

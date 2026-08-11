@@ -55,16 +55,21 @@
   --coil-color-b:  255, 236, 208;  /* the second strand's tone at split 1 */
   --coil-split:    0.58;    /* how far apart the two strands are told */
   --coil-turns:    3.5;      /* per strand, base to crown */
-  --coil-beam:     0.12;    /* the lit central channel and its reach */
+  --coil-beam:     0.10;    /* the lit central channel and its reach */
   --coil-hug:      1;      /* 1 = follow the measured silhouette, 0 = constant */
-  --coil-clear:    3;     /* viewBox units of air between bone and coil */
+  --coil-clear:    9;     /* viewBox units of air between bone and coil */
   --coil-far:      0.64;      /* presence of the half that passes behind the bone */
-  --coil-blend:    0.35;   /* width of the front/back crossover blend, in sin(theta).
-                              0 = the original hard split. Safe up to ~0.6; past that
-                              the back canvas starts painting where the bone covers it. */
-  --coil-ms:       900;    /* base to crown */
-  --coil-hold:     280;    /* full coil, motionless, before it lets go */
-  --coil-fade:     760;    /* dissolve. ms + hold + fade IS the gesture. */
+  --coil-blend:    0.60;   /* width of the front/back crossover blend, in sin(theta).
+                              0 = the original hard split. There is no cliff: the 50/50
+                              handoff sits at |cos|=1, always --coil-clear units outside
+                              the silhouette, so it is visible at any blend width. Wider
+                              only pushes more of the crossfade behind the bone, where
+                              the far strand is meant to be hidden anyway. Measured at
+                              0.60/clear 9: tails reach 27.8 units inside the silhouette
+                              at worst, midpoint still clear. */
+  --coil-ms:       2300;    /* base to crown */
+  --coil-hold:     0;    /* full coil, motionless, before it lets go */
+  --coil-fade:     620;    /* dissolve. ms + hold + fade IS the gesture. */
 }
 
 body { margin: 0; min-height: 100vh; }
@@ -165,24 +170,24 @@ body { margin: 0; min-height: 100vh; }
 
   <div class="hud__row"><label>Turns <b id="vTurns">3.5</b></label>
     <input type="range" id="sTurns" min="1" max="10" step="0.5" value="3.5"></div>
-  <div class="hud__row"><label>Beam <b id="vBeam">0.12</b></label>
-    <input type="range" id="sBeam" min="0" max="1" step="0.02" value="0.12"></div>
+  <div class="hud__row"><label>Beam <b id="vBeam">0.10</b></label>
+    <input type="range" id="sBeam" min="0" max="1" step="0.02" value="0.10"></div>
   <div class="hud__row"><label>Hug <b id="vHug">1.00</b></label>
     <input type="range" id="sHug" min="0" max="1" step="0.02" value="1"></div>
   <div class="hud__row"><label>Split <b id="vSplit">0.58</b></label>
     <input type="range" id="sSplit" min="0" max="1" step="0.02" value="0.58"></div>
-  <div class="hud__row"><label>Clearance <b id="vClear">3</b></label>
-    <input type="range" id="sClear" min="0" max="40" step="1" value="3"></div>
+  <div class="hud__row"><label>Clearance <b id="vClear">9</b></label>
+    <input type="range" id="sClear" min="0" max="40" step="1" value="9"></div>
   <div class="hud__row"><label>Far half <b id="vFar">0.64</b></label>
     <input type="range" id="sFar" min="0" max="1.6" step="0.02" value="0.64"></div>
-  <div class="hud__row"><label>Crossover blend <b id="vBlend">0.35</b></label>
-    <input type="range" id="sBlend" min="0" max="0.6" step="0.01" value="0.35"></div>
-  <div class="hud__row"><label>Travel <b id="vMs">900</b>ms</label>
-    <input type="range" id="sMs" min="120" max="6000" step="20" value="900"></div>
-  <div class="hud__row"><label>Hold <b id="vHold">280</b>ms</label>
-    <input type="range" id="sHold" min="0" max="2000" step="20" value="280"></div>
-  <div class="hud__row"><label>Fade <b id="vFade">760</b>ms</label>
-    <input type="range" id="sFade" min="0" max="3000" step="20" value="760"></div>
+  <div class="hud__row"><label>Crossover blend <b id="vBlend">0.60</b></label>
+    <input type="range" id="sBlend" min="0" max="0.9" step="0.01" value="0.60"></div>
+  <div class="hud__row"><label>Travel <b id="vMs">2300</b>ms</label>
+    <input type="range" id="sMs" min="120" max="6000" step="20" value="2300"></div>
+  <div class="hud__row"><label>Hold <b id="vHold">0</b>ms</label>
+    <input type="range" id="sHold" min="0" max="2000" step="20" value="0"></div>
+  <div class="hud__row"><label>Fade <b id="vFade">620</b>ms</label>
+    <input type="range" id="sFade" min="0" max="3000" step="20" value="620"></div>
 
   <div class="hud__facts" id="facts"></div>
   <p class="hud__note">

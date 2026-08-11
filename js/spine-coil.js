@@ -154,14 +154,14 @@
     split:  0.58,    /* 0 = the two strands identical, 1 = full separation */
 
     turns:  3.5,     /* per strand, base to crown. Twin wants fewer than one. */
-    beam:   0.12,    /* strength of the lit channel and the reach above it */
+    beam:   0.10,    /* strength of the lit channel and the reach above it */
     hug:    1,       /* 1 = follow the measured envelope, 0 = constant radius */
-    clear:  3,       /* viewBox units of air between silhouette and coil */
+    clear:  9,       /* viewBox units of air between silhouette and coil */
     far:    0.64,    /* multiplier on the far half's presence — see below */
 
     /* HOW WIDE THE FRONT/BACK CROSSOVER IS BLENDED, in sin(theta) units.
        0 restores the original hard split. See the block above drawRun. */
-    blend:  0.35,
+    blend:  0.60,
 
     samples:   280,  /* points per strand per canvas */
     buckets:   12,   /* recency quantisation; see the note on drawRun */
@@ -173,9 +173,9 @@
        durationMs 150 the travel is 13% of what you see and the other 87% is a
        coil sitting still and then dissolving. Both are now CSS variables and
        both are on the HUD. */
-    durationMs: 900,   /* base to crown */
-    holdMs:      280,  /* full coil, motionless, before it lets go */
-    fadeMs:      760,  /* dissolve */
+    durationMs: 2300,  /* base to crown */
+    holdMs:        0,  /* full coil, motionless, before it lets go */
+    fadeMs:      620,  /* dissolve */
     inFrac:     0.06 /* fraction of the run spent fading the coil in */
   };
 
@@ -423,13 +423,28 @@
        At full recency that handoff was a step from w 7.4 to 3.8 and alpha 0.94
        to 0.50, in one sample. It read as the beam being severed and restarted.
 
-       Blending is safe precisely AT the crossover and nowhere else, which is
-       worth understanding before widening it: x = CX + rx*cos(theta), so
-       sin = 0 means |cos| = 1 — the ring's extreme left and right, where the
-       strand is furthest from the column and occluded by nothing. blend 0.5
-       still keeps the whole blended arc within 13% of that extreme. Push it
-       toward 1 and the back canvas starts painting where the bone covers it,
-       which is not a blend, it is a disappearance.
+       WHERE THE BLEND SITS, MEASURED — an earlier version of this comment
+       warned that anything past ~0.6 "is not a blend, it is a disappearance".
+       That was overstated, and checking it against ringAt() and the measured
+       profile is what corrected it.
+
+       x = CX + rx*cos(theta), so sin = 0 means |cos| = 1: the ring's extreme
+       left and right. THE HANDOFF MIDPOINT IS THERE, and there the strand sits
+       exactly `clear` units outside the silhouette by construction — 9 units at
+       the authored clearance — so the 50/50 crossing is always visible on both
+       canvases at every height. That is the part that matters and it cannot be
+       occluded at any blend width.
+
+       The blend's TAILS do go behind the bone. At blend 0.60 the arc spans
+       |cos| > 0.8, and its innermost reach is 0.8*rx = 0.8*half + 7.2, which is
+       inside the silhouette at every row sampled — worst 27.8 units in, at
+       y=1738. That is harmless: only the BACK canvas is occluded there, and the
+       far strand passing behind the bone is the entire point of the depth
+       split. The fade simply completes out of sight.
+
+       So the useful ceiling is not a cliff. Wider blends move more of the
+       crossfade behind the column, which softens the handoff and eventually
+       wastes it; they never break it.
 
        WIDTH IS SHARED, ALPHA IS SPLIT. Both canvases compute the SAME lerped
        width at a given point, so there is no step in the silhouette to see.

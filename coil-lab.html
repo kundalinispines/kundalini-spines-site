@@ -62,7 +62,9 @@
   --coil-blend:    0.35;   /* width of the front/back crossover blend, in sin(theta).
                               0 = the original hard split. Safe up to ~0.6; past that
                               the back canvas starts painting where the bone covers it. */
-  --coil-ms:       900;   /* length of the one shot */
+  --coil-ms:       900;    /* base to crown */
+  --coil-hold:     280;    /* full coil, motionless, before it lets go */
+  --coil-fade:     760;    /* dissolve. ms + hold + fade IS the gesture. */
 }
 
 body { margin: 0; min-height: 100vh; }
@@ -175,8 +177,12 @@ body { margin: 0; min-height: 100vh; }
     <input type="range" id="sFar" min="0" max="1.6" step="0.02" value="0.64"></div>
   <div class="hud__row"><label>Crossover blend <b id="vBlend">0.35</b></label>
     <input type="range" id="sBlend" min="0" max="0.6" step="0.01" value="0.35"></div>
-  <div class="hud__row"><label>Duration <b id="vMs">900</b>ms</label>
-    <input type="range" id="sMs" min="900" max="6000" step="100" value="900"></div>
+  <div class="hud__row"><label>Travel <b id="vMs">900</b>ms</label>
+    <input type="range" id="sMs" min="120" max="6000" step="20" value="900"></div>
+  <div class="hud__row"><label>Hold <b id="vHold">280</b>ms</label>
+    <input type="range" id="sHold" min="0" max="2000" step="20" value="280"></div>
+  <div class="hud__row"><label>Fade <b id="vFade">760</b>ms</label>
+    <input type="range" id="sFade" min="0" max="3000" step="20" value="760"></div>
 
   <div class="hud__facts" id="facts"></div>
   <p class="hud__note">
@@ -231,7 +237,9 @@ body { margin: 0; min-height: 100vh; }
     { id: 'Clear', v: '--coil-clear', fix: 0 },
     { id: 'Far',   v: '--coil-far',   fix: 2 },
     { id: 'Blend', v: '--coil-blend', fix: 2 },
-    { id: 'Ms',    v: '--coil-ms',    fix: 0 }
+    { id: 'Ms',    v: '--coil-ms',    fix: 0 },
+    { id: 'Hold',  v: '--coil-hold',  fix: 0 },
+    { id: 'Fade',  v: '--coil-fade',  fix: 0 }
   ];
   SLIDERS.forEach(function (s) {
     var el = document.getElementById('s' + s.id), out = document.getElementById('v' + s.id);

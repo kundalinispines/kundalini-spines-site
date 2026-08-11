@@ -167,9 +167,15 @@
     buckets:   12,   /* recency quantisation; see the note on drawRun */
     tailTurns: 0.18, /* fraction of one turn over which the head tapers away */
 
-    durationMs: 900,
-    holdMs:      280,
-    fadeMs:      760,
+    /* THE GESTURE IS durationMs + holdMs + fadeMs, and only the first was ever
+       reachable. Asked to shorten the run below the old 900ms slider floor, the
+       floor that actually bites is the 1040ms of tail these two carry: at
+       durationMs 150 the travel is 13% of what you see and the other 87% is a
+       coil sitting still and then dissolving. Both are now CSS variables and
+       both are on the HUD. */
+    durationMs: 900,   /* base to crown */
+    holdMs:      280,  /* full coil, motionless, before it lets go */
+    fadeMs:      760,  /* dissolve */
     inFrac:     0.06 /* fraction of the run spent fading the coil in */
   };
 
@@ -185,7 +191,9 @@
     '--coil-clear':   'clear',
     '--coil-far':     'far',
     '--coil-blend':   'blend',
-    '--coil-ms':      'durationMs'
+    '--coil-ms':      'durationMs',
+    '--coil-hold':    'holdMs',
+    '--coil-fade':    'fadeMs'
   };
 
   function rgb(str) {

@@ -47,16 +47,27 @@ touched.
   carousel `index.html` also uses. Every side-card click there had the same
   behaviour.
 
+- **THIS HANDOFF'S OWN "VERIFIED BOTH SIDES" WAS INSUFFICIENT, AND THE BEVEL
+  SHIPPED LIT ON THE WRONG EDGE FOR ONE COMMIT (`6830c36`).** The check read
+  border colours and the value of `--lit-x`, and both were correct. What it
+  never checked was **where the light actually landed**. `box-shadow: inset`
+  with a positive offset-x casts its band along the LEFT inner edge — the
+  opposite sign from what a gradient position needs — so the sheen lit the
+  spine side while every bevel band lit the far side. Fixed in `010bffc` with a
+  second variable, `--lit-sx`, and re-verified by **sampling pixel brightness**
+  rather than by reading computed style. **The owner saw the symptom before any
+  check did**; the word was "wonky".
+
 ---
 
 ## Git state
 
 - Branch `feature/spine-ui-v2`, worktree
   `C:\Users\Haight\Desktop\kundalini-spines-spine-ui`.
-- Session start `bf71782`; six commits, ending **`6830c36`**:
+- Session start `bf71782`; seven commits, ending **`010bffc`**:
   `41f6f8b` the two carousel fixes · `efe8812` the full stack · `862d6fd` this
   handoff · `cba3921` the glass lab · `9a5aa35` the thumbnails · `6830c36` the
-  glass port.
+  glass port · `010bffc` the four card fixes.
 - `main` = `origin/main` = **`13083d9`**, untouched. No PR opened.
 - **`js/track-experience.js` and `css/spine-ui.css` WERE modified**, which
   breaks 25's "zero production files modified" streak. That was a constraint of
@@ -196,7 +207,7 @@ The owner asked for liquid glass and pointed at an Apple-Tahoe React component
 
 | | |
 |---|---|
-| Reading | LENS — bright lip, dark line, second lip. Reads as a thick bevelled pane |
+| Reading | LENS, **softened on port** — one lit lip and two soft falls, no hard dark bands |
 | Default | **REFRACT** — real displacement, added by `@supports` |
 | Fallback | **LENS** — the painted bevel, which every browser gets |
 | Light source | **THE SPINE**, not a viewport lamp |
@@ -214,6 +225,22 @@ come out half-lit the wrong way.
 the `.spine-card` block; hand-adding a span to all five is five chances to miss
 one. The module already owns the card's contents. `::before` and `::after` were
 both unavailable — the stacked ghost frames use them.
+
+**TWO SIGNS, AND THEY ARE OPPOSITE.** `--lit-x` is a POSITION multiplier for
+gradient centres (`at calc(50% + var(--lit-x) * 50%)`), where light-from-left
+is −1. `--lit-sx` is its negation and is the only thing `box-shadow: inset`
+offsets may use, because a positive offset-x casts along the LEFT inner edge.
+Mixing them is not a subtle bug — it lights the wrong edge of the card — and it
+is invisible to any check that reads computed values instead of pixels.
+
+**WHAT THE LAB SHIPPED AND WHAT THE CARD SHIPPED ARE NOT IDENTICAL.** LENS in
+`spine-card-glass-lab.html` carries a solid `rgba(0,0,0,0.65)` line between two
+lips, which is what makes a bevel read as thick on a large flat sample. On the
+real 400px card, with body copy starting 24px in, the owner read it as *"a
+blackish gray strip on the inside of the card"* — correctly; at that size it is
+a stripe beside the text, not a bevel. It and the hard far-edge band were both
+dropped on port. **The lab is not wrong, the sample size is different**; do not
+"restore" the lab version to the card.
 
 ---
 
@@ -252,6 +279,18 @@ All Aug 11 2026 via Playwright against `scripts/serve.py`, 1440×900.
    set encodes in **0.79s**. There is no GPU path — libwebp is CPU-only and
    NVENC does video codecs, not stills. The fix was concurrency, not hardware.
    **Diagnose a "slow" job by looking at CPU before waiting on it.**
+10. **THE LIT EDGE, MEASURED IN PIXELS.** Mean luminance of an 8px column just
+    inside each border, sampled across the card's middle where the head row
+    cannot interfere:
+
+    | card | left edge | right edge | lit |
+    |---|---|---|---|
+    | side-right (spine on left) | **164.4** | 6.0 | left ✓ |
+    | side-left (spine on right) | 8.8 | **175.3** | right ✓ |
+
+    This is the check that should have existed at port time. A computed-style
+    read of `--lit-x` and the border colours passed while the bevel was lit on
+    the wrong edge; a screenshot at 3× device scale showed it in one look.
 
 ---
 
@@ -271,9 +310,15 @@ Escape binding needs no edit. Additionally:
   `css/music-wrap.css` now.
 - **Do not renumber the rail or the navigator.** Both are deliberate; the
   reading card's `02 / 06` is the one place numbering is still correct.
-- **Do not use a negative spread on the glass lips.** `inset Xpx 0 0 0` paints
-  a BAND; a negative spread eats it back to a hairline. The first pass did
-  exactly that and every reading was invisible, including against FROST.
+- **Do not use a negative spread on the glass LIP.** `inset Xpx 0 0 0` paints a
+  BAND; a negative spread eats it back to a hairline. The first lab pass did
+  exactly that and every reading was invisible, including against FROST. The
+  two FALLS do carry negative spread — that is what makes them falls.
+- **Do not put `--lit-x` in a `box-shadow` offset.** Shadow space uses
+  `--lit-sx`, its negation. Getting this wrong lights the wrong edge of the
+  card and no computed-style check will catch it.
+- **Do not restore the lab's LENS dark line to the card.** It reads as bevel
+  thickness at lab scale and as a stripe beside the body copy at card scale.
 - **Do not move `--glass-sheen-y` back to 0%.** It is a legibility number, not
   a taste one — at 0% the wash sits on the lit top corner, which is where the
   head row lives, and washes `02 / 06`, `ACTIVE` and the close glyph out.
@@ -297,9 +342,12 @@ Escape binding needs no edit. Additionally:
 - The navigator unnumbered, the reading card still `02 / 06`.
 - Thumbnails serving from `assets/music/thumbs/`, 28 cells, 0 broken images,
   natural size 448×448.
-- The glass on both sides: `side-left` resolves `--lit-x: +1` with the right
-  border lit (0.45) and the left dark (0.22); `side-right` the mirror.
-  `.spine-card__close` still `position: absolute` after the z-index lift.
+- The glass on both sides, **in pixels** (finding 10) — not in computed values,
+  which passed while the bevel was inverted. `.spine-card__close` still
+  `position: absolute` after the z-index lift.
+- The three things the owner named after seeing it on a real page: the ghost
+  frames tightened, the `×` legible and clear of the `ACTIVE` flag, the dark
+  strip gone. All three were visible only on the card, not in the lab.
 - Screenshots taken and **actually looked at** at every stage. **They caught a
   bug every automated assertion passed:** the specular wash was centred at 0%,
   the lit top corner, which is exactly where the head row lives — it washed
@@ -356,6 +404,12 @@ Escape binding needs no edit. Additionally:
    declares `width="1200" height="1500"` — same ratio, wrong numbers.
 9. **Layer 2 and 5 of the Range plan.**
 10. **Tuner integration, Archive wrap** — unchanged from 19.
+
+**A NOTE ON METHOD, since it happened three times this session.** The sheen
+bug, the inverted bevel and all three of the owner's card notes were caught by
+looking at a picture, and passed every automated assertion. 25's finding 5 said
+the same thing. **Assertions confirm what you thought to ask; screenshots show
+what you did not.** Budget for both.
 
 **Closed since 25:** the paused-after-jump defect; the Escape/player defect
 found alongside it; navigator numbering; the Music CSS duplication; the

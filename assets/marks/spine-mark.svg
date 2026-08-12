@@ -1,12 +1,40 @@
 <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Kundalini Spines spine mark">
-  <!-- Secondary Spine Mark: 7 tapering segments (the "Seven Nodes"), single silhouette, safe down to 16px. -->
-  <g fill="#F2F2EE">
-    <rect x="39" y="6"  width="22" height="9" rx="4"/>
-    <rect x="38" y="18" width="24" height="9" rx="4"/>
-    <rect x="37" y="30" width="26" height="9" rx="4"/>
-    <rect x="36" y="42" width="28" height="9" rx="4"/>
-    <rect x="35" y="54" width="30" height="9" rx="4"/>
-    <rect x="34" y="66" width="32" height="9" rx="4"/>
-    <rect x="33" y="78" width="34" height="10" rx="4"/>
+  <!--
+    PRIMARY SPINE MARK — front view, seven vertebrae, uniform hairline.
+    Replaced Aug 12 2026 (owner-supplied). The mark it replaces was seven
+    rounded bars tapering downward; this one is anatomical — vertebral bodies
+    with transverse processes, widest at the middle of the column, which is the
+    same read as the site's own wireframe spine (assets/hero/spine-ui-wire.png)
+    rather than a separate abstraction of it.
+
+    THIS CUT IS FOR LARGE SIZES. stroke-width 2.4 on a 100-unit viewBox is
+    2.4% of the rendered box, so it lands sub-pixel wherever the mark is small:
+    0.38px at 16, 0.43px at 18, 0.77px at 32. Measured on a transparent
+    raster, the brightest pixels in this cut only reach alpha 0.44 at 16px and
+    0.60 at 48px — it never puts down solid ink at UI scale. Use
+    spine-mark-solid-cut.svg below 24px; see the note in that file.
+  -->
+  <g fill="none" stroke="#F2F2EE" stroke-width="2.4" stroke-linejoin="miter">
+    <rect x="42.5" y="5.8" width="15" height="8.5"></rect>
+    <path d="M57.5 7.8 L63.0 12.8 L61.5 14.3 L57.5 11.6 Z"></path>
+    <path d="M42.5 7.8 L37.0 12.8 L38.5 14.3 L42.5 11.6 Z"></path>
+    <rect x="42.5" y="18.8" width="15" height="8.5"></rect>
+    <path d="M57.5 20.8 L66.5 25.8 L64.0 27.3 L57.5 24.6 Z"></path>
+    <path d="M42.5 20.8 L33.5 25.8 L36.0 27.3 L42.5 24.6 Z"></path>
+    <rect x="42.5" y="31.8" width="15" height="8.5"></rect>
+    <path d="M57.5 33.8 L69.5 38.8 L66.1 40.3 L57.5 37.6 Z"></path>
+    <path d="M42.5 33.8 L30.5 38.8 L33.9 40.3 L42.5 37.6 Z"></path>
+    <rect x="42.5" y="44.8" width="15" height="8.5"></rect>
+    <path d="M57.5 46.8 L71.0 51.8 L67.2 53.3 L57.5 50.6 Z"></path>
+    <path d="M42.5 46.8 L29.0 51.8 L32.8 53.3 L42.5 50.6 Z"></path>
+    <rect x="42.5" y="57.8" width="15" height="8.5"></rect>
+    <path d="M57.5 59.8 L69.5 64.8 L66.1 66.3 L57.5 63.6 Z"></path>
+    <path d="M42.5 59.8 L30.5 64.8 L33.9 66.3 L42.5 63.6 Z"></path>
+    <rect x="42.5" y="70.8" width="15" height="8.5"></rect>
+    <path d="M57.5 72.8 L66.5 77.8 L64.0 79.3 L57.5 76.6 Z"></path>
+    <path d="M42.5 72.8 L33.5 77.8 L36.0 79.3 L42.5 76.6 Z"></path>
+    <rect x="42.5" y="83.8" width="15" height="8.5"></rect>
+    <path d="M57.5 85.8 L64.0 90.8 L62.2 92.3 L57.5 89.6 Z"></path>
+    <path d="M42.5 85.8 L36.0 90.8 L37.8 92.3 L42.5 89.6 Z"></path>
   </g>
 </svg>

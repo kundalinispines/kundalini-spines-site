@@ -83,7 +83,11 @@
 
   /* Nodes */
   --node-size:               10.5px;
-  --node-idle-opacity:       0.79;
+  --node-idle-opacity:       0.88;   /* was 0.79 until Aug 12 2026 — over the
+                                        nebula the string sat too far back to
+                                        read as live destinations. Raised as a
+                                        token, not as a rule, so ?tune still
+                                        drives it. */
   /* --node-hover-intensity / --node-active-intensity were declared here and read
      by nothing. Removed Aug 11 2026, same audit as the line tokens above. Note
      for whoever finds them in the spec: they ARE named in the master prompt's
@@ -97,7 +101,8 @@
   --node-ring:               26px;    /* unfocused/hover ring size — smaller */
   --node-ring-active:        48px;    /* clicked/active — bigger concentric circles */
   --node-pulse-ms:           1350ms;
-  --node-dim-when-active:    0.78;    /* non-active nodes recede this far — high
+  --node-dim-when-active:    0.86;    /* 0.78 → 0.86 Aug 12 2026, with the idle
+                                         raise above — non-active nodes recede this far — high
                                          on purpose: the spine stays legible as a
                                          whole while a card is open, rather than
                                          collapsing to a single lit point */
@@ -109,7 +114,7 @@
      anything is hovered. Split out of the hardcoded shadows so ?tune can dial
      it live: the question these answer is "do the six read as clickable?". */
   --node-glow:               10px;    /* amber halo radius on the idle dot */
-  --node-glow-a:             0.59;    /* ...and its alpha */
+  --node-glow-a:             0.68;    /* ...and its alpha (0.59 → 0.68 Aug 12 2026) */
   --node-core-a:             0.85;    /* the tight white core inside the dot */
   --node-mark-size:          200%;    /* the thin static ring that marks a REAL
                                          destination apart from a decorative point */
@@ -202,6 +207,34 @@
   filter: drop-shadow(0 0 3px rgba(242,242,238,0.35));
 }
 .spine-connectors .conn-active.is-preview { stroke: var(--connector-preview); filter: none; }
+/* ESTABLISHED — the line has arrived and the card is the endpoint. Set by
+   js/spine-ui.js when the energy head lands, cleared on retract.
+
+   THE COLOUR PART OF THIS ALREADY SHIPPED, just not from here. The design
+   handoff records --connector-active as "declared and read by nothing"; it was
+   in fact being applied as an INLINE `connEl.style.stroke = 'var(--connector-active)'`
+   when the energy head landed, which is why a settled connector has always been
+   bone rather than --connector-color. That inline assignment moved onto this
+   class Aug 12 2026 — a state expressed as a class can be seen in the DOM and
+   overridden in a lab; the same state hidden in a style attribute beats every
+   rule anyone writes and explains nothing.
+
+   What is genuinely new is the weight and the bloom: at --connector-w flat over
+   the lit arm of the nebula the settled line is barely separable from the
+   backdrop, which reads as a connector that never drew rather than one drawn
+   quietly. +0.3px is under the head's +0.5px on purpose — the established line
+   must not outweigh the head that draws it.
+
+   NO `transition` HERE — it would be dead. drawLine() writes
+   connEl.style.transition INLINE to run the stroke-dashoffset draw, and inline
+   beats this rule, so a transition declared here never fires. The fade from
+   --connector-color to --connector-active is set up in JS at the same moment
+   the class goes on. */
+.spine-connectors .conn-active.is-established {
+  stroke: var(--connector-active);
+  stroke-width: calc(var(--connector-w) + 0.3px);
+  filter: drop-shadow(0 0 5px rgba(242,242,238,0.55));
+}
 /* energy head — a short bright segment that runs the line as it establishes */
 .spine-connectors .conn-head {
   stroke: var(--connector-head);
@@ -392,20 +425,82 @@
   width: 0; height: 0; pointer-events: none; opacity: 0;
   transition: opacity var(--motion-base) var(--ease-standard);
 }
+/* ONE-SIDED, AND IT POINTS AT THE CARD — Aug 12 2026. This was a --reticle-w
+   rule centred on the dot, so half of it left the spine on the side the card is
+   NOT on: a line with nothing at the end of it, competing with the connector
+   that does mean something. It is now half as wide, anchored AT the dot, and
+   grows toward data-side only.
+
+   The gradient is the node's own amber with a deliberately WEAK falloff
+   (.92 → .86 at 68% → .62) so it holds its colour end to end rather than dying
+   in the first third, and scaleY(0.6) thins the ink so the mark reads as
+   emitted light rather than as a drawn rule. The white line and white
+   drop-shadow it replaced belonged to a symmetric rule; a one-sided mark that
+   means "the card is over there" should be the colour of the thing emitting it.
+
+   THE REST STATE IS STILL scaleX(0) — do not fold it into the hover/prefocus
+   group below. The reticle EXTENDS out of the dot on focus; parked at 0.62 it
+   only fades in, and the gesture is gone. (The design handoff's patch grouped
+   them and lost this.)
+
+   Only the vertical half of the old translate survives: re-anchored, the
+   horizontal centring is what the two data-side rules now do.
+   left/right + gradient direction live on those; this rule owns the shared. */
 .spine-node__reticle .rx {
-  position: absolute; top: 50%; left: 50%;
-  width: var(--reticle-w); height: 1px; transform: translate(-50%,-50%) scaleX(0);
-  background: linear-gradient(90deg, transparent, rgba(242,242,238,0.85) 12%, rgba(242,242,238,0.85) 88%, transparent);
-  filter: drop-shadow(0 0 3px rgba(242,242,238,0.6));
+  position: absolute; top: 50%; left: auto;
+  width: calc(var(--reticle-w) / 2); height: 1px;
+  transform: translateY(-50%) scaleX(0) scaleY(0.6);
+  filter: drop-shadow(0 0 3px rgba(var(--node-color), 0.9))
+          drop-shadow(0 0 9px rgba(var(--node-color), 0.6))
+          drop-shadow(0 0 20px rgba(var(--node-color), 0.34));
   transition: transform var(--motion-base) var(--ease-standard);
+}
+.spine-node[data-side="right"] .spine-node__reticle .rx {
+  left: 50%; transform-origin: 0% 50%;
+  background: linear-gradient(90deg,
+    rgba(var(--node-color), 0.92) 0%,
+    rgba(var(--node-color), 0.86) 68%,
+    rgba(var(--node-color), 0.62) 100%);
+}
+.spine-node[data-side="left"] .spine-node__reticle .rx {
+  right: 50%; transform-origin: 100% 50%;
+  background: linear-gradient(270deg,
+    rgba(var(--node-color), 0.92) 0%,
+    rgba(var(--node-color), 0.86) 68%,
+    rgba(var(--node-color), 0.62) 100%);
 }
 .spine-node__reticle .sq {
   position: absolute; top: 50%; width: 5px; height: 5px; margin-top: -2.5px;
-  border: 1px solid rgba(242,242,238,0.7); background: rgba(5,5,5,0.4);
+  border: 1px solid rgba(var(--node-color), 0.65); background: rgba(5,5,5,0.4);
   opacity: 0; transition: opacity var(--motion-base) var(--ease-standard);
 }
-.spine-node__reticle .sq--l { left: calc(50% - var(--reticle-w) / 2 - 2.5px); }
-.spine-node__reticle .sq--r { left: calc(50% + var(--reticle-w) / 2 - 2.5px); }
+/* THE SQUARE RIDES THE TIP OF THE RULE, which means it has to know the rule's
+   scale — hence --reticle-scale, read by both. Aug 12 2026.
+
+   These offsets were --reticle-w/2 flat, matching the rule only in its ACTIVE
+   state; at hover the rule is at 0.62 and the square sat 57px past the end of
+   it, a mark with nothing reaching it. That was true before this pass too (the
+   full-width centred rule scaled to 0.62 the same way) and it is what the
+   reference fixes. Deliberately NOT transitioned: the jump from the 0.62 tip to
+   the 1.0 tip happens on activation, at the same moment the square fades to 0,
+   so it is never seen moving. Add `left` to the transition above and it becomes
+   a square that visibly slides out of a rule that has already got there. */
+.spine-node { --reticle-scale: 0.62; }
+.spine-node.is-active { --reticle-scale: 1; }
+.spine-node__reticle .sq--l { left: calc(50% - var(--reticle-w) / 2 * var(--reticle-scale) - 2.5px); }
+.spine-node__reticle .sq--r { left: calc(50% + var(--reticle-w) / 2 * var(--reticle-scale) - 2.5px); }
+/* the far square belongs to the side that no longer has a rule — it would be a
+   mark floating in empty sky with nothing reaching it. */
+.spine-node[data-side="right"] .spine-node__reticle .sq--l,
+.spine-node[data-side="left"]  .spine-node__reticle .sq--r { display: none; }
+@media (prefers-reduced-motion: reduce) {
+  /* SPECIFIED BY THE DESIGN HANDOFF, and flagged here because it is the one
+     rule in this pass that is not obviously right: a drop-shadow is not motion,
+     and clearing it costs a reduced-motion visitor the bloom that separates the
+     crosshair from the wireframe behind it. Kept because it is the designer's
+     call and it is one line to drop. Aug 12 2026. */
+  .spine-node__reticle .rx { filter: none; }
+}
 
 /* node label — schematic mono, hidden until hover/active, then off to the card side */
 .spine-node__label {
@@ -451,14 +546,26 @@
 .spine-node:focus-visible .spine-node__reticle,
 .spine-node.is-prefocus .spine-node__reticle,
 .spine-node.is-active .spine-node__reticle { opacity: 1; }
+/* scaleY(0.6) rides on every state — see the rest rule. The 0.62 / 1 pair is
+   unchanged; only the anchor and the vertical thinning are new. */
 .spine-node:hover .spine-node__reticle .rx,
 .spine-node:focus-visible .spine-node__reticle .rx,
-.spine-node.is-prefocus .spine-node__reticle .rx { transform: translate(-50%,-50%) scaleX(0.62); }
-.spine-node.is-active .spine-node__reticle .rx { transform: translate(-50%,-50%) scaleX(1); }
+.spine-node.is-prefocus .spine-node__reticle .rx { transform: translateY(-50%) scaleX(0.62) scaleY(0.6); }
+.spine-node.is-active .spine-node__reticle .rx { transform: translateY(-50%) scaleX(1) scaleY(0.6); }
+/* 0.62, not 1 — it is a pre-focus mark, not a component of the crosshair. At
+   full strength it competed with the dot for the eye on a row that already has
+   three amber marks on it. */
 .spine-node:hover .spine-node__reticle .sq,
 .spine-node:focus-visible .spine-node__reticle .sq,
 .spine-node.is-prefocus .spine-node__reticle .sq,
-.spine-node.is-active .spine-node__reticle .sq { opacity: 1; }
+.spine-node.is-active .spine-node__reticle .sq { opacity: 0.62; }
+/* THE SQUARE IS A PRE-FOCUS MARK. It says "the line stops here" while the
+   destination is still hypothetical. Once the card is open the CARD is the
+   endpoint and the square sits on top of it saying the same thing twice, so it
+   fades at full open. Written as its own rule rather than by dropping
+   .is-active from the group above, because the pointer is usually still over
+   the node when it activates and :hover would hold it lit. */
+.spine-node.is-active .spine-node__reticle .sq { opacity: 0; }
 
 .spine-node:hover .spine-node__ring,
 .spine-node:focus-visible .spine-node__ring,
@@ -520,6 +627,44 @@
   6%   { opacity: 0;   transform: translate(-50%,-50%) scale(1.9);  }
   100% { opacity: 0; }
 }
+/* THE OPEN NODE'S PING IS BIGGER, NOT BRIGHTER — Aug 12 2026. It is already the
+   lit one (the dot is at opacity 1 and scale 1.3, the ring is at
+   --node-ring-active), so brightness has nothing left to say. Size is the only
+   axis still free to read as "and this one". */
+.spine-node.is-active .spine-node__ping { width: 46px; height: 46px; }
+
+/* --------------------------------------------------------------------------
+   THE REROUTE PULSE — a discrete lamp that travels the column BETWEEN two
+   cards. Added Aug 12 2026 from NavigatorReference.jsx.
+
+   This is the one piece of the reference that the written handoff never
+   mentioned, and it is the piece that makes the navigator read as a system
+   rather than a menu: choosing a second node does not cut from one card to the
+   next. The established line retracts back INTO the spine, this lamp carries
+   the focus up or down the column to the new node, and only then does the new
+   line fire out. Nothing ever disconnects from the axis.
+
+   Injected by js/spine-ui.js, which owns the four-phase sequence and the
+   timings. `top` is the only animated property — the travel duration is
+   --connector-draw-ms * 0.75, set here rather than in JS so ?tune moves the
+   whole sequence together.
+   -------------------------------------------------------------------------- */
+.spine__pulse {
+  position: absolute; left: 0; top: var(--y, 50%);
+  width: 14px; height: 14px; transform: translate(-50%, -50%);
+  border-radius: 50%; pointer-events: none; z-index: 21;
+  background: radial-gradient(circle, #fff 0%, rgba(var(--node-color),0.9) 50%, transparent 74%);
+  box-shadow: 0 0 18px rgba(var(--node-color),0.9);
+  opacity: 0;
+  transition: top calc(var(--connector-draw-ms) * 0.75) var(--ease-standard),
+              opacity var(--motion-fast) var(--ease-standard);
+}
+.spine__pulse.is-on { opacity: 1; }
+@media (prefers-reduced-motion: reduce) {
+  /* the JS skips the reroute entirely under reduced motion, so this is a
+     backstop rather than the mechanism. */
+  .spine__pulse { display: none; }
+}
 
 /* decorative energy-points — faint light-points along the cord, non-interactive,
    each giving a tiny warm flash as the same light passes. */
@@ -568,6 +713,78 @@
 }
 
 /* --------------------------------------------------------------------------
+   THE PASS RUNS ONCE, PARKS, AND DEPARTS FROM THE OPEN NODE — Aug 12 2026.
+
+   Three behaviours, one mechanism, and the mechanism is half in js/spine-ui.js:
+
+   1. DEPARTS FROM THE OPEN NODE. At full deployment the rising light restarts
+      at that node's own height and carries on up the column, so the energy
+      reads as leaving the thing you just activated. Done with a NEGATIVE
+      animation-delay, which ENTERS the pass part-way through rather than
+      restarting and clipping it — the speed never changes.
+
+      THE DELAY IS NOT A CSS VARIABLE, AND IT CANNOT BE. The design handoff
+      proposed `animation-delay: var(--ks-phase-delay, 0ms)` on these three
+      selectors. That rule is dead on two of them: js/spine-ui.js has always
+      written style.animationDelay INLINE on every .spine-node__ping and every
+      .spine-point (that is the existing per-element sync to the comet head),
+      and inline beats a stylesheet. It would have moved the comet alone and
+      left every flash behind it. The phase is therefore added to those inline
+      delays in JS — see applyEnergyDelays() — and this file must not try to
+      set animation-delay on any of the three.
+
+   2. RUNS ONCE AND PARKS. With a card open the light finishes its climb, leaves
+      the top of the column and stays gone until the next activation. Looping,
+      the rise reads as a metronome that happens to be running.
+
+      forwards is safe on all three: spine-energy ends at opacity 0, node-ping
+      ends at opacity 0, and point-ping ends at the points' own idle opacity —
+      so parking is invisible on the first two and correct on the third.
+
+      ITERATION-COUNT 1 MEANS THE FLASHES DO NOT FIRE WHILE A CARD IS OPEN, AND
+      THAT IS THE INTENDED READ — do not "fix" it to 2. Established Aug 12 2026
+      against NavigatorReference.jsx, after it was fixed to 2 and the owner said
+      the result was not what they had judged.
+
+      The mechanism, so the next session does not rediscover it as a bug: the
+      comet's keyframe IS the travel (0% bottom, 100% top), so entering it at
+      phase p and running to 100% is exactly one climb. node-ping and point-ping
+      are the opposite shape — they fire at 0% and are quiet after — and every
+      delay here is negative, so animation time starts at |delay|, already past
+      that 0%. The next 0% is one full period away, which at 1 iteration is the
+      end of the active duration and the 100% keyframe. No flash is painted.
+
+      So an open card gives you ONE departing beam on an otherwise still column.
+      At 2 the beam is instead accompanied by every node and point it passes
+      flashing in sequence, which is the idle state's behaviour running
+      underneath the deployed state. The reference is quiet, and quiet is right:
+      the free-running pass says "the column is alive", the departing pass says
+      "and it came from here". Only one of those is a claim about the node.
+
+   3. CAUSED, NOT SCHEDULED. js/spine-ui.js adds has-chosen on the first
+      activation and never removes it, so the free-running rise belongs to the
+      opening state only — it is what tells a visitor the column is alive before
+      they have touched it. A beam climbing from the base BETWEEN two cards is
+      the system talking over itself.
+
+      THE POINTS GO WITH IT — `opacity: 0`, not just a stopped animation. The
+      reference unmounts the comet, the pings and the points together the moment
+      the state stops being "open", so between two cards the cord is a bare lit
+      thread. Shipped visible for one revision on my recommendation and the
+      owner reported it as not matching; reverted Aug 12 2026. If you want the
+      ambience back, delete the opacity and leave `animation: none`.
+   -------------------------------------------------------------------------- */
+.spine-stage.is-card .spine__energy,
+.spine-stage.is-card .spine-node__ping,
+.spine-stage.is-card .spine-point {
+  animation-iteration-count: 1;
+  animation-fill-mode: forwards;
+}
+.spine-stage.has-chosen:not(.is-card) .spine__energy,
+.spine-stage.has-chosen:not(.is-card) .spine-node__ping,
+.spine-stage.has-chosen:not(.is-card) .spine-point { animation: none; opacity: 0; }
+
+/* --------------------------------------------------------------------------
    CARDS  (informational reading surface)
    Shared visual language; flexible dimensions. Mixed transparency for
    readability per §28 — the reading card is nearly opaque; its frame glows.
@@ -580,6 +797,18 @@
     var(--card-bg-solid);
   -webkit-backdrop-filter: blur(var(--card-blur)) saturate(1.1); backdrop-filter: blur(var(--card-blur)) saturate(1.1);
   border: 1px solid var(--card-border-lit);
+  /* THE EMISSION REACHES THE CARD — Aug 12 2026. The crosshair leaves the node
+     in the node's own amber; the card it points at is the end of the same
+     gesture, so it takes a hairline of that amber when it opens.
+
+     OUTLINE, NOT BORDER. The border above is doing the glass work — lit lip on
+     the spine side, darkened far edge (--card-border-lit / --lit-x) — and a
+     second colour on those same pixels fights it. outline paints OUTSIDE the
+     box, so the two never overlap. It is declared transparent HERE rather than
+     only on .is-open so that outline-color has a from-value to interpolate;
+     an outline that first exists at open would snap. */
+  outline: 1px solid rgba(var(--node-color), 0);
+  outline-offset: 0;
   box-shadow: inset 0 1px 0 rgba(242,242,238,0.10), 0 24px 60px rgba(0,0,0,0.5);
   padding: var(--space-6);
   /* NEVER TALLER THAN THE WINDOW — Aug 12 2026. positionCard clamps top to a
@@ -597,13 +826,33 @@
   max-height: calc(100vh - 114px);
   opacity: 0; visibility: hidden; pointer-events: none;
   transform: translateY(8px) scale(0.965);
+  /* THE WHOLE TRANSITION LIST LIVES ON .spine-card, NOT ON .is-open, and the
+     ORDER IS LOAD-BEARING — Aug 12 2026. js/spine-ui.js writes a positional
+     transition-delay list (activate(), "enter after connector draws"), so
+     appending to this list means appending there too.
+
+     Why not on .is-open: a `transition` declared on `.spine-card.is-open` is
+     (0,2,0) against this rule's (0,1,0), and a transition runs off the
+     AFTER-CHANGE style — so adding the class would swap the whole list for
+     whatever that rule declared and the card would snap in instead of rising.
+     The design handoff's patch put the outline/box-shadow transitions there and
+     would have silently deleted the entrance. Everything the card animates in
+     either direction belongs in this one list. */
   transition: opacity var(--card-enter-ms) var(--ease-standard),
               transform var(--card-enter-ms) var(--ease-standard),
-              visibility 0s linear var(--card-enter-ms);
+              visibility 0s linear var(--card-enter-ms),
+              outline-color var(--card-enter-ms) var(--ease-standard),
+              box-shadow var(--card-enter-ms) var(--ease-standard);
 }
 .spine-card.is-open {
   opacity: 1; visibility: visible; pointer-events: auto;
   transform: translateY(0) scale(1);
+  /* the amber hairline + its bloom. The two shadows above are restated because
+     box-shadow is a whole-property override, not an append. */
+  outline-color: rgba(var(--node-color), 0.34);
+  box-shadow: inset 0 1px 0 rgba(242,242,238,0.10),
+              0 24px 60px rgba(0,0,0,0.5),
+              0 0 22px -6px rgba(var(--node-color), 0.30);
   transition-delay: 0s; /* enter after connector draws (set in JS) */
 }
 /* depth / ghost frames behind the card — two offset outlines that build the
@@ -623,7 +872,10 @@
    "wonky". They were drawn for an opaque panel; a card that now has a lit
    bevel and a refracted backdrop is already carrying its own depth, so these
    only have to hint. Halved, and the opacities pulled down with them. */
-.spine-card.is-open::before { opacity: 0.45; transform: translate(5px, 6px) scale(1.003); transition-delay: 60ms; }
+/* the FIRST ghost frame takes the amber too — it is the one still reading as
+   part of the card's own edge. The second stays --card-ghost so the stack still
+   recedes to neutral rather than fanning out in colour. Aug 12 2026. */
+.spine-card.is-open::before { opacity: 0.45; transform: translate(5px, 6px) scale(1.003); transition-delay: 60ms; border-color: rgba(var(--node-color), 0.22); }
 .spine-card.is-open::after  { opacity: 0.20; transform: translate(10px, 12px) scale(1.006); transition-delay: 120ms; }
 /* on the left-side cards the depth stacks the other way */
 .spine-card.side-left.is-open::before { transform: translate(-5px, 6px) scale(1.003); }

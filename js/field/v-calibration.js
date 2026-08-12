@@ -103,6 +103,92 @@
     root.appendChild(svg);
   }
 
+  /* ------------------------------------------------------------------------
+     THE TORCH — the seven are HIDDEN until you go looking for them.
+
+     The owner's call, and it is the brand's own thesis applied to the one
+     surface that had been ignoring it: the entrance headline is literally
+     "Knowledge Hidden in Plain Sight", and a diagram that states all seven
+     names at rest is not hiding anything. At rest the seed is seven circles
+     and seven amber dots -- a construction with marked points and no legend.
+     The legend is what the pointer is for.
+
+     SMALL, deliberately. REACH is 150px, which lights roughly one mark at a
+     time: the reader is carrying a light across a diagram, not switching a
+     room on. A wide radius would reveal four at once and the effect would read
+     as a fade rather than as a search.
+
+     MEASURED IN SCREEN SPACE, not viewBox space. The SVG is
+     preserveAspectRatio="slice", so mapping a pointer into its coordinates
+     means reproducing the cover-scale and both offsets -- three chances to be
+     subtly wrong at some viewport nobody tested. getBoundingClientRect() on
+     each mark gives the answer directly and is correct by construction. The
+     rects are cached and invalidated on resize, so the per-move cost is
+     arithmetic over seven points and nothing else.
+
+     NO IDLE LOOP. One rAF per burst of movement, guarded by `pending`, never
+     re-arming -- the same shape READOUT uses. An idle page schedules nothing.
+     ------------------------------------------------------------------------ */
+  var REACH = 150, STEPS = 20;
+  var torch = null;
+
+  function bindTorch(root) {
+    if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches ||
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      /* No pointer to reward, or motion suppressed: show the seven at a low
+         steady contrast instead. Hiding them from a reader who has no way to
+         reveal them would leave the figure with no legend at all. */
+      document.documentElement.classList.add('cal-static');
+      return;
+    }
+    var marks = [].slice.call(root.querySelectorAll('.cal-seed__mark'));
+    if (!marks.length) return;
+    var rects = null, pending = false, px = 0, py = 0, last = [];
+
+    function measure() {
+      rects = marks.map(function (m) {
+        var r = m.getBoundingClientRect();
+        return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+      });
+    }
+    function apply() {
+      pending = false;
+      if (!rects) measure();
+      for (var i = 0; i < marks.length; i++) {
+        var d = Math.hypot(px - rects[i].x, py - rects[i].y);
+        var t = Math.max(0, 1 - d / REACH);
+        t = t * t * (3 - 2 * t);                    /* smoothstep, so the edge of
+                                                       the pool is not a hard ring */
+        var step = Math.round(t * STEPS);
+        if (step === last[i]) continue;             /* write only on change */
+        last[i] = step;
+        marks[i].style.setProperty('--lift', (step / STEPS).toFixed(2));
+      }
+    }
+    function onMove(e) {
+      px = e.clientX; py = e.clientY;
+      if (pending) return;
+      pending = true;
+      requestAnimationFrame(apply);
+    }
+    function onLeave() {
+      for (var i = 0; i < marks.length; i++) {
+        if (last[i] !== 0) { last[i] = 0; marks[i].style.setProperty('--lift', '0'); }
+      }
+    }
+    function onResize() { rects = null; }
+
+    window.addEventListener('pointermove', onMove, { passive: true });
+    window.addEventListener('pointerleave', onLeave);
+    window.addEventListener('resize', onResize);
+    torch = function () {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerleave', onLeave);
+      window.removeEventListener('resize', onResize);
+      torch = null;
+    };
+  }
+
   window.__field = window.__field || {};
   window.__field.calibration = {
 
@@ -114,12 +200,18 @@
       if (ro) ro.mount(slot(root, 'readout'));
       else console.warn('v-calibration: parent module missing — readout');
       drawSeed(slot(root, 'seed'));
+      bindTorch(root);
     },
 
     unmount: function (root) {
       var ro = window.__field && window.__field.readout;
       if (ro) ro.unmount(slot(root, 'readout'));
-      document.documentElement.classList.remove('v-readout');
+      /* The listeners are on WINDOW, so they outlive the DOM they were built
+         for. Dropping them here is not tidiness -- switching readings away and
+         back would otherwise stack a second set on top of the first, each
+         writing to marks the other had already removed. */
+      if (torch) torch();
+      document.documentElement.classList.remove('v-readout', 'cal-static');
       slots = {};
       root.innerHTML = '';
     }

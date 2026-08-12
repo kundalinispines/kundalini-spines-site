@@ -54,12 +54,18 @@
   --coil-color:    240, 165, 92;
   --coil-color-b:  255, 236, 208;  /* the second strand's tone at split 1 */
   --coil-split:    0.58;    /* how far apart the two strands are told */
-  --coil-turns:    3.5;      /* per strand, base to crown */
-  --coil-beam:     0.10;    /* the lit central channel and its reach */
+  --coil-turns:    2.0;      /* per strand, base to crown. Tuned 2026-08-12,
+                                down from 3.5: at 3.5 the two strands read as
+                                one coil at double frequency. */
+  --coil-beam:     0.28;    /* the lit central channel and its reach.
+                               Tuned 2026-08-12, up from 0.10. */
   --coil-hug:      1;      /* 1 = follow the measured silhouette, 0 = constant */
   --coil-clear:    9;     /* viewBox units of air between bone and coil */
   --coil-far:      0.64;      /* presence of the half that passes behind the bone */
-  --coil-blend:    0.60;   /* width of the front/back crossover blend, in sin(theta).
+  --coil-blend:    0.90;   /* width of the front/back crossover blend, in sin(theta).
+                              Tuned 2026-08-12, up from 0.60 — the measurement
+                              note below was taken at 0.60 and has not been
+                              retaken at 0.90.
                               0 = the original hard split. There is no cliff: the 50/50
                               handoff sits at |cos|=1, always --coil-clear units outside
                               the silhouette, so it is visible at any blend width. Wider
@@ -67,9 +73,12 @@
                               the far strand is meant to be hidden anyway. Measured at
                               0.60/clear 9: tails reach 27.8 units inside the silhouette
                               at worst, midpoint still clear. */
-  --coil-ms:       2300;    /* base to crown */
+  --coil-ms:       3060;    /* base to crown. Tuned 2026-08-12, up from 2300. */
   --coil-hold:     0;    /* full coil, motionless, before it lets go */
-  --coil-fade:     620;    /* dissolve. ms + hold + fade IS the gesture. */
+  --coil-fade:     200;    /* dissolve. ms + hold + fade IS the gesture.
+                              Tuned 2026-08-12, down from 620 — the gesture is
+                              now 3060 + 0 + 200, so the tail is 6% of it
+                              rather than the 21% it was. */
 }
 
 body { margin: 0; min-height: 100vh; }

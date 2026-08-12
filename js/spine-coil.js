@@ -153,15 +153,18 @@
     core:   '255, 250, 244',
     split:  0.58,    /* 0 = the two strands identical, 1 = full separation */
 
-    turns:  3.5,     /* per strand, base to crown. Twin wants fewer than one. */
-    beam:   0.10,    /* strength of the lit channel and the reach above it */
+    turns:  2.0,     /* per strand, base to crown. Twin wants fewer than one.
+                        Tuned 2026-08-11, down from 3.5: at 3.5 the two strands
+                        read as one coil at double frequency. */
+    beam:   0.28,    /* strength of the lit channel and the reach above it.
+                        Tuned 2026-08-11, up from 0.10. */
     hug:    1,       /* 1 = follow the measured envelope, 0 = constant radius */
     clear:  9,       /* viewBox units of air between silhouette and coil */
     far:    0.64,    /* multiplier on the far half's presence — see below */
 
     /* HOW WIDE THE FRONT/BACK CROSSOVER IS BLENDED, in sin(theta) units.
        0 restores the original hard split. See the block above drawRun. */
-    blend:  0.60,
+    blend:  0.90,    /* tuned 2026-08-11, up from 0.60 */
 
     samples:   280,  /* points per strand per canvas */
     buckets:   12,   /* recency quantisation; see the note on drawRun */
@@ -173,9 +176,11 @@
        durationMs 150 the travel is 13% of what you see and the other 87% is a
        coil sitting still and then dissolving. Both are now CSS variables and
        both are on the HUD. */
-    durationMs: 2300,  /* base to crown */
+    durationMs: 3060,  /* base to crown. Tuned 2026-08-11, up from 2300. */
     holdMs:        0,  /* full coil, motionless, before it lets go */
-    fadeMs:      620,  /* dissolve */
+    fadeMs:      200,  /* dissolve. Tuned 2026-08-11, down from 620 — with the
+                          longer travel the gesture is now 3060 + 0 + 200, so
+                          the tail is 6% of it rather than the 21% it was. */
     inFrac:     0.06 /* fraction of the run spent fading the coil in */
   };
 

@@ -149,15 +149,30 @@
    ink and an explicit word say the true thing instead, and the script removes
    the anchor entirely so it is not focusable and offers no pointer. */
 .footer.is-upgraded .sf-row__dead { color: var(--text-muted); }
+/* 9px, NOT the 8px this shipped at. At 8px the glyph never reaches full
+   coverage: measured 2026-08-11, the peak alpha anywhere on the STANDBY chip
+   was 0.92 and only ONE pixel of the whole word cleared 0.90. A word whose ink
+   never fully lands cannot be rescued by changing its colour, which is why the
+   band's own fix below was not enough for this chip on its own.
+   The size lives on the shared rule so OPEN and STANDBY stay the same size --
+   they sit in the same column and a half-step between them reads as a mistake. */
 .footer.is-upgraded .sf-row__state {
-  font-family: var(--font-mono); font-size: 8px; letter-spacing: 0.18em;
+  font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.18em;
   padding: 2px 6px; border: 1px solid transparent; white-space: nowrap;
 }
 .footer.is-upgraded .sf-row__state--open {
   color: rgba(var(--node-color), 0.75); border-color: rgba(var(--node-color), 0.28);
 }
+/* MEASURED 1.2:1 AGAINST THE REAL SKY, in the link tier -- the part this file
+   calls the footer's only job. gray-500 here was settled against flat page
+   black; over the lit nebula the word is an empty bordered box. Bone plus the
+   site's two-pass shadow measures ~8.5:1 on the same pixels.
+   Note --open has NOT been judged: it is rgba(var(--node-color), 0.75) and its
+   contrast depends on which node colour the row carries. */
 .footer.is-upgraded .sf-row__state--standby {
-  color: var(--color-gray-500); border-color: rgba(216, 208, 190, 0.16);
+  color: var(--color-bone);
+  text-shadow: 0 0 3px rgba(5, 5, 5, 0.98), 0 1px 2px rgba(5, 5, 5, 0.92);
+  border-color: rgba(216, 208, 190, 0.16);
 }
 
 /* ==========================================================================
@@ -186,20 +201,53 @@
   margin-top: var(--space-8, 32px);
   padding: var(--space-5, 20px) var(--space-6) 0;
   border-top: 1px solid rgba(216, 208, 190, 0.07);
-  /* 0.7, not the 0.55 this shipped at first: that was judged against flat page
-     black, and over a lit nebula the left-hand blocks disappeared entirely. */
-  opacity: 0.7;              /* the band's single dial */
+  /* OPACITY 1, AND THE DIAL IS GONE ON PURPOSE. Owner's call 2026-08-11.
+     0.7 was never a brightness control -- it is a GROUP opacity, so it
+     composited the whole band toward whatever was behind it
+     (0.7*ink + 0.3*backdrop). On flat black that merely dimmed the band. Over
+     the lit nebula it INVERTS: where the sky is brighter than the ink, the
+     keys come out darker than the pixels behind them and the label dissolves.
+     Measured against real pixels at 1366x768 -- the worst viewport, where
+     GEOMETRY sits on the lit track -- the keys ran 1.5:1 against a 4.5:1
+     requirement, while the values beside them held 6.6:1. That asymmetry is
+     the whole bug: the block lost its LABELS and kept its numbers, so it read
+     as decoration rather than as an instrument.
+     Dimming now belongs to the ink colours below, which composite against
+     nothing and cannot invert. If the band ever needs to come down again,
+     change those -- do not reintroduce a group opacity here. */
+  opacity: 1;
 }
 .footer.is-upgraded .sf-instr__block { display: flex; flex-direction: column; gap: 3px; }
+/* THE KEYS ARE gray-300 AND THAT IS THE FLOOR, NOT A PREFERENCE.
+   Computed against the same backdrop: gray-400 (#6B6B6B) at opacity 1 lands at
+   3.94:1, still under AA's 4.5:1 for text this size. gray-300 (#8F8F8F) is the
+   lightest step DOWN from bone that clears it -- measured 6.1:1 on the glyph
+   core. Going darker than gray-300 puts the labels back under the line.
+
+   The two-pass shadow is here for the worst case rather than the average:
+   individual stars and the nebula's bright core run straight through the
+   glyphs, and a shadow darkens the local surround so contrast survives them.
+   BE CAREFUL HOW YOU MEASURE THAT. The shipped numbers above (keys 1.5 -> 5.3)
+   moved opacity, colour AND shadow at once, so they do NOT isolate the
+   shadow's share -- and the obvious check cannot find it either: comparing a
+   shadowed glyph's CORE against the bare backdrop shows a shadow doing
+   literally nothing, because it changes neither of those two pixels. To
+   measure it, compare the core against a backdrop captured WITH the shadow
+   painted and the fill transparent (a shadow still paints from a transparent
+   glyph's outline). The shadow's isolated contribution here has not been
+   measured; it is carried on the precedent in spine-bg.css, which uses this
+   exact pair three times for small text over the lit column. */
 .footer.is-upgraded .sf-instr__head {
   font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.22em;
-  text-transform: uppercase; color: var(--color-gray-500); margin-bottom: 4px;
+  text-transform: uppercase; color: var(--color-gray-300); margin-bottom: 4px;
   min-height: 12px;          /* the fourth block has no head; keep the grid level */
+  text-shadow: 0 0 3px rgba(5, 5, 5, 0.98), 0 1px 2px rgba(5, 5, 5, 0.92);
 }
 .footer.is-upgraded .sf-instr__row {
   display: flex; justify-content: space-between; gap: var(--space-4, 16px);
   font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.08em;
-  color: var(--color-gray-500);
+  color: var(--color-gray-300);
+  text-shadow: 0 0 3px rgba(5, 5, 5, 0.98), 0 1px 2px rgba(5, 5, 5, 0.92);
 }
 .footer.is-upgraded .sf-instr__v { color: var(--color-bone); font-weight: 400; }
 

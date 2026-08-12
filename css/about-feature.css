@@ -4,7 +4,7 @@
    masthead, the parallax opener, the floated figures the text wraps around,
    and the section furniture.
 
-   --about-build: 3
+   --about-build: 5
 
    WHY A FILE AND NOT AN INLINE <style> THIS TIME. The previous About kept its
    furniture inline for a good reason (single-page classes do not belong in
@@ -21,7 +21,7 @@
    scrims ON the images, never from a surface under the text.
    ========================================================================== */
 
-:root { --about-build: 3; }
+:root { --about-build: 5; }
 
 /* Anton is the one face added outside the brand set — the compressed weight a
    rap magazine sets its cover in. It runs the masthead, the section titles and
@@ -213,11 +213,15 @@
 }
 
 /* ---- Figures ------------------------------------------------------------- */
-.ks-figcap {
-  margin-top: var(--space-2);
-  font-family: var(--font-mono); font-size: 11px;
-  letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-gray-400);
-}
+/* THERE ARE NO CAPTIONS. Owner's call 2026-08-11; .ks-figcap and .ks-bleed__cap
+   are gone along with all four of them. They were also the page's worst
+   legibility failure: 11px --color-gray-400, which tops out at 3.94:1 on flat
+   #050505 and so could not reach AA anywhere on this site regardless of
+   backdrop. Measured over the lit nebula the Graveyard Shift caption ran
+   1.87:1 with 100% of its glyph pixels under the threshold.
+   The images carry real alt text; the captions were duplicating what the
+   surrounding prose already says. If captions ever come back they need a
+   colour at or above --color-gray-300 and the two-pass shadow. */
 
 /* THE FLOATED CUT — the move that makes this read as a spread and not a blog
    post: the paragraphs WRAP the picture. Float, not grid; shape-outside pins
@@ -257,7 +261,6 @@
   content: ''; position: absolute; inset: 0; pointer-events: none;
   background: linear-gradient(180deg, #050505 0%, rgba(5,5,5,0) 22%, rgba(5,5,5,0) 78%, #050505 100%);
 }
-.ks-bleed__cap { max-width: var(--container-max); margin: var(--space-3) auto 0; padding-inline: var(--container-pad); }
 
 /* ---- Two-column setting -------------------------------------------------- */
 /* Only on sections with NO figure. Floats inside a multicol container are
@@ -275,6 +278,55 @@
   transition: opacity var(--motion-slow) var(--ease-standard), transform var(--motion-slow) var(--ease-standard); }
 .ks-r.is-in { opacity: 1; transform: none; }
 .no-js .ks-r { opacity: 1; transform: none; }
+
+/* ---- Legibility over the sky ---------------------------------------------
+   MEASURED 2026-08-11 at the brightest point the sky can reach (t = 11972ms:
+   all four star bands on their 46% peak, the cloud at 99.5% of its own).
+   This page sets NO background by design, so the prose is read against the
+   nebula. Where a paragraph crosses the lit arm, 10-29% of its glyph pixels
+   measured under 4.5:1 and whole clauses washed out -- worst in sections 08,
+   09 and 10. The mean was never the problem: bone at 17px means 6.5-9.5:1.
+
+   Same two-pass pair spine-bg.css uses three times for small text over the lit
+   column. The 1px pass gives the glyph a hard edge, the 3px pass kills the
+   halo, and rgba(5,5,5) rather than #000 so it can never paint below the page.
+   Measured effect at the worst sites: worst-5% 2.31 -> 6.68 (sec 08 @1440),
+   1.93 -> 6.45 (sec 09 @1920), 1.25 -> 15.23 (.ks-shout @1920).
+
+   TO MEASURE A SHADOW, DO NOT COMPARE THE GLYPH CORE TO THE BARE BACKDROP.
+   A shadow changes neither of those pixels, so it will read as doing nothing.
+   Capture the backdrop with the shadow painted and the fill transparent -- a
+   shadow still paints from a transparent glyph's outline.
+
+   The scrim alternative does not apply: the scrims live ON the images
+   (.ks-hero__scrim, .ks-bleed--faded::after) and none of the failing prose
+   sits over an image. Every failure is over bare sky, which by this file's own
+   design has no surface behind it. */
+.ks-lede, .ks-copy, .ks-shout, .ks-pull,
+.ks-head h2, .ks-head__num, .ks-signoff__mark, .ks-signoff__sub,
+.ks-standfirst p, .ks-hero__cue, .ks-hero__eyebrow .label {
+  text-shadow: 0 0 3px rgba(5, 5, 5, 0.98), 0 1px 2px rgba(5, 5, 5, 0.92);
+}
+
+/* A SHADOW CANNOT FIX A COLOUR THAT FAILS ON BLACK, and --color-gray-400
+   (#6B6B6B) tops out at 3.94:1 on flat #050505 -- it cannot reach AA anywhere
+   on this site regardless of backdrop. The captions that shared this problem
+   were deleted outright (see "Figures" above); .ks-hero__cue is what is left.
+   Same move css/spine-bg.css already makes for .label. */
+.ks-hero__cue { color: var(--text-secondary); }
+
+/* STILL FAILING, DELIBERATELY, PENDING AN OWNER CALL ON THE BRAND.
+   --color-crimson-lit (#8A1414) tops out at ~2.2:1 on flat #050505, so
+   .ks-head__num (the 01-10 numerals) and .ks-signoff__sub ("Decode the
+   transmission.") fail before the sky is involved at all -- measured
+   1.09-1.80:1. The shadow above helps them and does not save them.
+   Four candidates were measured against the shadowed backdrop: #D9433A
+   (3.2-3.7), #E8574B (3.9-4.5), #F0655A (4.5-5.3, no margin) and bone
+   (9.4-11.2). NOTHING STILL RECOGNISABLY CRIMSON CLEARS AA. The fix is
+   `color: var(--text-secondary)` on both, and it costs the accent.
+   .ks-head__num has a defensible decorative exemption -- it duplicates no
+   information and sits beside its own heading. .ks-signoff__sub is real
+   content and has none. */
 
 /* ---- Narrow --------------------------------------------------------------
    880px is where a floated 400px figure leaves under 40ch beside it, which is

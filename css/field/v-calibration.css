@@ -1,14 +1,16 @@
 /* ==========================================================================
-   CALIBRATION — READOUT's information over a labelled Seed of Life
+   CALIBRATION — READOUT's information over a Seed of Life
    Partner file: js/field/v-calibration.js, which adds `v-readout` to <html>
    so that parent's stylesheet applies underneath this one.
-
-   Like v-fusion.css, this file mostly SUBTRACTS. The new thing it adds is the
-   seed; everything else is either a removal or a step back in weight.
 
    Specificity: the parent is scoped `html.v-readout …` at (0,2,0). Every rule
    here leads with `html.v-calibration.v-readout`, (0,3,0), so it wins without
    an !important anywhere.
+
+   THIS FILE NOW ONLY ADDS THE SEED. Its previous job -- suppressing READOUT's
+   calibration ladder so the seed's own labels would not duplicate it -- is
+   gone, along with the labels. See the note below; it is the more interesting
+   half of the history.
    ========================================================================== */
 
 /* The slots each parent builds into. Real boxes, never display:contents --
@@ -18,29 +20,46 @@ html.v-calibration .field .cal-slot {
   position: absolute; inset: 0; pointer-events: none;
 }
 
-/* --------------------------------------------------------------------------
-   1. READOUT'S CHAKRA LADDER GOES.
-   Column B is READOUT's calibration ladder -- the seven names and frequencies
-   set at their true heights. The seed now carries exactly those seven on its
-   circle centres, and two labellings of the same seven centres is the one
-   thing FUSION proved a composition cannot afford. Column B is the ONLY thing
-   removed from READOUT; the station, the record, the harmonics and the
-   channels are why this reading exists.
-   -------------------------------------------------------------------------- */
-html.v-calibration.v-readout .field .ro-col--b { display: none; }
+/* ==========================================================================
+   THE SEVEN LIVE IN THE READOUT, NOT ON THE FIGURE.
+
+   This module used to hide READOUT's column B -- its calibration ladder, seven
+   names set at their true heights with the frequency beside each -- because
+   the seed carried the same seven on its circle centres and two labellings of
+   one set is the thing FUSION proved a composition cannot afford.
+
+   The seed's labels are gone now, so the ladder comes back, and this rule is
+   the absence of a rule. It is documented rather than simply deleted because
+   the obvious future edit is to re-suppress it the moment anyone puts labels
+   back on the seed -- and the better move at that point is to not put labels
+   back on the seed.
+
+   WHY THE FIGURE LOST THEM. The marks were drawn in --node-color, which is the
+   navigator's own amber. Seven glowing dots on the same stage as six clickable
+   nodes read as seven more things to click, and the two nearest the node
+   string -- AJNA and MANIPURA -- were the worst of it. Three placements were
+   built to move the labels out of the pointer's path and all three worked, but
+   none of them touched the real problem: any mark in that palette, anywhere
+   here, competes with the navigation for the same meaning. The owner's call
+   was to stop tuning and take the dots and text out.
+
+   The ladder has none of that problem. It is mono type in a margin column at
+   0.14 envelope, 350px from the nearest node, and nothing about it suggests it
+   can be pressed.
+   ========================================================================== */
 
 /* --------------------------------------------------------------------------
-   2. THE SEED.
-   `slice` here, unlike the footer -- the navigator stage IS the 1440x900 the
-   viewBox is drawn for, so slice scales to cover with essentially no crop, and
-   the figure reaches the empty thirds the way the reading needs it to. In the
-   footer the same value blew the figure up and flung its labels across the
+   THE SEED — construction only.
+   `slice` here, unlike the footer: the navigator stage IS the 1440x900 the
+   viewBox is drawn for, so slice scales to cover with essentially no crop. In
+   the footer the same value blew the figure up and flung its labels across the
    navigation; the difference is that the footer's box is nothing like its
    viewBox and this one is.
    -------------------------------------------------------------------------- */
 html.v-calibration .field .cal-seed {
   position: absolute; inset: 0; width: 100%; height: 100%;
   pointer-events: none;
+  transition: opacity var(--motion-base) var(--ease-standard);
 }
 html.v-calibration .field .cal-seed__ring circle {
   fill: none; stroke: rgba(216, 208, 190, 0.10);
@@ -54,101 +73,25 @@ html.v-calibration .field .cal-seed__rim {
   stroke-width: 1; vector-effect: non-scaling-stroke;
 }
 
-html.v-calibration .field .cal-seed__dot {
-  fill: rgba(var(--node-color), 0.55);
-}
-html.v-calibration .field .cal-seed__name,
-html.v-calibration .field .cal-seed__hz,
-html.v-calibration .field .cal-seed__en {
-  text-anchor: middle; font-family: var(--font-mono);
-}
-/* HIDDEN UNTIL FOUND. --lift is written per mark by the torch in
-   js/field/v-calibration.js and is 0 at rest, so the seven names and
-   frequencies are simply not on screen until the pointer goes looking. What
-   remains at rest is the construction and seven amber dots: a diagram with
-   marked points and no legend, which is the state the whole brand is named
-   after.
-
-   Opacity on the GROUP, one property, so name/Hz/English rise together as one
-   label rather than three things fading at their own rates. The transition is
-   short -- 120ms -- because anything longer lags behind a moving pointer and
-   the label appears to be chasing the cursor rather than being lit by it. */
-html.v-calibration .field .cal-seed__mark { --lift: 0; }
-html.v-calibration .field .cal-seed__name,
-html.v-calibration .field .cal-seed__hz,
-html.v-calibration .field .cal-seed__en {
-  opacity: var(--lift);
-  transition: opacity 120ms linear;
-}
-html.v-calibration .field .cal-seed__name {
-  font-size: 11px; letter-spacing: 0.20em; fill: rgba(216, 208, 190, 0.82);
-}
-html.v-calibration .field .cal-seed__hz {
-  font-size: 10px; letter-spacing: 0.14em; fill: rgba(var(--node-color), 0.85);
-}
-html.v-calibration .field .cal-seed__en {
-  font-size: 8px; letter-spacing: 0.16em; fill: rgba(216, 208, 190, 0.42);
-}
-
-/* The leader that joins the centre DOT to its displaced TYPE in OFFSET mode.
-   It rises with the label rather than being always-on: a line pointing at
-   nothing is worse than no line, and at rest there is nothing to point at. */
-html.v-calibration .field .cal-seed__lead {
-  stroke: rgba(var(--node-color), calc(var(--lift) * 0.55));
-  stroke-width: 1; vector-effect: non-scaling-stroke;
-  transition: stroke 120ms linear;
-}
-
-/* THE DOT BRIGHTENS WITH ITS LABEL, which is what makes the mark feel like the
-   thing being lit rather than a fixed pin the text happens to appear beside. */
-html.v-calibration .field .cal-seed__mark .cal-seed__dot {
-  r: calc(2.5px + var(--lift) * 1.5px);
-  fill: rgba(var(--node-color), calc(0.45 + var(--lift) * 0.5));
-  transition: fill 120ms linear;
-}
-
-/* No pointer to reward, or motion suppressed: the seven come up at a low
-   steady contrast. A reader with no way to reveal them should not be left
-   with a figure that has no legend at all. */
-html.cal-static.v-calibration .field .cal-seed__name,
-html.cal-static.v-calibration .field .cal-seed__hz,
-html.cal-static.v-calibration .field .cal-seed__en { opacity: 0.42; }
-
-/* WHICH CHAKRA SITS AT THE CENTRE, since it is the first thing anyone will
-   check: the CROWN does. js/ks-chakras.js is ordered crown to root, the seed's
-   circle 0 is the centre point, so SAHASRARA takes it and the remaining six
-   ring it in order.
-
-   That is a choice and MANDALA made the opposite one -- it centres its
-   construction on the HEART, because that is the single row where its figure
-   and the body genuinely coincide. The seed has no such coincidence to spend:
-   its six outer circles are one radius from the centre and no chakra spacing
-   maps onto that. So the centre goes to the origin the other six are arranged
-   around, and the crown is the honest reading of a figure that grows outward
-   from its middle.
-
-   THE FOOTER USES THE SAME ORDER, deliberately. The two are one system stated
-   twice; a seed whose centre is the crown here and the heart there would be
-   two systems wearing the same clothes. Change both or neither -- it is one
-   line in each, and nothing else depends on the order. */
+/* NO AMBER ANYWHERE IN THIS FIGURE, deliberately. Bone at low alpha reads as
+   drawing; rgba(var(--node-color)) reads as interface. That distinction is the
+   whole reason the marks came out, and it applies to the circles too -- a warm
+   construction would have re-introduced the confusion at lower volume. */
 
 /* --------------------------------------------------------------------------
-   3. READOUT STEPS BACK.
-   Its envelope was set for a field with nothing else in it. The seed now
-   occupies the same frame at higher contrast than anything READOUT draws, so
-   the columns yield slightly rather than competing across the whole width.
+   READOUT STEPS BACK a little, because the seed now occupies the same frame.
+   Its ladder is the one thing that must stay legible, so this is a gentle
+   step rather than the 0.14 an earlier pass used when the seed was carrying
+   the names and the columns were pure texture.
    -------------------------------------------------------------------------- */
-html.v-calibration.v-readout .field .ro { --ro-opacity: 0.14; }
+html.v-calibration.v-readout .field .ro { --ro-opacity: 0.20; }
 
 /* --------------------------------------------------------------------------
-   4. RECEDE.
+   RECEDE.
    READOUT carries its own is-card / is-music rules under html.v-readout, which
-   is present, so the columns are already handled. The seed is this file's own
-   element and needs its own -- without it the construction would stay at full
-   strength behind a reading card.
+   is present, so the columns are handled. The seed is this file's own element
+   and needs its own -- without it the construction would stay at full strength
+   behind a reading card.
    -------------------------------------------------------------------------- */
 html.v-calibration.is-card  .field .cal-seed { opacity: 0.12; }
 html.v-calibration.is-music .field .cal-seed { opacity: 0; }
-html.v-calibration .field .cal-seed {
-  transition: opacity var(--motion-base) var(--ease-standard);
-}

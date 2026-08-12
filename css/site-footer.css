@@ -1,0 +1,247 @@
+/* ==========================================================================
+   SITE FOOTER — presentation for the upgraded footer
+   Partner file: js/site-footer.js, which moves the page's own anchors into the
+   structure this file styles. Built Aug 11 2026.
+
+   EVERYTHING IS SCOPED UNDER `.footer.is-upgraded`, which the script adds only
+   after it has successfully built. A page whose JS never runs keeps the
+   footer it has always had, untouched, with every link live -- so this
+   stylesheet can be loaded unconditionally and can never leave a page worse
+   than it found it.
+
+   IT DOES NOT EDIT css/components.css. That file styles the original footer on
+   five pages that are byte-identical to main, and the original is the fallback
+   this whole approach depends on. Changing it would move the floor.
+   ========================================================================== */
+
+/* THE ORIGINAL GOES NON-PAINTING, NOT DELETED. Its anchors have been MOVED
+   into the new structure, so what is left in .footer__inner is the empty
+   scaffolding around them; hiding it rather than removing it keeps the page's
+   own markup intact for anything that reads the DOM after us. */
+.footer.is-upgraded .footer__inner { display: none; }
+
+.footer.is-upgraded {
+  border-top: var(--border-hairline);
+  padding-block: 0;
+  position: relative;
+  overflow: hidden;          /* the wordmark is cropped BY the footer */
+}
+
+.footer.is-upgraded .sf {
+  position: relative;
+  /* ~520px of block, which is the size the owner settled on against a
+     full-height treatment. The site already has one immersive final scene --
+     the entrance -- and one per site is the right number. A footer that
+     demands a whole screen competes with the thing it exists to send you back
+     to. */
+  min-height: 480px;
+  display: flex; flex-direction: column;
+  padding: var(--space-10, 48px) 0 0;
+}
+
+/* THE PAGE'S OWN SPINE RUNS BEHIND THIS, and that is the site's chosen design
+   -- css/spine-bg.css lifts .footer to z-index 1 precisely so the column
+   passes behind it. A taller footer simply exposes more of the column than the
+   old ~200px strip ever did.
+
+   NO SCRIM. The obvious fix is a dark wash behind the columns, and
+   css/spine-bg.css already ruled it out in writing: over flat page black a
+   #050505 scrim is invisible, but over a column sitting at L 70 the same wash
+   is far darker than its surroundings and reads as a dark ellipse floating on
+   the spine. "Attenuate the backdrop, never paint over it." So legibility here
+   comes from the ink instead: the link rows carry their own hairline rules and
+   sit at --text-secondary or brighter, and everything that could not win that
+   fight -- the seed's labels -- was moved out of the column band entirely. */
+
+/* ==========================================================================
+   THE SUBSTRATE — Seed of Life, behind everything
+   Seven circles for seven centres. It is the connective tissue between this
+   footer and the navigator's field: the same figure, the same seven, the same
+   frequencies, so the two surfaces are visibly one system rather than two
+   things that happen to share a palette.
+   ========================================================================== */
+/* CONFINED TO THE LOWER HALF, and this is a collision fix rather than a
+   preference. Given the whole footer the figure's labels sat exactly where the
+   link rows are -- MULADHARA printed across TRANSMISSIONS. The links are the
+   footer's job; the substrate moves. Below 38% it shares space only with the
+   instrument band and the wordmark, both of which are texture themselves. */
+.footer.is-upgraded .sf__seed {
+  position: absolute; left: 0; right: 0; top: 38%; bottom: 0;
+  width: 100%; height: 62%;
+  pointer-events: none; z-index: 0;
+}
+.footer.is-upgraded .sf__seed-ring circle {
+  fill: none; stroke: rgba(216, 208, 190, 0.09); stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+/* SUBSTRATE ALPHAS, not label alphas. These were first set as if the names
+   were content to be read; over the page's own lit spine column they became
+   the third thing competing for the same centre line. They are here to be
+   FOUND, not read -- the instrument band above states the same seven at
+   readable contrast, so nothing is lost by making these quiet. */
+.footer.is-upgraded .sf__seed-name,
+.footer.is-upgraded .sf__seed-hz {
+  text-anchor: middle; font-family: var(--font-mono);
+  fill: rgba(216, 208, 190, 0.20);
+}
+.footer.is-upgraded .sf__seed-name { font-size: 8px; letter-spacing: 0.16em; }
+.footer.is-upgraded .sf__seed-hz {
+  font-size: 7px; letter-spacing: 0.12em; fill: rgba(var(--node-color), 0.24);
+}
+
+/* ==========================================================================
+   TIER 1 — the four columns. Links first, and findable.
+   ========================================================================== */
+.footer.is-upgraded .sf__cols {
+  position: relative; z-index: 2;
+  display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr;
+  gap: var(--space-8, 32px);
+  padding-inline: var(--space-6);
+}
+.footer.is-upgraded .sf-col__head {
+  font-family: var(--font-mono); font-size: 10px; font-weight: 500;
+  letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--color-bone); margin: 0 0 var(--space-4, 16px);
+}
+.footer.is-upgraded .sf-col--id .sf-col__head {
+  font-family: var(--font-display); font-size: 22px; font-weight: 800;
+  letter-spacing: 0.02em; color: var(--text-primary);
+}
+.footer.is-upgraded .sf-col__blurb {
+  font-family: var(--font-body); font-size: var(--fs-caption);
+  color: var(--text-muted); max-width: 30ch; margin: 0;
+}
+.footer.is-upgraded .sf-col__list { list-style: none; margin: 0; padding: 0; }
+
+/* A ROW IS A LINK AND ITS STATE, side by side. The state is what turns a dead
+   link into information -- see the STANDBY note below. */
+.footer.is-upgraded .sf-row {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: var(--space-4, 16px); padding: 5px 0;
+  border-bottom: 1px solid rgba(216, 208, 190, 0.07);
+}
+.footer.is-upgraded .sf-row__link,
+.footer.is-upgraded .sf-row__dead {
+  font-family: var(--font-mono); font-size: var(--fs-mono);
+  letter-spacing: var(--tracking-label); text-transform: uppercase;
+  text-decoration: none;
+}
+.footer.is-upgraded .sf-row__link { color: var(--text-secondary); transition: color var(--motion-fast); }
+.footer.is-upgraded .sf-row__link:hover,
+.footer.is-upgraded .sf-row__link:focus-visible { color: var(--text-primary); }
+
+/* STANDBY IS NOT A DISABLED LINK, IT IS A STATEMENT ABOUT A CHANNEL.
+   TikTok and Spotify have shipped as href="#" for the whole life of this
+   footer: they look live, they do nothing, and clicking one teaches the reader
+   that the site is broken rather than that the channel is not open yet. Muted
+   ink and an explicit word say the true thing instead, and the script removes
+   the anchor entirely so it is not focusable and offers no pointer. */
+.footer.is-upgraded .sf-row__dead { color: var(--text-muted); }
+.footer.is-upgraded .sf-row__state {
+  font-family: var(--font-mono); font-size: 8px; letter-spacing: 0.18em;
+  padding: 2px 6px; border: 1px solid transparent; white-space: nowrap;
+}
+.footer.is-upgraded .sf-row__state--open {
+  color: rgba(var(--node-color), 0.75); border-color: rgba(var(--node-color), 0.28);
+}
+.footer.is-upgraded .sf-row__state--standby {
+  color: var(--color-gray-500); border-color: rgba(216, 208, 190, 0.16);
+}
+
+/* ==========================================================================
+   TIER 2 — the instrument band. BESIDE the links, never around them.
+   Faint enough to read as texture, real enough to rewarding looking at: the
+   runtime is the sum of all 28 durations in data/tracks.json, the geometry
+   counts are counted, and the calibration is the same seven the substrate
+   draws.
+   ========================================================================== */
+/* FIVE TRACKS, AND THE MIDDLE ONE IS EMPTY ON PURPOSE.
+   At four equal columns the two inner blocks landed directly on the page's
+   lit spine column -- GEOMETRY's values were printed over the brightest thing
+   on the screen and simply could not be read. The site's own rule forbids
+   painting a scrim over that column, so the layout yields instead: two blocks
+   to the left of the spine, two to the right, and a gutter down the middle
+   wide enough to clear it. The empty track is the fix, not a spacing choice. */
+.footer.is-upgraded .sf__instr {
+  position: relative; z-index: 2;
+  display: grid;
+  grid-template-columns: 1fr 1fr minmax(140px, 220px) 1fr 1fr;
+  gap: var(--space-6, 24px);
+  margin-top: var(--space-8, 32px);
+  padding: var(--space-5, 20px) var(--space-6) 0;
+  border-top: 1px solid rgba(216, 208, 190, 0.07);
+  /* 0.7, not the 0.55 this shipped at first: that was judged against flat page
+     black, and over a lit nebula the left-hand blocks disappeared entirely. */
+  opacity: 0.7;              /* the band's single dial */
+}
+.footer.is-upgraded .sf-instr__block:nth-child(3) { grid-column: 4; }
+.footer.is-upgraded .sf-instr__block:nth-child(4) { grid-column: 5; }
+.footer.is-upgraded .sf-instr__block { display: flex; flex-direction: column; gap: 3px; }
+.footer.is-upgraded .sf-instr__head {
+  font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.22em;
+  text-transform: uppercase; color: var(--color-gray-500); margin-bottom: 4px;
+  min-height: 12px;          /* the fourth block has no head; keep the grid level */
+}
+.footer.is-upgraded .sf-instr__row {
+  display: flex; justify-content: space-between; gap: var(--space-4, 16px);
+  font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.08em;
+  color: var(--color-gray-500);
+}
+.footer.is-upgraded .sf-instr__v { color: var(--color-bone); font-weight: 400; }
+
+/* ==========================================================================
+   THE BASE — KUNDALINI SPINES, outline only, cropped
+   ========================================================================== */
+.footer.is-upgraded .sf__mark {
+  position: relative; z-index: 1;
+  display: block; width: 100%; height: auto;
+  margin-top: auto;          /* pinned to the bottom of the 520px block */
+}
+.footer.is-upgraded .sf__mark-text {
+  font-family: var(--font-display, "Big Shoulders Display", sans-serif);
+  font-weight: 800; font-size: 132px; letter-spacing: 0.01em;
+  /* The stroke takes a GRADIENT, which is why this is SVG text and not
+     -webkit-text-stroke: that property accepts a colour and nothing else. */
+  stroke-width: 1.25; vector-effect: non-scaling-stroke;
+  paint-order: stroke;
+}
+
+/* Reduced motion: the torch does not chase, so it is parked warm and even
+   rather than switched off. The effect exists to reward moving the pointer;
+   with motion suppressed it should still look like something. */
+.footer.sf-torch-static.is-upgraded .sf__mark-text {
+  stroke: rgba(216, 208, 190, 0.34);
+}
+
+.footer.is-upgraded .sf__foot {
+  position: relative; z-index: 2;
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: var(--space-6); padding: var(--space-4, 16px) var(--space-6) var(--space-6);
+  border-top: 1px solid rgba(216, 208, 190, 0.07);
+}
+.footer.is-upgraded .sf__copy {
+  margin: 0; width: auto; color: var(--text-muted); font-size: var(--fs-caption);
+}
+.footer.is-upgraded .sf__seal {
+  font-family: var(--font-mono); font-size: 8px; letter-spacing: 0.24em;
+  color: rgba(216, 208, 190, 0.22);
+}
+
+/* ==========================================================================
+   NARROW
+   The columns collapse before the instrument band does, because the links are
+   the footer's job and the band is its texture -- when space runs out, texture
+   goes first.
+   ========================================================================== */
+@media (max-width: 1000px) {
+  .footer.is-upgraded .sf__cols { grid-template-columns: 1fr 1fr; }
+  .footer.is-upgraded .sf__instr { grid-template-columns: 1fr 1fr; }
+  .footer.is-upgraded .sf__mark-text { font-size: 96px; }
+}
+@media (max-width: 640px) {
+  .footer.is-upgraded .sf { min-height: 0; }
+  .footer.is-upgraded .sf__cols { grid-template-columns: 1fr; gap: var(--space-6); }
+  .footer.is-upgraded .sf__instr { display: none; }
+  .footer.is-upgraded .sf__mark-text { font-size: 64px; }
+  .footer.is-upgraded .sf__foot { flex-direction: column; gap: var(--space-2); }
+}

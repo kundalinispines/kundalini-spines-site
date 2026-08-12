@@ -39,36 +39,105 @@
   // ---- node model. Order + terminology per master prompt §9, using the
   //      site's real destinations for immersive nodes. y is % of stage height.
   var NODES = [
-    { id: 'music', idx: '01', title: 'Music', kind: 'immersive', side: 'right', y: 14,
+    { id: 'music', title: 'Music', kind: 'immersive',
       eyebrow: 'Immersive Node',
       body: '<p>The track experience is the site’s dominant instrument — an arch-depth carousel over a kick- and snare-reactive sky.</p><p>In the full build, this node expands to fill the viewport and the spine collapses to a thin line beside it. It is wrapped, never rebuilt, in a later approved stage.</p>',
       cta: 'Later stage', href: '#' },
 
-    { id: 'story', idx: '02', title: 'Our Story', kind: 'card', side: 'left', y: 29,
+    /* STORY, MESSENGERS AND ETHOS WERE THREE NODES UNTIL Aug 11 2026, and they
+       are one now — the owner's call. All three already pointed at the SAME
+       href (about.html), which is what gave the game away: three vertebrae, one
+       destination. A navigator whose nodes are not distinct places is a menu
+       wearing a diagram's clothes.
+
+       The three former bodies survive as the three paragraphs below, in their
+       original order, so nothing written for them was lost. Their three
+       eyebrows (Transmission / Two Voices / The Method) could not all survive;
+       'Transmission' won because it is the one that names the SITE's own
+       vocabulary rather than describing the section.
+
+       This frees two vertebrae. The remaining four re-space across the same
+       travel — the first and last y are unchanged at 14 and 88, so the rail's
+       reach is identical and only the interior spacing opened up. */
+    { id: 'story', title: 'Our Story', kind: 'card',
       eyebrow: 'Transmission',
-      body: '<p>Two Messengers. One Signal. Kundalini Spines began as coded transmissions passed between the streets and the stars — mysticism, sacred geometry, and lived experience folded into sound.</p><p>The Messengers don’t claim mastery over the Signal. They receive it, interpret it, and carry it forward.</p>',
-      cta: 'Read the story', href: 'about.html' },
+      body: '<p>Two Messengers. One Signal. Kundalini Spines began as coded transmissions passed between the streets and the stars — mysticism, sacred geometry, and lived experience folded into sound.</p><p>A two-member project moving between underground hip-hop, symbolism, ancient knowledge, and speculative thought. Neither stands above the work. Each is an antenna for the same current — one signal, split into two hands.</p><p>Knowledge hidden in plain sight. Nothing here is decoration — every mark, interval, and image is placed to be decoded. Restraint over noise. Structure over spectacle. The architecture of the spine, made audible.</p>',
+      cta: 'Read the full story', href: 'about.html' },
 
-    { id: 'members', idx: '03', title: 'The Messengers', kind: 'card', side: 'right', y: 44,
-      eyebrow: 'Two Voices',
-      body: '<p>A two-member project moving between underground hip-hop, symbolism, ancient knowledge, and speculative thought.</p><p>Neither stands above the work. Each is an antenna for the same current — one signal, split into two hands.</p>',
-      cta: 'Meet the Messengers', href: 'about.html' },
+    /* MERCHANDISE TOOK ONE OF THE TWO VERTEBRAE THE MERGE FREED, Aug 11 2026.
+       This is the first node added since the model was written, and it is the
+       reason the merge was worth doing: the navigator had six nodes and only
+       four destinations, and now it has five nodes and five.
 
-    { id: 'ethos', idx: '04', title: 'Our Ethos', kind: 'card', side: 'left', y: 59,
-      eyebrow: 'The Method',
-      body: '<p>Knowledge hidden in plain sight. Nothing here is decoration — every mark, interval, and image is placed to be decoded.</p><p>Restraint over noise. Structure over spectacle. The architecture of the spine, made audible.</p>',
-      cta: 'Learn the method', href: 'about.html' },
+       kind: 'card', NOT 'immersive'. Immersive nodes (Music, Archive) take over
+       the viewport and collapse the spine beside them, which is a promise about
+       how much is behind the click. There is no store yet — links.download is
+       null on all 28 tracks and the "$1" at track-experience.js:804 is still
+       hardcoded, which V2HANDOFF 26 lists as an open decision. A card states
+       what this is without pretending a shop exists. Promote it to 'immersive'
+       when there is a real storefront to expand into. */
+    { id: 'merch', title: 'Merchandise', kind: 'card',
+      eyebrow: 'The Objects',
+      body: '<p>A lyric can become an artifact. An album image can become a symbol. A symbol can become an object you carry.</p><p>Garments, prints and pressings built to the same standard as everything else here — black, restrained, and marked only where a mark carries weight. Nothing decorative, nothing that would not survive the archive.</p>',
+      cta: 'Coming soon', href: 'merch.html' },
 
-    { id: 'archive', idx: '05', title: 'Archive', kind: 'immersive', side: 'right', y: 74,
+    { id: 'archive', title: 'Archive', kind: 'immersive',
       eyebrow: 'Immersive Node',
       body: '<p>Recovered artwork, transmissions, and released signals — filed and filterable, fed from the offline YouTube sync.</p><p>In the full build this expands into a large panel while keeping the spine in view. Data plumbing is preserved; only the presentation grows.</p>',
       cta: 'Later stage', href: 'archive.html' },
 
-    { id: 'timeline', idx: '06', title: 'Timeline', kind: 'card', side: 'left', y: 88,
+    /* SIDES ALTERNATE STRICTLY: right, left, right, left, right. Going from six
+       nodes to five flipped the parity, so Archive and Timeline swapped sides —
+       that is the alternation being preserved, not a stray edit. `side` also
+       drives which edge of the reading card catches the light (--lit-x in
+       css/spine-ui.css), so a node on the wrong side is lit from the wrong
+       direction and looks subtly broken rather than obviously wrong. */
+    { id: 'timeline', title: 'Timeline', kind: 'card',
       eyebrow: 'Milestones',
       body: '<p>The Signal has a chronology — first transmissions, first tracks, the releases still to surface.</p><p>Milestones thread down the spine, each vertebra a moment the current passed through.</p>',
       cta: 'Trace the timeline', href: '#' }
   ];
+
+  /* ------------------------------------------------------------------------
+     GEOMETRY IS DERIVED, NOT WRITTEN — added Aug 11 2026, immediately after
+     the node count changed twice in one session (six to four on the
+     story/messengers/ethos merge, then to five when Merchandise took one of
+     the freed vertebrae). The owner has said they may want a sixth back.
+
+     Until now `idx`, `side` and `y` were hand-written on every entry. Changing
+     the count meant renumbering every idx, re-alternating every side, and
+     re-spacing every y — fifteen hand edits for one conceptual change, each
+     one silent if wrong. An off-by-one idx just prints the wrong number; a
+     side that breaks the alternation lights the reading card's bevel from the
+     wrong edge (see --lit-x in css/spine-ui.css), which V2HANDOFF 26 records
+     as invisible to every computed-style check that was pointed at it.
+
+     ALL THREE ARE FUNCTIONS OF ARRAY POSITION, so they are computed here:
+
+       idx   1-based, zero-padded.
+       side  even index right, odd left. Index 0 is Music, on the right, which
+             is where it has always been.
+       y     evenly spaced between RAIL_TOP and RAIL_BOTTOM inclusive.
+
+     These reproduce the values that were previously typed by hand. The
+     original six were 14/29/44/59/74/88 and this yields 14/28.8/…/88 — the
+     hand-written set was these numbers rounded, so the rule was always the
+     rule and only the rounding was manual.
+
+     TO ADD A SIXTH NODE: add one object to the array above, in the position
+     you want it on the spine. Nothing else. Do not reintroduce idx/side/y as
+     literals — a literal that disagrees with its position is exactly the bug
+     this removes. If a node ever needs to break the alternation deliberately,
+     add an explicit `sideOverride` and honour it below rather than going back
+     to hand-written sides for all of them. */
+  var RAIL_TOP = 14, RAIL_BOTTOM = 88;
+  NODES.forEach(function (n, i) {
+    n.idx  = (i + 1 < 10 ? '0' : '') + (i + 1);
+    n.side = (i % 2 === 0) ? 'right' : 'left';
+    n.y    = NODES.length < 2
+           ? RAIL_TOP
+           : RAIL_TOP + (RAIL_BOTTOM - RAIL_TOP) * i / (NODES.length - 1);
+  });
 
   // ---- refs
   var stage   = document.getElementById('spine-nav-stage');
@@ -126,8 +195,11 @@
       /* NO NUMBERING ON THE NODES. The labels carried 01-06 and the owner
          removed them Aug 11 2026, extending to the navigator the same call
          already made for the Music rail. `idx` stays on NODES because the
-         reading card still reads it (populateCard: "02 / 06") — it just no
-         longer reaches the node label. */
+         reading card still reads it (populateCard: "02 / 04") — it just no
+         longer reaches the node label. The TOTAL in that pair is derived from
+         NODES.length now; only the per-node `idx` is still written by hand, so
+         adding or removing a node means renumbering this array and nothing
+         else. */
       '<span class="spine-node__label">' + n.title.toUpperCase() +
         '<span class="kind">' + (n.kind === 'immersive' ? 'Immersive · later' : 'Card') + '</span></span>';
     navbar.appendChild(btn);
@@ -320,7 +392,14 @@
 
   // ---- card content + placement
   function populateCard(n) {
-    card.querySelector('.spine-card__idx').textContent = n.idx + ' / 06';
+    /* DERIVED, not written. This read `n.idx + ' / 06'` with the total spelled
+       out as a literal, which was true for exactly as long as there were six
+       nodes. Merging story/messengers/ethos into one on Aug 11 2026 took the
+       count to four and would have left every card claiming to be one of six —
+       a number contradicted by the four vertebrae visible behind it, and
+       nothing would have errored. Padded so '4' still reads '04'. */
+    var total = NODES.length < 10 ? '0' + NODES.length : String(NODES.length);
+    card.querySelector('.spine-card__idx').textContent = n.idx + ' / ' + total;
     card.querySelector('.spine-card__eyebrow').textContent = n.eyebrow;
     card.querySelector('.spine-card__title').textContent = n.title;
     card.querySelector('.spine-card__body').innerHTML = n.body;

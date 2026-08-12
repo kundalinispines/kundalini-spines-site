@@ -1,5 +1,16 @@
 <!DOCTYPE html>
-<html lang="en">
+<!-- page-transmission-detail selects the per-page override block in
+     css/star-bg.css. Measured in Chrome at 1440x900 on 11 August 2026: this
+     page linked no star-bg.css and carried no page class at all, so both
+     html::before and html::after computed to content: none and the star field
+     never painted. It was the one genuinely black page on the site — its four
+     siblings (index, about, archive, transmissions) all rendered the sky. The
+     link below is ../css/star-bg.css, not css/star-bg.css: this file sits one
+     directory down, the same reason ../css/site-footer.css is spelled that way.
+     IT BELONGS ON <html>, NOT ON <body> — the nebula and one star band are
+     pseudo-elements of html and can never see a value set on body. See the
+     long note in css/spine-bg.css. -->
+<html lang="en" class="page-transmission-detail">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -24,6 +35,7 @@
 
 <link rel="stylesheet" href="../css/tokens.css">
 <link rel="stylesheet" href="../css/base.css">
+<link rel="stylesheet" href="../css/star-bg.css">
 <link rel="stylesheet" href="../css/components.css">
 <link rel="stylesheet" href="../css/site-footer.css">
 <style>
@@ -54,6 +66,7 @@
       <ul class="nav__links">
         <li><a href="/">Home</a></li>
         <li><a href="/#tracks">Music</a></li>
+        <li><a href="../merch.html">Merchandise</a></li>
         <li><a href="../transmissions.html" aria-current="page">Transmissions</a></li>
         <li><a href="../archive.html">Archive</a></li>
         <li><a href="../about.html">About</a></li>
@@ -84,6 +97,7 @@
   <div class="footer__inner">
     <ul class="footer__nav">
       <li><a href="/#tracks">Music</a></li>
+      <li><a href="../merch.html">Merchandise</a></li>
       <li><a href="../transmissions.html">Transmissions</a></li>
       <li><a href="../archive.html">Archive</a></li>
       <li><a href="../about.html">About</a></li>

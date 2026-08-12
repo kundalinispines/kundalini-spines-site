@@ -24,6 +24,19 @@
     file still exists so the old URL keeps working. If a real Music page is ever
     rebuilt, add it back here.
   -->
+  <!--
+    /merch.html added 2026-08-11, when Merchandise took one of the two spine
+    nodes freed by merging Our Story, The Messengers and Our Ethos into
+    /about.html. Priority 0.6: below About and Archive at 0.7 because there is
+    no store behind it yet — the page states the line exists and is not open.
+    Raise it when there is something to buy.
+  -->
+  <url>
+    <loc>https://kundalinispines.com/merch.html</loc>
+    <lastmod>2026-08-11</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
   <url>
     <loc>https://kundalinispines.com/transmissions.html</loc>
     <lastmod>2026-07-29</lastmod>

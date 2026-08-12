@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<!-- page-merch selects the per-page override block in css/star-bg.css. The block
+     is being added in the same session this file was written; it is empty on
+     arrival, and that is the point — the class is the hook that lets this page's
+     sky be tuned later without retuning archive.html or transmissions.html.
+     IT BELONGS ON <html>, NOT ON <body> — the nebula and one of the star bands
+     are pseudo-elements of html, and a pseudo-element of html resolves its
+     variables from html. It can never see a value set on body. See the long note
+     in css/spine-bg.css.
+     If you add this page to the phone block's selector list in css/star-bg.css,
+     add it in the same commit as any star variable you put in the page block —
+     that list exists so the 600px values keep winning. -->
+<html lang="en" class="page-merch">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Merchandise — Kundalini Spines</title>
+<meta name="description" content="The Kundalini Spines objects line: garments, prints, pressings and marks. Filed, not yet open.">
+<link rel="canonical" href="/merch.html">
+
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" href="assets/marks/spine-mark.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="assets/marks/apple-touch-icon.png">
+
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Kundalini Spines">
+<meta property="og:title" content="Merchandise — Kundalini Spines">
+<meta property="og:description" content="The Kundalini Spines objects line: garments, prints, pressings and marks. Filed, not yet open.">
+<meta property="og:image" content="/assets/hero/messengers-hero-duo.jpg">
+<meta name="twitter:card" content="summary_large_image">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&family=Big+Shoulders+Stencil:wght@700;900&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<!-- THE ORDINAL SLOT OF star-bg.css IS LOAD-BEARING. tokens, base, star-bg,
+     components, site-footer — the same five in the same order every other root
+     page uses. Omitting star-bg.css is the single most common defect in this
+     repo: the page renders pure black, with no error and nothing in the console
+     to say why. There is deliberately NO sixth stylesheet here. This page adds
+     no new CSS file and no inline <style> — see the note above the first
+     section for why it can afford not to. -->
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/star-bg.css">
+<link rel="stylesheet" href="css/components.css">
+<link rel="stylesheet" href="css/site-footer.css">
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<!-- THE HEADER NAV IS A COPY OF archive.html'S, DOWN TO THE FIVE ITEMS, AND
+     THERE IS NO "MERCH" ENTRY IN IT ON PURPOSE.
+
+     No other page's header lists this one. Adding a sixth item here alone would
+     give the site a navigation that changes shape depending on which page you
+     are standing on, which is worse than a page that is simply not in the bar
+     yet — and this file is the only one that may be edited in this session, so
+     the six-page edit that would fix it properly cannot be made here.
+     The nav now carries a Merchandise entry on every page, added the same
+     day; this page marks its own with aria-current="page". The note that used
+     to sit here said the opposite and was true for about an hour. Nothing else is
+     this page, and marking an unrelated item current would be a lie to a screen
+     reader. When the owner is ready, the change is one <li> added to the same
+     list in index / about / archive / transmissions / transmissions/001, plus
+     aria-current here. The spine navigator (js/spine-ui.js, node 'merch')
+     already links here, so the page is reachable in the meantime. -->
+<header class="nav is-scrolled">
+  <div class="container nav__inner">
+    <a class="nav__mark" href="/"><img src="assets/marks/spine-mark.svg" alt="" width="18" height="18" style="vertical-align:-3px;margin-right:8px;">KUNDALINI SPINES</a>
+    <button class="nav__toggle" aria-expanded="false" aria-controls="primary-nav">Menu</button>
+    <nav id="primary-nav" aria-label="Primary">
+      <ul class="nav__links">
+        <li><a href="/">Home</a></li>
+        <li><a href="/#tracks">Music</a></li>
+        <li><a href="merch.html" aria-current="page">Merchandise</a></li>
+        <li><a href="transmissions.html">Transmissions</a></li>
+        <li><a href="archive.html">Archive</a></li>
+        <li><a href="about.html">About</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+
+  <!-- ==========================================================================
+       WHAT THIS PAGE IS, AND WHAT IT DELIBERATELY IS NOT.
+
+       It is NOT a shop, and nothing on it may imply one. V2HANDOFF 26's "Still
+       open" item 4 is the reason: `links.download` is null on all 28 tracks and
+       the "$1" at track-experience.js:804 is hardcoded. How anything on this
+       site is bought — Bandcamp, Gumroad, Stripe, email capture — is an OPEN
+       DECISION the owner has not made. A page that shows a price or a buy
+       button before that decision exists is inventing the answer, and would
+       have to be un-invented later.
+
+       So every object below is a placeholder with NO price and NO buy control.
+       The one live route off this page is the mailto, which is the same address
+       about.html already uses.
+
+       STANDBY IS THE SITE'S OWN WORD FOR THIS, taken from js/site-footer.js: a
+       link that cannot go anywhere is not rendered as a link there — the anchor
+       is removed entirely and the word STANDBY is printed beside the label. The
+       reasoning in that file is that a dead link teaches a reader the site is
+       broken, while a marked one tells them the channel is not open yet. Same
+       word, same reason, applied to objects instead of links. Nothing in this
+       page is clickable that does not go somewhere real.
+
+       NO NEW STYLESHEET, NO INLINE <style>. Every class used below already has
+       rules: .section/.container/.section-header/.label/.grid/.grid--2 from
+       css/base.css, and .empty-state/.btn/.btn--ghost from css/components.css.
+       .empty-state is the load-bearing pick — its dashed border is what the
+       site already uses to say "nothing filed here yet", so the objects LOOK
+       provisional without a single new declaration. The h3 size override is the
+       same one-off inline archive.html uses on its card headings; if this page
+       ever grows real furniture, follow about.html and put it in an inline
+       <style> block with an `ks-` prefix rather than in components.css, which
+       five other pages share.
+       ========================================================================== -->
+  <section class="section container" style="padding-top: calc(var(--space-24) + 3rem);">
+    <div class="section-header">
+      <span class="label">Merchandise</span>
+      <h1>The Objects</h1>
+      <p>A lyric can become an artifact. An album image can become a symbol. A symbol can become an object you carry.</p>
+    </div>
+
+    <p style="color: var(--text-secondary); font-size: var(--fs-body-lg); max-width: 68ch;">
+      The merchandise line is the physical end of the same archive. Garments, prints, pressings and marks, built to the standard everything else here is built to &mdash; black, restrained, and marked only where a mark carries weight. Nothing decorative. Nothing that would not survive the archive.
+    </p>
+    <p style="color: var(--text-secondary); max-width: 68ch;">
+      None of it is open. There is no store, no price list, and no order to place. What follows is the catalogue as it currently stands: four categories, filed, waiting on a production run and on a decision about how anything here is sold.
+    </p>
+
+    <div class="empty-state" style="margin-top: var(--space-8); max-width: 68ch;">
+      <span class="label">Status</span>
+      <p>STANDBY. The line is documented and not yet open. This page will state a date when there is one, and nothing before then.</p>
+    </div>
+  </section>
+
+  <!-- THE CATALOGUE. Four categories, in the order the owner named them. A
+       two-column grid rather than three: these are paragraphs, not thumbnails,
+       and .grid--3 would set them at a measure that reads as a price table.
+       When photographs exist, .grid--3 with .archive-card is the pattern to
+       copy — it is already written and already responsive. -->
+  <section class="section container" aria-labelledby="catalogue-heading">
+    <div class="section-header">
+      <span class="label">Catalogue</span>
+      <h2 id="catalogue-heading">Four Categories</h2>
+      <p>Each entry is a placeholder. No prices are listed because no prices have been set.</p>
+    </div>
+
+    <div class="grid grid--2">
+      <article class="empty-state">
+        <span class="label">Garments &middot; Standby</span>
+        <h3 style="font-size: var(--fs-h3); margin: var(--space-1) 0;">Hoodies &amp; Tees</h3>
+        <p>Heavyweight black. Hood up, face covered &mdash; the silhouette the project already wears. Spine, mark, and archive numbering; no slogans, no logo wall.</p>
+      </article>
+
+      <article class="empty-state">
+        <span class="label">Prints &middot; Standby</span>
+        <h3 style="font-size: var(--fs-h3); margin: var(--space-1) 0;">Sacred Geometry &amp; Anatomical Plates</h3>
+        <p>Metatron&rsquo;s Cube, the Seed of Life, and the vertebral column drawn as a schematic. Printed to be read at arm&rsquo;s length like a recovered document, not framed like a poster.</p>
+      </article>
+
+      <article class="empty-state">
+        <span class="label">Pressings &middot; Standby</span>
+        <h3 style="font-size: var(--fs-h3); margin: var(--space-1) 0;">Vinyl &amp; Cassette</h3>
+        <p>A physical record becomes another object inside the archive. Sleeve, insert, and catalogue number treated as part of the transmission rather than as packaging around it.</p>
+      </article>
+
+      <article class="empty-state">
+        <span class="label">Marks &middot; Standby</span>
+        <h3 style="font-size: var(--fs-h3); margin: var(--space-1) 0;">Patches &amp; Pins</h3>
+        <p>The small hardware from the Messengers&rsquo; vests. Each one carries a single symbol and nothing else, so a mark can be worn without explaining itself.</p>
+      </article>
+    </div>
+  </section>
+
+  <!-- THE STANDARD. Short declarative lines, the register the master copy uses.
+       This section is the answer to the obvious question a catalogue with no
+       prices provokes — "why bother filing it at all" — and it answers in the
+       project's own terms rather than with a waiting-list pitch. -->
+  <section class="section container" aria-labelledby="standard-heading">
+    <div class="section-header">
+      <span class="label">The Standard</span>
+      <h2 id="standard-heading">An Object Has to Earn the Mark</h2>
+    </div>
+    <p style="color: var(--text-secondary); max-width: 68ch;">
+      Kundalini Spines is being built as a unified world in which music, writing, artwork, video, web design, physical objects and interactive experiences belong to the same mythology. An object made for it is held to the same rule as a bar or an image: every symbol carries weight, or it does not appear.
+    </p>
+    <p style="color: var(--text-secondary); max-width: 68ch;">
+      Restraint over noise. Structure over spectacle. Small runs, made once. Nothing is added to this catalogue to fill it out.
+    </p>
+    <p style="color: var(--text-secondary); max-width: 68ch;">
+      The <a href="archive.html">archive</a> is where the recovered material is kept. This page is where some of it becomes something you can hold.
+    </p>
+  </section>
+
+  <!-- ENQUIRIES. The one working route off this page, and the reason it is here
+       rather than only in the footer: a reader who arrives on a catalogue that
+       cannot be bought from needs somewhere to go in the same breath. Same
+       address about.html uses; the site has exactly one. -->
+  <section class="section container" aria-labelledby="enquiries-heading">
+    <div class="section-header">
+      <span class="label">Enquiries</span>
+      <h2 id="enquiries-heading">Wholesale, Press &amp; Collaboration</h2>
+    </div>
+    <p style="color: var(--text-secondary); max-width: 68ch;">
+      For stockist, press, or collaboration enquiries about the objects line &mdash; or to ask to be told when it opens &mdash; write directly:
+    </p>
+    <p><a class="btn btn--ghost" href="mailto:kundalinispines@gmail.com">kundalinispines@gmail.com</a></p>
+  </section>
+
+</main>
+
+<footer class="footer container">
+  <div class="footer__inner">
+    <ul class="footer__nav">
+      <li><a href="/#tracks">Music</a></li>
+      <li><a href="merch.html">Merchandise</a></li>
+      <li><a href="transmissions.html">Transmissions</a></li>
+      <li><a href="archive.html">Archive</a></li>
+      <li><a href="about.html">About</a></li>
+    </ul>
+    <ul class="footer__social">
+      <li><a href="https://www.instagram.com/kundalinispines/" data-social="instagram" rel="me noopener" target="_blank">Instagram</a></li>
+      <li><a href="#" data-social="tiktok">TikTok</a></li>
+      <li><a href="https://x.com/KundaliniSpines" data-social="x" rel="me noopener" target="_blank">X</a></li>
+      <li><a href="https://www.youtube.com/@KundaliniSpines" data-social="youtube" rel="me noopener" target="_blank">YouTube</a></li>
+      <li><a href="#" data-social="spotify">Spotify</a></li>
+    </ul>
+    <p class="footer__copyright">&copy; <span id="year">2026</span> Kundalini Spines. All rights reserved.</p>
+  </div>
+</footer>
+
+<!-- js/archive-filter.js is NOT here, deliberately: it is the only script
+     archive.html carries that this page has no work for — there is no filter
+     bar and no .archive-grid to drive. The rest is the root-page set.
+     ks-chakras.js MUST precede site-footer.js: the footer reads KS.CHAKRAS and
+     KS.RECORD and bails with a console warning if that file has not run. -->
+<script src="js/nav.js"></script>
+<script>document.getElementById('year').textContent = new Date().getFullYear();</script>
+<script src="js/ks-chakras.js"></script>
+<script src="js/site-footer.js"></script>
+</body>
+</html>

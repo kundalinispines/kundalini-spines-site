@@ -41,6 +41,32 @@
 :root {
   /* Bumped on every change, same reason as --spine-build: a browser sitting on
      a cached stylesheet is indistinguishable from a change that did not work.
+     25 = the sky reaches merch.html. Empty page block, class added to the
+     mobile selector list at the bottom of this file. No sky variable changed.
+     THIS ONE WAS NOT FOUND BY A SWEEP, unlike 23 and 24, and the difference
+     matters: merch.html is being authored in the same session as this entry,
+     so it was ANNOUNCED rather than discovered and there was nothing on disk
+     to measure when the block was written. That is exactly why the block is
+     empty — see it for what the page itself still has to carry (the <link>,
+     and a <main>, neither of which a page block can supply).
+     24 = the sky reaches archive/artwork/001.html, which had the identical
+     defect and was the WORSE of the two: archive.html:76 links straight to
+     it, so every archive card click landed on flat black. Two levels deep,
+     so it spells the link ../../css/star-bg.css. Empty page block, class
+     added to the mobile selector list at the bottom of this file.
+     CORRECTION TO 23 BELOW: transmissions/001.html was not "the last black
+     page" — that was written from the five pages the handoff names, and this
+     file is not among them. A repo-wide sweep the same day found this one,
+     plus music.html (orphaned, nothing links it) and hero-timeline-lab.html
+     (carries page-home but never links this file). Do not trust a "last one"
+     claim that was not made by a sweep of every .html in the repo.
+     23 = the sky reaches transmissions/001.html, the first of the black pages
+     to be found (it linked no star-bg.css and carried no page class, so both html
+     pseudo-elements computed to content: none — measured in Chrome at
+     1440x900 on 2026-08-11). Empty page block + the widened mobile selector
+     list at the bottom of this file. No sky variable changed; the reading
+     page is the :root baseline, and the reasoning for NOT calming it is in
+     the block itself.
      22 = the mobile block re-derived against the build-21 desktop values —
      the stale set HANDOFF 14 records. Dim and the twinkle pair rescaled by
      their original ratios (play-button lift restored on phones); the cloud
@@ -67,7 +93,7 @@
      as worth 63 -> 88 fps; that figure was taken on a software renderer and is
      corrected under html::after below). 6 was the single lockstep cores
      layer. */
-  --star-build: 22;
+  --star-build: 25;
 
   /* Brightness of the whole field. 0 is off — the layer still exists but adds
      no light, and under screen blending (see below) that is exactly the same
@@ -971,12 +997,14 @@ html::after {
    css/spine-bg.css, whose long note above html.page-home explains the whole
    architecture (why the class sits on <html> and never <body>, why inline
    tuner writes still win, and the specificity trap the media block below
-   exists to defuse). Both blocks ship EMPTY, same convention as
+   exists to defuse). ALL FIVE BLOCKS SHIP EMPTY, same convention as
    html.page-home when it first landed: a page appears here only when it
    should actually differ from the :root baseline, and an empty block is the
    hook that lets it be tuned later without touching every other page.
-   archive.html and transmissions.html link this stylesheet as of build 21 —
-   the sky is the same four bands + nebula everywhere, one <link>, no markup.
+   archive.html and transmissions.html link this stylesheet as of build 21,
+   transmissions/001.html as of build 23, archive/artwork/001.html as of
+   build 24, merch.html as of build 25 — the sky is the same four bands +
+   nebula everywhere, one <link>, no markup.
    THESE BLOCKS MUST STAY ABOVE THE @media (max-width: 600px) BLOCK BELOW.
    The first value that ever lands in one of them is (0,2,0) against the
    media block's need to win at equal specificity by source order — page
@@ -989,6 +1017,121 @@ html.page-archive {
 
 html.page-transmissions {
   /* transmissions.html. Same deal as archive above. */
+}
+
+html.page-transmission-detail {
+  /* transmissions/001.html — a single transmission, the site's only LONG-FORM
+     READING page. Sky only, same as its index above: no spine, no lightning,
+     no player. It does not link css/spine-bg.css or js/spine-bg.js, so
+     .is-spine-pulsing and .is-spine-kicking can never appear here and the
+     sky twinkles at the idle amplitude forever — correct, not a bug, per the
+     note beside --star-twinkle.
+
+     THIS BLOCK IS EMPTY ON PURPOSE, and that IS the "same visual family as
+     its index" instruction carried out literally: html.page-transmissions
+     above is itself empty, so transmissions.html renders the :root baseline,
+     and the only way for the detail page to match it exactly is to render the
+     same baseline. Copying numbers down from that block was considered and is
+     not possible — there are no numbers in it.
+
+     ON THE LEGIBILITY QUESTION, since this is the first page here that is
+     body copy rather than cards. The obvious move is a calmer sky — a lower
+     --star-dim, or a lower --star-cloud-bright. It was NOT made, and the
+     reason is that nobody has measured this page:
+       - The 4.5:1 check recorded under --star-cloud was run on 2026-08-04 at
+         the OLD cloud pairing (1.2 x brightness(0.85)), not the shipped
+         0.2 x 2.2, and it was run against index.html's layout. Its worst case
+         — 5.45:1 — was text over a lit spine vertebra, and this page has no
+         spine at all, so its floor is strictly better than that number. That
+         is an argument for the baseline being safe here, not a measurement of
+         it.
+       - A guessed number reads as a decision. HANDOFF 15 records that rule
+         for exactly this situation; an unmeasured calm-down would be
+         indistinguishable from a tuned one to whoever reads this next.
+     SO: if the sky does turn out to sit too loud under the body copy, the
+     lever is --star-dim (baseline 1.4) for the whole field, or
+     --star-cloud-bright (baseline 2.2) for the nebula alone — NOT
+     --star-cloud, which is the kick-headroom split and means nothing on a
+     page with no kick. Put the value here, in this block, and leave
+     transmissions.html on the baseline: the two pages are allowed to differ
+     if a reading page needs it, but that difference has to be a decision
+     someone made with their eyes on it.
+
+     FIRST PAGE IN A SUBDIRECTORY TO LINK THIS FILE, and nothing about that
+     breaks: every url() here is relative to the STYLESHEET, not to the
+     document, so ../assets/hero/... resolves to the same files from
+     /transmissions/ as it does from /. The document's own link is
+     ../css/star-bg.css and that part is 001.html's business.
+     001.html does carry a <main>, which matters — bands 3 and 4 are
+     main::before / main::after, so a page without one would silently render
+     half the stars. Any future detail page needs it too. */
+}
+
+html.page-artwork-detail {
+  /* archive/artwork/001.html, added build 24. Empty, same as the three above:
+     nothing here should differ from the :root baseline yet, and this is the
+     hook that lets it be tuned when someone has actually looked at it.
+
+     THE CHECK THAT FOUND THIS PAGE is worth keeping. It was NOT found by
+     reading the handoff, which names five production pages and does not
+     include this one, and it was NOT found by measuring the pages that were
+     already known. It came out of a sweep of every .html in the repo asking
+     one question: does this file link css/star-bg.css? That is the only
+     condition that makes a page black — the page class is a tuning hook and
+     an absent block changes nothing (index.html has no block in this file at
+     all and renders the sky fine). Two sibling pages are still black by that
+     test and are deliberately left alone for now: music.html, which nothing
+     in the repo links to, and hero-timeline-lab.html, which declares
+     class="page-home" and then never links this file — a half-wire, not a
+     decision.
+
+     It carries <main id="main">, so bands 3 and 4 resolve. Its link is
+     ../../css/star-bg.css: TWO hops, unlike transmissions/001.html's one. */
+}
+
+html.page-merch {
+  /* merch.html, added build 25. Empty for the same reason as the four above:
+     nothing here should differ from the :root baseline yet, and this is the
+     hook that lets it be tuned once someone has actually looked at the page.
+
+     THIS ONE ARRIVED BY A DIFFERENT ROUTE, and that is worth stating because
+     it changes how much this block is allowed to claim. Builds 23 and 24 came
+     out of a repo-wide sweep asking one question — does this file link
+     css/star-bg.css? — so both pages existed, rendered black, and were
+     measured. merch.html was ANNOUNCED instead: it is being authored in the
+     same session as this block, so at the time of writing there is nothing on
+     disk to look at and no rendered frame to judge. Any number put here would
+     therefore be invented, which is the one move this file's history rules
+     out — see the legibility note in html.page-transmission-detail above, and
+     HANDOFF 15's rule that a guessed number reads as a decision.
+
+     TWO THINGS THE PAGE ITSELF MUST CARRY, neither of which this block can
+     supply, and both of which fail silently:
+       - a <link> to css/star-bg.css. THAT is what makes a page not-black, not
+         the page class: index.html has no block in this file at all and
+         renders the sky fine, while the pages found in builds 23 and 24 had
+         classes' worth of intent and no link. merch.html is root-level, so it
+         spells a plain css/star-bg.css — no ../ hops, unlike
+         transmissions/001.html's one or archive/artwork/001.html's two.
+       - a <main>. Bands 3 and 4 are main::before / main::after, so a page
+         without one renders half the stars with balanced braces and nothing
+         in the console.
+
+     SKY ONLY IS THE EXPECTED SHAPE, same as archive.html and
+     transmissions.html: a shop page has no player, so .is-spine-pulsing and
+     .is-spine-kicking can never appear, --kick and --snare are never
+     referenced, and the sky twinkles at the idle amplitude forever. That is
+     correct, not a bug — the note beside --star-twinkle says so at length. If
+     merch.html turns out to link css/spine-bg.css as well, that file wants its
+     own page-merch block; this one governs the sky and nothing else.
+
+     WHEN SOMEONE DOES PUT EYES ON IT: this page will carry product
+     photography, which none of the pages above do, and a photograph sitting on
+     a photograph is where the sky is likeliest to intrude. The levers are
+     --star-dim (baseline 1.4) for the whole field and --star-cloud-bright
+     (baseline 2.2) for the nebula alone — NOT --star-cloud, which is the
+     kick-headroom split and means nothing on a page with no kick. Put the
+     value here and leave the other pages on the baseline. */
 }
 
 @media (max-width: 600px) {
@@ -1006,7 +1149,8 @@ html.page-transmissions {
      too, so star variables WILL land in them. Naming the page classes here puts
      them at equal specificity and later in source order, so the phone values
      win. Add any new page class to this list in the same commit. */
-  :root, html.page-home, html.page-about, html.page-archive, html.page-transmissions {
+  :root, html.page-home, html.page-about, html.page-archive, html.page-transmissions,
+  html.page-transmission-detail, html.page-artwork-detail, html.page-merch {
     /* RE-DERIVED 2026-08-07, the whole block at once, against the desktop
        values shipping in build 22 — every number below is a documented ratio
        times TODAY'S desktop value, not an edit of the previous phone number.

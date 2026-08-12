@@ -11,7 +11,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>About — Kundalini Spines</title>
-<meta name="description" content="Kundalini Spines is a two-member underground hip-hop project built from sacred geometry, coded lyricism, and the architecture of the spine itself.">
+<meta name="description" content="Prophocie and Haight formed Kundalini Spines in Honolulu in 2025, after years making music together in Seattle. A profile of the two-man underground hip-hop project behind Rise Up.">
 <link rel="canonical" href="/about.html">
 
 <link rel="icon" href="favicon.ico" sizes="any">
@@ -20,8 +20,8 @@
 
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Kundalini Spines">
-<meta property="og:title" content="About — Kundalini Spines">
-<meta property="og:description" content="Kundalini Spines is a two-member underground hip-hop project built from sacred geometry, coded lyricism, and the architecture of the spine itself.">
+<meta property="og:title" content="Kundalini Spines — Prophocie &amp; Haight">
+<meta property="og:description" content="Prophocie and Haight formed Kundalini Spines in Honolulu in 2025, after years making music together in Seattle. A profile of the two-man underground hip-hop project behind Rise Up.">
 <meta property="og:image" content="/assets/hero/messengers-hero-duo.jpg">
 <meta name="twitter:card" content="summary_large_image">
 
@@ -35,6 +35,242 @@
 <link rel="stylesheet" href="css/components.css">
 <link rel="stylesheet" href="css/site-footer.css">
 <link rel="stylesheet" href="css/spine-bg.css">
+
+<style>
+/* ===========================================================================
+   ABOUT PAGE FURNITURE — Aug 11 2026.
+
+   INLINE, and deliberately so. Every class here begins `ks-` and is used on
+   exactly one page. css/components.css is shared by six pages, and putting
+   single-page furniture there is how that file gets to 2000 lines. The
+   precedent is transmissions/001.html, which keeps its own <style> for the
+   same reason. If a second page ever needs one of these, extract it then.
+
+   WRITTEN FOR A MAGAZINE PROFILE, which is what this page now carries: a
+   piece of journalism about two named people, with a headline, a standfirst,
+   section subheads, pull quotes and a factbox. An earlier version of this
+   page was built from the project's master brand-copy document — written from
+   inside the mythology, no names, no dates — and this stylesheet still shows
+   its fingerprints in one place. See the note on .ks-litany. */
+
+/* The lead statement under a part number. Big, quiet, and never competing with
+   the h1 above it. */
+.ks-part {
+  border-top: 1px solid rgba(216, 208, 190, 0.14);
+  padding-top: var(--space-6);
+  margin-top: var(--space-16);
+}
+
+/* Body copy on this page. 68ch is the measure the page already used in its
+   inline styles; hoisted here so it stops being repeated on every paragraph. */
+.ks-copy { color: var(--text-secondary); max-width: 68ch; }
+.ks-copy + .ks-copy { margin-top: var(--space-4); }
+.ks-copy--lead { font-size: var(--fs-body-lg); }
+
+/* THE STANDFIRST — the deck under the headline, in the magazine sense. It is
+   the profile's subtitle ("From Seattle housing projects to Honolulu...") and
+   it is NOT an h2: it introduces the h1 rather than starting a section, and
+   making it a heading would put a second level-2 above every real section and
+   wreck the outline for anyone navigating by headings. */
+.ks-standfirst {
+  max-width: 60ch;
+  margin: 0 0 var(--space-8);
+  font-family: var(--font-display, 'Big Shoulders Display', sans-serif);
+  font-size: clamp(1.15rem, 2.2vw, 1.6rem);
+  line-height: 1.25; letter-spacing: 0.01em;
+  color: var(--text-primary);
+}
+
+/* THE LITANY. Inherited from the brand-copy version of this page, where it
+   carried twenty-odd single-line declarations per section and existed to stop
+   the page running past twenty screens. The profile is prose and needs none of
+   that — ONE use survives, the Rise Up track list, where a twelve-item column
+   set is genuinely the right shape and a stack of <p> would not be. Kept for
+   that; do not reach for it as a general list style on this page.
+
+   Two columns from 720px, one below it — the lines are short enough that two
+   columns at phone width would break mid-phrase. */
+.ks-litany {
+  list-style: none; padding: 0;
+  margin: var(--space-6) 0 0;
+  max-width: 68ch;
+  color: var(--text-secondary);
+}
+@media (min-width: 720px) {
+  .ks-litany { columns: 2; column-gap: var(--space-12); }
+  .ks-litany--wide { columns: 3; }
+}
+.ks-litany li {
+  break-inside: avoid;
+  padding: 0.2rem 0 0.2rem 1rem;
+  position: relative;
+}
+/* A hairline tick rather than a bullet: the page's vocabulary is schematics
+   and field notes, and a round bullet reads as a shopping list. */
+.ks-litany li::before {
+  content: ''; position: absolute; left: 0; top: 0.95em;
+  width: 6px; height: 1px;
+  background: rgba(216, 208, 190, 0.42);
+}
+
+/* The pull line. These are the copy's own refrains — "Rise up through the
+   spine.", "The transmission remains." — and they are the only places the page
+   raises its voice. */
+.ks-pull {
+  margin: var(--space-8) 0;
+  padding-left: var(--space-6);
+  border-left: 2px solid rgba(216, 208, 190, 0.34);
+  font-family: var(--font-display, 'Big Shoulders Display', sans-serif);
+  font-size: clamp(1.6rem, 3.4vw, 2.5rem);
+  line-height: 1.12; letter-spacing: 0.01em;
+  color: var(--text-primary);
+  text-transform: uppercase;
+}
+.ks-pull small {
+  display: block; margin-top: var(--space-2);
+  font-family: var(--font-mono, 'IBM Plex Mono', monospace);
+  font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--color-gray-400, #6B6B6B);
+}
+
+/* Key/value rows for the concrete facts (BPM, lineage). The one place on this
+   page where the copy is specification rather than voice. */
+.ks-spec { margin: var(--space-6) 0 0; max-width: 68ch; }
+.ks-spec div {
+  display: grid; grid-template-columns: 10rem 1fr; gap: var(--space-4);
+  padding: 0.55rem 0;
+  border-bottom: 1px solid rgba(216, 208, 190, 0.09);
+}
+.ks-spec dt {
+  font-family: var(--font-mono, 'IBM Plex Mono', monospace);
+  font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--color-gray-400, #6B6B6B);
+}
+.ks-spec dd { margin: 0; color: var(--text-secondary); }
+
+/* Shared figure furniture. The four treatments below each own their own
+   geometry; this owns only what they agree on. The caption selector names all
+   four DELIBERATELY rather than relying on a bare `figcaption` — this page has
+   no other figures today, but a bare element selector is how a rule quietly
+   starts styling something nobody meant it to. */
+.ks-bleed figcaption,
+.ks-split figcaption,
+.ks-breakout figcaption,
+.ks-cut figcaption {
+  margin-top: var(--space-2);
+  font-family: var(--font-mono, 'IBM Plex Mono', monospace);
+  font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--color-gray-400, #6B6B6B);
+}
+
+/* ---------------------------------------------------------------------------
+   MAGAZINE LAYOUT — Aug 11 2026, the owner's ask: "looks like it came out of a
+   magazine". Four figures, four different treatments, because a magazine never
+   runs four pictures at the same size in the same place. What makes a spread
+   read as editorial is not the photography, it is that the images break the
+   text column in different directions and the reader's eye has to travel.
+
+   ALL FOUR SOURCES ARE SQUARE-ISH (three 800x800, the duo 1448x1086), so every
+   shape below is a CROP via aspect-ratio + object-fit: cover. The subjects are
+   centred and full-length in all four, so object-position is biased upward on
+   the tall crops to keep heads and keep boots out.
+   --------------------------------------------------------------------------- */
+
+/* 1. THE OPENER. Full-bleed, edge to edge, under the headline.
+   `margin-inline: calc(50% - 50vw)` is the standard escape from a centred
+   container. NOTE 100vw INCLUDES THE SCROLLBAR on desktop Chrome, which is how
+   this trick normally introduces a horizontal scrollbar of its own; the page is
+   checked for overflow after every change to this rule for exactly that
+   reason. */
+.ks-bleed {
+  margin: var(--space-10) 0 0;
+  margin-inline: calc(50% - 50vw);
+  width: 100vw; max-width: 100vw;
+}
+.ks-bleed img {
+  width: 100%; height: auto; display: block;
+  /* NO VERTICAL CROP, AND THIS ONE IS NOT NEGOTIABLE. The first pass ran this
+     at `aspect-ratio: 16/9; object-fit: cover` and it cut the tops of both caps
+     and both pairs of boots — the owner's words were "cropped at the top and
+     the bottom. It looks wrong."
+
+     The source is 1448x1086 (4:3) and the two figures stand full-length in it,
+     head near the top edge and boots near the bottom. Arithmetic, not taste:
+     16/9 keeps only 12.5%..87.5% of the height, and even a gentle 3/2 keeps
+     5.6%..94.4% — every ratio wider than the native 4:3 removes the parts of a
+     standing figure a reader most needs to see. There is no object-position
+     that rescues it, because the subject spans the whole axis being cropped.
+
+     So the image runs at its own ratio and the LAYOUT bends instead. Full-bleed
+     4:3 is a tall opener — about 1080px at a 1440 viewport — which is exactly
+     what a magazine opening image is. If it ever needs to be shorter, crop the
+     SIDES (a ratio narrower than 4:3, with the figures centred) or re-shoot;
+     do not re-add a wide aspect-ratio here. */
+  border: 0; border-block: 1px solid rgba(216, 208, 190, 0.14);
+}
+.ks-bleed figcaption { padding: 0 var(--container-pad); max-width: 1280px; margin-inline: auto; }
+
+/* 2. THE SIDEBAR. Prose left, a tall portrait crop right — the classic profile
+   opening spread. Collapses to stacked below 860px, where two columns would
+   leave the measure too narrow to read. */
+.ks-split { display: grid; gap: var(--space-8); align-items: start; }
+@media (min-width: 860px) {
+  .ks-split { grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: var(--space-12); }
+  .ks-split .ks-copy { max-width: none; }
+}
+.ks-split img {
+  width: 100%; height: auto; display: block;
+  aspect-ratio: 3 / 4; object-fit: cover; object-position: center 32%;
+  border: 1px solid rgba(216, 208, 190, 0.14);
+}
+
+/* 3. THE BREAKOUT. Sits wider than the 68ch measure and hangs off to one side,
+   so the column edge is broken rather than merely interrupted. Negative margin
+   only from 1100px — below that there is no gutter left to hang into. */
+.ks-breakout { margin: var(--space-12) 0 0; }
+.ks-breakout img {
+  width: 100%; height: auto; display: block;
+  aspect-ratio: 4 / 3; object-fit: cover; object-position: center 30%;
+  border: 1px solid rgba(216, 208, 190, 0.14);
+}
+@media (min-width: 1100px) {
+  .ks-breakout { width: calc(68ch + 12rem); max-width: 100%; margin-left: -6rem; }
+}
+
+/* 4. THE INLINE CUT. Small, floated into the running text — the thing a
+   magazine does that a website almost never does, and the single strongest
+   signal that this is a spread and not a blog post. Float, not grid: the point
+   is that the paragraphs WRAP it. */
+.ks-cut { margin: 0 0 var(--space-4); }
+.ks-cut img {
+  width: 100%; height: auto; display: block;
+  aspect-ratio: 1 / 1; object-fit: cover;
+  border: 1px solid rgba(216, 208, 190, 0.14);
+}
+@media (min-width: 780px) {
+  .ks-cut { float: right; width: 280px; margin: 0.4rem 0 var(--space-6) var(--space-8); }
+  /* The float has to be released or the next heading rides up beside it. */
+  .ks-clear { clear: both; }
+
+  /* THE FLOAT ONLY WORKS IF THE TEXT IS ALLOWED TO REACH IT. First attempt
+     floated the cut to the container edge while .ks-copy kept its 68ch cap —
+     measured at 1440, the text stopped at x=660 and the image sat at x=1035,
+     so instead of wrapping there was a 375px hole between them and the figure
+     read as a detached right-hand column. A float that nothing flows around is
+     just a badly placed image.
+
+     .ks-flow widens the measure for the one section that carries a cut, so the
+     lines actually run up to the picture. 88ch against the 280px figure leaves
+     roughly 50ch beside it — a real magazine column — and the couple of lines
+     that clear the bottom of the image run the full 88ch, which is wide but
+     only ever applies to the tail of a paragraph. */
+  .ks-flow { max-width: 88ch; }
+  .ks-flow .ks-copy { max-width: none; }
+}
+@media (max-width: 600px) {
+  .ks-spec div { grid-template-columns: 1fr; gap: var(--space-1); }
+}
+</style>
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to content</a>
@@ -47,6 +283,7 @@
       <ul class="nav__links">
         <li><a href="/">Home</a></li>
         <li><a href="/#tracks">Music</a></li>
+        <li><a href="merch.html">Merchandise</a></li>
         <li><a href="transmissions.html">Transmissions</a></li>
         <li><a href="archive.html">Archive</a></li>
         <li><a href="about.html" aria-current="page">About</a></li>
@@ -57,82 +294,221 @@
 
 <main id="main">
 
-  <!-- data-spine-from starts the spine layer HERE, at the top of the page's
-       first section. It used to sit on the Messengers section below, which put
-       the column's start between the two headings and left the whole intro
-       clear; the owner wanted it higher. Fine-tune the exact start with the
-       `start` slider in /?tune (--spine-from, px, negative is higher) rather
-       than by moving this attribute again — that variable moves the region and
-       remaps the charge front with it. -->
-  <section class="section container" data-spine-from style="padding-top: calc(var(--space-24) + 3rem);">
+  <!-- THE ABOUT PAGE IS THE MAGAZINE PROFILE, as of Aug 11 2026. It replaced a
+       version built from the master brand-copy document earlier the same day.
+
+       WHY THE REPLACEMENT AND NOT A MERGE: the brand copy describes the project
+       from inside its own mythology — short declarative lines, no names, no
+       dates. This profile is journalism about real people: Prophocie and
+       Haight, Seattle to Honolulu, Blood Brother Phantoms, NHAC, 2025. Running
+       both would have made the page argue with itself about whether the reader
+       is being told a fact or shown a symbol. The profile wins because a page
+       called About should answer "who is this".
+
+       THREE ANCHORS ARE LOAD-BEARING — #story, #messengers and #ethos. The
+       navigator used to carry Our Story, The Messengers and Our Ethos as three
+       separate nodes; they were merged into one, and these are where each
+       strand landed. One nav button does not have to mean one arrival point.
+       Do not rename them without grepping js/spine-ui.js first. -->
+
+  <section class="section container" id="story" data-spine-from style="padding-top: calc(var(--space-24) + 3rem);">
     <div class="section-header">
-      <span class="label">About</span>
-      <h1>About Kundalini Spines</h1>
+      <span class="label">Profile</span>
+      <h1>Kundalini Spines</h1>
     </div>
-    <p style="color: var(--text-secondary); font-size: var(--fs-body-lg); max-width: 68ch;">
-      Kundalini Spines is a two-member underground hip-hop project built from sacred geometry, coded lyricism, street experience, and the architecture of the spine itself. Nothing here is meant to be fully explained &mdash; only received, and decoded at whatever pace each listener is ready for.
-    </p>
+    <p class="ks-standfirst">From Seattle housing projects to Honolulu, Prophocie and Haight built a world of their own.</p>
+
+    <!-- THE OPENER runs full-bleed, which is the one move that reads as
+         "magazine" before a word is read. It is eager, not lazy: it is above
+         the fold and a lazy opener flashes an empty band on load. -->
+    <figure class="ks-bleed">
+      <img src="assets/messengers/messenger-duo-burning-city.webp" alt="Prophocie and Haight standing together, masked and hooded, before a burning city skyline." width="1448" height="1086" decoding="async" fetchpriority="high">
+      <figcaption>Prophocie and Haight &mdash; two messengers, one signal</figcaption>
+    </figure>
+
+    <p class="ks-copy ks-copy--lead">There are rap groups that come together because somebody had an idea, and then there are groups that feel like they were always going to happen. Kundalini Spines belongs to the second category.</p>
+
+    <p class="ks-copy">The two-man underground hip-hop outfit made up of Prophocie and Haight officially took shape in Honolulu, Hawaii, in 2025 &mdash; but the story goes back much further. Before the masks, sacred geometry, spinal imagery and coded transmissions, there were two lifelong friends making music in Section 8 housing projects in Seattle, Washington.</p>
+
+    <p class="ks-copy">Back then they called themselves Blood Brother Phantoms. After recording a handful of songs under that name, the pair joined a larger group called NHAC &mdash; Nobody Had a Chance &mdash; where they kept writing and composing while developing the instincts that would eventually shape Kundalini Spines. Years later both found themselves living in Honolulu, and what had started in Seattle resurfaced in a new form. The creative connection was still there, but the perspective had changed: more years behind them, more experiences to draw from, more ideas to say out loud.</p>
+
+    <p class="ks-copy">That became Kundalini Spines.</p>
+
+    <dl class="ks-spec">
+      <div><dt>Formed</dt><dd>Honolulu, Hawaii &mdash; 2025</dd></div>
+      <div><dt>Members</dt><dd>Prophocie and Haight</dd></div>
+      <div><dt>Origin</dt><dd>Seattle, Washington &mdash; as Blood Brother Phantoms, later NHAC</dd></div>
+      <div><dt>Production</dt><dd>Haight handles the majority; both write</dd></div>
+    </dl>
+
   </section>
 
-  <!-- Messengers. The spine layer used to be anchored here; it now starts at the
-       section above. Only ONE element should carry data-spine-from — the JS
-       takes the first match in document order, so a second one is dead markup
-       that reads as if it were doing something. -->
-  <section class="section container" aria-labelledby="messengers-heading">
-    <div class="section-header">
-      <span class="label">The Messengers</span>
-      <h2 id="messengers-heading">Two Messengers. One Signal.</h2>
-      <p>The Messengers don&rsquo;t claim mastery over the Signal. They receive it, preserve it, and carry it forward without weakening its meaning &mdash; witnesses first, performers second.</p>
+  <section class="section container" id="messengers" aria-labelledby="messengers-heading">
+    <div class="section-header ks-part">
+      <span class="label">The Pair</span>
+      <h2 id="messengers-heading">Prophocie &amp; Haight</h2>
     </div>
-    <div class="grid grid--2">
-      <article class="messenger-card">
-        <div class="messenger-card__portrait">
-          <img src="assets/messengers/messenger-a-portrait.jpg" alt="Messenger of Kundalini Spines, masked and hooded, photographed against a blueprint-and-spine backdrop." width="1200" height="1500" loading="lazy">
-        </div>
-        <span class="label messenger-card__archetype">The Seeker</span>
-        <p>Receives what others miss. Reads the pattern before the sentence.</p>
-      </article>
-      <article class="messenger-card">
-        <div class="messenger-card__portrait">
-          <img src="assets/messengers/messenger-b-portrait.jpg" alt="Messenger of Kundalini Spines, masked and hooded, arms crossed, photographed against a blueprint-and-spine backdrop." width="1200" height="1500" loading="lazy">
-        </div>
-        <span class="label messenger-card__archetype">The Alchemist</span>
-        <p>Turns pressure into record. Carries what the Signal leaves behind.</p>
-      </article>
+    <!-- PROSE LEFT, PORTRAIT RIGHT — the classic profile opening spread. The
+         source is square; a 3/4 crop biased upward keeps the figure and drops
+         the empty ground at the bottom of the frame. Captions never name a
+         member: the profile says neither is the frontman and guessing which
+         figure is which would put a wrong name on a real person. -->
+    <div class="ks-split">
+      <div>
+        <p class="ks-copy">Prophocie and Haight didn&rsquo;t meet through a studio session, a producer or a mutual friend. They&rsquo;ve known each other their entire lives. Music became another language inside a relationship that already existed, and that history gives the group a chemistry that would be difficult to manufacture.</p>
+
+        <p class="ks-copy">Their roles are distinct without becoming separated. Haight handles the majority of the production, while both members contribute to the writing and the larger creative identity of the project. Visually, neither is treated as the obvious frontman &mdash; the pair are presented as equal figures: hooded, masked, obscured behind sunglasses and surrounded by skeletal imagery, chains, armor and sacred geometry.</p>
+
+        <p class="ks-copy">The anonymity isn&rsquo;t there simply to create mystery. It keeps the attention on the work and on the universe surrounding it. The personalities are still present, but the mythology is bigger than either individual.</p>
+      </div>
+      <figure style="margin:0">
+        <img src="assets/messengers/messenger-alley-spine-chain.webp" alt="A masked, hooded figure in a dark brick alley, a vertebrae chain hanging over a plate carrier." width="800" height="800" loading="lazy" decoding="async">
+        <figcaption>Alley &middot; vertebrae chain</figcaption>
+      </figure>
     </div>
+
+
   </section>
 
-  <!-- Creative philosophy -->
-  <section class="section container" aria-labelledby="philosophy-heading">
+  <section class="section container" aria-labelledby="sound-heading">
     <div class="section-header">
-      <span class="label">Creative Philosophy</span>
-      <h2 id="philosophy-heading">Sacred and Street</h2>
+      <span class="label">The Sound</span>
+      <h2 id="sound-heading">Hard Drums, Dark Rooms</h2>
     </div>
-    <p style="color: var(--text-secondary); max-width: 68ch;">
-      The project moves between the sacred and the street &mdash; Metatron&rsquo;s Cube next to a blueprint, an X-ray beside a manuscript. Ancient knowledge, modern static. The spine sits at the center of all of it: thirty-three vertebrae, seven nodes, one signal moving through the whole structure. None of it is decoration. Every symbol carries weight, or it doesn&rsquo;t appear at all.
-    </p>
+    <p class="ks-copy">At its foundation, Kundalini Spines is unapologetically underground hip-hop. The production lives in the territory of heavy drums, dusty samples, deep bass, eerie piano, detuned bells, scratches, vinyl texture and deliberate empty space. The sound carries recognizable DNA from Wu-Tang Clan, Mobb Deep, Killarmy, Jedi Mind Tricks, DJ Premier, The Alchemist, Daringer and Griselda &mdash; but the group isn&rsquo;t interested in simply recreating another era.</p>
+
+    <p class="ks-copy">Instead it takes the discipline of classic underground rap and pushes it into a stranger environment. The beats remain patient and give the verses room to breathe. Drums can disappear at just the right moment. Scratches become punctuation. Silence creates tension. The production is atmospheric without forgetting that the MC is still supposed to be at the center of the record.</p>
+
+    <p class="ks-copy">That balance matters. The group might surround itself with occult imagery, spiritual concepts and cinematic visuals, but the music never loses its connection to the basic mechanics of hip-hop: hard drums, sharp writing and records designed to be replayed.</p>
+
+    <figure class="ks-breakout">
+      <img src="assets/messengers/messenger-sigils-arms-crossed.webp" alt="A masked, hooded figure with arms crossed against a graffitied wall, sigil patches across the vest and sleeves." width="800" height="800" loading="lazy" decoding="async">
+      <figcaption>Sigils &middot; arms crossed</figcaption>
+    </figure>
   </section>
 
-  <!-- Transmissions concept -->
-  <section class="section container" aria-labelledby="transmissions-heading">
+  <section class="section container" aria-labelledby="bars-heading">
     <div class="section-header">
-      <span class="label">Transmissions</span>
-      <h2 id="transmissions-heading">What a Transmission Is</h2>
+      <span class="label">The Writing</span>
+      <h2 id="bars-heading">Bars Built for the Rewind</h2>
     </div>
-    <p style="color: var(--text-secondary); max-width: 68ch; margin-bottom: var(--space-6);">
-      Numbered pieces called Transmissions carry the Signal forward &mdash; visual, lyrical, sometimes both. Each one is filed once and never reused. <a href="transmissions.html">Transmission 001</a> is the first.
-    </p>
+    <p class="ks-copy">The writing follows the same philosophy. Kundalini Spines favors internal rhyme, multisyllabic patterns, layered wordplay and extended rhyme chains, with verses that often reveal more after repeated listens. Some lines are direct and brutal; others are layered enough to force the listener to stop and unpack them.</p>
+
+    <p class="ks-copy">Street language can collide with metaphysics in the same verse. Biblical references can sit beside science fiction. Sacred geometry shares space with surveillance, violence, ancient civilizations, dreams, technology, prophecy, mortality and hidden knowledge. The transitions rarely feel accidental, because those subjects all belong to the same worldview.</p>
+
+    <p class="ks-copy">That makes the group difficult to place inside one clean category. Calling it spiritual rap doesn&rsquo;t cover the aggression. Calling it horrorcore misses the philosophical side. Calling it conscious hip-hop ignores how grimy and confrontational the records can become, and calling it boom-bap revivalism misses how much world-building exists beyond the beats.</p>
+
+    <p class="ks-pull">Kundalini Spines lives somewhere in the overlap.</p>
   </section>
 
-  <!-- Contact -->
+  <section class="section container" id="ethos" aria-labelledby="ethos-heading">
+    <div class="section-header ks-part">
+      <span class="label">The Ethos</span>
+      <h2 id="ethos-heading">The Search for Truth</h2>
+    </div>
+    <p class="ks-copy">Underneath the imagery and symbolism, the philosophy of the group is straightforward. Kundalini Spines represents the search for truth and knowledge &mdash; not the claim that every answer has already been discovered, but the belief that the search itself matters.</p>
+
+    <p class="ks-copy">For Prophocie and Haight the project is a creative outlet that has grown into something larger than either member individually. Years of experience, observation, reading, questioning and creating are folded into the music. The goal isn&rsquo;t only to make records; it&rsquo;s to keep searching, to share what they&rsquo;ve learned, and to put ideas into the world that might lead somebody else to look deeper.</p>
+
+    <p class="ks-copy">The group doesn&rsquo;t approach that mission like a lecture. It rarely tells the listener exactly what to believe. Instead it leaves clues, references and recurring symbols throughout the music, and lets the audience decide how far they want to follow them.</p>
+  </section>
+
+  <section class="section container" aria-labelledby="name-heading">
+    <div class="section-header">
+      <span class="label">The Name</span>
+      <h2 id="name-heading">Why Kundalini Spines?</h2>
+    </div>
+    <p class="ks-copy">The name itself carries much of the philosophy. The spine provides structure, keeps the body upright and serves as a highway for information between the brain and the rest of the body. Add kundalini &mdash; the idea of dormant energy rising upward &mdash; and the metaphor expands naturally into knowledge rising, awareness rising, and the individual rising beyond where they started.</p>
+
+    <p class="ks-copy">But the group deliberately avoids the polished New Age aesthetic often associated with those concepts. Their version is skeletal, industrial and sometimes violent. Spinal columns become machinery and circuitry. Vertebrae become chain links. Geometry intersects with bone. Seven nodes can suggest energy centers without resorting to obvious chakra imagery.</p>
+
+    <p class="ks-pull">The sacred is dragged through the dirt.</p>
+
+    <p class="ks-copy">That approach is central to the identity of the project, because Kundalini Spines doesn&rsquo;t treat awakening as something automatically peaceful. Knowledge can be uncomfortable. Transformation can hurt. Sometimes learning the truth means losing the version of reality you had before.</p>
+  </section>
+
+  <section class="section container" aria-labelledby="riseup-heading">
+    <div class="section-header">
+      <span class="label">The Album</span>
+      <h2 id="riseup-heading">Rise Up</h2>
+    </div>
+    <p class="ks-copy">Those ideas converge on the group&rsquo;s major body of work, <em>Rise Up</em>. Even the title functions on several levels: rising from circumstance, rising intellectually, rising spiritually, rising through the spine, rising against pressure, or simply getting back up after life puts you on the ground.</p>
+
+    <p class="ks-copy">The album moves through street narratives, paranoia, prophecy, ritual, violence, dreams, technology and metaphysical questions while remaining anchored in underground hip-hop. Its tracks read less like a conventional track list and more like pieces of a larger coded system.</p>
+
+    <ul class="ks-litany ks-litany--wide">
+      <li>Skeleton Key</li>
+      <li>Seven Chambers of Light</li>
+      <li>33rd Floor</li>
+      <li>The Great Work</li>
+      <li>Highly Unstable</li>
+      <li>Prophecy in Motion</li>
+      <li>Scorpion Dreams</li>
+      <li>Vision Quest</li>
+      <li>Dark Meta</li>
+      <li>Graveyard Shift</li>
+      <li>Spine Glow</li>
+      <li>May 26th</li>
+    </ul>
+
+    <p class="ks-copy" style="margin-top: var(--space-6);">Individually, they&rsquo;re songs. Together, they start to feel like coordinates.</p>
+
+    <p class="ks-copy">That sense of connection is one of the defining features of the project. Symbols return. Ideas echo. References that seem isolated in one track can take on new meaning somewhere else. It rewards listeners willing to stay with it long enough to notice the patterns.</p>
+  </section>
+
+  <section class="section container" aria-labelledby="symbols-heading">
+    <div class="section-header">
+      <span class="label">Visual Identity</span>
+      <h2 id="symbols-heading">A Language of Symbols</h2>
+    </div>
+    <div class="ks-flow">
+    <!-- FLOATED INTO THE RUNNING TEXT so the paragraphs wrap it — the one
+         move a magazine makes constantly and a web page almost never does.
+         The serpent belongs in THIS section rather than any other: it is the
+         section about objects that carry meaning. -->
+    <figure class="ks-cut">
+      <img src="assets/messengers/messenger-serpent-pendant.webp" alt="A masked, hooded figure in a shuttered alleyway, a serpent pendant at the chest." width="800" height="800" loading="lazy" decoding="async">
+      <figcaption>Shutters &middot; serpent</figcaption>
+    </figure>
+    <p class="ks-copy">The same ideas heard in the music extend into the visual identity. The spine appears constantly, alongside skeletons, keys, chambers, sacred geometry, Metatron&rsquo;s Cube, tombstones, fire, armor, blue moonlight and decaying urban environments. None of those elements exist simply as decoration &mdash; they function as a visual language tied to the larger themes of knowledge, transformation, mortality and access.</p>
+
+    <p class="ks-copy">One of the strongest recurring objects is the skeleton key. In the Kundalini Spines universe the key can be built from vertebrae, bone and geometry, turning a familiar object into something that suggests secrecy, knowledge and hidden entryways. Like much of the group&rsquo;s imagery, it raises a question without rushing to answer it.</p>
+    </div>
+    <p class="ks-pull ks-clear">What does the key open?<small>Kundalini Spines would rather let the listener decide</small></p>
+  </section>
+
+  <section class="section container" aria-labelledby="geography-heading">
+    <div class="section-header">
+      <span class="label">The Route</span>
+      <h2 id="geography-heading">From Seattle to Honolulu</h2>
+    </div>
+    <p class="ks-copy">There is a natural contrast between where this story began and where the current chapter was formed. The earliest music came out of Seattle housing projects, while Kundalini Spines officially emerged thousands of miles away in Honolulu. The move didn&rsquo;t erase the original DNA; it gave the pair a different vantage point from which to look back at everything they had already lived through.</p>
+
+    <p class="ks-copy">Blood Brother Phantoms represented the beginning. NHAC expanded the environment in which they created. Kundalini Spines is what happened after years of life, distance and accumulated experience were added to the same creative relationship.</p>
+
+    <p class="ks-copy">The names changed, but the need to create never did. By the time Prophocie and Haight came together again under the Kundalini Spines name in 2025, they weren&rsquo;t simply returning to something old &mdash; they were building a new language for ideas that had been developing for years.</p>
+  </section>
+
+  <section class="section container" aria-labelledby="sum-heading">
+    <div class="section-header ks-part">
+      <span class="label">In Closing</span>
+      <h2 id="sum-heading">More Than the Sum of Its Parts</h2>
+    </div>
+    <p class="ks-copy">Seattle and Honolulu. Blood Brother Phantoms and NHAC. Boom-bap and sacred geometry. Street experience and spiritual inquiry. Technology, mortality, paranoia, symbolism and knowledge all collide inside the same project. None of those elements alone defines the group. It is the tension between them that gives Kundalini Spines its identity.</p>
+
+    <p class="ks-copy">For all the masks, symbolism and mythology surrounding the music, the foundation remains remarkably traditional: two lifelong friends, two MCs, hard drums and bars worth running back.</p>
+
+    <p class="ks-copy">Prophocie and Haight started making music together in Seattle housing projects, continued creating through different eras of their lives, and eventually found themselves together again in Honolulu with more experience, more questions and more to say. They gave that new chapter a name.</p>
+
+    <p class="ks-pull">Kundalini Spines.<br>Decode the transmission.</p>
+  </section>
+
   <section class="section container" aria-labelledby="contact-heading">
     <div class="section-header">
       <span class="label">Contact</span>
       <h2 id="contact-heading">Collaboration &amp; Press</h2>
     </div>
-    <p style="color: var(--text-secondary); max-width: 68ch;">
-      For collaboration, licensing, or press inquiries, reach out directly:
-    </p>
+    <p class="ks-copy">For collaboration, licensing, or press inquiries, reach out directly:</p>
     <p><a class="btn btn--ghost" href="mailto:kundalinispines@gmail.com">kundalinispines@gmail.com</a></p>
   </section>
 
@@ -142,6 +518,7 @@
   <div class="footer__inner">
     <ul class="footer__nav">
       <li><a href="/#tracks">Music</a></li>
+      <li><a href="merch.html">Merchandise</a></li>
       <li><a href="transmissions.html">Transmissions</a></li>
       <li><a href="archive.html">Archive</a></li>
       <li><a href="about.html">About</a></li>

@@ -1,5 +1,23 @@
 <!DOCTYPE html>
-<html lang="en">
+<!-- page-artwork-detail selects the per-page override block in css/star-bg.css.
+     The block is empty today; it exists so this page can be tuned without
+     retuning the others.
+
+     Found Aug 11 2026 by a repo-wide sweep, NOT by the sweep that fixed
+     transmissions/001.html the same day — that one worked from the five pages
+     the handoff names and this page is not among them. It had the identical
+     defect and it is the worse of the two, because archive.html:76 links
+     straight here: every archive card click landed on flat black.
+
+     The link below is ../../css/star-bg.css. Note the DOUBLE hop —
+     transmissions/001.html sits one level down and spells it ../, this file
+     sits two. Every url() inside the stylesheet resolves against the
+     stylesheet rather than this document, so the assets still reach.
+
+     IT BELONGS ON <html>, NOT ON <body> — the nebula and one star band are
+     pseudo-elements of html and can never see a value set on body. See the
+     long note in css/spine-bg.css. -->
+<html lang="en" class="page-artwork-detail">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -24,6 +42,7 @@
 
 <link rel="stylesheet" href="../../css/tokens.css">
 <link rel="stylesheet" href="../../css/base.css">
+<link rel="stylesheet" href="../../css/star-bg.css">
 <link rel="stylesheet" href="../../css/components.css">
 <style>
   .archive-detail__media { border: var(--border-hairline); overflow: hidden; margin-bottom: var(--space-8); max-width: 900px; }
@@ -43,6 +62,7 @@
       <ul class="nav__links">
         <li><a href="/">Home</a></li>
         <li><a href="/#tracks">Music</a></li>
+        <li><a href="../../merch.html">Merchandise</a></li>
         <li><a href="../../transmissions.html">Transmissions</a></li>
         <li><a href="../../archive.html" aria-current="page">Archive</a></li>
         <li><a href="../../about.html">About</a></li>
@@ -70,6 +90,7 @@
   <div class="footer__inner">
     <ul class="footer__nav">
       <li><a href="/#tracks">Music</a></li>
+      <li><a href="../../merch.html">Merchandise</a></li>
       <li><a href="../../transmissions.html">Transmissions</a></li>
       <li><a href="../../archive.html">Archive</a></li>
       <li><a href="../../about.html">About</a></li>

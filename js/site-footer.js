@@ -86,7 +86,27 @@
     if (primary) {
       navLinks = [].slice.call(primary.querySelectorAll('a')).filter(function (a) {
         return /\.html|^\/$|^\/#/.test(a.getAttribute('href') || '');
-      });
+      /* CLONE ON THIS PATH, AND ONLY ON THIS PATH. Everywhere else this file
+         MOVES the anchor node (see the note above build() and the appendChild
+         that does it), so there is exactly one copy of every link in the
+         document and the one on screen is the one a crawler read. That is
+         right when the source is `.footer__nav` -- a second copy of the
+         navigation that exists only to be a footer.
+
+         IT IS DESTRUCTIVE HERE. This branch runs on index.html, whose
+         `footer--simple` has no nav list, so it falls back to the page's
+         PRIMARY navigation -- the only navigation that page has. Moving those
+         nodes emptied the header: measured Aug 11 2026 on index.html, the
+         header rendered `Home · Music · Transmissions · Archive · About` with
+         this script blocked and `Music` alone with it running. Music survived
+         only because its href is `#tracks`, which the filter above does not
+         match, so it was never harvested. This shipped with the footer and was
+         live on the home page until today.
+
+         The duplication this reintroduces is the ordinary kind -- a site
+         footer repeating the header's links, which every site does and which
+         no crawler objects to. A gutted primary nav is not ordinary. */
+      }).map(function (a) { return a.cloneNode(true); });
     }
   }
 

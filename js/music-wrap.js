@@ -161,19 +161,59 @@
      copy is captured once at boot and restored verbatim on the way out. A
      morph, not a swap: a swap would read as a different component arriving.
      ------------------------------------------------------------------------ */
-  /* SEVEN entries against the navigator's six nodes. The seventh, `purchase`,
-     is created by this file and lives only in Music -- see makePurchaseNode.
-     Order is the owner's: Purchase sits at 02 and everything below moves down
-     one. */
-  var ACTIONS = [
-    { id: 'music',    title: 'Close',            act: closeMusic },
-    { id: 'purchase', title: 'Purchase Rise Up', act: purchase },
-    { id: 'story',    title: 'Index',            act: toggleIndex },
-    { id: 'members',  title: 'Decode',           act: toggleDecode },
-    { id: 'ethos',    title: 'Shuffle',          act: toggleShuffle },
-    { id: 'archive',  title: 'Share',            act: shareTrack },
-    { id: 'timeline', title: 'Sky',              act: toggleSky }
+  /* ACTIONS IS BUILT FROM THE LIVE NAVIGATOR, NOT WRITTEN OUT. Rewritten
+     Aug 11 2026, and this is a REGRESSION FIX rather than a tidy-up.
+
+     It used to be seven hand-written rows keyed on the navigator's six node
+     ids plus the synthetic `purchase`. That day the navigator merged Our Story,
+     The Messengers and Our Ethos into one node and later added Merchandise,
+     which deleted the ids `members` and `ethos`. The two rows keyed on them
+     stopped resolving -- and NOTHING FAILED LOUDLY. The lookup below returns
+     null, `if (!el) return;` swallows it, and the result was that Decode and
+     Shuffle silently disappeared from Music while layoutRail still divided the
+     rail SEVEN ways, leaving a 37-percentage-point hole where nodes 04 and 05
+     used to be. A hand-written table keyed on ids owned by another module is a
+     standing invitation to exactly that, so the table is gone.
+
+     THE SHAPE IS FIXED, THE MEMBERSHIP IS NOT. Three positions are anchored
+     because they are positional, not arbitrary: the FIRST node closes Music
+     (it is the one you came in through), `purchase` is synthesised second, and
+     the LAST node is Sky (the bottom of the spine is where the sky is). The
+     middle takes MIDDLE in order and truncates to whatever room is left.
+
+     SO ADDING A SIXTH NAVIGATOR NODE RESTORES SHARE BY ITSELF. Five nodes plus
+     purchase is six rail slots -- three middle -- so Index, Decode and Shuffle
+     fit and Share is dropped. Add a node back and the fourth middle slot
+     reappears and Share returns with no edit here. That is why MIDDLE keeps
+     Share rather than deleting it, and why it is LAST in the list: the order
+     is the established rail order from before the merge, and truncation takes
+     from the end so nothing silently reshuffles. */
+  var MIDDLE = [
+    { title: 'Index',   act: toggleIndex },
+    { title: 'Decode',  act: toggleDecode },
+    { title: 'Shuffle', act: toggleShuffle },
+    { title: 'Share',   act: shareTrack }
   ];
+
+  var ACTIONS = (function () {
+    var ids = [].map.call(navbar.querySelectorAll('.spine-node'), function (el) {
+      return el.dataset.id;
+    }).filter(Boolean);
+    if (!ids.length) return [];
+
+    var out = [{ id: ids[0], title: 'Close', act: closeMusic },
+               { id: 'purchase', title: 'Purchase Rise Up', act: purchase }];
+    /* Everything between the first node and the last. */
+    var middleIds = ids.slice(1, -1);
+    middleIds.forEach(function (id, i) {
+      var m = MIDDLE[i];
+      if (m) out.push({ id: id, title: m.title, act: m.act });
+    });
+    if (ids.length > 1) {
+      out.push({ id: ids[ids.length - 1], title: 'Sky', act: toggleSky });
+    }
+    return out;
+  })();
   ACTIONS.forEach(function (a, i) { a.idx = ('0' + (i + 1)).slice(-2); });
 
   var els = {}, navLabel = {}, navAria = {}, navY = {}, navPing = {};
@@ -228,11 +268,20 @@
     return (-f * energyMs).toFixed(0) + 'ms';
   }
   function layoutRail() {
-    var n = ACTIONS.length, top = 14, bottom = 88;
-    var step = (bottom - top) / (n - 1);
-    ACTIONS.forEach(function (a, i) {
+    /* COUNT WHAT RESOLVED, not what was declared. This read ACTIONS.length,
+       which was the same number right up until two ACTIONS ids stopped
+       matching any node (see the note on ACTIONS above): the rail was then
+       divided seven ways while only five elements moved, leaving two empty
+       slots mid-spine. ACTIONS is now built from the live DOM so the two
+       counts agree again -- this filter is here so that if they ever diverge
+       the spacing degrades to "evenly spaced, fewer nodes" instead of
+       "correctly spaced, with holes in it". */
+    var live = ACTIONS.filter(function (a) { return els[a.id]; });
+    var n = live.length, top = 14, bottom = 88;
+    if (!n) return;
+    var step = n > 1 ? (bottom - top) / (n - 1) : 0;
+    live.forEach(function (a, i) {
       var el = els[a.id];
-      if (!el) return;
       var y = top + step * i;
       el.style.setProperty('--y', y.toFixed(2) + '%');
       el.querySelector('.spine-node__ping').style.animationDelay = pingDelay(y);

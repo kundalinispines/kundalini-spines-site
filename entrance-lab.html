@@ -79,6 +79,26 @@
 <!-- Last: it overrides tokens owned by spine-ui.css and track-experience.css. -->
 <link rel="stylesheet" href="css/music-wrap.css">
 
+<!-- THE FIELD READINGS, ported from spine-field-lab.html Aug 11 2026 so they
+     can finally be judged over the REAL stack — real sky, real navigator, real
+     glass cards — instead of in isolation. V2HANDOFF 26 records that the six
+     original readings were built by five agents in parallel and every one of
+     them built BLIND: no agent was allowed to launch a browser, so every alpha
+     and every placement in them is a first guess against a star field nobody
+     could see. This is the page that fixes that.
+
+     These load LAST, after music-wrap.css, so nothing downstream can outrank
+     them. Each module scopes every rule under its own html.v-<name>, so all
+     nine can coexist and only the active one paints. -->
+<link rel="stylesheet" href="css/field/v-plate.css">
+<link rel="stylesheet" href="css/field/v-graticule.css">
+<link rel="stylesheet" href="css/field/v-halo.css">
+<link rel="stylesheet" href="css/field/v-mandala.css">
+<link rel="stylesheet" href="css/field/v-crop.css">
+<link rel="stylesheet" href="css/field/v-readout.css">
+<link rel="stylesheet" href="css/field/v-fusion.css">
+<link rel="stylesheet" href="css/field/v-calibration.css">
+
 <style>
 :root {
   /* Idle stubs for the reactive sky. These are the PRE-DETECTOR rest values:
@@ -273,6 +293,22 @@ body { margin: 0; overflow: hidden; }   /* nothing on this page scrolls, ever */
   transition: opacity var(--ent-hand-ms) var(--ease-standard);
 }
 .spine-stage.is-live { opacity: 1; }
+
+/* THE FIELD CONTAINER — the one piece of surface the readings share, copied
+   verbatim from spine-field-lab.html. Everything about it is deliberately
+   minimal: the modules own their own look, this owns only where they live and
+   what they can never do.
+
+   It sits INSIDE .spine-stage here rather than beside it, which the lab does
+   not have to think about: the stage fades in on `is-live` after the entrance
+   hands over, so nesting means the readings inherit that fade instead of
+   popping in over the entrance animation. */
+.field {
+  position: absolute; inset: 0;
+  z-index: 1;              /* under .spine (10) and everything above it */
+  pointer-events: none;    /* it can never eat a click, in any variant */
+  overflow: hidden;        /* CROP's oversized type is cropped BY THE STAGE */
+}
 
 /* THE COIL'S COORDINATE SPACE IS NOT THE NAVIGATOR'S SPINE BOX.
 
@@ -506,6 +542,13 @@ body { margin: 0; overflow: hidden; }   /* nothing on this page scrolls, ever */
      ====================================================================== -->
 <main class="spine-stage" id="spine-nav-stage" aria-hidden="true">
 
+  <!-- The field reading mounts here. FIRST CHILD deliberately: it is z-index 1
+       and everything it must sit under (.spine at 10, the nodes, the cards) is
+       painted after it, so source order and stacking agree and neither has to
+       carry the other. Empty until a reading is chosen — the page ships on
+       'none', exactly as it looked before this was added. -->
+  <div class="field" id="field" aria-hidden="true"></div>
+
   <svg class="spine-connectors" aria-hidden="true">
     <path class="conn-active"></path>
     <path class="conn-head"></path>
@@ -626,6 +669,22 @@ body { margin: 0; overflow: hidden; }   /* nothing on this page scrolls, ever */
 <script src="js/track-experience.js"></script>
 <script src="js/spine-bg.js"></script>
 <script src="js/music-wrap.js"></script>
+
+<!-- THE FIELD READINGS. ks-chakras.js is the shared dataset and MUST come
+     first — all nine readings draw the same seven centres from it, which is
+     what makes them directly comparable rather than nine different sets of
+     numbers. Each module then registers itself on window.__field.<name> with
+     mount(root) / unmount(root); none of them does anything until the host
+     script at the end of this file calls mount. -->
+<script src="js/ks-chakras.js"></script>
+<script src="js/field/v-plate.js"></script>
+<script src="js/field/v-graticule.js"></script>
+<script src="js/field/v-halo.js"></script>
+<script src="js/field/v-mandala.js"></script>
+<script src="js/field/v-crop.js"></script>
+<script src="js/field/v-readout.js"></script>
+<script src="js/field/v-fusion.js"></script>
+<script src="js/field/v-calibration.js"></script>
 
 <script>
 /* ==========================================================================
@@ -1379,6 +1438,109 @@ body { margin: 0; overflow: hidden; }   /* nothing on this page scrolls, ever */
   if (!e) return;
   e.settle(true);
   e.hand();
+})();
+</script>
+
+<!-- ==========================================================================
+     THE FIELD READING HOST
+     Ported from spine-field-lab.html Aug 11 2026. The module contract is
+     unchanged: html.v-<name> while a reading is active, html.is-card mirrored
+     up from the stage, mount(root) / unmount(root) on switch.
+
+     TWO THINGS ARE DELIBERATELY DIFFERENT FROM THE LAB, and both are about
+     this page having a job the lab does not.
+
+     1. IT SHIPS ON 'none', NOT ON 'plate'. The lab exists to show readings, so
+        defaulting to one is right there. This page is the V2 stack, and the
+        first thing anyone does on it is look at the stack. Defaulting to a
+        reading would change what this page has looked like all session and
+        make a nine-way comparison the page's opening statement. Press a key
+        and it appears; press 1 and it is gone again.
+
+     2. NO ARROW-KEY STEPPING. The lab binds arrows at document level. Here
+        that is a real collision and not a theoretical one: js/spine-ui.js:242
+        and js/music-wrap.js:378 bind arrows on the NAVBAR, and
+        js/track-experience.js:178 binds them on the carousel ROW. Those are
+        element-scoped, so they only fire with that element focused — but a
+        document-level arrow handler fires IN ADDITION, so arrowing through the
+        navbar would silently also step the field reading. Digits are bound
+        nowhere in this stack, so 1-9 is the whole switcher.
+     ====================================================================== -->
+<script>
+(function () {
+  'use strict';
+
+  /* Index 0 is 'none', so the digit and the reading line up the way the lab
+     already taught: 1 = none, 9 = calibration. */
+  var READINGS = [
+    ['none',       'None — control',  'The stack exactly as it ships today'],
+    ['plate',      'Plate',           'Anatomical leader lines to the margins'],
+    ['graticule',  'Graticule',       'Measurement overlay, frequencies only'],
+    ['halo',       'Halo',            'Quiet marginalia over vesica rings'],
+    ['mandala',    'Mandala',         'Geometry goes big; the page is a diagram'],
+    ['crop',       'Crop',            'Enormous cropped type, revealed by a torch'],
+    ['readout',    'Readout',         'Instrument columns as texture'],
+    ['fusion',     'Fusion',          'PLATE callouts over MANDALA geometry'],
+    ['calibration','Calibration',     'READOUT data over a Seed of Life']
+  ];
+
+  var root   = document.documentElement;
+  var field  = document.getElementById('field');
+  var stage  = document.getElementById('spine-nav-stage');
+  var active = null;
+  if (!field || !stage) return;
+
+  /* MIRROR THE STAGE'S is-card ONTO <html>. js/spine-ui.js already toggles
+     `.is-card` on .spine-stage, so the state exists and does not need
+     inventing -- but a module scoped under `html.v-plate` cannot reach a class
+     on a mid-page element with a plain descendant selector. Mirroring it up is
+     one observer and it means every module can write
+     `html.is-card .field { ... }` and be done. */
+  new MutationObserver(function () {
+    root.classList.toggle('is-card', stage.classList.contains('is-card'));
+  }).observe(stage, { attributes: true, attributeFilter: ['class'] });
+
+  function show(name) {
+    if (active === name) return;
+    /* Unmount before the class flips, so a module's teardown still sees its
+       own styles applied — anything measuring on the way out gets real
+       numbers rather than the unscoped defaults. */
+    if (active && active !== 'none' && window.__field && window.__field[active]) {
+      try { window.__field[active].unmount(field); } catch (e) { console.error(active + '.unmount', e); }
+    }
+    READINGS.forEach(function (r) { root.classList.remove('v-' + r[0]); });
+    field.innerHTML = '';
+
+    active = name;
+    root.classList.add('v-' + name);
+    if (name !== 'none') {
+      var mod = window.__field && window.__field[name];
+      if (!mod) { console.warn('field module missing:', name); }
+      else { try { mod.mount(field); } catch (e) { console.error(name + '.mount', e); } }
+    }
+  }
+
+  /* Never steal a digit from a field the reader is typing into. Music has
+     inputs; this costs one check and removes a whole class of "the page did
+     something weird while I was typing" report. */
+  function typing(el) {
+    if (!el) return false;
+    var t = (el.tagName || '').toLowerCase();
+    return t === 'input' || t === 'textarea' || t === 'select' || el.isContentEditable;
+  }
+
+  document.addEventListener('keydown', function (e) {
+    if (e.metaKey || e.ctrlKey || e.altKey || typing(e.target)) return;
+    var i = '123456789'.indexOf(e.key);
+    if (i >= 0 && READINGS[i]) { show(READINGS[i][0]); }
+  });
+
+  show('none');
+
+  /* Exposed so a screenshot pass can drive all nine without synthesising key
+     events — the readings have never been captured over a real sky and that
+     capture is the reason this port exists. */
+  window.__fieldLab = { show: show, readings: READINGS, current: function () { return active; } };
 })();
 </script>
 </body>

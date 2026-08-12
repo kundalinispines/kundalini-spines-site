@@ -35,6 +35,30 @@
      is empty on four pages is worse than one constant with a comment. */
   var EMAIL = 'kundalinispines@gmail.com';
 
+  /* ------------------------------------------------------------------------
+     RESOLVE THE ACCENT ONCE, because var() DOES NOT WORK IN SVG PRESENTATION
+     ATTRIBUTES.
+
+     stop-color="rgba(var(--node-color), 0.72)" parses, sets, and computes to
+     rgb(0, 0, 0) -- opaque black. Custom properties are substituted only in CSS
+     declarations, and a presentation attribute is not one. Nothing errors,
+     nothing warns, and the attribute reads back exactly as it was written, so
+     it is invisible to any check that inspects the DOM rather than the
+     computed style.
+
+     IT SHIPPED THAT WAY AND THE SYMPTOM WAS EXACT. The core's 50% stop is the
+     middle of the wordmark, so the one part of the word that was meant to be
+     brightest was rendering as the darkest thing on the page. The owner
+     reported "I-N-I is still dark"; it was pure black.
+
+     Resolved to a literal triplet here and interpolated into every stop. The
+     fallback is --node-color's own value from css/spine-ui.css, used only if
+     the property is missing entirely.
+     ------------------------------------------------------------------------ */
+  var ACCENT = (getComputedStyle(document.documentElement)
+                  .getPropertyValue('--node-color') || '240, 165, 92').trim();
+  function accent(a) { return 'rgba(' + ACCENT + ', ' + a + ')'; }
+
   var SVGNS = 'http://www.w3.org/2000/svg';
   function svg(tag, attrs) {
     var el = document.createElementNS(SVGNS, tag);
@@ -286,10 +310,9 @@
     var core = svg('linearGradient', { id: 'sf-core', x1: '0', y1: '0', x2: '1', y2: '0' });
     [['0%',   'rgba(128, 128, 128, 0.16)'],
      ['28%',  'rgba(198, 190, 172, 0.30)'],
-     ['50%',  'rgba(var(--node-color), 0.72)'],   /* 0.60 -> 0.92: LINI sits exactly where
-                                              the page's spine column is brightest, so the core
-                                              was competing with the most luminous thing on the
-                                              page and losing. */
+     ['50%',  accent(0.72)],   /* the brightest point in the word, and it
+                                              lands on LINI because the ramp is
+                                              centred and the word is centred. */
      ['72%',  'rgba(198, 190, 172, 0.30)'],
      ['100%', 'rgba(128, 128, 128, 0.16)']].forEach(function (st) {
       core.appendChild(svg('stop', { offset: st[0], 'stop-color': st[1] }));
@@ -319,8 +342,8 @@
        would grey the core's warm centre back out -- the travelling light has to
        add and never subtract. */
     var stops = [['0%',   'rgba(255, 246, 232, 0.95)'],
-                 ['16%',  'rgba(var(--node-color), 0.72)'],
-                 ['40%',  'rgba(var(--node-color), 0.30)'],
+                 ['16%',  accent(0.72)],
+                 ['40%',  accent(0.30)],
                  ['70%',  'rgba(198, 186, 164, 0.10)'],
                  ['100%', 'rgba(198, 186, 164, 0)']];
     stops.forEach(function (st) {

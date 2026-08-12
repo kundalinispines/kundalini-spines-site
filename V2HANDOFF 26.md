@@ -19,8 +19,9 @@ on the page left the play button inert. Both are fixed in
 `js/track-experience.js`. The navigator is unnumbered, the Music wrap's CSS is
 now a shared file, **the entrance, the navigator and Music are one page**, and
 **the reading cards are liquid glass** — a painted bevel everywhere, real
-displacement of the star field where the browser can run it. `main` was not
-touched.
+displacement of the star field where the browser can run it. **The site footer
+was rebuilt** on all five production pages. `main` was not touched, but the
+production PAGES were — see Git state.
 
 ---
 
@@ -64,12 +65,17 @@ touched.
 
 - Branch `feature/spine-ui-v2`, worktree
   `C:\Users\Haight\Desktop\kundalini-spines-spine-ui`.
-- Session start `bf71782`; nine commits, ending **`0a8babe`**, pushed, working
-  tree clean, local and remote identical (`0 0`):
-  `41f6f8b` the two carousel fixes · `efe8812` the full stack · `862d6fd` this
-  handoff · `cba3921` the glass lab · `9a5aa35` the thumbnails · `6830c36` the
-  glass port · `010bffc` the four card fixes · `5fc45f1`/`7ef95c2` handoff
-  updates · `0a8babe` the field lab.
+- Session start `bf71782`; **23 commits**, ending **`bd0cbde`**, working tree
+  clean. Highlights: `41f6f8b` the two carousel fixes · `efe8812` the full
+  stack · `cba3921` the glass lab · `9a5aa35` the thumbnails · `6830c36` the
+  glass port · `010bffc` the four card fixes · `0a8babe` the field lab ·
+  `23ee82a` FUSION · `3767fc8` the site footer · `f36a929` CALIBRATION ·
+  `f700aa0` the var() bug · `18aea69` the tuner.
+- **THE PRODUCTION PAGES ARE NO LONGER BYTE-IDENTICAL TO `main`.** `index`,
+  `about`, `archive`, `transmissions` and `transmissions/001` each gained one
+  stylesheet link and two script tags for the footer, and `css/spine-bg.css`
+  gained `--spine-on: 0` on `html.page-about`. This is the first session to
+  touch them. `main` itself is still `13083d9` and no PR was opened.
 - `main` = `origin/main` = **`13083d9`**, untouched. No PR opened.
 - **`js/track-experience.js` and `css/spine-ui.css` WERE modified**, which
   breaks 25's "zero production files modified" streak. That was a constraint of
@@ -310,6 +316,78 @@ READOUT's entire first column get judged on half of themselves.
 
 ---
 
+## THE SITE FOOTER — expression one of two
+
+The owner asked for READOUT's information and HALO's circles combined, the
+circles redone as the circle of life carrying the chakra names and Hz, and the
+result used as **a real site footer with working links**. Settled through a
+structured interview as **one system stated twice**: this footer, and
+CALIBRATION on the navigator.
+
+**IT UPGRADES, IT DOES NOT INJECT.** The five pages already carried a footer
+with real hrefs. `js/site-footer.js` **moves** those anchor nodes into a richer
+structure — moves, not clones, so there is exactly one copy of every link in
+the document and the one on screen is the one a crawler read. If the script
+never runs, today's footer renders untouched. That is what let a single shared
+file be chosen without paying for it in SEO.
+
+| | |
+|---|---|
+| Where | the five scrolling production pages; **not** the navigator, which has no end to arrive at |
+| Height | ~480–560px. A footer that ends a page, not a second immersive scene |
+| Tier 1 | four link columns — identity · navigate · listen · contact |
+| Tier 2 | a separate instrument band, beside the links and never around them |
+| Base | `KUNDALINI SPINES` in cropped outline type |
+| Substrate | Seed of Life — **seven** circles, one per centre, one-to-one |
+| Dead links | render `STANDBY` with the anchor removed entirely |
+
+**Links first was a deliberate rejection of the better-looking option.** Weaving
+them into the instrument blocks reads richer and hides the navigation inside a
+texture. A footer whose links are hard to find has failed at its only job.
+
+**Seed, not Flower.** Seven circles for seven centres. The flower is nineteen
+and twelve would carry nothing, which makes the correspondence decorative.
+
+**The torch is a gradient, not a mask** — the owner's read of the reference
+video. The wordmark's *stroke* is a radialGradient whose centre is the cursor;
+falloff is desaturation rather than dimming, so the letterforms never change
+weight and only the colour temperature travels. Its centre is **clamped to the
+rule** separating navigate/listen/contact from record/geometry/calibration, so
+the light is always overhead and grazes the caps — a shine, not a lamp. At rest
+it parks a full radius clear of the letters, so the effect is something the
+reader causes.
+
+**A tuner lives at `/?tune`** — the same gate `js/spine-bg.js` uses. Three
+sliders (size, height above rule, brightness), persisted to localStorage,
+bottom-**left** because the spine tuner already owns the right. Settled values:
+`r: 530, ceilBias: 0, core: 0.12`.
+
+---
+
+## CALIBRATION — expression two
+
+Reading 9 in `spine-field-lab.html`. READOUT's four instrument columns over a
+Seed of Life. **Not READOUT + HALO**: composing those would have put two
+labellings of the same seven centres on screen, which FUSION had already proved
+a composition cannot afford.
+
+**THE SEED CARRIES NO LABELS, and that is the interesting decision.** It began
+with all seven named on their circle centres, revealed by a small torch. The
+marks were drawn in `--node-color` — the navigator's own amber — so seven
+glowing dots sat on a stage with six clickable nodes and read as seven more
+things to click. Three placements were built to move them out of the pointer's
+path (offset label + leader, whole figure off-axis, node-aware suppression) and
+**all three worked and all three missed the point**: any mark in that palette,
+anywhere on that stage, competes with the navigation for the same meaning. The
+owner's call was to remove the dots and text outright.
+
+The seven now live in READOUT's own calibration ladder — which this module had
+been *suppressing*. Restoring it was the load-bearing half of that change:
+stripping the seed without it would have deleted the seven from the reading
+entirely.
+
+---
+
 ## Measured findings
 
 All Aug 11 2026 via Playwright against `scripts/serve.py`, 1440×900.
@@ -373,6 +451,34 @@ All Aug 11 2026 via Playwright against `scripts/serve.py`, 1440×900.
     raster-forcing opacity off a full-viewport container. **Second time this
     session a check measured the wrong thing and blamed the code** (the first
     was the inverted bevel). Both times the code was correct.
+14. **`var()` DOES NOT WORK IN SVG PRESENTATION ATTRIBUTES, and it fails
+    silently.** `stop-color="rgba(var(--node-color), 0.72)"` parses, sets, and
+    **computes to `rgb(0, 0, 0)`** — opaque black. Custom properties are
+    substituted only in CSS declarations; a presentation attribute is not one.
+    Nothing errors, nothing warns, and the attribute reads back exactly as
+    written, so it is invisible to any check that inspects the DOM instead of
+    the computed style.
+
+    It shipped in the footer's wordmark and the symptom was exact: the core's
+    50% stop is the middle of the word, so **the one part designed to be
+    brightest rendered as the darkest thing on the page.** The owner reported
+    "I-N-I is still dark" and was describing pure black. Two of the torch's five
+    stops had it too. Now resolved once into a literal triplet.
+
+    **The expensive part was not the bug, it was the response to it.** Across
+    several rounds the effect looked weak at every setting and I raised other
+    values to compensate — core 0.60 -> 0.92, stroke 1.25 -> 1.6, radius
+    400 -> 520. All of that was tuning around a black stop. **When a value looks
+    wrong at every setting, check what it COMPUTES to before turning the dial
+    again.** Checked the rest of the codebase: no other file writes `var()` into
+    an SVG attribute.
+15. **The spine column is OFF on every page carrying the footer, and that is
+    not deducible from the stylesheets.** Only `index.html` and `about.html`
+    load `js/spine-bg.js` at all — `archive.html` and `transmissions.html` link
+    the CSS but never run the script, and `transmissions/001.html` has neither.
+    Both pages that do run it are switched off: `html.page-home` since
+    2026-08-06, `html.page-about` as of this session. I wrote the opposite in a
+    comment and had to correct it within the hour.
 
 ---
 
@@ -411,6 +517,21 @@ Escape binding needs no edit. Additionally:
   INSIDE the card displaces the card's own fill and smears it. It needs the
   card made transparent and its fill moved above the ring.
 - **Do not run two passes that write the same files.** See finding 9.
+- **Do not put `var()` in an SVG presentation attribute.** It computes to black
+  and warns about nothing. See finding 14. Resolve the custom property to a
+  literal in JS first.
+- **Do not park the footer's torch at a fixed distance.** Its radius is tunable
+  at `/?tune`; a constant park slides back into range as the size goes up and
+  the effect switches itself on at some slider position, which reads as a bug
+  in the slider. It is derived as `-(r + 80)`.
+- **Do not scale the core gradient's shoulders with its centre.** The neutral
+  ends are what the centre is bright against; moving both keeps the contrast
+  constant and makes the brightness dial appear dead.
+- **Do not re-suppress READOUT's calibration ladder** unless something else has
+  taken over stating the seven. CALIBRATION hid it once and removing the seed's
+  labels without restoring it would have deleted the chakras from the reading.
+- **Do not put a second tuning panel bottom-right.** `js/spine-bg.js` owns that
+  corner at `/?tune`.
 - **Do not let a field module drop its `html.v-<name>` scope.** Six variants
   share one page and one `#field`; an unscoped rule bleeds into the other five
   and quietly ruins the comparison rather than failing loudly.
@@ -472,6 +593,17 @@ Escape binding needs no edit. Additionally:
   mask to a 640×640 lens (0.41 Mpx against 1.30 for a naive full-field mask)
   precisely because a full-viewport masked layer is the raster-forcing shape
   this project forbids — but no measurement was taken.
+- **The footer's values are settled against BLACK, not against a lit column.**
+  Every page carrying it currently has the spine off (finding 15). If it is
+  ever turned back on under this footer, re-check them — and fix any collision
+  with LAYOUT rather than a scrim, which `css/spine-bg.css` rules out in
+  writing.
+- **Two footer values may still be compensating for the `var()` bug.** The
+  stroke weight (1.25 -> 1.6 -> 1.35) and the torch radius (400 -> 520 -> 530)
+  were both raised while the gradient's warm stops were rendering black. The
+  core was re-judged afterwards and came down to 0.12; these two were not.
+- **The footer has not been seen below 1440×900** either, though it carries
+  media queries at 1000px and 640px that were reasoned, not rendered.
 - **Nothing in the field lab has been seen below 1440×900**, and several
   modules carry media queries (READOUT drops its inner ladders below 1180px)
   that were reasoned from fixed-px geometry and never rendered.
@@ -492,13 +624,14 @@ Escape binding needs no edit. Additionally:
    untested assumption now shipping on every page.
 2. **Mobile** — the entrance headline breaks at 375px (24's item 1); Music has
    never been run there, and neither has the glass.
-3. **PICK A FIELD READING.** Six are built and waiting in
+3. **PICK A FIELD READING.** **Nine** are built and waiting in
    `spine-field-lab.html`; number keys 1–7 switch. Judge them with the lab
    panel hidden. **CROP must be seen in motion** — a screenshot cannot show a
    pointer torch. Once picked, the winner ports into `css/spine-ui.css` the way
    the glass did, and its alphas get tuned against the real sky for the first
-   time. An obvious hybrid exists if none wins outright: PLATE's callouts over
-   MANDALA's geometry.
+   time. Two hybrids already exist: **FUSION** (PLATE's callouts over MANDALA's
+   geometry, key 8) and **CALIBRATION** (READOUT over a Seed of Life, key 9).
+   Both were built with eyes on them, unlike the original six.
 4. **What PURCHASE should actually do.** Still a toast. `links.download` is
    null on all 28 and the "$1" is hardcoded at `track-experience.js:804`.
    Needs a decision: Bandcamp/Gumroad, Stripe, or email capture.
@@ -527,7 +660,8 @@ what you did not.** Budget for both.
 **Closed since 25:** the paused-after-jump defect; the Escape/player defect
 found alongside it; navigator numbering; the Music CSS duplication; the
 entrance integration (open since 19); index cover weight; the wire png; Range
-support, answered by proxy; and the reading cards' glass treatment.
+support, answered by proxy; the reading cards' glass treatment; and the site
+footer, which was never on any open list because nobody had asked for it yet.
 
 ---
 
@@ -552,6 +686,7 @@ editing.
 A good opening message:
 
 > Here's the latest V2 handoff for Kundalini Spines (Spine UI V2 branch). The
-> full stack runs in entrance-lab.html now and the reading cards are glass.
-> The glass fallback has never been seen in Safari or Firefox, and nothing has
-> been run below 1440×900 — start there.
+> full stack runs in entrance-lab.html, the reading cards are glass, and the
+> site footer was rebuilt on all five production pages. Nothing has been run
+> below 1440×900 and the glass fallback has never been seen outside Chrome —
+> start there.

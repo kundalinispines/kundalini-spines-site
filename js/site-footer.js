@@ -253,6 +253,12 @@
      preferred: the stroke has to take a GRADIENT (see the torch below), and
      the CSS property only accepts a colour. */
   var mark, grad, torchCtl = null;
+  /* The core's centre stop and the torch's redraw, held at module scope so the
+     tuning panel can reach both. BRIGHTNESS IS NOT A TORCH PROPERTY: the core
+     is painted even where the torch never binds (touch, reduced motion), so a
+     control living inside the torch's closure would be unreachable exactly
+     where the core is the only thing on screen. */
+  var coreStop = null, torchApply = null;
 
   /* ------------------------------------------------------------------------
      THE TUNABLES — two numbers, and they are the shape of the shine.
@@ -285,11 +291,12 @@
   function restCy() { return -(TORCH.r + 80); }
 
   var TORCH_KEY = 'ks.footerTorch';
-  var TORCH = { r: 520, ceilBias: 0 };
+  var TORCH = { r: 520, ceilBias: 0, core: 0.72 };
   try {
     var saved = JSON.parse(localStorage.getItem(TORCH_KEY) || 'null');
     if (saved && isFinite(saved.r)) TORCH.r = saved.r;
     if (saved && isFinite(saved.ceilBias)) TORCH.ceilBias = saved.ceilBias;
+    if (saved && isFinite(saved.core)) TORCH.core = saved.core;
   } catch (err) {}
   (function wordmark() {
     var W = 1000, H = 150;
@@ -310,12 +317,14 @@
     var core = svg('linearGradient', { id: 'sf-core', x1: '0', y1: '0', x2: '1', y2: '0' });
     [['0%',   'rgba(128, 128, 128, 0.16)'],
      ['28%',  'rgba(198, 190, 172, 0.30)'],
-     ['50%',  accent(0.72)],   /* the brightest point in the word, and it
+     ['50%',  accent(TORCH.core)],   /* the brightest point in the word, and it
                                               lands on LINI because the ramp is
                                               centred and the word is centred. */
      ['72%',  'rgba(198, 190, 172, 0.30)'],
      ['100%', 'rgba(128, 128, 128, 0.16)']].forEach(function (st) {
-      core.appendChild(svg('stop', { offset: st[0], 'stop-color': st[1] }));
+      var st0 = svg('stop', { offset: st[0], 'stop-color': st[1] });
+      if (st[0] === '50%') coreStop = st0;      /* the one the brightness dial drives */
+      core.appendChild(st0);
     });
     defs.appendChild(core);
     /* userSpaceOnUse so cx/cy are viewBox coordinates and the pointer can be
@@ -460,17 +469,9 @@
     });
     function invalidate() { rect = null; ceil = null; }
 
-    /* Handed out so the tuning panel can drive the same values the pointer
-       does, without either of them knowing about the other. */
-    torchCtl = {
-      get: function () { return { r: TORCH.r, ceilBias: TORCH.ceilBias }; },
-      set: function (k, v) {
-        TORCH[k] = v;
-        if (k === 'r') grad.setAttribute('r', v);
-        apply();
-        try { localStorage.setItem(TORCH_KEY, JSON.stringify(TORCH)); } catch (e) {}
-      }
-    };
+    /* Only the redraw is published. The control object is built at module
+       scope so it exists whether or not this closure ever ran. */
+    torchApply = apply;
     window.addEventListener('resize', invalidate);
     window.addEventListener('scroll', invalidate, { passive: true });
 
@@ -479,6 +480,28 @@
        from a console without the tuning panel being present. */
     window.__sfTorch = torchCtl;
   })();
+
+
+  /* ------------------------------------------------------------------------
+     THE CONTROL SURFACE — one object, three values, one place they persist.
+     Built here rather than inside the torch so brightness stays reachable on a
+     touch device or under prefers-reduced-motion, where the torch never binds
+     and the static core is the entire wordmark.
+     ------------------------------------------------------------------------ */
+  torchCtl = {
+    get: function () { return { r: TORCH.r, ceilBias: TORCH.ceilBias, core: TORCH.core }; },
+    set: function (k, v) {
+      TORCH[k] = v;
+      if (k === 'r' && grad) grad.setAttribute('r', v);
+      /* Brightness rewrites the one stop it owns. The rest of the ramp is
+         deliberately left alone: the neutral shoulders are what the centre is
+         bright AGAINST, and scaling them with it would keep the contrast
+         constant and make the dial do nothing. */
+      if (k === 'core' && coreStop) coreStop.setAttribute('stop-color', accent(v));
+      if (torchApply) torchApply();
+      try { localStorage.setItem(TORCH_KEY, JSON.stringify(TORCH)); } catch (e) {}
+    }
+  };
 
   /* ==========================================================================
      THE TUNING PANEL — only ever runs at /?tune
@@ -509,6 +532,8 @@
         '<input type="range" data-k="r" min="120" max="1400" step="10"></label>' +
       '<label>Height above rule<i data-out="ceilBias"></i>' +
         '<input type="range" data-k="ceilBias" min="-400" max="0" step="5"></label>' +
+      '<label>Brightness<i data-out="core"></i>' +
+        '<input type="range" data-k="core" min="0" max="1" step="0.02"></label>' +
       '<button type="button" data-act="copy">Copy values</button>' +
       '<button type="button" data-act="reset">Reset</button>' +
       '<span class="sf-tune__note">persisted &middot; /?tune only</span>';
@@ -519,6 +544,7 @@
       box.querySelectorAll('input').forEach(function (i) { i.value = v[i.dataset.k]; });
       box.querySelector('[data-out="r"]').textContent = v.r + ' units';
       box.querySelector('[data-out="ceilBias"]').textContent = v.ceilBias + ' units';
+      box.querySelector('[data-out="core"]').textContent = Number(v.core).toFixed(2);
     }
     box.addEventListener('input', function (e) {
       var k = e.target.dataset.k; if (!k) return;
@@ -527,13 +553,14 @@
     });
     box.addEventListener('click', function (e) {
       var a = e.target.dataset.act;
-      if (a === 'reset') { torchCtl.set('r', 520); torchCtl.set('ceilBias', 0); paint(); }
+      if (a === 'reset') { torchCtl.set('r', 520); torchCtl.set('ceilBias', 0);
+                           torchCtl.set('core', 0.72); paint(); }
       if (a === 'copy') {
         var v = torchCtl.get();
         /* The exact edits, not the numbers alone -- a value without its home
            is a note somebody has to decode later. */
         var txt = 'js/site-footer.js  ->  var TORCH = { r: ' + v.r +
-                  ', ceilBias: ' + v.ceilBias + ' };';
+                  ', ceilBias: ' + v.ceilBias + ', core: ' + v.core + ' };';
         (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject())
           .then(function () { e.target.textContent = 'Copied'; },
                 function () { e.target.textContent = txt; })

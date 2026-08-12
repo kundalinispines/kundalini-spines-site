@@ -272,7 +272,11 @@
    without touching the logic that drives it.
    ========================================================================== */
 .sf-tune {
-  position: fixed; right: 16px; bottom: 16px; z-index: 9999;
+  /* BOTTOM-LEFT, because /?tune already belongs to somebody. js/spine-bg.js
+     opens its own 40-slider panel down the right-hand side at the same gate,
+     and this one landed on top of it -- two tuners fighting for one corner,
+     which was only visible in a screenshot with the query string on. */
+  position: fixed; left: 16px; bottom: 16px; z-index: 9999;
   display: flex; flex-direction: column; gap: 8px;
   padding: 12px 14px; min-width: 240px;
   background: rgba(5,5,5,0.94);

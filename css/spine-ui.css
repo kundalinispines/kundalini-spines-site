@@ -582,6 +582,19 @@
   border: 1px solid var(--card-border-lit);
   box-shadow: inset 0 1px 0 rgba(242,242,238,0.10), 0 24px 60px rgba(0,0,0,0.5);
   padding: var(--space-6);
+  /* NEVER TALLER THAN THE WINDOW — Aug 12 2026. positionCard clamps top to a
+     90px floor and the bottom to 24px above the stage edge, so 114px is the
+     exact budget the clamp assumes; without this cap a 607px card (Our Story)
+     simply cannot fit a 650px window and the clamp has nothing left to give.
+
+     THE SCROLL LIVES ON __body, NOT ON THE CARD. overflow on the card itself
+     was tried first and every card grew a 13px scroll: the ghost frames
+     (::before/::after below) are transformed past the padding box, and
+     transformed absolute descendants count as scrollable overflow. Flex
+     column + min-height:0 scrolls only the prose when a card is taller
+     than the window; head and CTA stay fixed. */
+  display: flex; flex-direction: column;
+  max-height: calc(100vh - 114px);
   opacity: 0; visibility: hidden; pointer-events: none;
   transform: translateY(8px) scale(0.965);
   transition: opacity var(--card-enter-ms) var(--ease-standard),
@@ -637,7 +650,8 @@
   color: var(--text-primary);
 }
 .spine-card__rule { width: 34px; height: 2px; background: var(--color-bone); margin: 0 0 var(--space-4); opacity: 0.7; }
-.spine-card__body { font-family: var(--font-body); font-size: var(--fs-body);
+.spine-card__body { overflow-y: auto; min-height: 0;   /* the scrolling half of the max-height cap above */
+  font-family: var(--font-body); font-size: var(--fs-body);
   line-height: var(--lh-body); color: var(--text-secondary); }
 .spine-card__body p { margin: 0 0 var(--space-3); }
 .spine-card__body p:last-child { margin-bottom: 0; }

@@ -356,7 +356,7 @@
   text-align: center;
 }
 .newsletter__inner { max-width: 56ch; margin-inline: auto; }
-.newsletter h2 { font-family: var(--font-display-stencil); }
+.newsletter h1, .newsletter h2 { font-family: var(--font-display-stencil); } /* h1: connect.html runs this block as a page (Aug 12 2026) */
 .newsletter p { color: var(--text-secondary); }
 .newsletter-form {
   display: flex;

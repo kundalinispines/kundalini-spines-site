@@ -9,8 +9,10 @@
    WHAT THIS IS
      Four columns of instrument data in the outer thirds — two per side, an
      outer panel and an inner ladder. The inner ladders are positioned at real
-     heights (the seven chakras on the left, the six node bearings on the
-     right) so they agree with the spine instead of merely flanking it.
+     heights (the seven chakras on the left, the live node bearings on the
+     right — one per navigator node, read from window.__spineLab.nodes since
+     Aug 12 2026, so the count here is whatever js/spine-ui.js says it is)
+     so they agree with the spine instead of merely flanking it.
 
    THE RESTRAINT, WHICH IS THE ENTIRE RISK
      Cockpit UI turns into a cliché the moment it is legible from across the

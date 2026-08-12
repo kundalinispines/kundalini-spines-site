@@ -229,6 +229,17 @@
     a.setAttribute('href', 'mailto:' + EMAIL);
     contact = [a];
   }
+  /* STAY CONNECTED — owner call, Aug 12 2026. The signal form itself lives on
+     index.html (Buttondown, native post, works with JS off — see the long
+     comment beside it there); the band stays links-only, so Contact carries a
+     row that goes to it rather than a second copy of the form. Synthesised
+     here because none of the five band pages has such a link to harvest.
+     Later the same day the owner made Stay Connected a real destination —
+     connect.html, with the navigator's connect node landing there — so the row
+     points at the page rather than at index's anchor copy of the form. */
+  var stay = el('a', null, 'Stay Connected');
+  stay.setAttribute('href', 'connect.html');
+  contact.push(stay);
   cols.appendChild(column('Contact', contact.map(row)));
   sf.appendChild(cols);
 

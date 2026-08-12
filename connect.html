@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<!-- page-connect selects the per-page override block in css/star-bg.css. Added
+     to the phone block's selector list in the same change that created this
+     file (star-bg build 26) — that list exists so the 600px values keep
+     winning; see the note beside it. The class is a tuning hook and ships
+     empty, exactly like page-merch did on arrival.
+     IT BELONGS ON <html>, NOT ON <body> — the nebula and one of the star bands
+     are pseudo-elements of html, and a pseudo-element of html resolves its
+     variables from html. It can never see a value set on body. See the long
+     note in css/spine-bg.css. -->
+<html lang="en" class="page-connect">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stay Connected — Kundalini Spines</title>
+<meta name="description" content="Join the Kundalini Spines signal: new music, transmissions, visual releases and limited announcements. No constant noise. Only meaningful signals.">
+<link rel="canonical" href="/connect.html">
+
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" href="assets/marks/spine-mark.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="assets/marks/apple-touch-icon.png">
+
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Kundalini Spines">
+<meta property="og:title" content="Stay Connected — Kundalini Spines">
+<meta property="og:description" content="Join the Kundalini Spines signal: new music, transmissions, visual releases and limited announcements. No constant noise. Only meaningful signals.">
+<meta property="og:image" content="/assets/hero/messengers-hero-duo.jpg">
+<meta name="twitter:card" content="summary_large_image">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&family=Big+Shoulders+Stencil:wght@700;900&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<!-- THE ORDINAL SLOT OF star-bg.css IS LOAD-BEARING. tokens, base, star-bg,
+     components, site-footer — the same five in the same order every other root
+     page uses. Omitting star-bg.css is the single most common defect in this
+     repo: the page renders pure black, with no error and nothing in the console
+     to say why. There is deliberately NO sixth stylesheet and no inline <style>:
+     every class below already has rules — .section/.container/.section-header/
+     .label from css/base.css, .newsletter*/.btn from css/components.css, which
+     is the same block index.html renders under its carousel. -->
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/star-bg.css">
+<link rel="stylesheet" href="css/components.css">
+<link rel="stylesheet" href="css/site-footer.css">
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<!-- Same six-item header every root page carries. No "Stay Connected" entry in
+     it on purpose — the routes here are the spine navigator's connect node and
+     the footer's Contact column, and merch.html's old note explains the cost of
+     a nav that changes shape per page. Nothing is marked aria-current because
+     none of the six items IS this page. -->
+<header class="nav is-scrolled">
+  <div class="container nav__inner">
+    <a class="nav__mark" href="/"><img src="assets/marks/spine-mark.svg" alt="" width="18" height="18" style="vertical-align:-3px;margin-right:8px;">KUNDALINI SPINES</a>
+    <button class="nav__toggle" aria-expanded="false" aria-controls="primary-nav">Menu</button>
+    <nav id="primary-nav" aria-label="Primary">
+      <ul class="nav__links">
+        <li><a href="/">Home</a></li>
+        <li><a href="/#tracks">Music</a></li>
+        <li><a href="merch.html">Merchandise</a></li>
+        <li><a href="transmissions.html">Transmissions</a></li>
+        <li><a href="archive.html">Archive</a></li>
+        <li><a href="about.html">About</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+
+  <!-- ==========================================================================
+       THE SIGNAL PAGE. Created Aug 12 2026, the day the Timeline node became
+       Stay Connected — the spine navigator's connect node lands here, and so
+       does the footer's Contact row. The form block below is the SAME
+       Buttondown block index.html runs under the music carousel, brought over
+       with its comments intact rather than rewritten: the endpoint, the native
+       POST, and the no-target-blank decision were all measured 2026-07-29 and
+       none of that reasoning changes because the block gained a second page.
+       The duplicate ids (newsletter-form / newsletter-email / newsletter-status)
+       are safe: one copy per PAGE, never two in one document, and
+       js/newsletter.js looks them up per page load. -->
+  <!-- CENTERED, LIKE THE HOMEPAGE BLOCK — owner call, Aug 12 2026. The first
+       cut set this as a left-aligned .section-header column and the owner asked
+       for centre; rather than centring by hand it reuses index.html's own
+       .newsletter / .newsletter__inner classes, so the two copies of this form
+       can never drift apart geometrically. The h1 was added to the stencil
+       rule in css/components.css beside the h2 the homepage uses. -->
+  <section class="section newsletter" style="padding-top: calc(var(--space-24) + 3rem);">
+    <div class="container newsletter__inner">
+      <span class="label">Stay Connected</span>
+      <h1>Stay Connected to the Signal</h1>
+      <p>Receive new music, transmissions, visual releases, and limited announcements directly from Kundalini Spines. No constant noise. Only meaningful signals.</p>
+
+    <!-- Buttondown. MEASURED 2026-07-29: the endpoint sends no CORS headers to
+         this origin, so this posts natively and the visitor lands on Buttondown's
+         confirmation page. The action and method are load-bearing — the form works
+         with JS off and with js/newsletter.js missing.
+         target="_blank" was REMOVED deliberately: opening a new tab got caught by
+         the popup blocker, which can fail silently. Do not add it back. -->
+    <form id="newsletter-form" class="newsletter-form embeddable-buttondown-form"
+          action="https://buttondown.com/api/emails/embed-subscribe/kundalinispines"
+          method="post" novalidate>
+      <label class="sr-only" for="newsletter-email">Email address</label>
+      <input type="email" id="newsletter-email" name="email" class="newsletter-form__field" placeholder="you@email.com" autocomplete="email" required>
+      <input type="hidden" name="embed" value="1">
+      <button type="submit" class="btn btn--primary">Join the Signal</button>
+    </form>
+    <p class="newsletter__privacy">No spam. Unsubscribe anytime. Your email is never sold or shared.</p>
+    <p id="newsletter-status" class="newsletter__status" role="status" aria-live="polite"></p>
+    <p class="newsletter__powered"><a href="https://buttondown.com/refer/kundalinispines" target="_blank" rel="noopener">Powered by Buttondown.</a></p>
+    </div>
+  </section>
+
+  <!-- The other channels, so the page answers "where else does the signal
+       reach" in the same breath. The footer's Listen column carries the same
+       set with live/standby states; this is the short human version. -->
+  <section class="section newsletter" aria-labelledby="channels-heading">
+    <div class="container newsletter__inner">
+      <span class="label">Channels</span>
+      <h2 id="channels-heading">Where the Signal Reaches</h2>
+      <p>
+        Transmissions also surface on <a href="https://www.instagram.com/kundalinispines/" rel="me noopener" target="_blank">Instagram</a>, <a href="https://x.com/KundaliniSpines" rel="me noopener" target="_blank">X</a> and <a href="https://www.youtube.com/@KundaliniSpines" rel="me noopener" target="_blank">YouTube</a>. For anything that needs a reply &mdash; press, collaboration, licensing &mdash; write directly:
+      </p>
+      <p style="margin-top: var(--space-6);"><a class="btn btn--ghost" href="mailto:kundalinispines@gmail.com">kundalinispines@gmail.com</a></p>
+    </div>
+  </section>
+
+</main>
+
+<footer class="footer container">
+  <div class="footer__inner">
+    <ul class="footer__nav">
+      <li><a href="/#tracks">Music</a></li>
+      <li><a href="merch.html">Merchandise</a></li>
+      <li><a href="transmissions.html">Transmissions</a></li>
+      <li><a href="archive.html">Archive</a></li>
+      <li><a href="about.html">About</a></li>
+    </ul>
+    <ul class="footer__social">
+      <li><a href="https://www.instagram.com/kundalinispines/" data-social="instagram" rel="me noopener" target="_blank">Instagram</a></li>
+      <li><a href="#" data-social="tiktok">TikTok</a></li>
+      <li><a href="https://x.com/KundaliniSpines" data-social="x" rel="me noopener" target="_blank">X</a></li>
+      <li><a href="https://www.youtube.com/@KundaliniSpines" data-social="youtube" rel="me noopener" target="_blank">YouTube</a></li>
+      <li><a href="#" data-social="spotify">Spotify</a></li>
+    </ul>
+    <p class="footer__copyright">&copy; <span id="year">2026</span> Kundalini Spines. All rights reserved.</p>
+  </div>
+</footer>
+
+<!-- The root-page set plus js/newsletter.js, which index.html also carries: it
+     only blocks obviously invalid addresses before the native POST (see its
+     header before "improving" it). ks-chakras.js MUST precede site-footer.js:
+     the footer reads KS.CHAKRAS and KS.RECORD and bails with a console warning
+     if that file has not run. -->
+<script src="js/nav.js"></script>
+<script>document.getElementById('year').textContent = new Date().getFullYear();</script>
+<script src="js/newsletter.js"></script>
+<script src="js/ks-chakras.js"></script>
+<script src="js/site-footer.js"></script>
+</body>
+</html>

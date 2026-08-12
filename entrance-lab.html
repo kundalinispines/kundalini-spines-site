@@ -308,7 +308,19 @@ body { margin: 0; overflow: hidden; }   /* nothing on this page scrolls, ever */
   z-index: 1;              /* under .spine (10) and everything above it */
   pointer-events: none;    /* it can never eat a click, in any variant */
   overflow: hidden;        /* CROP's oversized type is cropped BY THE STAGE */
+  transition: opacity 360ms ease;
 }
+
+/* THE READING BELONGS TO THE NAVIGATOR, NOT TO THE STAGE — owner call,
+   Aug 12 2026, the day calibration became the shipped default: every surface
+   other than the navigator gets the sky alone. Music does not replace the
+   stage, it restyles it (html.is-music, css/music-wrap.css), so the field
+   would otherwise keep painting its columns and seed under the rail — seen
+   and reported by the owner. The field opts out itself: fade out on the way
+   in (visibility flips after the fade), snap visible on the way back so the
+   reading is already there when the navigator returns. */
+html.is-music .field { opacity: 0; visibility: hidden;
+  transition: opacity 360ms ease, visibility 0s 360ms; }
 
 /* THE COIL'S COORDINATE SPACE IS NOT THE NAVIGATOR'S SPINE BOX.
 
@@ -545,8 +557,10 @@ body { margin: 0; overflow: hidden; }   /* nothing on this page scrolls, ever */
   <!-- The field reading mounts here. FIRST CHILD deliberately: it is z-index 1
        and everything it must sit under (.spine at 10, the nodes, the cards) is
        painted after it, so source order and stacking agree and neither has to
-       carry the other. Empty until a reading is chosen — the page ships on
-       'none', exactly as it looked before this was added. -->
+       carry the other. Empty in the markup: the host script at the foot of
+       the page fills it — since Aug 12 2026 with CALIBRATION, the shipping
+       default (owner's call; see the FIELD READING HOST comment). Press 1 for
+       the bare control stack, exactly as it looked before this was added. -->
   <div class="field" id="field" aria-hidden="true"></div>
 
   <svg class="spine-connectors" aria-hidden="true">
@@ -1450,12 +1464,17 @@ body { margin: 0; overflow: hidden; }   /* nothing on this page scrolls, ever */
      TWO THINGS ARE DELIBERATELY DIFFERENT FROM THE LAB, and both are about
      this page having a job the lab does not.
 
-     1. IT SHIPS ON 'none', NOT ON 'plate'. The lab exists to show readings, so
-        defaulting to one is right there. This page is the V2 stack, and the
-        first thing anyone does on it is look at the stack. Defaulting to a
-        reading would change what this page has looked like all session and
-        make a nine-way comparison the page's opening statement. Press a key
-        and it appears; press 1 and it is gone again.
+     1. IT SHIPS ON 'calibration' — the owner's decision, Aug 12 2026. The
+        comparison the port existed to run has been run, and CALIBRATION is
+        the reading that won. From Aug 11 to Aug 12 2026 this shipped on
+        'none', and the old rationale is kept here because it was right for
+        that day: the lab exists to show readings, so defaulting to one is
+        right THERE; this page is the V2 stack, and defaulting to a reading
+        mid-comparison would have changed what the page looked like all
+        session and made a nine-way comparison the page's opening statement.
+        That reasoning expired the moment the owner picked one. The keys are
+        unchanged: 1 strips the reading back to the control stack, 9 returns
+        to the shipping default, and 2-8 still show the seven that lost.
 
      2. NO ARROW-KEY STEPPING. The lab binds arrows at document level. Here
         that is a real collision and not a theoretical one: js/spine-ui.js:242
@@ -1535,7 +1554,9 @@ body { margin: 0; overflow: hidden; }   /* nothing on this page scrolls, ever */
     if (i >= 0 && READINGS[i]) { show(READINGS[i][0]); }
   });
 
-  show('none');
+  /* The shipping default — owner's call, Aug 12 2026 (see the host comment
+     above). 'none' is one keypress away on 1, exactly as before. */
+  show('calibration');
 
   /* Exposed so a screenshot pass can drive all nine without synthesising key
      events — the readings have never been captured over a real sky and that

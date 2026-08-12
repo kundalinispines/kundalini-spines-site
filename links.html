@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<!-- SESSION LINKS INDEX — internal working page, Aug 12 2026.
+     A one-stop list of every page the Spine UI V2 sessions touch, so nobody
+     has to remember paths. Serve the repo (python scripts\serve.py) and open
+     http://localhost:8000/links.html
+
+     DO NOT DEPLOY. The deploy workflow currently publishes every .html in the
+     repo (V2HANDOFF 27, still-open item 3 — the lab harnesses leak the same
+     way). Add this file to the exclusions alongside the handoffs. -->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Links — Spine UI V2 worktree</title>
+<style>
+  body { margin: 0; padding: 48px 24px 96px; background: #050505; color: #D8D0BE;
+         font-family: 'Segoe UI', system-ui, sans-serif; line-height: 1.5; }
+  main { max-width: 720px; margin-inline: auto; }
+  h1 { font-size: 1.4rem; letter-spacing: 0.08em; text-transform: uppercase; color: #fff; }
+  h2 { font-size: 0.8rem; letter-spacing: 0.2em; text-transform: uppercase;
+       color: #8a8378; margin: 40px 0 8px; border-bottom: 1px solid #2a2a2a; padding-bottom: 6px; }
+  ul { list-style: none; margin: 0; padding: 0; }
+  li { display: flex; gap: 14px; align-items: baseline; padding: 7px 0; border-bottom: 1px solid #151515; }
+  a { color: #fff; text-decoration: none; font-size: 1.02rem; white-space: nowrap; }
+  a:hover { text-decoration: underline; }
+  small { color: #8a8378; font-family: Consolas, monospace; font-size: 11px; letter-spacing: 0.04em; }
+  .flag { color: #c96b5a; }
+  p.note { color: #8a8378; font-size: 0.85rem; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Spine UI V2 — page links</h1>
+  <p class="note">Internal index of the worktree, Aug 12 2026. Serve with <code>python scripts\serve.py</code>, not <code>python -m http.server</code>. This file is not part of the site — keep it out of the deploy.</p>
+
+  <h2>Production pages</h2>
+  <ul>
+    <li><a href="index.html">Home</a><small>index.html — hero, carousel, tracks</small></li>
+    <li><a href="about.html">About</a><small>about.html — magazine profile, rebuilt Aug 12 · masthead reveal + parallax</small></li>
+    <li><a href="merch.html">Merchandise</a><small>merch.html — new Aug 11 · no store yet, deliberately</small></li>
+    <li><a href="connect.html">Stay Connected</a><small>connect.html — new Aug 12 · the Buttondown signal form; the navigator's connect node lands here</small></li>
+    <li><a href="archive.html">Archive</a><small>archive.html</small></li>
+    <li><a href="archive/artwork/001.html">Archive · Artwork 001</a><small>sky link fixed Aug 11</small></li>
+    <li><a href="transmissions.html">Transmissions</a><small>transmissions.html</small></li>
+    <li><a href="transmissions/001.html">Transmission 001</a><small>sky link fixed Aug 11</small></li>
+    <li><a href="music.html">Music</a><small class="flag">unlinked + still black — owner decision pending (V2H27 item 5)</small></li>
+  </ul>
+
+  <h2>V2 navigator &amp; labs</h2>
+  <ul>
+    <li><a href="entrance-lab.html">Entrance lab</a><small>V2 navigator + entrance · field readings on keys 1–9 (1 = control, 6 CROP needs pointer motion)</small></li>
+    <li><a href="music-lab.html">Music lab</a><small>the Music wrap over the navigator</small></li>
+    <li><a href="spine-field-lab.html">Spine field lab</a><small>original home of the readings, pre-real-stack</small></li>
+    <li><a href="spine-card-glass-lab.html">Card glass lab</a><small class="flag">stale: hardcodes 02 / 06 (V2H27 item 10)</small></li>
+    <li><a href="music-collapse-lab.html">Music collapse lab</a><small class="flag">stale: keys on retired members/ethos ids (V2H27 item 10)</small></li>
+    <li><a href="spine-lab.html">Spine lab</a><small>navigator geometry</small></li>
+    <li><a href="coil-lab.html">Coil lab</a><small>wordmark coil</small></li>
+    <li><a href="hero-scrub-lab.html">Hero scrub lab</a><small class="flag">uses var(--space-5), which does not exist (V2H27 finding 8)</small></li>
+    <li><a href="hero-timeline-lab.html">Hero timeline lab</a><small class="flag">still black — missing the star-bg link (V2H27 item 5)</small></li>
+    <li><a href="scramble-lab.html">Scramble lab</a><small>text scramble</small></li>
+    <li><a href="shutter-lab.html">Shutter lab</a><small>shutter text</small></li>
+    <li><a href="spine-aster-lab.html">Spine aster lab</a><small>aster mesh</small></li>
+    <li><a href="type-specimen-lab.html">Type specimen lab</a><small>flat black by design</small></li>
+  </ul>
+
+  <h2>Reference / by design</h2>
+  <ul>
+    <li><a href="raster-test.html">Raster test</a><small>black by design</small></li>
+    <li><a href="raster-test-2.html">Raster test 2</a><small>black by design</small></li>
+    <li><a href="transmissions-options.html">Transmissions options</a><small>design comparison, black by design</small></li>
+    <li><a href="transmissions-option5-v2.html">Transmissions option 5 v2</a><small>design comparison</small></li>
+  </ul>
+</main>
+</body>
+</html>

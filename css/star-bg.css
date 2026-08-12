@@ -93,7 +93,7 @@
      as worth 63 -> 88 fps; that figure was taken on a software renderer and is
      corrected under html::after below). 6 was the single lockstep cores
      layer. */
-  --star-build: 25;
+  --star-build: 26;
 
   /* Brightness of the whole field. 0 is off — the layer still exists but adds
      no light, and under screen blending (see below) that is exactly the same
@@ -1150,7 +1150,8 @@ html.page-merch {
      them at equal specificity and later in source order, so the phone values
      win. Add any new page class to this list in the same commit. */
   :root, html.page-home, html.page-about, html.page-archive, html.page-transmissions,
-  html.page-transmission-detail, html.page-artwork-detail, html.page-merch {
+  html.page-transmission-detail, html.page-artwork-detail, html.page-merch,
+  html.page-connect {
     /* RE-DERIVED 2026-08-07, the whole block at once, against the desktop
        values shipping in build 22 — every number below is a documented ratio
        times TODAY'S desktop value, not an edit of the previous phone number.

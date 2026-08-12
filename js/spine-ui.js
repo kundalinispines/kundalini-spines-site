@@ -92,10 +92,19 @@
        drives which edge of the reading card catches the light (--lit-x in
        css/spine-ui.css), so a node on the wrong side is lit from the wrong
        direction and looks subtly broken rather than obviously wrong. */
-    { id: 'timeline', title: 'Timeline', kind: 'card',
-      eyebrow: 'Milestones',
-      body: '<p>The Signal has a chronology — first transmissions, first tracks, the releases still to surface.</p><p>Milestones thread down the spine, each vertebra a moment the current passed through.</p>',
-      cta: 'Trace the timeline', href: '#' }
+    /* TIMELINE BECAME STAY CONNECTED — owner call, Aug 12 2026. Timeline had
+       no destination (href '#'); the signal page (connect.html, the Buttondown
+       block) is real. The id changed with the title: an id that says one thing
+       over a node that says another is the literal-vs-position bug in another
+       costume. Renaming a node id is safe TODAY because music-wrap.js anchors
+       its rail positionally and (fixed the same day) derives its toggle ids
+       from ACTIONS rather than naming ours — grep the repo for the old id
+       anyway before the next rename; that is how the last two leftovers were
+       found. */
+    { id: 'connect', title: 'Stay Connected', kind: 'card',
+      eyebrow: 'The Signal',
+      body: '<p>The transmission continues between releases — new music, transmissions, visual releases, and limited announcements, directly from the Messengers.</p><p>No constant noise. Only meaningful signals.</p>',
+      cta: 'Join the Signal', href: 'connect.html' }
   ];
 
   /* ------------------------------------------------------------------------
@@ -356,12 +365,20 @@
     nodeEls[id].setAttribute('aria-expanded', 'true');
 
     populateCard(n);
+
+    /* UNHIDE BEFORE POSITIONING — the order used to be position, then unhide,
+       and an element with [hidden] measures 0x0, so positionCard clamped every
+       card as its 360x300 fallback. Mid-rail nodes hid the error; Timeline at
+       y 88 took the bottom clamp computed for a 300px card and its real ~340px
+       cut 15px past a 900px window (measured Aug 12 2026, worse on shorter
+       windows). The card is still invisible until .is-open lands, so nothing
+       flashes: hidden only gates display, the reveal is the transition. */
+    card.hidden = false;
+    // force layout so the card has measurable geometry for position + connector
+    void card.offsetWidth;
     positionCard(n);
 
     // draw the rigid connector, THEN let the card emerge at its end
-    card.hidden = false;
-    // force layout so the card has measurable geometry for the connector
-    void card.offsetWidth;
     drawConnector(id, 1, false);
     var drawMs = reduceMotion ? 1 : (parseFloat(getVar('--connector-draw-ms')) || 520);
     card.style.transitionDelay = (drawMs * 0.7) + 'ms, ' + (drawMs * 0.7) + 'ms, 0s';

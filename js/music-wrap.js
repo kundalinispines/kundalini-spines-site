@@ -365,12 +365,30 @@
      CLOSE, SIGNAL and SHARE are one-shot actions and must NOT carry
      aria-pressed -- a button that reports a pressed state it does not have is
      worse than one that reports nothing. */
+  /* THE IDS COME FROM ACTIONS, NOT FROM THE NAVIGATOR'S VOCABULARY. This
+     function was the last hand-written map keyed on another module's node ids,
+     and it had been half dead since the Aug 11 merge without anything erroring:
+     els.members and els.ethos stopped resolving when those nodes retired, so
+     Decode's and Shuffle's aria-pressed never updated, and els.timeline only
+     kept Sky honest because the last node HAPPENED to still carry that id.
+     Found Aug 12 2026 while renaming timeline -> connect — the rename would
+     have silently killed Sky's state the same way. TOGGLES is keyed on OUR OWN
+     rail titles (this module's table two screens up), so a navigator rename
+     can never reach it again. */
+  var TOGGLES = {};
+  ACTIONS.forEach(function (a) {
+    if (a.title === 'Index')   TOGGLES.index   = a.id;
+    if (a.title === 'Decode')  TOGGLES.decode  = a.id;
+    if (a.title === 'Shuffle') TOGGLES.shuffle = a.id;
+    if (a.title === 'Sky')     TOGGLES.sky     = a.id;
+  });
   function syncToggleStates() {
     if (!musicOn) return;
-    if (els.story)    els.story.setAttribute('aria-pressed', String(root.classList.contains('is-index')));
-    if (els.members)  els.members.setAttribute('aria-pressed', String(root.classList.contains('is-decode')));
-    if (els.ethos)    els.ethos.setAttribute('aria-pressed', String(shuffleOn));
-    if (els.timeline) els.timeline.setAttribute('aria-pressed', String(!root.classList.contains('is-sky-off')));
+    var e;
+    if ((e = els[TOGGLES.index]))   e.setAttribute('aria-pressed', String(root.classList.contains('is-index')));
+    if ((e = els[TOGGLES.decode]))  e.setAttribute('aria-pressed', String(root.classList.contains('is-decode')));
+    if ((e = els[TOGGLES.shuffle])) e.setAttribute('aria-pressed', String(shuffleOn));
+    if ((e = els[TOGGLES.sky]))     e.setAttribute('aria-pressed', String(!root.classList.contains('is-sky-off')));
   }
 
   /* Intercept in the CAPTURE phase on the container. js/spine-ui.js binds its

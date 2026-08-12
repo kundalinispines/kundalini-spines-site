@@ -1,0 +1,112 @@
+/* ==========================================================================
+   CALIBRATION — READOUT's information over a labelled Seed of Life
+   Partner file: js/field/v-calibration.js, which adds `v-readout` to <html>
+   so that parent's stylesheet applies underneath this one.
+
+   Like v-fusion.css, this file mostly SUBTRACTS. The new thing it adds is the
+   seed; everything else is either a removal or a step back in weight.
+
+   Specificity: the parent is scoped `html.v-readout …` at (0,2,0). Every rule
+   here leads with `html.v-calibration.v-readout`, (0,3,0), so it wins without
+   an !important anywhere.
+   ========================================================================== */
+
+/* The slots each parent builds into. Real boxes, never display:contents --
+   a boxless wrapper has no rect, and a module that sizes itself from
+   getBoundingClientRect() measures 0x0 and silently builds nothing. */
+html.v-calibration .field .cal-slot {
+  position: absolute; inset: 0; pointer-events: none;
+}
+
+/* --------------------------------------------------------------------------
+   1. READOUT'S CHAKRA LADDER GOES.
+   Column B is READOUT's calibration ladder -- the seven names and frequencies
+   set at their true heights. The seed now carries exactly those seven on its
+   circle centres, and two labellings of the same seven centres is the one
+   thing FUSION proved a composition cannot afford. Column B is the ONLY thing
+   removed from READOUT; the station, the record, the harmonics and the
+   channels are why this reading exists.
+   -------------------------------------------------------------------------- */
+html.v-calibration.v-readout .field .ro-col--b { display: none; }
+
+/* --------------------------------------------------------------------------
+   2. THE SEED.
+   `slice` here, unlike the footer -- the navigator stage IS the 1440x900 the
+   viewBox is drawn for, so slice scales to cover with essentially no crop, and
+   the figure reaches the empty thirds the way the reading needs it to. In the
+   footer the same value blew the figure up and flung its labels across the
+   navigation; the difference is that the footer's box is nothing like its
+   viewBox and this one is.
+   -------------------------------------------------------------------------- */
+html.v-calibration .field .cal-seed {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  pointer-events: none;
+}
+html.v-calibration .field .cal-seed__ring circle {
+  fill: none; stroke: rgba(216, 208, 190, 0.10);
+  stroke-width: 1; vector-effect: non-scaling-stroke;
+}
+/* The rim is tangent to all six outer circles, so it is exact rather than
+   decorative. Lower than the construction it closes, because a boundary that
+   outweighs the thing inside it becomes the subject. */
+html.v-calibration .field .cal-seed__rim {
+  fill: none; stroke: rgba(216, 208, 190, 0.06);
+  stroke-width: 1; vector-effect: non-scaling-stroke;
+}
+
+html.v-calibration .field .cal-seed__dot {
+  fill: rgba(var(--node-color), 0.55);
+}
+html.v-calibration .field .cal-seed__name,
+html.v-calibration .field .cal-seed__hz,
+html.v-calibration .field .cal-seed__en {
+  text-anchor: middle; font-family: var(--font-mono);
+}
+html.v-calibration .field .cal-seed__name {
+  font-size: 11px; letter-spacing: 0.20em; fill: rgba(216, 208, 190, 0.60);
+}
+html.v-calibration .field .cal-seed__hz {
+  font-size: 10px; letter-spacing: 0.14em; fill: rgba(var(--node-color), 0.62);
+}
+html.v-calibration .field .cal-seed__en {
+  font-size: 8px; letter-spacing: 0.16em; fill: rgba(216, 208, 190, 0.28);
+}
+
+/* WHICH CHAKRA SITS AT THE CENTRE, since it is the first thing anyone will
+   check: the CROWN does. js/ks-chakras.js is ordered crown to root, the seed's
+   circle 0 is the centre point, so SAHASRARA takes it and the remaining six
+   ring it in order.
+
+   That is a choice and MANDALA made the opposite one -- it centres its
+   construction on the HEART, because that is the single row where its figure
+   and the body genuinely coincide. The seed has no such coincidence to spend:
+   its six outer circles are one radius from the centre and no chakra spacing
+   maps onto that. So the centre goes to the origin the other six are arranged
+   around, and the crown is the honest reading of a figure that grows outward
+   from its middle.
+
+   THE FOOTER USES THE SAME ORDER, deliberately. The two are one system stated
+   twice; a seed whose centre is the crown here and the heart there would be
+   two systems wearing the same clothes. Change both or neither -- it is one
+   line in each, and nothing else depends on the order. */
+
+/* --------------------------------------------------------------------------
+   3. READOUT STEPS BACK.
+   Its envelope was set for a field with nothing else in it. The seed now
+   occupies the same frame at higher contrast than anything READOUT draws, so
+   the columns yield slightly rather than competing across the whole width.
+   -------------------------------------------------------------------------- */
+html.v-calibration.v-readout .field .ro { --ro-opacity: 0.14; }
+
+/* --------------------------------------------------------------------------
+   4. RECEDE.
+   READOUT carries its own is-card / is-music rules under html.v-readout, which
+   is present, so the columns are already handled. The seed is this file's own
+   element and needs its own -- without it the construction would stay at full
+   strength behind a reading card.
+   -------------------------------------------------------------------------- */
+html.v-calibration.is-card  .field .cal-seed { opacity: 0.12; }
+html.v-calibration.is-music .field .cal-seed { opacity: 0; }
+html.v-calibration .field .cal-seed {
+  transition: opacity var(--motion-base) var(--ease-standard);
+}

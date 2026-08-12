@@ -76,6 +76,7 @@
 <!-- LAST, and it must be: fusion only overrides its two parents, so it has to
      come after both of them in the cascade. -->
 <link rel="stylesheet" href="css/field/v-fusion.css">
+<link rel="stylesheet" href="css/field/v-calibration.css">
 
 <style>
 html, body { height: 100%; }
@@ -182,6 +183,7 @@ html.ctl-off .lab-ctl__body { display: none; }
   </div>
 </nav>
 
+<script src="js/ks-chakras.js"></script>
 <script src="js/spine-ui.js"></script>
 <script src="js/field/v-plate.js"></script>
 <script src="js/field/v-graticule.js"></script>
@@ -191,6 +193,8 @@ html.ctl-off .lab-ctl__body { display: none; }
 <script src="js/field/v-readout.js"></script>
 <!-- after its parents, which it calls -->
 <script src="js/field/v-fusion.js"></script>
+<!-- after READOUT, which it composes; and after ks-chakras, which it reads -->
+<script src="js/field/v-calibration.js"></script>
 
 <script>
 (function () {
@@ -204,7 +208,8 @@ html.ctl-off .lab-ctl__body { display: none; }
     ['mandala',   'Mandala',         'Geometry goes big; the page is a diagram'],
     ['crop',      'Crop',            'Enormous cropped type, revealed by a torch'],
     ['readout',   'Readout',         'Instrument columns as texture'],
-    ['fusion',    'Fusion',          'PLATE callouts over MANDALA geometry']
+    ['fusion',    'Fusion',          'PLATE callouts over MANDALA geometry'],
+    ['calibration','Calibration',    'READOUT data over a labelled Seed of Life']
   ];
 
   var root   = document.documentElement;
@@ -266,7 +271,7 @@ html.ctl-off .lab-ctl__body { display: none; }
   tab.addEventListener('click', togglePanel);
 
   document.addEventListener('keydown', function (e) {
-    var i = '12345678'.indexOf(e.key);
+    var i = '123456789'.indexOf(e.key);
     if (i >= 0 && READINGS[i]) { show(READINGS[i][0]); return; }
     /* H for the panel, and the arrows for stepping — the fastest way to judge
        six readings is to hold the pointer still and change only the thing

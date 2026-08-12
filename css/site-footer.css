@@ -39,10 +39,22 @@
   padding: var(--space-10, 48px) 0 0;
 }
 
-/* THE PAGE'S OWN SPINE RUNS BEHIND THIS, and that is the site's chosen design
-   -- css/spine-bg.css lifts .footer to z-index 1 precisely so the column
-   passes behind it. A taller footer simply exposes more of the column than the
-   old ~200px strip ever did.
+/* THE PAGE'S OWN SPINE RUNS BEHIND THIS ON SOME PAGES, and that is the site's
+   chosen design -- css/spine-bg.css lifts .footer to z-index 1 precisely so
+   the column passes behind it. A taller footer simply exposes more of the
+   column than the old ~200px strip ever did.
+
+   AS OF Aug 11 2026 NO PAGE CARRYING THIS FOOTER SHOWS THE COLUMN, and it is
+   worth writing down because it is not obvious from the stylesheets. Only
+   index.html and about.html load js/spine-bg.js at all -- archive.html and
+   transmissions.html link the CSS but never run the script that builds the
+   layer, and transmissions/001.html has neither. Both pages that DO run it are
+   switched off: html.page-home since 2026-08-06, html.page-about as of today.
+
+   So the values below are currently being judged against plain black. If the
+   column is ever turned back on under this footer, re-check them -- and fix
+   any collision with LAYOUT rather than a scrim, which css/spine-bg.css rules
+   out in writing.
 
    NO SCRIM. The obvious fix is a dark wash behind the columns, and
    css/spine-bg.css already ruled it out in writing: over flat page black a
@@ -155,18 +167,22 @@
    counts are counted, and the calibration is the same seven the substrate
    draws.
    ========================================================================== */
-/* FIVE TRACKS, AND THE MIDDLE ONE IS EMPTY ON PURPOSE.
-   At four equal columns the two inner blocks landed directly on the page's
-   lit spine column -- GEOMETRY's values were printed over the brightest thing
-   on the screen and simply could not be read. The site's own rule forbids
-   painting a scrim over that column, so the layout yields instead: two blocks
-   to the left of the spine, two to the right, and a gutter down the middle
-   wide enough to clear it. The empty track is the fix, not a spacing choice. */
+/* FOUR EVEN COLUMNS AGAIN.
+   This was briefly five tracks with an empty one down the middle, because the
+   two inner blocks were landing on the page's lit spine column and GEOMETRY's
+   values could not be read over it. The owner has since switched that column
+   off on this page (--spine-on: 0 in css/spine-bg.css's html.page-about), so
+   the gutter now has nothing to dodge -- and an empty track with no reason
+   behind it reads as a mistake rather than as spacing. Reverted.
+
+   If the column ever comes back on a page carrying this footer, the fix is
+   the five-track grid and not a scrim: css/spine-bg.css rules that out in
+   writing. */
 .footer.is-upgraded .sf__instr {
   position: relative; z-index: 2;
   display: grid;
-  grid-template-columns: 1fr 1fr minmax(140px, 220px) 1fr 1fr;
-  gap: var(--space-6, 24px);
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-8, 32px);
   margin-top: var(--space-8, 32px);
   padding: var(--space-5, 20px) var(--space-6) 0;
   border-top: 1px solid rgba(216, 208, 190, 0.07);
@@ -174,8 +190,6 @@
      black, and over a lit nebula the left-hand blocks disappeared entirely. */
   opacity: 0.7;              /* the band's single dial */
 }
-.footer.is-upgraded .sf-instr__block:nth-child(3) { grid-column: 4; }
-.footer.is-upgraded .sf-instr__block:nth-child(4) { grid-column: 5; }
 .footer.is-upgraded .sf-instr__block { display: flex; flex-direction: column; gap: 3px; }
 .footer.is-upgraded .sf-instr__head {
   font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.22em;
@@ -205,7 +219,7 @@
   /* 1.6, not 1.25: an outline over a lit nebula needs weight before it
      needs colour, and at 1.25 both the core and the shine were being eaten by
      the backdrop rather than being too dim in themselves. */
-  stroke-width: 1.6; vector-effect: non-scaling-stroke;
+  stroke-width: 1.35; vector-effect: non-scaling-stroke;
   paint-order: stroke;
 }
 
@@ -249,3 +263,35 @@
   .footer.is-upgraded .sf__mark-text { font-size: 64px; }
   .footer.is-upgraded .sf__foot { flex-direction: column; gap: var(--space-2); }
 }
+
+/* ==========================================================================
+   THE TUNING PANEL — /?tune only
+   js/site-footer.js does not create this element unless the query string asks
+   for it, so these rules match nothing on a normal page load. They are kept
+   here rather than injected as inline styles so the panel can be restyled
+   without touching the logic that drives it.
+   ========================================================================== */
+.sf-tune {
+  position: fixed; right: 16px; bottom: 16px; z-index: 9999;
+  display: flex; flex-direction: column; gap: 8px;
+  padding: 12px 14px; min-width: 240px;
+  background: rgba(5,5,5,0.94);
+  border: 1px solid rgba(var(--node-color), 0.35);
+  font-family: var(--font-mono); font-size: 10px;
+  letter-spacing: 0.1em; color: var(--color-gray-400);
+}
+.sf-tune b {
+  font-weight: 500; font-size: 9px; letter-spacing: 0.22em;
+  text-transform: uppercase; color: var(--color-bone);
+}
+.sf-tune label { display: flex; flex-direction: column; gap: 4px; text-transform: uppercase; }
+.sf-tune i { font-style: normal; color: rgba(var(--node-color), 0.9); letter-spacing: 0.06em; }
+.sf-tune input[type="range"] { width: 100%; accent-color: rgb(var(--node-color)); }
+.sf-tune button {
+  font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.16em;
+  text-transform: uppercase; padding: 6px 8px; cursor: pointer;
+  background: transparent; color: var(--color-bone);
+  border: 1px solid rgba(216,208,190,0.28);
+}
+.sf-tune button:hover { border-color: rgba(var(--node-color),0.8); }
+.sf-tune__note { font-size: 8px; letter-spacing: 0.14em; color: var(--color-gray-500); }

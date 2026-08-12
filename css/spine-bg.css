@@ -545,6 +545,20 @@ html.page-about {
      file's @media (max-width: 600px) block or it will outrank the phone
      values by source order. */
 
+  /* THE COLUMN IS OFF ON THIS PAGE — the owner's call, Aug 11 2026, made the
+     same way and for the same reason the home page turned it off on 2026-08-06:
+     something else on the page had become the thing carrying the motion, and
+     the column was the third element competing for it. Here it is the upgraded
+     footer, whose wordmark, Seed of Life and instrument band all sit on the
+     centre line the column runs down.
+
+     SAME MECHANISM AS html.page-home, deliberately: the toggle, not a deletion.
+     js/spine-bg.js still builds the layer and still writes --charge, --kick and
+     --snare, the tuner still works, and dragging `on` to 1 in /?tune shows the
+     column exactly as it was tuned below. Every value in this block stays
+     correct and stays live the day anyone turns it back on. */
+  --spine-on: 0;
+
   /* The column is thinner and much dimmer than the home page, and the ramp is
      nearly hard-edged at 10px against the home page's 430px. */
   --spine-dim: 0.13;

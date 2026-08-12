@@ -228,7 +228,30 @@
      SVG TEXT, NOT -webkit-text-stroke, and that is forced rather than
      preferred: the stroke has to take a GRADIENT (see the torch below), and
      the CSS property only accepts a colour. */
-  var mark, grad;
+  var mark, grad, torchCtl = null;
+
+  /* ------------------------------------------------------------------------
+     THE TUNABLES — two numbers, and they are the shape of the shine.
+
+       r         how far the light reaches. Bigger lights more of the word.
+       ceilBias  how far ABOVE the rule the source sits, in viewBox units.
+                 0 puts it exactly on the rule -- the owner's constraint, the
+                 light never descends past it. Negative lifts it further away,
+                 which flattens the shine toward a graze; positive is clamped
+                 to 0 so the rule stays a hard floor no dial can breach.
+
+     PERSISTED, deliberately. Dialling a value in and losing it to a reload has
+     cost this project real work before, so both survive in localStorage under
+     one key. The panel that writes them only exists at /?tune -- see below --
+     so a visitor never pays for any of this.
+     ------------------------------------------------------------------------ */
+  var TORCH_KEY = 'ks.footerTorch';
+  var TORCH = { r: 520, ceilBias: 0 };
+  try {
+    var saved = JSON.parse(localStorage.getItem(TORCH_KEY) || 'null');
+    if (saved && isFinite(saved.r)) TORCH.r = saved.r;
+    if (saved && isFinite(saved.ceilBias)) TORCH.ceilBias = saved.ceilBias;
+  } catch (err) {}
   (function wordmark() {
     var W = 1000, H = 150;
     var s = svg('svg', { class: 'sf__mark', viewBox: '0 0 ' + W + ' ' + H,
@@ -247,12 +270,12 @@
        centre ever going out. */
     var core = svg('linearGradient', { id: 'sf-core', x1: '0', y1: '0', x2: '1', y2: '0' });
     [['0%',   'rgba(128, 128, 128, 0.16)'],
-     ['28%',  'rgba(198, 190, 172, 0.38)'],
-     ['50%',  'rgba(var(--node-color), 0.92)'],   /* 0.60 -> 0.92: LINI sits exactly where
+     ['28%',  'rgba(198, 190, 172, 0.30)'],
+     ['50%',  'rgba(var(--node-color), 0.72)'],   /* 0.60 -> 0.92: LINI sits exactly where
                                               the page's spine column is brightest, so the core
                                               was competing with the most luminous thing on the
                                               page and losing. */
-     ['72%',  'rgba(198, 190, 172, 0.38)'],
+     ['72%',  'rgba(198, 190, 172, 0.30)'],
      ['100%', 'rgba(128, 128, 128, 0.16)']].forEach(function (st) {
       core.appendChild(svg('stop', { offset: st[0], 'stop-color': st[1] }));
     });
@@ -270,7 +293,7 @@
        grazing light barely touched the cap line and the shine read as nothing
        at all. The radius buys reach, not intensity -- the falloff does that. */
     grad = svg('radialGradient', { id: 'sf-torch', gradientUnits: 'userSpaceOnUse',
-                                   cx: W / 2, cy: -60, r: 520 });
+                                   cx: W / 2, cy: -60, r: TORCH.r });
     /* THE FALLOFF IS DESATURATION, NOT DIMMING -- the owner's reading of the
        reference, and the more interesting of the two. Away from the cursor the
        stroke is a flat neutral grey; under it the stroke carries the scene's
@@ -370,8 +393,9 @@
         ceil = (ruleY - rect.top - oy) / s;        /* negative: above the viewBox */
       }
       var cy = (py - rect.top - oy) / s;
+      var lid = ceil + Math.min(0, TORCH.ceilBias);   /* positive can never lower it */
       grad.setAttribute('cx', ((px - rect.left - ox) / s).toFixed(1));
-      grad.setAttribute('cy', Math.min(cy, ceil).toFixed(1));
+      grad.setAttribute('cy', Math.min(cy, lid).toFixed(1));
     }
     footer.addEventListener('pointermove', function (e) {
       px = e.clientX; py = e.clientY;
@@ -388,7 +412,88 @@
       grad.setAttribute('cy', (ceil === null ? -40 : ceil).toFixed(1));
     });
     function invalidate() { rect = null; ceil = null; }
+
+    /* Handed out so the tuning panel can drive the same values the pointer
+       does, without either of them knowing about the other. */
+    torchCtl = {
+      get: function () { return { r: TORCH.r, ceilBias: TORCH.ceilBias }; },
+      set: function (k, v) {
+        TORCH[k] = v;
+        if (k === 'r') grad.setAttribute('r', v);
+        apply();
+        try { localStorage.setItem(TORCH_KEY, JSON.stringify(TORCH)); } catch (e) {}
+      }
+    };
     window.addEventListener('resize', invalidate);
     window.addEventListener('scroll', invalidate, { passive: true });
+
+    /* Lab hook, mirroring window.__music / window.__spineLab / window.__cal.
+       Not used by the page; it is how the torch can be driven or inspected
+       from a console without the tuning panel being present. */
+    window.__sfTorch = torchCtl;
   })();
+
+  /* ==========================================================================
+     THE TUNING PANEL — only ever runs at /?tune
+
+     Same gate the spine tuner uses (js/spine-bg.js), so there is one thing to
+     remember rather than two. A visitor never sees it, never downloads a
+     stylesheet for it, and never pays a listener for it: nothing below this
+     line executes unless the query string asks for it.
+
+     It writes through torchCtl, which is the same path the pointer uses, so
+     what is on screen while dragging is exactly what a visitor would get --
+     the panel cannot flatter itself with a preview the real code does not do.
+     ========================================================================== */
+  (function tuner() {
+    /* NO REGEX. This guard was written with a word-boundary escape in it and
+       a generator turned that escape into a literal backspace character
+       (0x08), producing a pattern that
+       could never match and was invisible in every diff and every grep. Reading
+       the query string as data cannot rot that way. */
+    var tuneOn = new URLSearchParams(location.search).has('tune');
+    if (!tuneOn || !torchCtl) return;
+
+    var box = document.createElement('div');
+    box.className = 'sf-tune';
+    box.innerHTML =
+      '<b>Footer torch</b>' +
+      '<label>Size<i data-out="r"></i>' +
+        '<input type="range" data-k="r" min="120" max="1400" step="10"></label>' +
+      '<label>Height above rule<i data-out="ceilBias"></i>' +
+        '<input type="range" data-k="ceilBias" min="-400" max="0" step="5"></label>' +
+      '<button type="button" data-act="copy">Copy values</button>' +
+      '<button type="button" data-act="reset">Reset</button>' +
+      '<span class="sf-tune__note">persisted &middot; /?tune only</span>';
+    document.body.appendChild(box);
+
+    function paint() {
+      var v = torchCtl.get();
+      box.querySelectorAll('input').forEach(function (i) { i.value = v[i.dataset.k]; });
+      box.querySelector('[data-out="r"]').textContent = v.r + ' units';
+      box.querySelector('[data-out="ceilBias"]').textContent = v.ceilBias + ' units';
+    }
+    box.addEventListener('input', function (e) {
+      var k = e.target.dataset.k; if (!k) return;
+      torchCtl.set(k, Number(e.target.value));
+      paint();
+    });
+    box.addEventListener('click', function (e) {
+      var a = e.target.dataset.act;
+      if (a === 'reset') { torchCtl.set('r', 520); torchCtl.set('ceilBias', 0); paint(); }
+      if (a === 'copy') {
+        var v = torchCtl.get();
+        /* The exact edits, not the numbers alone -- a value without its home
+           is a note somebody has to decode later. */
+        var txt = 'js/site-footer.js  ->  var TORCH = { r: ' + v.r +
+                  ', ceilBias: ' + v.ceilBias + ' };';
+        (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject())
+          .then(function () { e.target.textContent = 'Copied'; },
+                function () { e.target.textContent = txt; })
+          .then(function () { setTimeout(function () { e.target.textContent = 'Copy values'; }, 1600); });
+      }
+    });
+    paint();
+  })();
+
 })();

@@ -245,6 +245,21 @@
      one key. The panel that writes them only exists at /?tune -- see below --
      so a visitor never pays for any of this.
      ------------------------------------------------------------------------ */
+  /* WHERE THE TORCH SITS WHEN NOBODY IS POINTING AT IT.
+
+     It used to park at the ceiling above the word's centre, which put the pool
+     squarely over I-N-I: the shine was on before the reader had done anything,
+     so there was nothing for moving the pointer to reveal. It now parks a full
+     radius clear of the letterforms, so at rest the travelling layer
+     contributes NOTHING and the wordmark shows only its static core.
+
+     DERIVED FROM r, not a constant. The radius is tunable at /?tune, and a
+     fixed park would slide back into range the moment the size was dialled up
+     -- the effect would quietly switch itself on at some slider position and
+     look like a bug in the slider. +80 is clearance beyond the reach so the
+     outermost stop is still short of the cap line. */
+  function restCy() { return -(TORCH.r + 80); }
+
   var TORCH_KEY = 'ks.footerTorch';
   var TORCH = { r: 520, ceilBias: 0 };
   try {
@@ -293,7 +308,7 @@
        grazing light barely touched the cap line and the shine read as nothing
        at all. The radius buys reach, not intensity -- the falloff does that. */
     grad = svg('radialGradient', { id: 'sf-torch', gradientUnits: 'userSpaceOnUse',
-                                   cx: W / 2, cy: -60, r: TORCH.r });
+                                   cx: W / 2, cy: restCy(), r: TORCH.r });
     /* THE FALLOFF IS DESATURATION, NOT DIMMING -- the owner's reading of the
        reference, and the more interesting of the two. Away from the cursor the
        stroke is a flat neutral grey; under it the stroke carries the scene's
@@ -364,8 +379,17 @@
       return;
     }
     var svgEl = sf.__svg, pending = false, px = 0, py = 0, rect = null, ceil = null;
+    /* True until the pointer has actually been inside the footer, and true
+       again the moment it leaves. Without it the first apply() would use the
+       0,0 the coordinates initialise to and light the top-left corner. */
+    var parked = true;
     function apply() {
       pending = false;
+      if (parked) {
+        grad.setAttribute('cx', 500);
+        grad.setAttribute('cy', restCy().toFixed(1));
+        return;
+      }
       if (!rect) rect = svgEl.getBoundingClientRect();
       if (!rect.width || !rect.height) { rect = null; return; }
       /* Viewport px -> viewBox units. preserveAspectRatio is xMidYMid meet, so
@@ -398,18 +422,18 @@
       grad.setAttribute('cy', Math.min(cy, lid).toFixed(1));
     }
     footer.addEventListener('pointermove', function (e) {
+      parked = false;
       px = e.clientX; py = e.clientY;
       if (pending) return;
       pending = true;
       requestAnimationFrame(apply);
     }, { passive: true });
     footer.addEventListener('pointerleave', function () {
-      /* Home is the CENTRE, at the ceiling. The wordmark's rest state is the
-         static core lit on LINI, so parking the torch above the middle simply
-         reinforces where the core already is -- leaving the footer produces no
-         visible event, which is what a footer should do. */
-      grad.setAttribute('cx', 500);
-      grad.setAttribute('cy', (ceil === null ? -40 : ceil).toFixed(1));
+      /* Out of range, not merely home. Leaving the footer returns the wordmark
+         to its static core alone -- the same state it loads in -- so the shine
+         is something the reader causes rather than something already running. */
+      parked = true;
+      apply();
     });
     function invalidate() { rect = null; ceil = null; }
 

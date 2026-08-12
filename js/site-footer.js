@@ -291,7 +291,20 @@
   function restCy() { return -(TORCH.r + 80); }
 
   var TORCH_KEY = 'ks.footerTorch';
-  var TORCH = { r: 520, ceilBias: 0, core: 0.72 };
+  /* THE SETTLED VALUES, dialled in at /?tune on about.html Aug 11 2026 and
+     pasted back from the panel's own Copy. core 0.12 is a long way down from
+     the 0.72 this was built at -- that number was chosen while the middle of
+     the wordmark was rendering as opaque black, so every judgement made
+     against it was made against a bug. Once the centre actually lit, far less
+     of it was wanted.
+
+     DEFAULTS ARE A RECORD, NOT LITERALS SCATTERED AROUND. Reset used to
+     restore three hardcoded numbers, which meant the moment these values moved
+     the button would have quietly restored the OLD ones -- a control that
+     silently disagrees with the source it is meant to return you to. */
+  var TORCH_DEFAULTS = { r: 530, ceilBias: 0, core: 0.12 };
+  var TORCH = { r: TORCH_DEFAULTS.r, ceilBias: TORCH_DEFAULTS.ceilBias,
+                core: TORCH_DEFAULTS.core };
   try {
     var saved = JSON.parse(localStorage.getItem(TORCH_KEY) || 'null');
     if (saved && isFinite(saved.r)) TORCH.r = saved.r;
@@ -553,8 +566,10 @@
     });
     box.addEventListener('click', function (e) {
       var a = e.target.dataset.act;
-      if (a === 'reset') { torchCtl.set('r', 520); torchCtl.set('ceilBias', 0);
-                           torchCtl.set('core', 0.72); paint(); }
+      if (a === 'reset') {
+        Object.keys(TORCH_DEFAULTS).forEach(function (k) { torchCtl.set(k, TORCH_DEFAULTS[k]); });
+        paint();
+      }
       if (a === 'copy') {
         var v = torchCtl.get();
         /* The exact edits, not the numbers alone -- a value without its home

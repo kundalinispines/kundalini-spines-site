@@ -27,10 +27,41 @@
   small { color: #8a8378; font-family: Consolas, monospace; font-size: 11px; letter-spacing: 0.04em; }
   .flag { color: #c96b5a; }
   p.note { color: #8a8378; font-size: 0.85rem; }
+
+  /* THE file:// BANNER. Hidden unless the script below turns it on. */
+  #fileWarn { display: none; margin: 0 0 28px; padding: 14px 16px;
+              border: 1px solid #c96b5a; background: rgba(201,107,90,0.10);
+              color: #f0d8d2; font-size: 0.9rem; line-height: 1.55; }
+  #fileWarn strong { color: #ff9c86; display: block; margin-bottom: 5px;
+                     letter-spacing: 0.06em; text-transform: uppercase;
+                     font-size: 0.78rem; }
+  #fileWarn code { font-family: Consolas, monospace; color: #fff;
+                   background: #1c1c1c; padding: 1px 5px; }
 </style>
 </head>
 <body>
 <main>
+  <!-- WHY THIS EXISTS. Opening this index from Explorer puts it on file://, and
+       every link here is relative, so the whole worktree gets browsed over
+       file:// without anything saying so. Chrome then refuses CSS subresources
+       as cross-origin and they fail SILENTLY in the places that matter most:
+       assets/hero/wordmark-grain.png is the letterpress mask on the wordmark,
+       so the lockup renders as flat solid letters, and assets/hero/cloud-mask.webp
+       is the nebula. Both look like design regressions and neither logs
+       anything a casual look would catch. Measured 2026-08-12: over file://,
+       wordmark-grain.png, cloud-mask.webp and data/tracks.json all fail with
+       ERR_FAILED; over the server all three are 200.
+       This cost a full debugging session. Do not remove it. -->
+  <p id="fileWarn">
+    <strong>You are on file:// — what you are seeing is wrong</strong>
+    Chrome blocks CSS assets over <code>file://</code>, silently. The wordmark
+    loses its letterpress grain and renders as flat solid letters, the nebula
+    loses its cloud mask, and <code>fetch()</code> pages come up empty — with no
+    error you would notice. Serve the repo instead:
+    <code>python scripts\serve.py</code>, then open
+    <a href="http://localhost:8000/links.html" style="text-decoration:underline">http://localhost:8000/links.html</a>.
+  </p>
+
   <h1>Spine UI V2 — page links</h1>
   <p class="note">Internal index of the worktree, Aug 12 2026. Serve with <code>python scripts\serve.py</code>, not <code>python -m http.server</code>. This file is not part of the site — keep it out of the deploy.</p>
 
@@ -72,5 +103,17 @@
     <li><a href="transmissions-option5-v2.html">Transmissions option 5 v2</a><small>design comparison</small></li>
   </ul>
 </main>
+<script>
+  /* No framework, no build — this file is a plain index and stays that way.
+     location.protocol is the whole test: 'file:' when opened from Explorer,
+     'http:' when served. Note the banner defaults to display:none in the CSS
+     rather than being hidden here, so a browser with JS off shows nothing
+     rather than flashing a warning it cannot verify. */
+  if (location.protocol === 'file:') {
+    var w = document.getElementById('fileWarn');
+    if (w) { w.style.display = 'block'; }
+    document.title = 'file:// — SERVE THIS INSTEAD — Links';
+  }
+</script>
 </body>
 </html>

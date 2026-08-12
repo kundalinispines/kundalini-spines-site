@@ -1,0 +1,165 @@
+/* ==========================================================================
+   NAVIGATOR MOTION — drop-in overrides for css/spine-ui.css
+   Branch: feature/spine-ui-v2
+
+   LOAD THIS AFTER css/spine-ui.css. Every rule below is written against the
+   navigator's existing class names and either retargets a token that file
+   already owns or adds a state it does not have — nothing here needs the
+   original edited, and removing this file returns the navigator exactly as it
+   was.
+
+   Four of the six changes are pure CSS. Two need JS and are marked; the notes
+   in README.md say where they go in js/spine-ui.js.
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. THE IDLE STRING READS BRIGHTER
+   Over the nebula the six nodes at 0.79 sat too far back to read as live
+   destinations, and 0.78 while a card was open pushed them further. Raised as
+   tokens rather than as rules so the ?tune panel still drives them.
+   -------------------------------------------------------------------------- */
+:root {
+  --node-idle-opacity:    0.88;   /* was 0.79 */
+  --node-glow-a:          0.68;   /* was 0.59 */
+  --node-dim-when-active: 0.86;   /* was 0.78 */
+}
+
+/* --------------------------------------------------------------------------
+   2. THE CROSSHAIR IS ONE-SIDED, AND IT POINTS AT THE CARD
+
+   As shipped, .spine-node__reticle draws a 300px rule centred on the node, so
+   half of it leaves the spine on the side the card is NOT on — a line with
+   nothing at the end of it, competing with the connector that does mean
+   something. It now grows from the dot toward the node's own side only.
+
+   Implemented by halving the rule and re-anchoring it, so the existing scaleX
+   states in css/spine-ui.css keep working untouched.
+   -------------------------------------------------------------------------- */
+.spine-node__reticle .rx {
+  width: calc(var(--reticle-w) / 2);
+  left: auto;
+  filter: drop-shadow(0 0 3px rgba(var(--node-color), .9))
+          drop-shadow(0 0 9px rgba(var(--node-color), .6))
+          drop-shadow(0 0 20px rgba(var(--node-color), .34));
+}
+.spine-node[data-side="right"] .spine-node__reticle .rx {
+  left: 50%;
+  transform-origin: 0% 50%;
+  background: linear-gradient(90deg,
+    rgba(var(--node-color), .92) 0%,
+    rgba(var(--node-color), .86) 68%,
+    rgba(var(--node-color), .62) 100%);
+}
+.spine-node[data-side="left"] .spine-node__reticle .rx {
+  left: auto; right: 50%;
+  transform-origin: 100% 50%;
+  background: linear-gradient(270deg,
+    rgba(var(--node-color), .92) 0%,
+    rgba(var(--node-color), .86) 68%,
+    rgba(var(--node-color), .62) 100%);
+}
+/* The original centres the rule with translate(-50%,-50%); re-anchored it only
+   needs the vertical half. scaleY thins the ink so the mark reads as emitted
+   light rather than as a drawn rule. */
+.spine-node__reticle .rx,
+.spine-node:hover .spine-node__reticle .rx,
+.spine-node:focus-visible .spine-node__reticle .rx,
+.spine-node.is-prefocus .spine-node__reticle .rx { transform: translateY(-50%) scaleX(.62) scaleY(.6); }
+.spine-node.is-active .spine-node__reticle .rx   { transform: translateY(-50%) scaleX(1)   scaleY(.6); }
+
+/* The far endpoint square belongs to the side that no longer has a rule. */
+.spine-node[data-side="right"] .spine-node__reticle .sq--l,
+.spine-node[data-side="left"]  .spine-node__reticle .sq--r { display: none; }
+.spine-node[data-side="right"] .spine-node__reticle .sq--r { left: calc(50% + var(--reticle-w) / 2 - 2.5px); }
+.spine-node[data-side="left"]  .spine-node__reticle .sq--l { left: calc(50% - var(--reticle-w) / 2 - 2.5px); }
+.spine-node__reticle .sq { border-color: rgba(var(--node-color), .65); }
+
+/* THE ENDPOINT SQUARE IS A PRE-FOCUS MARK. It says "the line stops here" while
+   the destination is still hypothetical. Once the card is open the CARD is the
+   endpoint, and the square sits on top of it saying the same thing twice. */
+.spine-node.is-active .spine-node__reticle .sq { opacity: 0; }
+
+/* --------------------------------------------------------------------------
+   3. THE EMISSION REACHES THE CARD
+
+   The crosshair leaves the node in the node's own colour; the card it points at
+   is the end of the same gesture, so it takes a hairline of that amber.
+
+   OUTLINE, NOT BORDER. .spine-card's border is doing the glass work — lit lip
+   on the spine side, darkened far edge — and a second colour on those pixels
+   fights it. outline sits outside the box, so the two never overlap.
+
+   The box-shadow restates the two the original already carries, because this is
+   a whole-property override.
+   -------------------------------------------------------------------------- */
+.spine-card.is-open {
+  outline: 1px solid rgba(var(--node-color), .34);
+  outline-offset: 0;
+  box-shadow: inset 0 1px 0 rgba(242, 242, 238, .10),
+              0 24px 60px rgba(0, 0, 0, .5),
+              0 0 22px -6px rgba(var(--node-color), .30);
+  transition: outline-color var(--card-enter-ms) var(--ease-standard),
+              box-shadow var(--card-enter-ms) var(--ease-standard);
+}
+.spine-card.is-open::before { border-color: rgba(var(--node-color), .22); }
+
+/* --------------------------------------------------------------------------
+   4. THE ESTABLISHED CONNECTOR IS LIT
+
+   --connector-active is declared in css/spine-ui.css and read by nothing. At
+   --connector-color (bone at .72) over the lit sky the settled line is barely
+   separable from the backdrop, which reads as a connector that never drew
+   rather than as one drawn quietly.
+
+   JS: add the is-established class to the .conn-active path once the draw
+   completes. See README section 1.
+   -------------------------------------------------------------------------- */
+.spine-connectors .conn-active.is-established {
+  stroke: var(--connector-active);
+  stroke-width: calc(var(--connector-w) + .3px);
+  filter: drop-shadow(0 0 5px rgba(242, 242, 238, .55));
+  transition: stroke var(--motion-base) var(--ease-standard);
+}
+
+/* --------------------------------------------------------------------------
+   5. THE PASS RUNS ONCE AND PARKS   (needs the JS in README section 2)
+
+   While a card is open the light finishes its climb, leaves the top of the
+   column and stays gone. Looping, the rise reads as a metronome that happens to
+   be running; run once, it reads as caused by the node you just opened.
+
+   --ks-phase-delay is written by the JS as a NEGATIVE delay, which ENTERS the
+   pass part-way through rather than restarting and clipping it — so its speed
+   never changes. Every layer riding the pass takes the same offset or they
+   desync.
+   -------------------------------------------------------------------------- */
+.spine__energy,
+.spine-node__ping,
+.spine-point { animation-delay: var(--ks-phase-delay, 0ms); }
+
+.spine-stage.is-card .spine__energy,
+.spine-stage.is-card .spine-node__ping,
+.spine-stage.is-card .spine-point {
+  animation-iteration-count: 1;
+  animation-fill-mode: forwards;
+}
+
+/* AFTER THE FIRST SELECTION THE PASS IS CAUSED, NOT SCHEDULED.
+   The free-running rise belongs to the opening state only — it is what tells a
+   visitor the column is alive before they have touched it. A beam climbing from
+   the base between two cards is the system talking over itself.
+   JS adds the has-chosen class to .spine-stage on the first activation. */
+.spine-stage.has-chosen:not(.is-card) .spine__energy,
+.spine-stage.has-chosen:not(.is-card) .spine-node__ping,
+.spine-stage.has-chosen:not(.is-card) .spine-point { animation: none; opacity: 0; }
+
+/* --------------------------------------------------------------------------
+   6. THE OPEN NODE'S PING IS BIGGER, NOT BRIGHTER
+   It is already the lit one, so size is the only axis left that reads as
+   "and this one".
+   -------------------------------------------------------------------------- */
+.spine-node.is-active .spine-node__ping { width: 46px; height: 46px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .spine-node__reticle .rx { filter: none; }
+}

@@ -185,8 +185,10 @@ jobs:
           set -euo pipefail
 
           # -iname '*handoff*' deliberately, NOT 'HANDOFF*':
-          #   - unanchored, so it matches V2HANDOFF 29.md, and V3HANDOFF, and
-          #     the untracked design_handoff_navigator_motion/ directory;
+          #   - unanchored, so it matches V2HANDOFF 29.md, and V3HANDOFF, and the
+          #     design_handoff_navigator_motion/ directory (tracked as of
+          #     12 Aug 2026, and never copied by the allowlist, so this is the
+          #     backstop rather than the mechanism that keeps it unpublished);
           #   - case-insensitive, so a lowercase rename does not slip past.
           # This one pattern is the whole fix. Verified 12 Aug 2026 by planting
           # a file literally named 'V2HANDOFF 29.md' in the output directory and

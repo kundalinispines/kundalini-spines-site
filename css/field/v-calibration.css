@@ -90,6 +90,15 @@ html.v-calibration .field .cal-seed__en {
   font-size: 8px; letter-spacing: 0.16em; fill: rgba(216, 208, 190, 0.42);
 }
 
+/* The leader that joins the centre DOT to its displaced TYPE in OFFSET mode.
+   It rises with the label rather than being always-on: a line pointing at
+   nothing is worse than no line, and at rest there is nothing to point at. */
+html.v-calibration .field .cal-seed__lead {
+  stroke: rgba(var(--node-color), calc(var(--lift) * 0.55));
+  stroke-width: 1; vector-effect: non-scaling-stroke;
+  transition: stroke 120ms linear;
+}
+
 /* THE DOT BRIGHTENS WITH ITS LABEL, which is what makes the mark feel like the
    thing being lit rather than a fixed pin the text happens to appear beside. */
 html.v-calibration .field .cal-seed__mark .cal-seed__dot {

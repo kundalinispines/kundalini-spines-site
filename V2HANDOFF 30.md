@@ -405,20 +405,15 @@ Everything in 19–29's lists still stands. Additionally:
 1. **Graduating the navigator to production** (29 item 4). The entrance +
    navigator + reading stack still has not replaced or joined `index.html`.
    This is now the top item, and the navigator is in much better shape for it.
-2. **`design_handoff_navigator_motion/` is still untracked** — it exists only on
-   the owner's disk. It is the reference the navigator was built against, so
-   without it a later session cannot check the implementation against the
-   source. Offered twice, not answered. **Decide: commit it or archive it
-   elsewhere.**
-3. **A large-size home for `spine-mark.svg`**, and any use at all for
+2. **A large-size home for `spine-mark.svg`**, and any use at all for
    `primary-seal.svg`. Both are unreferenced.
-4. **`favicon-16/32/48/192/512.png` are referenced by nothing** — they look like
+3. **`favicon-16/32/48/192/512.png` are referenced by nothing** — they look like
    they were made for a `webmanifest` that does not exist. Either add one or
    delete them.
-5. **A thickened micro cut** if the 16px tab icon is judged too soft.
-6. **The about page's crimson** — parked by owner decision, evidence in the CSS.
-7. **The footer's OPEN chip** — never judged (29 item 3).
-8. The calibration frame clamp for cards (28 item 2); `music.html` and
+4. **A thickened micro cut** if the 16px tab icon is judged too soft.
+5. **The about page's crimson** — parked by owner decision, evidence in the CSS.
+6. **The footer's OPEN chip** — never judged (29 item 3).
+7. The calibration frame clamp for cards (28 item 2); `music.html` and
    `hero-timeline-lab.html` still black; Safari/Firefox glass fallback; mobile
    pass on a real device; what PURCHASE should do (26 item 4); lab staleness
    (`music-collapse-lab.html`, `spine-card-glass-lab.html`,
@@ -429,7 +424,9 @@ Everything in 19–29's lists still stands. Additionally:
 **Closed since 29:** the deploy workflow leak gap (29's top item — shipped and
 simulated); the navigator's six motion changes plus the reroute, the geometry
 function and the arrival point; the mark system; the `session-end` skill's stale
-server command.
+server command; **`design_handoff_navigator_motion/` is now tracked** (`2acd411`,
+owner's call) and carries `_IMPLEMENTATION-NOTES.md` recording where its README
+misleads — read that before building anything else from that folder.
 
 ---
 

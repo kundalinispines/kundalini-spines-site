@@ -202,16 +202,20 @@
   font-weight: 800; font-size: 132px; letter-spacing: 0.01em;
   /* The stroke takes a GRADIENT, which is why this is SVG text and not
      -webkit-text-stroke: that property accepts a colour and nothing else. */
-  stroke-width: 1.25; vector-effect: non-scaling-stroke;
+  /* 1.6, not 1.25: an outline over a lit nebula needs weight before it
+     needs colour, and at 1.25 both the core and the shine were being eaten by
+     the backdrop rather than being too dim in themselves. */
+  stroke-width: 1.6; vector-effect: non-scaling-stroke;
   paint-order: stroke;
 }
 
 /* Reduced motion: the torch does not chase, so it is parked warm and even
    rather than switched off. The effect exists to reward moving the pointer;
    with motion suppressed it should still look like something. */
-.footer.sf-torch-static.is-upgraded .sf__mark-text {
-  stroke: rgba(216, 208, 190, 0.34);
-}
+/* Reduced motion or no fine pointer: the CORE alone. It is already a complete
+   resting state -- LINI lit, falling away to KUNDA and NES -- so there is
+   nothing to substitute. The travelling copy simply does not paint. */
+.footer.sf-torch-static.is-upgraded .sf__mark-text--torch { display: none; }
 
 .footer.is-upgraded .sf__foot {
   position: relative; z-index: 2;

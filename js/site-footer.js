@@ -234,6 +234,29 @@
     var s = svg('svg', { class: 'sf__mark', viewBox: '0 0 ' + W + ' ' + H,
                          preserveAspectRatio: 'xMidYMid meet', 'aria-hidden': 'true' });
     var defs = svg('defs');
+
+    /* THE CORE — always lit, and it does not move.
+       The middle of the wordmark stays warm whether or not anyone is pointing
+       at it, so the mark has a resting state of its own rather than being
+       dead until touched. A left-to-right linear ramp, warm at 50% and neutral
+       at both ends, which lands the lit region on LINI -- "KUNDALINI SPINES"
+       is sixteen characters and its centre falls just after that run.
+       The travelling torch is a SECOND copy of the text drawn over this one;
+       where the torch is weak it is nearly transparent and this shows through,
+       which is what lets the light move to the outer letters without the
+       centre ever going out. */
+    var core = svg('linearGradient', { id: 'sf-core', x1: '0', y1: '0', x2: '1', y2: '0' });
+    [['0%',   'rgba(128, 128, 128, 0.16)'],
+     ['28%',  'rgba(198, 190, 172, 0.38)'],
+     ['50%',  'rgba(var(--node-color), 0.92)'],   /* 0.60 -> 0.92: LINI sits exactly where
+                                              the page's spine column is brightest, so the core
+                                              was competing with the most luminous thing on the
+                                              page and losing. */
+     ['72%',  'rgba(198, 190, 172, 0.38)'],
+     ['100%', 'rgba(128, 128, 128, 0.16)']].forEach(function (st) {
+      core.appendChild(svg('stop', { offset: st[0], 'stop-color': st[1] }));
+    });
+    defs.appendChild(core);
     /* userSpaceOnUse so cx/cy are viewBox coordinates and the pointer can be
        mapped straight onto them without knowing the element's size. */
     /* r=400, up from 300. At 300 the lit pool covered barely three letterforms
@@ -242,25 +265,43 @@
        difference between the lit and unlit stroke was not surviving the
        backdrop at all. 400 lights roughly a third of the word, which is enough
        to see the temperature travel without the whole thing coming up at once. */
+    /* r=520, up from 400. The centre is now clamped ABOVE the letterforms, so
+       the pool has to travel further before its edge reaches them; at 400 the
+       grazing light barely touched the cap line and the shine read as nothing
+       at all. The radius buys reach, not intensity -- the falloff does that. */
     grad = svg('radialGradient', { id: 'sf-torch', gradientUnits: 'userSpaceOnUse',
-                                   cx: W / 2, cy: H / 2, r: 400 });
+                                   cx: W / 2, cy: -60, r: 520 });
     /* THE FALLOFF IS DESATURATION, NOT DIMMING -- the owner's reading of the
        reference, and the more interesting of the two. Away from the cursor the
        stroke is a flat neutral grey; under it the stroke carries the scene's
        warm node colour at full strength. The letterforms never change weight,
        so nothing appears to move: only the colour temperature travels. */
-    var stops = [['0%',   'rgba(var(--node-color), 1)'],
-                 ['18%',  'rgba(var(--node-color), 0.82)'],
-                 ['42%',  'rgba(198, 186, 164, 0.46)'],
-                 ['72%',  'rgba(150, 148, 143, 0.26)'],
-                 ['100%', 'rgba(128, 128, 128, 0.16)']];
+    /* THE OUTER STOPS GO FULLY TRANSPARENT, which they did not when this layer
+       was the only one. It now sits OVER the static core, so any alpha out here
+       would grey the core's warm centre back out -- the travelling light has to
+       add and never subtract. */
+    var stops = [['0%',   'rgba(255, 246, 232, 0.95)'],
+                 ['16%',  'rgba(var(--node-color), 0.72)'],
+                 ['40%',  'rgba(var(--node-color), 0.30)'],
+                 ['70%',  'rgba(198, 186, 164, 0.10)'],
+                 ['100%', 'rgba(198, 186, 164, 0)']];
     stops.forEach(function (st) {
       grad.appendChild(svg('stop', { offset: st[0], 'stop-color': st[1] }));
     });
     defs.appendChild(grad);
     s.appendChild(defs);
 
-    mark = svg('text', { class: 'sf__mark-text', x: W / 2, y: H - 26,
+    /* TWO COPIES OF THE SAME WORD, stacked. The lower one carries the static
+       core so the centre is lit at rest; the upper one carries the travelling
+       torch and is nearly transparent everywhere the torch is weak, so the
+       core reads through it. One element could not do both: a stroke takes one
+       paint, and these two need to coexist rather than replace each other. */
+    var base = svg('text', { class: 'sf__mark-text sf__mark-text--core', x: W / 2, y: H - 26,
+                             'text-anchor': 'middle', stroke: 'url(#sf-core)', fill: 'none' });
+    base.textContent = 'KUNDALINI SPINES';
+    s.appendChild(base);
+
+    mark = svg('text', { class: 'sf__mark-text sf__mark-text--torch', x: W / 2, y: H - 26,
                          'text-anchor': 'middle', stroke: 'url(#sf-torch)', fill: 'none' });
     mark.textContent = 'KUNDALINI SPINES';
     s.appendChild(mark);
@@ -299,7 +340,7 @@
       footer.classList.add('sf-torch-static');
       return;
     }
-    var svgEl = sf.__svg, pending = false, px = 0, py = 0, rect = null;
+    var svgEl = sf.__svg, pending = false, px = 0, py = 0, rect = null, ceil = null;
     function apply() {
       pending = false;
       if (!rect) rect = svgEl.getBoundingClientRect();
@@ -310,8 +351,27 @@
          viewport where the box is not exactly 1000:150. */
       var sx = rect.width / 1000, sy = rect.height / 150, s = Math.min(sx, sy);
       var ox = (rect.width - 1000 * s) / 2, oy = (rect.height - 150 * s) / 2;
+
+      /* THE CEILING — the light never descends past the rule that separates
+         navigate/listen/contact from record/geometry/calibration.
+
+         That rule sits ABOVE the wordmark, so clamping the gradient's centre
+         to it means the source is always overhead and only the lower edge of
+         its pool ever reaches the letterforms. The result grazes the tops of
+         the glyphs instead of glowing through their middles, which is the
+         difference between a shine and a lamp -- the owner's word was shine.
+
+         Derived from the rule's real position rather than hardcoded, so it
+         survives any change to the band heights above it. Cached with the
+         rect and invalidated by the same events. */
+      if (ceil === null) {
+        var ruleEl = footer.querySelector('.sf__instr');
+        var ruleY = ruleEl ? ruleEl.getBoundingClientRect().top : rect.top;
+        ceil = (ruleY - rect.top - oy) / s;        /* negative: above the viewBox */
+      }
+      var cy = (py - rect.top - oy) / s;
       grad.setAttribute('cx', ((px - rect.left - ox) / s).toFixed(1));
-      grad.setAttribute('cy', ((py - rect.top - oy) / s).toFixed(1));
+      grad.setAttribute('cy', Math.min(cy, ceil).toFixed(1));
     }
     footer.addEventListener('pointermove', function (e) {
       px = e.clientX; py = e.clientY;
@@ -320,12 +380,15 @@
       requestAnimationFrame(apply);
     }, { passive: true });
     footer.addEventListener('pointerleave', function () {
-      /* Home, not off. The wordmark's rest state is the torch parked in the
-         middle -- switching it off entirely would make leaving the footer a
-         visible event, which is the opposite of what a footer should do. */
-      grad.setAttribute('cx', 500); grad.setAttribute('cy', 75);
+      /* Home is the CENTRE, at the ceiling. The wordmark's rest state is the
+         static core lit on LINI, so parking the torch above the middle simply
+         reinforces where the core already is -- leaving the footer produces no
+         visible event, which is what a footer should do. */
+      grad.setAttribute('cx', 500);
+      grad.setAttribute('cy', (ceil === null ? -40 : ceil).toFixed(1));
     });
-    window.addEventListener('resize', function () { rect = null; });
-    window.addEventListener('scroll', function () { rect = null; }, { passive: true });
+    function invalidate() { rect = null; ceil = null; }
+    window.addEventListener('resize', invalidate);
+    window.addEventListener('scroll', invalidate, { passive: true });
   })();
 })();

@@ -74,9 +74,12 @@
   flex-wrap: wrap;
 }
 .terminal__channel {
-  font-family: var(--font-mono);
-  font-size: 0.7rem;
-  letter-spacing: 0.1em;
+  /* A channel tab is interface, not data — label face, not the readout mono.
+     (Moved to Rajdhani with the Aug 13 2026 type system.) */
+  font-family: var(--font-label);
+  font-weight: 600;
+  font-size: var(--fs-label);
+  letter-spacing: var(--tracking-label);
   text-transform: uppercase;
   background: none;
   border: none;

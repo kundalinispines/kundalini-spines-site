@@ -261,7 +261,15 @@
 }
 .footer.is-upgraded .sf__mark-text {
   font-family: var(--font-display, "Archivo", sans-serif);
+  /* THE WORDMARK CUT, NOT THE DEFAULT WIDTH. Archivo at wdth 100 sets ~20%
+     wider than the Big Shoulders this replaced, and sixteen characters at
+     132px overran the 1000-unit viewBox — the sides clipped to "UNDALINI
+     SPIN". wdth 62 is the lockup's own cut (css/wordmark.css); the JS also
+     sets textLength on both copies so the fit is guaranteed whatever font
+     actually loads. */
   font-weight: 800; font-size: 132px; letter-spacing: 0.01em;
+  font-stretch: 62%;
+  font-variation-settings: "wdth" 62, "wght" 800;
   /* The stroke takes a GRADIENT, which is why this is SVG text and not
      -webkit-text-stroke: that property accepts a colour and nothing else. */
   /* 1.6, not 1.25: an outline over a lit nebula needs weight before it

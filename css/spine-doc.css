@@ -80,12 +80,35 @@
   margin: 0 0 var(--space-4);
 }
 /* Music bleeds RIGHT only. Pulling it left as well ran the cards over the
-   axis, and the spine is the one thing nothing is allowed to cover. */
+   axis, and the spine is the one thing nothing is allowed to cover.
+
+   THE HEADROOM IS LOAD-BEARING. The focused card scales up and rises ~122px
+   ABOVE the arc viewport's top (measured Aug 13 2026, 1440×900) — in the old
+   layout the intro block inside .track-arc-wrap absorbed that; here the clip
+   box must be grown upward instead. padding-top makes the room inside the
+   clip, the negative margin puts the arch back where it was. overflow-x alone
+   is not the fix: an unpaired overflow-x forces overflow-y to auto, and the
+   overshooting card then grows a phantom scrollbar. */
 .ksd-bleed {
   position: relative;
   margin-right: calc(-1 * clamp(24px, 6vw, 120px));
   overflow: hidden;
+  padding-top: 140px;
+  margin-top: -140px;
 }
+
+/* The music head centres over the carousel, not on the axis — the owner's
+   call (Aug 13 2026), and the kit's own note: centre on the ARCH'S OWN
+   wrapper (same right bleed), so the two share a centre by construction
+   instead of by approximation. The axis still owns the section's node — the
+   throw is measured from the headline wherever it sits. */
+.ksd-music-head {
+  position: relative;
+  margin-right: calc(-1 * clamp(24px, 6vw, 120px));
+  text-align: center;
+}
+.ksd-music-head .ksd-head,
+.ksd-music-head .ksd-body { margin-inline: auto; }
 
 /* THE RAIL RUNS THE DOCUMENT'S FULL LENGTH AND SCROLLS WITH IT. It is absolute
    inside the document wrapper, not fixed to the viewport: a fixed rail is a

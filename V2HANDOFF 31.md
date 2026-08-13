@@ -237,6 +237,37 @@ Everything in 19–30's lists still stands. Additionally:
 
 ---
 
+## Addendum — the owner's first eyeball pass (same session)
+
+The owner looked and caught three things the measurements had not framed:
+
+1. **The focused track card clipped at the top.** The scaled-up card rises
+   ~122px above the arc viewport; the old intro block used to absorb that
+   inside `.track-arc-wrap`, and `.ksd-bleed`'s `overflow: hidden` cut it.
+   Fixed with headroom INSIDE the clip box (`padding-top: 140px` +
+   `margin-top: -140px`) — **not** `overflow-x`, which forces `overflow-y`
+   to auto and grows a phantom scrollbar. Verified: card top clears the clip
+   edge by 18px.
+2. **"Enter the Tracks" + the platform note now centre over the carousel**
+   (`.ksd-music-head`, same right bleed as the arch so the centres match by
+   construction — measured equal at x=788). Owner's call; the axis keeps the
+   section's node.
+3. **The footer wordmark was clipped to "UNDALINI SPIN" and still warm.**
+   Archivo at default width overran the 1000-unit viewBox; the SVG text now
+   takes the wdth-62 wordmark cut in CSS plus `textLength=940` on BOTH copies
+   (same value or the torch letters drift off the core letters). The gradient
+   stops in `js/site-footer.js` were warm literals the CSS sweep never touched
+   — now cold bone/white, and the `--node-color` fallback is cold. Related:
+   the footer's nav-harvest filter learned `^#.` so the spine document's
+   in-page links (About/Music/Merch) reach the NAVIGATE column; bare
+   `href="#"` still fails it (that is the STANDBY convention).
+
+Lesson recorded: **the CSS literal sweep does not cover JS** — `js/site-footer.js`
+carried its own palette. `js/spine-ui.js`, `js/track-experience.js` and the
+field labs may too; check before assuming a JS-drawn surface cascades.
+
+---
+
 ## Starting the next V2 chat
 
 Attach this file. The working folder is

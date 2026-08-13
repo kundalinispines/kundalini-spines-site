@@ -56,7 +56,7 @@
      the property is missing entirely.
      ------------------------------------------------------------------------ */
   var ACCENT = (getComputedStyle(document.documentElement)
-                  .getPropertyValue('--node-color') || '240, 165, 92').trim();
+                  .getPropertyValue('--node-color') || '228, 232, 235').trim();
   function accent(a) { return 'rgba(' + ACCENT + ', ' + a + ')'; }
 
   var SVGNS = 'http://www.w3.org/2000/svg';
@@ -85,7 +85,12 @@
     var primary = document.querySelector('header nav, nav.nav, .site-nav');
     if (primary) {
       navLinks = [].slice.call(primary.querySelectorAll('a')).filter(function (a) {
-        return /\.html|^\/$|^\/#/.test(a.getAttribute('href') || '');
+        /* `^#.` (a hash WITH a target) joined the filter Aug 13 2026: the
+           spine-document nav points About/Music/Merch at in-page sections, and
+           without it the footer's NAVIGATE column silently dropped to three
+           rows. The bare placeholder `href="#"` still fails, as it must —
+           that is the STANDBY convention, not a destination. */
+        return /\.html|^\/$|^\/#|^#./.test(a.getAttribute('href') || '');
       /* CLONE ON THIS PATH, AND ONLY ON THIS PATH. Everywhere else this file
          MOVES the anchor node (see the note above build() and the appendChild
          that does it), so there is exactly one copy of every link in the
@@ -358,13 +363,15 @@
        where the torch is weak it is nearly transparent and this shows through,
        which is what lets the light move to the outer letters without the
        centre ever going out. */
+    /* Cold stops Aug 13 2026: the mid-ramp is cold bone (214,213,208), the
+       old warm bone (198,190,172) retired with the palette. */
     var core = svg('linearGradient', { id: 'sf-core', x1: '0', y1: '0', x2: '1', y2: '0' });
     [['0%',   'rgba(128, 128, 128, 0.16)'],
-     ['28%',  'rgba(198, 190, 172, 0.30)'],
+     ['28%',  'rgba(214, 213, 208, 0.30)'],
      ['50%',  accent(TORCH.core)],   /* the brightest point in the word, and it
                                               lands on LINI because the ramp is
                                               centred and the word is centred. */
-     ['72%',  'rgba(198, 190, 172, 0.30)'],
+     ['72%',  'rgba(214, 213, 208, 0.30)'],
      ['100%', 'rgba(128, 128, 128, 0.16)']].forEach(function (st) {
       var st0 = svg('stop', { offset: st[0], 'stop-color': st[1] });
       if (st[0] === '50%') coreStop = st0;      /* the one the brightness dial drives */
@@ -394,11 +401,14 @@
        was the only one. It now sits OVER the static core, so any alpha out here
        would grey the core's warm centre back out -- the travelling light has to
        add and never subtract. */
-    var stops = [['0%',   'rgba(255, 246, 232, 0.95)'],
+    /* The hot point is pure white — in the cold system the hottest light is
+       white (the node cores use #fff the same way); the falloff runs through
+       cold bone instead of the retired warm neutrals. */
+    var stops = [['0%',   'rgba(255, 255, 255, 0.95)'],
                  ['16%',  accent(0.72)],
                  ['40%',  accent(0.30)],
-                 ['70%',  'rgba(198, 186, 164, 0.10)'],
-                 ['100%', 'rgba(198, 186, 164, 0)']];
+                 ['70%',  'rgba(214, 213, 208, 0.10)'],
+                 ['100%', 'rgba(214, 213, 208, 0)']];
     stops.forEach(function (st) {
       grad.appendChild(svg('stop', { offset: st[0], 'stop-color': st[1] }));
     });
@@ -410,13 +420,20 @@
        torch and is nearly transparent everywhere the torch is weak, so the
        core reads through it. One element could not do both: a stroke takes one
        paint, and these two need to coexist rather than replace each other. */
+    /* textLength pins both copies to 940 of the 1000 viewBox units whatever
+       font actually renders — Archivo at its default width overran the box
+       and clipped the sides. The CSS asks for the wdth-62 wordmark cut; this
+       is the guarantee under it. Both copies MUST carry the same value or the
+       torch letters drift off the core letters. */
     var base = svg('text', { class: 'sf__mark-text sf__mark-text--core', x: W / 2, y: H - 26,
-                             'text-anchor': 'middle', stroke: 'url(#sf-core)', fill: 'none' });
+                             'text-anchor': 'middle', stroke: 'url(#sf-core)', fill: 'none',
+                             textLength: 940, lengthAdjust: 'spacingAndGlyphs' });
     base.textContent = 'KUNDALINI SPINES';
     s.appendChild(base);
 
     mark = svg('text', { class: 'sf__mark-text sf__mark-text--torch', x: W / 2, y: H - 26,
-                         'text-anchor': 'middle', stroke: 'url(#sf-torch)', fill: 'none' });
+                         'text-anchor': 'middle', stroke: 'url(#sf-torch)', fill: 'none',
+                         textLength: 940, lengthAdjust: 'spacingAndGlyphs' });
     mark.textContent = 'KUNDALINI SPINES';
     s.appendChild(mark);
     sf.appendChild(s);

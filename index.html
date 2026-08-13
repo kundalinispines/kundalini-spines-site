@@ -5,7 +5,18 @@
      IT BELONGS ON <html>, NOT ON <body>. html::before and html::after are the
      cloud layer and one of the star bands, and a pseudo-element of html resolves
      its variables from html — it can never see a value set on body. Moving this
-     to <body> makes the sky half-respond, which is worse than not responding. -->
+     to <body> makes the sky half-respond, which is worse than not responding.
+
+     REBUILT AUG 13 2026 AS THE SPINE DOCUMENT (design_handoff_full_system).
+     Home IS the spine document now: one long page with the axis pinned to the
+     left edge, sections hung off it, the video hero as the first destination.
+     About, Music, Merch and Stay Connected are sections INSIDE this document;
+     Transmissions, Archive and the magazine About stay separate pages. The
+     centred hero layout this replaces is preserved in git history; the
+     navigator that was once headed for this page is retired to spine-lab.html.
+     THE TRACK CAROUSEL BLOCK IS PROTECTED — its markup moved here verbatim
+     (minus the old intro div, recomposed onto the axis) and js/track-experience.js
+     is untouched. -->
 <html lang="en" class="page-home">
 <head>
 <meta charset="UTF-8">
@@ -27,7 +38,7 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&family=Big+Shoulders+Stencil:wght@700;900&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@400;500&family=Rajdhani:wght@500;600;700&family=Anton&display=swap" rel="stylesheet">
 
 <link rel="stylesheet" href="css/tokens.css">
 <link rel="stylesheet" href="css/base.css">
@@ -35,6 +46,7 @@
 <link rel="stylesheet" href="css/components.css">
 <link rel="stylesheet" href="css/site-footer.css">
 <link rel="stylesheet" href="css/track-experience.css">
+<link rel="stylesheet" href="css/spine-doc.css">
 <link rel="stylesheet" href="css/spine-bg.css">
 </head>
 <body>
@@ -45,125 +57,150 @@
     <a class="nav__mark" href="/"><img src="assets/marks/spine-mark-solid-cut.svg" alt="" width="18" height="18" style="vertical-align:-3px;margin-right:8px;">KUNDALINI SPINES</a>
     <button class="nav__toggle" aria-expanded="false" aria-controls="primary-nav">Menu</button>
     <nav id="primary-nav" aria-label="Primary">
+      <!-- The nav mixes two kinds of destination on purpose: About/Music/Merch
+           scroll this document, Transmissions/Archive swap pages. -->
       <ul class="nav__links">
         <li><a href="/" aria-current="page">Home</a></li>
+        <li><a href="#about">About</a></li>
         <li><a href="#tracks">Music</a></li>
-        <li><a href="merch.html">Merchandise</a></li>
+        <li><a href="#merch">Merch</a></li>
         <li><a href="transmissions.html">Transmissions</a></li>
         <li><a href="archive.html">Archive</a></li>
-        <li><a href="about.html">About</a></li>
       </ul>
     </nav>
   </div>
 </header>
 
 <main id="main">
+  <div class="ksd-doc">
+    <!-- The rail. js/spine-doc.js measures each section and builds the
+         vertebrae, nodes, throws and labels inside this element. -->
+    <div class="ksd-rail" aria-hidden="true"><span class="ksd-cord"></span></div>
 
-  <!-- Hero -->
-  <section class="hero">
-    <div class="hero__media">
-      <video id="hero-video" class="hero__video" poster="assets/hero/messengers-hero-video-poster.jpg"
-             muted loop playsinline preload="auto" aria-hidden="true">
-        <source src="assets/hero/messengers-hero-video.webm" type="video/webm">
-        <source src="assets/hero/messengers-hero-video.mp4" type="video/mp4">
-      </video>
-    </div>
-    <div class="hero__scrim" aria-hidden="true"></div>
-    <button type="button" id="hero-sound-toggle" class="hero__sound-toggle" aria-pressed="false">
-      <span aria-hidden="true">&#128264;</span> Sound Off
-    </button>
-    <div class="container hero__content">
-      <span class="label hero__eyebrow">Kundalini Spines</span>
-      <h1 class="hero__title text-stencil">Knowledge Hidden<br>in Plain Sight</h1>
-      <p class="hero__statement">Two Messengers. One Signal. An underground transmission built from sacred geometry, coded lyricism, and the architecture of the spine itself.</p>
-      <div class="hero__ctas">
-        <a class="btn btn--primary" href="about.html">Enter the World</a>
-        <a class="btn btn--ghost" href="#tracks">Listen Now</a>
-      </div>
-    </div>
-  </section>
+    <div class="ksd-doc__col">
 
-  <!-- Music and Tracks — the dominant interactive section -->
-  <section class="track-experience" id="tracks" aria-label="Music and Tracks">
-    <div class="track-arc-wrap">
-      <div class="track-experience__intro container">
-        <span class="label">Music</span>
-        <h2 class="text-stencil">Enter the Tracks</h2>
-        <p class="track-experience__note" role="status"><strong>Rise Up</strong> isn&rsquo;t on streaming platforms yet &mdash; 20-second samples are available here for every track now. Full streaming and download links go live once each platform is connected.</p>
-      </div>
-
-      <div class="track-arc-viewport">
-        <ul class="track-arc" role="listbox" aria-label="Available tracks"></ul>
-      </div>
-
-      <div class="track-focus-panel" aria-label="Selected track">
-        <div class="track-focus-nav">
-          <button type="button" class="track-focus-nav__btn" data-dir="prev" aria-label="Previous track">&#10094;</button>
-          <p class="track-focus-nav__counter" role="status" aria-live="polite">
-            <span class="track-focus-nav__index">1</span><span class="track-focus-nav__sep">/</span><span class="track-focus-nav__total">1</span>
-          </p>
-          <button type="button" class="track-focus-nav__btn" data-dir="next" aria-label="Next track">&#10095;</button>
+      <!-- Home IS the hero: the rail starts at the video and its first node
+           points at the footage's foot. -->
+      <section class="ksd-section ksd-hero" data-ksd-section="home" data-ksd-label="Home">
+        <div class="ksd-hero__media">
+          <video id="hero-video" poster="assets/hero/messengers-hero-video-poster.jpg"
+                 muted loop playsinline preload="auto" aria-hidden="true">
+            <source src="assets/hero/messengers-hero-video.webm" type="video/webm">
+            <source src="assets/hero/messengers-hero-video.mp4" type="video/mp4">
+          </video>
+          <span class="ksd-hero__scrim" aria-hidden="true"></span>
         </div>
-        <span class="label track-focus-panel__eyebrow"></span>
-        <h3 class="track-focus-panel__title sr-only"></h3>
-        <p class="track-focus-panel__desc"></p>
-        <div class="track-sample-player">
-          <button type="button" class="track-sample-player__btn" aria-label="Play sample">
-            <span aria-hidden="true">&#9654;</span>
-          </button>
-          <div class="track-sample-player__bar"><div class="track-sample-player__bar-fill"></div></div>
-          <span class="track-sample-player__status" role="status" aria-live="polite">Play Sample</span>
+        <button type="button" id="hero-sound-toggle" class="hero__sound-toggle" aria-pressed="false">
+          <span aria-hidden="true">&#128264;</span> Sound Off
+        </button>
+        <h1 class="ksd-head ksd-reveal">Knowledge Hidden<br>in Plain Sight</h1>
+        <p class="ksd-body">Two Messengers. One Signal. An underground transmission built from sacred geometry, coded lyricism, and the architecture of the spine itself.</p>
+        <div style="display:flex;flex-wrap:wrap;gap:var(--space-4);margin-top:var(--space-2);">
+          <a class="btn btn--primary" href="#about">Enter the World</a>
+          <a class="btn btn--ghost" href="#tracks">Listen Now</a>
         </div>
-        <button type="button" class="track-focus-panel__close">&times; Close</button>
-      </div>
-    </div>
-  </section>
+      </section>
 
-  <!-- Newsletter. Since Aug 12 2026 the canonical Stay Connected destination
-       is connect.html (the navigator's connect node and the footer's Contact
-       row both land there); this block stays because the home page should
-       still capture a signup without a detour. The id survives for any old
-       /#newsletter deep links. -->
-  <section class="section newsletter" id="newsletter">
-    <div class="container newsletter__inner">
-      <span class="label">Stay Connected</span>
-      <h2>Stay Connected to the Signal</h2>
-      <p>Receive new music, transmissions, visual releases, and limited announcements directly from Kundalini Spines. No constant noise. Only meaningful signals.</p>
-      <!-- Buttondown. MEASURED 2026-07-29: the endpoint sends no CORS headers to
-           this origin, so this posts natively and the visitor lands on Buttondown's
-           confirmation page. The action and method are load-bearing — the form works
-           with JS off and with js/newsletter.js missing.
-           target="_blank" was REMOVED deliberately: opening a new tab got caught by
-           the popup blocker, which can fail silently. Do not add it back. -->
-      <form id="newsletter-form" class="newsletter-form embeddable-buttondown-form"
-            action="https://buttondown.com/api/emails/embed-subscribe/kundalinispines"
-            method="post" novalidate>
-        <label class="sr-only" for="newsletter-email">Email address</label>
-        <input type="email" id="newsletter-email" name="email" class="newsletter-form__field" placeholder="you@email.com" autocomplete="email" required>
-        <input type="hidden" name="embed" value="1">
-        <button type="submit" class="btn btn--primary">Join the Signal</button>
-      </form>
-      <p class="newsletter__privacy">No spam. Unsubscribe anytime. Your email is never sold or shared.</p>
-      <p id="newsletter-status" class="newsletter__status" role="status" aria-live="polite"></p>
-      <p class="newsletter__powered"><a href="https://buttondown.com/refer/kundalinispines" target="_blank" rel="noopener">Powered by Buttondown.</a></p>
-    </div>
-  </section>
+      <section class="ksd-section" id="about" data-ksd-section="about" data-ksd-label="About">
+        <h2 class="ksd-head ksd-reveal">Two Messengers. One Signal.</h2>
+        <p class="ksd-body">Kundalini Spines is a two-member creative and musical project moving between underground hip-hop, mysticism, symbolism, street experience, ancient knowledge, and speculative thought.</p>
+        <p class="ksd-body">The Messengers don&rsquo;t claim mastery over the Signal &mdash; they receive it, interpret it, and carry it forward. You&rsquo;re invited to decode it for yourself.</p>
+        <p style="margin-top:var(--space-2);"><a class="btn btn--ghost" href="about.html">Read the Feature</a></p>
+      </section>
 
-  <!-- Bio -->
-  <section class="section container">
-    <div class="bio">
-      <div class="bio__media">
-        <img src="assets/hero/messengers-hero-duo.jpg" alt="Two hooded Messengers of Kundalini Spines standing either side of a glowing sacred-geometry spine motif." loading="lazy">
-      </div>
-      <div class="bio__body">
-        <span class="label">About</span>
-        <h2>Two Messengers. One Signal.</h2>
-        <p>Kundalini Spines is a two-member creative and musical project moving between underground hip-hop, mysticism, symbolism, street experience, ancient knowledge, and speculative thought. The Messengers don&rsquo;t claim mastery over the Signal &mdash; they receive it, interpret it, and carry it forward. You&rsquo;re invited to decode it for yourself.</p>
-        <p><a class="btn btn--ghost" href="about.html">More About Kundalini Spines</a></p>
-      </div>
-    </div>
-  </section>
+      <!-- MUSIC IS THE EXCEPTION. The carousel is protected behavior — the
+           cards, their arch geometry and their motion are untouched. Only the
+           type around it was recomposed to hang off the axis instead of
+           centring on the page. The id stays "tracks": css/track-experience.css
+           computes scroll-margin-top from it and old /#tracks deep links keep
+           working. -->
+      <section class="ksd-section track-experience" id="tracks" data-ksd-section="music" data-ksd-label="Music" aria-label="Music and Tracks">
+        <h2 class="ksd-head ksd-reveal">Enter the Tracks</h2>
+        <p class="ksd-body" role="status"><strong>Rise Up</strong> isn&rsquo;t on streaming platforms yet &mdash; 20-second samples are available here for every track now. Full streaming and download links go live once each platform is connected.</p>
+        <!-- Bleeds RIGHT only. Pulling it left as well ran the cards over the
+             axis, and the spine is the one thing nothing is allowed to cover. -->
+        <div class="ksd-bleed">
+          <div class="track-arc-wrap">
+            <div class="track-arc-viewport">
+              <ul class="track-arc" role="listbox" aria-label="Available tracks"></ul>
+            </div>
 
+            <div class="track-focus-panel" aria-label="Selected track">
+              <div class="track-focus-nav">
+                <button type="button" class="track-focus-nav__btn" data-dir="prev" aria-label="Previous track">&#10094;</button>
+                <p class="track-focus-nav__counter" role="status" aria-live="polite">
+                  <span class="track-focus-nav__index">1</span><span class="track-focus-nav__sep">/</span><span class="track-focus-nav__total">1</span>
+                </p>
+                <button type="button" class="track-focus-nav__btn" data-dir="next" aria-label="Next track">&#10095;</button>
+              </div>
+              <span class="label track-focus-panel__eyebrow"></span>
+              <h3 class="track-focus-panel__title sr-only"></h3>
+              <p class="track-focus-panel__desc"></p>
+              <div class="track-sample-player">
+                <button type="button" class="track-sample-player__btn" aria-label="Play sample">
+                  <span aria-hidden="true">&#9654;</span>
+                </button>
+                <div class="track-sample-player__bar"><div class="track-sample-player__bar-fill"></div></div>
+                <span class="track-sample-player__status" role="status" aria-live="polite">Play Sample</span>
+              </div>
+              <button type="button" class="track-focus-panel__close">&times; Close</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="ksd-section" id="merch" data-ksd-section="merch" data-ksd-label="Merch">
+        <h2 class="ksd-head ksd-reveal">Objects That Carry It</h2>
+        <p class="ksd-body">The Signal doesn&rsquo;t only travel as sound. Some of it ends up in things you can hold &mdash; apparel and headwear, the record as a physical object, printed work, and pieces closer to talismans than products.</p>
+        <p class="ksd-body">The Messengers wear the same marks you&rsquo;ll find here. Nothing in the range is made to advertise. It&rsquo;s made to carry &mdash; the same way a transmission is received, preserved, and passed on without weakening.</p>
+        <p class="ksd-body">None of it is listed yet and there is no date. Objects go out as each one is made, in the quantity it can be made in, and they are filed like everything else.</p>
+        <div style="display:flex;flex-wrap:wrap;gap:var(--space-4);margin-top:var(--space-2);">
+          <a class="btn btn--ghost" href="merch.html">View the Objects</a>
+          <a class="btn btn--ghost" href="#newsletter">Be Told First</a>
+        </div>
+      </section>
+
+      <section class="ksd-section" data-ksd-section="transmissions" data-ksd-label="Transmissions">
+        <h2 class="ksd-head ksd-reveal">Tune to a Frequency</h2>
+        <p class="ksd-body">Every signal the Messengers put out &mdash; posts, clips, releases and filed pieces &mdash; arrives here, timestamped and numbered. Select a channel to isolate it, or take the whole band.</p>
+        <p style="margin-top:var(--space-2);"><a class="btn btn--ghost" href="transmissions.html">Open the Terminal</a></p>
+      </section>
+
+      <section class="ksd-section" data-ksd-section="archive" data-ksd-label="Archive">
+        <h2 class="ksd-head ksd-reveal">The Filed Material</h2>
+        <p class="ksd-body">Visual releases, documents and fragments, kept in the order they were received rather than the order they were made.</p>
+        <p style="margin-top:var(--space-2);"><a class="btn btn--ghost" href="archive.html">Enter the Archive</a></p>
+      </section>
+
+      <!-- Stay Connected. The canonical destination stays connect.html; this
+           section captures a signup without a detour. The id survives for any
+           old /#newsletter deep links. -->
+      <section class="ksd-section" id="newsletter" data-ksd-section="connect" data-ksd-label="Stay Connected">
+        <h2 class="ksd-head ksd-reveal">Stay Connected to the Signal</h2>
+        <p class="ksd-body">Receive new music, transmissions, visual releases, and limited announcements directly from Kundalini Spines. No constant noise. Only meaningful signals.</p>
+        <div class="ksd-connect">
+          <!-- Buttondown. MEASURED 2026-07-29: the endpoint sends no CORS headers to
+               this origin, so this posts natively and the visitor lands on Buttondown's
+               confirmation page. The action and method are load-bearing — the form works
+               with JS off and with js/newsletter.js missing.
+               target="_blank" was REMOVED deliberately: opening a new tab got caught by
+               the popup blocker, which can fail silently. Do not add it back. -->
+          <form id="newsletter-form" class="newsletter-form embeddable-buttondown-form"
+                action="https://buttondown.com/api/emails/embed-subscribe/kundalinispines"
+                method="post" novalidate>
+            <label class="sr-only" for="newsletter-email">Email address</label>
+            <input type="email" id="newsletter-email" name="email" class="newsletter-form__field" placeholder="you@email.com" autocomplete="email" required>
+            <input type="hidden" name="embed" value="1">
+            <button type="submit" class="btn btn--primary">Join the Signal</button>
+          </form>
+          <p class="newsletter__privacy">No spam. Unsubscribe anytime. Your email is never sold or shared.</p>
+          <p id="newsletter-status" class="newsletter__status" role="status" aria-live="polite"></p>
+          <p class="newsletter__powered"><a href="https://buttondown.com/refer/kundalinispines" target="_blank" rel="noopener">Powered by Buttondown.</a></p>
+        </div>
+      </section>
+
+    </div>
+  </div>
 </main>
 
 <footer class="footer footer--simple container">
@@ -187,6 +224,7 @@
 <script src="js/nav.js"></script>
 <script src="js/hero-video.js"></script>
 <script src="js/track-experience.js"></script>
+<script src="js/spine-doc.js"></script>
 <script src="js/newsletter.js"></script>
 <script src="js/scroll-weight.js"></script>
 <script src="js/spine-bg.js"></script>

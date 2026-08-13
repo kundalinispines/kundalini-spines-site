@@ -2,9 +2,8 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "spine-lab",
-      "runtimeExecutable": "python",
-      "runtimeArgs": ["scripts/serve.py", "8000"],
+      "name": "kundalini",
+      "url": "http://localhost:8000",
       "port": 8000
     }
   ]

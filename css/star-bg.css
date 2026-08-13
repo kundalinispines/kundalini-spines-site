@@ -18,7 +18,7 @@
                               source frame      shipped 4K
        median luminance           2.08              4.30
        mean luminance             9.16             11.32
-       at or below #050505       60.2%             53.3%
+       at or below #03040F       60.2%             53.3%
        saturation (L>12)          67%               60%
        field RGB              (0.1, 0.3, 5.5)   (2.0, 1.4, 10.3)
 
@@ -93,7 +93,7 @@
      as worth 63 -> 88 fps; that figure was taken on a software renderer and is
      corrected under html::after below). 6 was the single lockstep cores
      layer. */
-  --star-build: 26;
+  --star-build: 27;
 
   /* Brightness of the whole field. 0 is off — the layer still exists but adds
      no light, and under screen blending (see below) that is exactly the same
@@ -131,7 +131,7 @@
 
      The true empty sky is a quarter of one percent of the frame. What reads as
      milky is the faint dust across FIFTY-EIGHT PERCENT of it, landing nine
-     levels of blue above a (5,5,5) page. Dimming the whole layer to fix that
+     levels of blue above a (3,4,15) page. Dimming the whole layer to fix that
      also dims the stars; a black point does not.
 
      WHAT EACH VALUE COSTS — on-page blue for the faint-dust band, against what
@@ -488,12 +488,12 @@ body::before {
 
   /* SAME REASONING AS THE SPINE LAYER, and load-bearing for the same reason.
      Half of this frame is DARKER than the page background, so painted normally
-     it would drag the page's black down below #050505 everywhere the nebula is
-     not — every text-shadow on the site is rgba(5,5,5,...) precisely because
+     it would drag the page's black down below #03040F everywhere the nebula is
+     not — every text-shadow on the site is rgba(3,4,15,...) precisely because
      that is the floor, and moving the floor would put those shadows back above
      the background instead of invisible against it.
      screen(page, black) leaves the page untouched, so this layer can only ever
-     ADD light. The frame's own black stops existing, #050505 stays the floor,
+     ADD light. The frame's own black stops existing, #03040F stays the floor,
      and every contrast decision already made on this site still holds. */
   mix-blend-mode: screen;
 }

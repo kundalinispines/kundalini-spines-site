@@ -1,5 +1,8 @@
 /* ==========================================================================
-   BASE — reset, typography, layout primitives
+   BASE — reset, element typography, layout primitives, utilities.
+   RETYPED AUG 13 2026 with the Archivo/Plex/Rajdhani system from
+   design_handoff_full_system. Headings are Archivo at wdth 72 / wght 750,
+   uppercase, set tight enough to lock up as a block.
    ========================================================================== */
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -40,34 +43,47 @@ body {
   font-family: var(--font-body);
   font-size: var(--fs-body);
   line-height: var(--lh-body);
+  letter-spacing: var(--tracking-body);
   -webkit-font-smoothing: antialiased;
 }
 
 img, video { max-width: 100%; height: auto; display: block; }
 
+/* Headings are Archivo at wdth 72 / wght 750, uppercase, set tight enough to
+   lock up as a block. Below ~1.6rem the -0.03em closes up, so h3/h4 loosen. */
 h1, h2, h3, h4 {
   font-family: var(--font-display);
-  font-weight: 700;
-  line-height: var(--lh-heading);
+  font-weight: var(--display-wght);
+  font-stretch: var(--display-stretch);
+  font-variation-settings: "wdth" var(--display-wdth), "wght" var(--display-wght);
+  text-transform: uppercase;
+  line-height: var(--lh-display);
   letter-spacing: var(--tracking-display);
   margin: 0 0 var(--space-4);
   text-wrap: balance;
 }
 h1 { font-size: var(--fs-hero); line-height: var(--lh-tight); }
 h2 { font-size: var(--fs-h1); }
-h3 { font-size: var(--fs-h2); }
-h4 { font-size: var(--fs-h3); }
+h3 { font-size: var(--fs-h2); letter-spacing: var(--tracking-heading); line-height: var(--lh-heading); }
+h4 { font-size: var(--fs-h3); letter-spacing: var(--tracking-heading); line-height: var(--lh-heading); }
 
-/* Reserved for large showcase moments only (hero title, big section headings) —
-   the stencil cutouts lose legibility below roughly 2.5rem, so this is never used at body/nav scale. */
-.text-stencil {
-  font-family: var(--font-display-stencil);
+/* Showcase line — Archivo stretched wide (wdth 110 / wght 800). Replaces the
+   retired Big Shoulders Stencil cut. Never below ~2.5rem: at small sizes the
+   expansion just reads as loose tracking. .text-stencil is kept as an alias so
+   existing markup keeps working. */
+.text-showcase, .text-stencil {
+  font-family: var(--font-showcase);
+  font-weight: var(--showcase-wght);
+  font-stretch: var(--showcase-stretch);
+  font-variation-settings: "wdth" var(--showcase-wdth), "wght" var(--showcase-wght);
+  text-transform: uppercase;
+  letter-spacing: 0;
   text-shadow:
     1px 1px 0 rgba(0, 0, 0, 0.5),
-    -0.5px -0.5px 0 rgba(242, 242, 238, 0.06);
+    -0.5px -0.5px 0 rgba(228, 232, 235, 0.06);
 }
 
-p { margin: 0 0 var(--space-4); max-width: 65ch; }
+p { margin: 0 0 var(--space-4); max-width: 65ch; text-wrap: pretty; }
 p:last-child { margin-bottom: 0; }
 
 a {
@@ -75,15 +91,27 @@ a {
   text-decoration-color: var(--color-gray-400);
   text-underline-offset: 0.2em;
 }
-a:hover { text-decoration-color: currentColor; }
+a:hover { text-decoration-color: currentColor; color: var(--text-primary); }
 
-/* Uppercase, tracked-out label style — record numbers, eyebrows, nav */
+/* Every piece of small interface type: nav, buttons, eyebrows, chips.
+   MOVED TO RAJDHANI Aug 13 2026 — labels are INTERFACE type. Data readouts
+   (record numbers, timestamps) stay on Plex Mono via .mono/.readout below. */
 .label {
-  font-family: var(--font-mono);
-  font-size: var(--fs-mono);
+  font-family: var(--font-label);
+  font-weight: 600;
+  font-size: var(--fs-label);
   letter-spacing: var(--tracking-label);
   text-transform: uppercase;
   color: var(--text-muted);
+}
+
+/* Readouts, record numbers, timestamps — data, not interface. */
+.mono, .readout {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-size: var(--fs-mono);
+  letter-spacing: var(--tracking-mono);
+  text-transform: uppercase;
 }
 
 /* Visible focus ring everywhere — never color-only, never suppressed */

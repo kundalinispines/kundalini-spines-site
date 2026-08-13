@@ -2,64 +2,122 @@
    KUNDALINI SPINES — DESIGN TOKENS
    Single source of truth for color, type, spacing, motion, and breakpoints.
    Every component should reference these variables — no hardcoded values.
+
+   REPALETTED + RETYPED AUG 13 2026 from design_handoff_full_system (the owner's
+   full-system drop). The warm set (amber light, bone #D8D0BE, deep crimson) and
+   the Big Shoulders / Source Serif families were replaced wholesale. VARIABLE
+   NAMES are unchanged on purpose — every page re-reads them without edits —
+   but the VALUES below are the cold system. The owner's call: the old palette
+   fought the imagery, which is blue-white electrical discharge on near-black.
    ========================================================================== */
 
 :root {
-  /* ---- Color: core palette (from brand audit) ---- */
-  --color-black:      #050505;  /* Archive Black — dominant background */
-  --color-white:      #F2F2EE;  /* Signal White — high-contrast text/accents */
-  --color-bone:       #D8D0BE;  /* Archive Bone — warm neutral, secondary text */
-  --color-crimson:    #5E0A0A;  /* Deep Crimson — rare interruption/accent only */
-  --color-crimson-lit:#8A1414;  /* lightened crimson for hover/active states */
-  --color-moonlight:  #34455B;  /* cool moonlit blue — imagery/photographic accent only, never UI chrome */
+  /* ---- Color: core palette (cold; authored against the nebula hero) ----
+     Black dominates. The neutrals are cold. Signal red is a rare interruption:
+     two uses per page is the budget. The spine's light is white, not warm. */
+  --color-black:       #03040F;  /* Archive Black — dominant background, blue-shifted */
+  --color-black-deep:  #080B10;  /* second ground: sections that sit off the primary */
+  --color-white:       #E4E8EB;  /* Spine Glow — the light the navigator emits, and high-contrast accents */
+  --color-bone:        #D6D5D0;  /* Cold Bone — long-form text; the warm bone (#D8D0BE) retired */
+  --color-crimson:     #7E2630;  /* Signal Red — rare interruption/accent only */
+  --color-crimson-lit: #A1333E;  /* hover/active/live states */
+  --color-moonlight:   #9DB2C0;  /* cold blue — secondary text and imagery alike */
 
-  /* ---- Color: derived grayscale (neutral, slightly warm) ---- */
-  --color-gray-900: #0A0A0A;
-  --color-gray-800: #141414;
-  --color-gray-700: #1F1F1F;
-  --color-gray-600: #2E2E2E;
-  --color-gray-500: #4A4A4A;
-  --color-gray-400: #6B6B6B;
-  --color-gray-300: #8F8F8F;
+  /* ---- Color: derived grayscale (cold slate, not neutral gray) ---- */
+  --color-gray-900: #080B10;
+  --color-gray-800: #131B23;
+  --color-gray-700: #1A252D;
+  --color-gray-600: #394750;
+  --color-gray-500: #57676F;
+  --color-gray-400: #78888F;
+  --color-gray-300: #9DB2C0;
 
   /* ---- Color: semantic roles ---- */
-  --bg-primary:      var(--color-black);
-  --bg-surface:      var(--color-gray-800);
+  --bg-primary:        var(--color-black);
+  --bg-secondary:      var(--color-black-deep);
+  --bg-surface:        var(--color-gray-800);
   --bg-surface-raised: var(--color-gray-700);
-  --text-primary:    var(--color-white);
-  --text-secondary:  var(--color-bone);
-  --text-muted:      var(--color-gray-300);
-  --border-subtle:   var(--color-gray-600);
-  --accent-critical: var(--color-crimson);
-  --focus-ring:       var(--color-bone);
+  --text-primary:      var(--color-bone);
+  --text-secondary:    var(--color-moonlight);
+  --text-muted:        var(--color-gray-400);
+  --border-subtle:     var(--color-gray-600);
+  --interface-muted:   var(--color-gray-500);
+  --accent-critical:   var(--color-crimson);
+  --spine-glow:        var(--color-white);
+  --focus-ring:        var(--color-white);
 
-  /* ---- Typography: three roles per brand audit ----
-     Display  = gritty/industrial condensed type (nav, buttons, headings) — street/military-label feel, stays legible small.
-     Display Stencil = same family's stencil cut, reserved for large showcase moments only (hero, big section titles) —
-                       stencil cutouts lose legibility below a certain size, so this is never used for body-scale text.
-     Body     = archive text type (long-form, captions, body copy)
-     Mono     = technical annotation type (record numbers, timestamps, eyebrow labels)
-     Loaded via <link> in <head>; see docs/06-architecture.md for the tags. */
-  --font-display: 'Big Shoulders Display', 'Arial Narrow', sans-serif;
-  --font-display-stencil: 'Big Shoulders Stencil', 'Arial Narrow', sans-serif;
-  --font-body:    'Source Serif 4', Georgia, serif;
-  --font-mono:    'IBM Plex Mono', 'Courier New', monospace;
+  /* Per-track accent. Sampled from the real cover art at runtime by the
+     carousel (accentFromImage); the JSON value is only a dark fallback. */
+  --track-accent: var(--color-white);
 
-  --fs-hero:      clamp(2.75rem, 6vw, 6rem);
-  --fs-h1:        clamp(2rem, 4vw, 3.5rem);
-  --fs-h2:        clamp(1.5rem, 2.6vw, 2.25rem);
-  --fs-h3:        clamp(1.15rem, 1.8vw, 1.5rem);
-  --fs-body-lg:   1.125rem;
-  --fs-body:      1rem;
-  --fs-caption:   0.875rem;
-  --fs-mono:      0.8125rem;
+  /* ---- Typography: four roles across two families, retuned Aug 2026 ----
+     Display  — Archivo, wdth 72 / wght 750, -0.03em, lh 0.9, UPPERCASE.
+                Headings only. Tight enough to lock up as a block of ink.
+     Showcase — Archivo, wdth 110 / wght 800. Replaces the retired stencil cut:
+                the same family stretched wide, so a showcase line reads as an
+                expanded version of the display face rather than a fourth voice.
+     Body     — IBM Plex Sans 400 / 17px / lh 1.65 / +0.01em. Long-form, captions.
+     Mono     — IBM Plex Mono 500 / 12px / +0.08em, UPPERCASE. Record numbers,
+                timestamps, readouts.
+     Label    — Rajdhani 600 / 13px / +0.18em, UPPERCASE. Nav, buttons, eyebrows,
+                chips — every piece of small interface type.
+     Wordmark — Archivo 900 / wdth 62. The two-line KUNDALINI SPINES lockup only.
+     Magazine — Anton. About page only: masthead, section titles, pull lines.
 
-  --lh-tight: 1.1;
-  --lh-heading: 1.25;
-  --lh-body: 1.6;
+     WHY LABELS ARE THEIR OWN FACE: the display spec is a lockup setting. At nav
+     and button size, wdth 72 at -0.03em uppercase closes up and stops being
+     readable, so small interface type moved to Rajdhani, which is built for it.
+     Loaded via <link> in <head> — Archivo as a VARIABLE font across both axes,
+     because the system uses three distinct cuts of it. font-stretch is the
+     MATCH KEY, not decoration: a rule asking for Archivo at the default width
+     matches no named instance and silently falls back ~20% wider. */
+  --font-display:  'Archivo', 'Arial Narrow', sans-serif;
+  --font-showcase: 'Archivo', 'Arial Narrow', sans-serif;
+  --font-body:     'IBM Plex Sans', system-ui, sans-serif;
+  --font-mono:     'IBM Plex Mono', 'Courier New', monospace;
+  --font-label:    'Rajdhani', 'Arial Narrow', sans-serif;
+  --font-mag:      'Anton', Impact, 'Arial Narrow', sans-serif;
+  --font-wordmark: 'Archivo', 'Arial Narrow', sans-serif;
+  /* COMPAT ALIAS. Big Shoulders Stencil is retired; the showcase cut is its
+     replacement. css/track-experience.css, css/transmissions.css and
+     css/components.css still read this name — they get Archivo (at default
+     width unless the rule also sets font-stretch, which .text-showcase does). */
+  --font-display-stencil: var(--font-showcase);
 
-  --tracking-display: 0.02em;   /* expanded tracking for institutional headings/labels */
-  --tracking-label:   0.12em;   /* wider tracking for uppercase labels/eyebrows */
+  /* Archivo axis settings — the three cuts. Always apply BOTH the
+     font-variation-settings and the matching font-stretch. */
+  --display-wdth:      72;
+  --display-wght:      750;
+  --display-stretch:   72%;
+  --showcase-wdth:     110;
+  --showcase-wght:     800;
+  --showcase-stretch:  110%;
+  --wordmark-stretch:  62%;   /* the match key — see css/wordmark.css */
+  --wordmark-weight:   900;
+  --wordmark-track:    0.046em; /* settled in the tuner Aug 10 2026 */
+
+  /* Scale — retuned to Archivo. It sets narrower than Big Shoulders at the same
+     px, so every step above body grew; the hero cap is the owner's 132px. */
+  --fs-hero:    clamp(2.75rem, 9vw, 8.25rem); /* 44 → 132px */
+  --fs-h1:      clamp(2rem, 5vw, 4rem);
+  --fs-h2:      clamp(1.55rem, 3vw, 2.5rem);
+  --fs-h3:      clamp(1.2rem, 1.9vw, 1.6rem);
+  --fs-body-lg: clamp(1.125rem, calc(1.04rem + 0.34vw), 1.25rem);
+  --fs-body:    clamp(1rem, calc(0.96rem + 0.19vw), 1.0625rem); /* 16 → 17px */
+  --fs-caption: 0.875rem;
+  --fs-mono:    0.75rem;   /* 12px */
+  --fs-label:   0.8125rem; /* 13px */
+
+  --lh-display: 0.9;   /* the lockup setting — h1/h2 only */
+  --lh-tight:   0.92;
+  --lh-heading: 1.05;  /* small headings, where 0.9 collides */
+  --lh-body:    1.65;
+
+  --tracking-display:  -0.03em; /* the lockup setting */
+  --tracking-heading:  -0.01em; /* h3/h4 — -0.03em closes up below ~1.6rem */
+  --tracking-label:     0.18em; /* Rajdhani: nav, buttons, eyebrows */
+  --tracking-mono:      0.08em; /* Plex Mono readouts */
+  --tracking-body:      0.01em;
 
   /* ---- Spacing scale (4px base) ---- */
   --space-1: 0.25rem;   /* 4px */
@@ -77,6 +135,18 @@
   --container-max: 1280px;
   --container-pad: var(--space-6);
   --grid-gap: var(--space-6);
+
+  /* TWO DIFFERENT JOBS, TWO DIFFERENT VALUES.
+     --nav-h is written from JS on every frame (js/nav.js) and tracks the
+     CURRENT bar as it collapses. It is correct for scroll offsets and
+     scroll-margin-top, and WRONG for anything that affects layout: feeding a
+     scroll-varying value into padding makes document height a function of
+     scroll position, which shortens the page as you read it and invalidates
+     any position measured before the scroll.
+     --nav-h-max is the EXPANDED bar height, static and declarative. Layout
+     clearance reads this one. */
+  --nav-h: 72px;     /* fallback only; the live value is measured and republished */
+  --nav-h-max: 92px;
 
   /* ---- Borders & surfaces ---- */
   --radius-sharp: 0px;     /* default — severe/institutional, not soft */
@@ -97,6 +167,10 @@
      lg:      1024px
      xl:      1280px
      xxl:     1440px */
+}
+
+@media (max-width: 760px) {
+  :root { --nav-h-max: 62px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

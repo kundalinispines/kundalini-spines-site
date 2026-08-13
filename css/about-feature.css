@@ -94,8 +94,8 @@
 .ks-hero__scrim {
   position: absolute; inset: 0;
   background: linear-gradient(180deg,
-    rgba(5,5,5,0.90) 0%, rgba(5,5,5,0.12) 30%, rgba(5,5,5,0.50) 62%,
-    rgba(5,5,5,0.93) 90%, #050505 100%);
+    rgba(3,4,15,0.90) 0%, rgba(3,4,15,0.12) 30%, rgba(3,4,15,0.50) 62%,
+    rgba(3,4,15,0.93) 90%, #03040F 100%);
 }
 /* The top stop is for the fixed nav, which is opaque black once scrolled but
    transparent at the top of this page — the headline sits under it otherwise. */
@@ -188,7 +188,7 @@
 .ks-pull {
   margin: 0 0 1.35em; max-width: none;
   padding-left: var(--space-6);
-  border-left: 2px solid rgba(216, 208, 190, 0.34);
+  border-left: 2px solid rgba(214, 213, 208, 0.34);
   font-family: var(--font-mag); font-weight: 400; text-transform: uppercase;
   font-size: clamp(1.6rem, 3.4vw, 2.5rem); line-height: 1.08;
   color: var(--text-primary);
@@ -216,7 +216,7 @@
 /* THERE ARE NO CAPTIONS. Owner's call 2026-08-11; .ks-figcap and .ks-bleed__cap
    are gone along with all four of them. They were also the page's worst
    legibility failure: 11px --color-gray-400, which tops out at 3.94:1 on flat
-   #050505 and so could not reach AA anywhere on this site regardless of
+   #03040F and so could not reach AA anywhere on this site regardless of
    backdrop. Measured over the lit nebula the Graveyard Shift caption ran
    1.87:1 with 100% of its glyph pixels under the threshold.
    The images carry real alt text; the captions were duplicating what the
@@ -230,7 +230,7 @@
    nothing here crops vertically — the images run at their own ratio and the
    column bends around them. */
 .ks-cut { margin: 0.4em 0 1.8em; }
-.ks-cut img, .ks-cut video { width: 100%; display: block; border: 1px solid rgba(216, 208, 190, 0.14); }
+.ks-cut img, .ks-cut video { width: 100%; display: block; border: 1px solid rgba(214, 213, 208, 0.14); }
 @media (min-width: 881px) {
   .ks-cut--right { float: right; width: min(40%, 400px); margin: 0.4em 0 1.8em var(--space-12); shape-outside: margin-box; }
   .ks-cut--left  { float: left;  width: min(38%, 380px); margin: 0.4em var(--space-12) 1.8em 0; shape-outside: margin-box; }
@@ -256,10 +256,10 @@
    scroll container, so the sticky survives. */
 .ks-bleed { position: relative; margin-inline: calc(50% - 50vw); width: 100vw; max-width: 100vw; overflow: hidden; }
 .ks-bleed img { width: 100%; height: auto; display: block; }
-.ks-bleed--rule { border-block: 1px solid rgba(216, 208, 190, 0.14); }
+.ks-bleed--rule { border-block: 1px solid rgba(214, 213, 208, 0.14); }
 .ks-bleed--faded::after {
   content: ''; position: absolute; inset: 0; pointer-events: none;
-  background: linear-gradient(180deg, #050505 0%, rgba(5,5,5,0) 22%, rgba(5,5,5,0) 78%, #050505 100%);
+  background: linear-gradient(180deg, #03040F 0%, rgba(3,4,15,0) 22%, rgba(3,4,15,0) 78%, #03040F 100%);
 }
 
 /* ---- Two-column setting -------------------------------------------------- */
@@ -289,7 +289,7 @@
 
    Same two-pass pair spine-bg.css uses three times for small text over the lit
    column. The 1px pass gives the glyph a hard edge, the 3px pass kills the
-   halo, and rgba(5,5,5) rather than #000 so it can never paint below the page.
+   halo, and rgba(3,4,15) rather than #000 so it can never paint below the page.
    Measured effect at the worst sites: worst-5% 2.31 -> 6.68 (sec 08 @1440),
    1.93 -> 6.45 (sec 09 @1920), 1.25 -> 15.23 (.ks-shout @1920).
 
@@ -305,18 +305,18 @@
 .ks-lede, .ks-copy, .ks-shout, .ks-pull,
 .ks-head h2, .ks-head__num, .ks-signoff__mark, .ks-signoff__sub,
 .ks-standfirst p, .ks-hero__cue, .ks-hero__eyebrow .label {
-  text-shadow: 0 0 3px rgba(5, 5, 5, 0.98), 0 1px 2px rgba(5, 5, 5, 0.92);
+  text-shadow: 0 0 3px rgba(3, 4, 15, 0.98), 0 1px 2px rgba(3, 4, 15, 0.92);
 }
 
 /* A SHADOW CANNOT FIX A COLOUR THAT FAILS ON BLACK, and --color-gray-400
-   (#6B6B6B) tops out at 3.94:1 on flat #050505 -- it cannot reach AA anywhere
+   (#6B6B6B) tops out at 3.94:1 on flat #03040F -- it cannot reach AA anywhere
    on this site regardless of backdrop. The captions that shared this problem
    were deleted outright (see "Figures" above); .ks-hero__cue is what is left.
    Same move css/spine-bg.css already makes for .label. */
 .ks-hero__cue { color: var(--text-secondary); }
 
 /* STILL FAILING, DELIBERATELY, PENDING AN OWNER CALL ON THE BRAND.
-   --color-crimson-lit (#8A1414) tops out at ~2.2:1 on flat #050505, so
+   --color-crimson-lit (#8A1414) tops out at ~2.2:1 on flat #03040F, so
    .ks-head__num (the 01-10 numerals) and .ks-signoff__sub ("Decode the
    transmission.") fail before the sky is involved at all -- measured
    1.09-1.80:1. The shadow above helps them and does not save them.

@@ -18,12 +18,12 @@
    settled characters in the label's own colour, churning characters in an
    accent that separates from it.
 
-     --ts-color  240,165,92   the navigator's --node-color, quoted exactly —
+     --ts-color  228,232,235   the navigator's --node-color, quoted exactly —
                               the same amber as the coil, the shutter's ghost
                               and the button's border. NOT --color-crimson;
                               #5E0A0A is darker than the star field's brightest
                               band and reads as a smudge rather than as light.
-     --ts-churn  216,208,190  --color-bone.
+     --ts-churn  214,213,208  --color-bone.
 
    WHICH WAY ROUND, and why bone is the churn rather than the answer: on the
    reference the churning tail is the LOUDER of the two (accent orange against
@@ -39,8 +39,8 @@
    ========================================================================== */
 
 :root {
-  --ts-color: 240, 165, 92;
-  --ts-churn: 216, 208, 190;
+  --ts-color: 228, 232, 235;
+  --ts-churn: 214, 213, 208;
 }
 
 /* .is-scrambling is set on the host for the duration of a run and carries no
@@ -118,7 +118,7 @@
 
    0.26 of scale and 1.42x of brightness, and BOTH CAME DOWN after looking at
    a 4x capture. The first pass was 0.42 and 1.9x: at full activity that pushes
-   rgb(240,165,92) to (255,255,175) — the green channel saturates first, so the
+   rgb(228,232,235) to (255,255,175) — the green channel saturates first, so the
    dot goes YELLOW, which is a hue that appears nowhere else on this site and
    read as a warning lamp bolted to the button rather than as the button's own
    light. 1.42x tops out around (255,234,131), still recognisably the amber,

@@ -46,7 +46,7 @@
    588ms total, inside the 500-600ms the owner asked for; the HUD goes to 900
    if the longer settle is wanted back.
 
-   COLOUR. The ghost is amber rgb(240,165,92) — the navigator's --node-color,
+   COLOUR. The ghost is amber rgb(228,232,235) — the navigator's --node-color,
    quoted verbatim from spine-lab.html so this speaks the same language as the
    coil and the nodes. It is deliberately NOT --color-crimson (#5E0A0A): at
    9% luminance crimson is darker than the bone text AND barely above the star
@@ -131,13 +131,13 @@
 /* INHERIT, do not name a colour. The slats have to land on exactly the colour
    the settled headline is already painted in, and hard-coding var(--color-bone)
    here while the headline sat on --text-primary put a visible hue pop on the
-   last frame — Archive Bone #D8D0BE flipping to Signal White #F2F2EE the
+   last frame — Archive Bone #D6D5D0 flipping to Signal White #E4E8EB the
    instant the slats were torn down. Caught on the 520ms capture. Whatever the
    headline's own colour is, the slats are that colour.
    The ghost is under the text in DOM order, so the text always wins where they
    overlap and the amber only shows where the slat has not arrived yet. */
 .sh-copy--text  { color: inherit; }
-.sh-copy--ghost { color: rgb(var(--sh-ghost, 240, 165, 92)); }
+.sh-copy--ghost { color: rgb(var(--sh-ghost, 228, 232, 235)); }
 
 /* The blur filters live in an inline <svg> in the page. Zero-size and out of
    flow so it never affects layout; not display:none, because a referenced

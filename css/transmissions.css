@@ -225,8 +225,8 @@
   inset: auto var(--space-3) var(--space-3) auto;
   width: 38px; height: 38px;
   border-radius: 50%;
-  background: rgba(5, 5, 5, .72);
-  border: 1px solid rgba(242, 242, 238, .5);
+  background: rgba(3, 4, 15, .72);
+  border: 1px solid rgba(228, 232, 235, .5);
   display: grid;
   place-items: center;
   font-size: 0.7rem;

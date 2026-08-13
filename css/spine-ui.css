@@ -107,13 +107,17 @@
                                          whole while a card is open, rather than
                                          collapsing to a single lit point */
   --reticle-w:               300px;   /* horizontal crosshair span when focused */
-  --node-color:              240, 165, 92;   /* warm amber-gold — kundalini energy; distinguishes nodes from the white spine */
+  --node-color:              228, 232, 235;  /* --spine-glow #E4E8EB as an RGB triplet. REPALETTED
+                                         Aug 13 2026 with the full-system drop: the spine is COLD
+                                         WHITE LIGHT, matched to the lightning in the nebula hero.
+                                         Supersedes the amber-vs-white distinction (228,232,235) —
+                                         the owner replaced the warm set wholesale. */
   --node-label-offset:       180px;   /* push labels clear of the spine glow */
 
   /* Node IDLE read — how strongly a real destination announces itself before
      anything is hovered. Split out of the hardcoded shadows so ?tune can dial
      it live: the question these answer is "do the six read as clickable?". */
-  --node-glow:               10px;    /* amber halo radius on the idle dot */
+  --node-glow:               10px;    /* halo radius on the idle dot */
   --node-glow-a:             0.68;    /* ...and its alpha (0.59 → 0.68 Aug 12 2026) */
   --node-core-a:             0.85;    /* the tight white core inside the dot */
   --node-mark-size:          200%;    /* the thin static ring that marks a REAL
@@ -151,10 +155,11 @@
 
   /* Connectors */
   --connector-w:             1.5px;
-  --connector-color:         rgba(216, 208, 190, 0.72);
-  --connector-active:        rgba(242, 242, 238, 0.9);   /* lit when established */
-  --connector-preview:       rgba(216, 208, 190, 0.28);
-  --connector-head:          rgba(242, 242, 238, 1);      /* energy running the line */
+  /* Cold values Aug 13 2026: bone is now #D6D5D0, glow is #E4E8EB. */
+  --connector-color:         rgba(214, 213, 208, 0.72);
+  --connector-active:        rgba(228, 232, 235, 0.9);   /* lit when established */
+  --connector-preview:       rgba(214, 213, 208, 0.28);
+  --connector-head:          rgba(228, 232, 235, 1);      /* energy running the line */
   --connector-draw-ms:       520ms;   /* §00 mockup: "all transitions 550ms" */
   --connector-ease:          cubic-bezier(0.4, 0, 0.2, 1);
 
@@ -165,11 +170,13 @@
      the lighter fill had no surface left to sit on once the card stopped being
      translucent. Do not re-add it as a "hover/idle" pair without a rule to use
      it — that is how it died the first time. */
-  --card-bg-solid:           rgba(12, 14, 18, 0.42);
+  /* Cold glass Aug 13 2026: fill is --surface #131B23 at the glass's own alpha,
+     borders are --border #394750 rather than warm bone. */
+  --card-bg-solid:           rgba(19, 27, 35, 0.42);
   --card-blur:               18px;
-  --card-border:             rgba(216, 208, 190, 0.22);
-  --card-border-lit:         rgba(242, 242, 238, 0.45);
-  --card-ghost:              rgba(216, 208, 190, 0.22);   /* depth / ghost frames */
+  --card-border:             rgba(57, 71, 80, 0.9);
+  --card-border-lit:         rgba(228, 232, 235, 0.45);
+  --card-ghost:              rgba(57, 71, 80, 0.75);      /* depth / ghost frames */
   --card-enter-ms:           440ms;
   --card-w:                  clamp(280px, 30vw, 400px);
 }
@@ -204,7 +211,7 @@
 .spine-connectors .conn-active {
   stroke: var(--connector-color);
   stroke-width: var(--connector-w);
-  filter: drop-shadow(0 0 3px rgba(242,242,238,0.35));
+  filter: drop-shadow(0 0 3px rgba(228,232,235,0.35));
 }
 .spine-connectors .conn-active.is-preview { stroke: var(--connector-preview); filter: none; }
 /* ESTABLISHED — the line has arrived and the card is the endpoint. Set by
@@ -233,14 +240,14 @@
 .spine-connectors .conn-active.is-established {
   stroke: var(--connector-active);
   stroke-width: calc(var(--connector-w) + 0.3px);
-  filter: drop-shadow(0 0 5px rgba(242,242,238,0.55));
+  filter: drop-shadow(0 0 5px rgba(228,232,235,0.55));
 }
 /* energy head — a short bright segment that runs the line as it establishes */
 .spine-connectors .conn-head {
   stroke: var(--connector-head);
   stroke-width: calc(var(--connector-w) + 0.5px);
   stroke-linecap: round;
-  filter: drop-shadow(0 0 5px rgba(242,242,238,0.9));
+  filter: drop-shadow(0 0 5px rgba(228,232,235,0.9));
 }
 
 /* --------------------------------------------------------------------------
@@ -293,8 +300,8 @@
   position: absolute; top: 6%; bottom: 6%; left: 50%;
   width: 1px; transform: translateX(-50%);
   background: linear-gradient(180deg, transparent,
-    rgba(242,242,238,0.5) 12%, rgba(242,242,238,0.5) 88%, transparent);
-  filter: drop-shadow(0 0 4px rgba(242,242,238,0.45));
+    rgba(228,232,235,0.5) 12%, rgba(228,232,235,0.5) 88%, transparent);
+  filter: drop-shadow(0 0 4px rgba(228,232,235,0.45));
   opacity: var(--cord-opacity);
 }
 
@@ -318,9 +325,9 @@
 }
 .spine__marker span { display: block; color: var(--color-gray-400); }
 .spine__marker--start { top: 1.5%; }
-.spine__marker--start .tick { display: block; margin: 6px auto 0; width: 1px; height: 22px; background: linear-gradient(180deg, transparent, rgba(216,208,190,0.35)); }
+.spine__marker--start .tick { display: block; margin: 6px auto 0; width: 1px; height: 22px; background: linear-gradient(180deg, transparent, rgba(214,213,208,0.35)); }
 .spine__marker--end { bottom: 1.5%; }
-.spine__marker--end .tick { display: block; margin: 0 auto 6px; width: 1px; height: 22px; background: linear-gradient(180deg, rgba(216,208,190,0.35), transparent); }
+.spine__marker--end .tick { display: block; margin: 0 auto 6px; width: 1px; height: 22px; background: linear-gradient(180deg, rgba(214,213,208,0.35), transparent); }
 /* the rising energy — a comet: warm amber head leading, white trail behind
    (below, since it travels up). The head is the point the node flickers meet. */
 .spine__energy {
@@ -330,8 +337,8 @@
   background: linear-gradient(180deg,
     rgba(var(--node-color), 0.95) 0%,     /* amber head (leading edge, top) */
     rgba(255, 250, 244, 0.92) 9%,         /* bright white just behind the head */
-    rgba(242, 242, 238, 0.5) 40%,         /* white trail, fading */
-    rgba(242, 242, 238, 0.16) 70%,
+    rgba(228, 232, 235, 0.5) 40%,         /* white trail, fading */
+    rgba(228, 232, 235, 0.16) 70%,
     transparent 100%);                    /* trail dissolves below */
   filter: blur(1px);
   opacity: 0;
@@ -393,7 +400,7 @@
 .spine-node__dot::after {
   content: ""; position: absolute; top: 50%; left: 50%;
   width: var(--node-mark-size); height: var(--node-mark-size); transform: translate(-50%,-50%);
-  border-radius: 50%; border: 1px solid rgba(242,242,238, var(--node-mark-a));
+  border-radius: 50%; border: 1px solid rgba(228,232,235, var(--node-mark-a));
 }
 /* concentric pulse rings (reticle) */
 .spine-node__ring {
@@ -471,7 +478,7 @@
 }
 .spine-node__reticle .sq {
   position: absolute; top: 50%; width: 5px; height: 5px; margin-top: -2.5px;
-  border: 1px solid rgba(var(--node-color), 0.65); background: rgba(5,5,5,0.4);
+  border: 1px solid rgba(var(--node-color), 0.65); background: rgba(3,4,15,0.4);
   opacity: 0; transition: opacity var(--motion-base) var(--ease-standard);
 }
 /* THE SQUARE RIDES THE TIP OF THE RULE, which means it has to know the rule's
@@ -510,7 +517,7 @@
   letter-spacing: var(--tracking-label); text-transform: uppercase;
   color: var(--text-primary);
   /* legibility scrim so the label never washes out over the white spine */
-  text-shadow: 0 0 6px rgba(5,5,5,0.95), 0 0 12px rgba(5,5,5,0.9), 0 1px 2px rgba(5,5,5,1);
+  text-shadow: 0 0 6px rgba(3,4,15,0.95), 0 0 12px rgba(3,4,15,0.9), 0 1px 2px rgba(3,4,15,1);
   opacity: 0; transition: opacity var(--motion-base) var(--ease-standard);
 }
 .spine-node[data-side="left"]  .spine-node__label { right: var(--node-label-offset); text-align: right; }
@@ -694,15 +701,15 @@
 .spine-point {
   position: absolute; left: 0; top: var(--y);
   width: var(--point-size); height: var(--point-size); transform: translate(-50%, -50%);
-  border-radius: 50%; background: rgba(242,242,238,0.8);
-  box-shadow: 0 0 4px rgba(242,242,238,0.35);
+  border-radius: 50%; background: rgba(228,232,235,0.8);
+  box-shadow: 0 0 4px rgba(228,232,235,0.35);
   opacity: calc(var(--point-idle) * var(--point-dim)); pointer-events: none;
   animation: point-ping var(--spine-ui-energy-ms) linear infinite;
   transition: --point-dim var(--motion-base) var(--ease-standard);
 }
 @keyframes point-ping {
   0%   { opacity: calc(var(--point-flash) * var(--point-dim)); box-shadow: 0 0 9px rgba(var(--node-color),0.9); background: rgba(255,236,214,1); }
-  7%   { opacity: calc(var(--point-idle) * var(--point-dim));  box-shadow: 0 0 3px rgba(242,242,238,0.25); background: rgba(242,242,238,0.7); }
+  7%   { opacity: calc(var(--point-idle) * var(--point-dim));  box-shadow: 0 0 3px rgba(228,232,235,0.25); background: rgba(228,232,235,0.7); }
   100% { opacity: calc(var(--point-idle) * var(--point-dim)); }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -793,7 +800,7 @@
   position: absolute; z-index: 25;
   width: var(--card-w); max-width: calc(100vw - 2 * var(--space-6));
   background:
-    linear-gradient(155deg, rgba(242,242,238,0.06), rgba(242,242,238,0) 42%),
+    linear-gradient(155deg, rgba(228,232,235,0.06), rgba(228,232,235,0) 42%),
     var(--card-bg-solid);
   -webkit-backdrop-filter: blur(var(--card-blur)) saturate(1.1); backdrop-filter: blur(var(--card-blur)) saturate(1.1);
   border: 1px solid var(--card-border-lit);
@@ -809,7 +816,7 @@
      an outline that first exists at open would snap. */
   outline: 1px solid rgba(var(--node-color), 0);
   outline-offset: 0;
-  box-shadow: inset 0 1px 0 rgba(242,242,238,0.10), 0 24px 60px rgba(0,0,0,0.5);
+  box-shadow: inset 0 1px 0 rgba(228,232,235,0.10), 0 24px 60px rgba(0,0,0,0.5);
   padding: var(--space-6);
   /* NEVER TALLER THAN THE WINDOW — Aug 12 2026. positionCard clamps top to a
      90px floor and the bottom to 24px above the stage edge, so 114px is the
@@ -850,7 +857,7 @@
   /* the amber hairline + its bloom. The two shadows above are restated because
      box-shadow is a whole-property override, not an append. */
   outline-color: rgba(var(--node-color), 0.34);
-  box-shadow: inset 0 1px 0 rgba(242,242,238,0.10),
+  box-shadow: inset 0 1px 0 rgba(228,232,235,0.10),
               0 24px 60px rgba(0,0,0,0.5),
               0 0 22px -6px rgba(var(--node-color), 0.30);
   transition-delay: 0s; /* enter after connector draws (set in JS) */
@@ -924,13 +931,13 @@
      Contrast comes from three places now: the glyph goes to bone, the border
      to a visible warm line, and a dark plate goes UNDER it so it never has to
      compete with whatever the sky is doing behind the card. */
-  background: rgba(5,5,5,0.55); border: 1px solid rgba(216,208,190,0.38);
+  background: rgba(3,4,15,0.55); border: 1px solid rgba(214,213,208,0.38);
   color: var(--color-bone); cursor: pointer; font-size: 16px;
   transition: color var(--motion-fast), border-color var(--motion-fast),
               background-color var(--motion-fast);
 }
 .spine-card__close:hover { color: var(--text-primary); border-color: var(--color-bone);
-  background: rgba(5,5,5,0.8); }
+  background: rgba(3,4,15,0.8); }
 
 /* immersive placeholder card reads as a stub, not a real destination yet */
 .spine-card.is-immersive { border-color: var(--card-border); }

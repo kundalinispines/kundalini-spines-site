@@ -91,7 +91,7 @@
      kick. 33 = the lightning layer wired in (js injection + tuner rows; the
      layer itself lives in css/star-bg.css) and the stale "loaded by
      index.html only" header line above corrected. */
-  --spine-build: 37;
+  --spine-build: 38;
 
   --charge: 0;          /* 0..1, written by js/spine-bg.js every scroll frame */
 
@@ -680,7 +680,7 @@ body { position: relative; }
 
   /* THE FIX for the visible lighter panel.
      The artwork is glow-on-black, and no encode of "black" is ever exactly the
-     page's #050505 — the artwork's field measured (1,2,2) at the corners but
+     page's #03040F — the artwork's field measured (1,2,2) at the corners but
      (13,11,9) in the top and bottom bands, and its bloom lifts a wide area
      besides. Painted normally that whole 1316px-wide rectangle reads as a
      slightly different black with visible vertical edges, which is exactly the
@@ -693,7 +693,7 @@ body { position: relative; }
 }
 
 /* Fade the artwork's own top and bottom to true black. Those bands measure
-   (13,11,9) against a (5,5,5) page, so at a tile seam they read as a warm
+   (13,11,9) against a (3,4,15) page, so at a tile seam they read as a warm
    smudge. This costs nothing and does not touch the file. */
 .spine-bg__art {
   -webkit-mask-image: var(--mask-ends), var(--mask-sides);
@@ -705,7 +705,7 @@ body { position: relative; }
   /* And fade the LEFT and RIGHT edges too.
      screen blending stops the artwork's field from darkening the page, but it
      cannot stop it LIGHTENING it: the field measures (6,7,7), so screened over
-     (5,5,5) the artwork's rectangle sits about 1-2 levels above the page. That
+     (3,4,15) the artwork's rectangle sits about 1-2 levels above the page. That
      is invisible on most screens and clearly visible on a good one in a dark
      room — a faint vertical edge running the height of the page. This removes
      it outright. The fade is wide (18% of the artwork width each side) because
@@ -939,8 +939,8 @@ main > .section,
 .track-experience { background: transparent; }
 
 /* ---- Legibility: ATTENUATE the backdrop, never paint over it -------------
-   Earlier passes painted a soft rgba(5,5,5,...) radial over the artwork. The
-   colour was already an exact match for the page — #050505 — and it STILL read
+   Earlier passes painted a soft rgba(3,4,15,...) radial over the artwork. The
+   colour was already an exact match for the page — #03040F — and it STILL read
    as a dark halo, because matching the page is the wrong target. Over flat page
    black the scrim is invisible (black on black), but over a column sitting at
    L 70 the same scrim is far darker than its surroundings, so it shows up as a
@@ -956,7 +956,7 @@ main > .section,
    MEASURED at 1440x900 with the front over the section (see the session notes):
                              over page black    over the lit column
      no scrim                    L 5.0               L 70.6
-     old rgba(5,5,5) overlay     L 5.0               L 41.2   <- 36-level step
+     old rgba(3,4,15) overlay     L 5.0               L 41.2   <- 36-level step
                                                                 against the page,
                                                                 visible as a disc
      backdrop-filter version     L 4.6               L 21.4   <- 0.4 off the page,
@@ -1020,18 +1020,18 @@ main > .section::before,
 @supports not ((backdrop-filter: brightness(1)) or (-webkit-backdrop-filter: brightness(1))) {
   .newsletter::before,
   main > .section::before,
-  .track-experience::before { background: rgba(5, 5, 5, 0.42); }
+  .track-experience::before { background: rgba(3, 4, 15, 0.42); }
 }
 
-/* EVERY shadow colour here is rgba(5,5,5,...) — the page background — and never
-   rgba(0,0,0,...). MEASURED: pure-black shadows on a #050505 page paint BELOW
+/* EVERY shadow colour here is rgba(3,4,15,...) — the page background — and never
+   rgba(0,0,0,...). MEASURED: pure-black shadows on a #03040F page paint BELOW
    the background. With the whole layer dialled to zero there was still a strip
    at L 3.0 against the page's 5.0, running the width of the track copy: a soft
    dark haze around every glyph that read as a blob under the cards. It was not
    the artwork, not the scrims, not a box-shadow — it was the text shadows
    themselves, and it survived turning every slider off because nothing controls
    them.
-   At rgba(5,5,5) a shadow can darken the lit column but can never go below the
+   At rgba(3,4,15) a shadow can darken the lit column but can never go below the
    page, so it is invisible wherever there is nothing to hide. The contrast cost
    against a bright vertebra is a floor of 5 instead of 0 — nothing.
 
@@ -1042,10 +1042,10 @@ main > .section::before,
 .track-experience__intro,
 .bio__body,
 .track-focus-panel {
-  text-shadow: 0 1px 2px rgba(5, 5, 5, 0.92), 0 0 5px rgba(5, 5, 5, 0.75);
+  text-shadow: 0 1px 2px rgba(3, 4, 15, 0.92), 0 0 5px rgba(3, 4, 15, 0.75);
 }
 
-/* Lift the copy that sits over the column. --text-secondary (#D8D0BE) is a
+/* Lift the copy that sits over the column. --text-secondary (#D6D5D0) is a
    warm mid-tone that loses against a lit vertebra; these read at full or near
    full white instead, which is what actually makes them stand out. */
 .track-focus-panel__desc,
@@ -1081,9 +1081,9 @@ main > .section::before,
 .track-focus-nav__index {
   font-weight: 500;
   text-shadow:
-    0 0 3px rgba(5, 5, 5, 0.98),
-    0 1px 2px rgba(5, 5, 5, 0.95),
-    0 0 10px rgba(5, 5, 5, 0.85);
+    0 0 3px rgba(3, 4, 15, 0.98),
+    0 1px 2px rgba(3, 4, 15, 0.95),
+    0 0 10px rgba(3, 4, 15, 0.85);
 }
 /* A shadow alone was not enough, and it was never going to be: the accent is a
    MID-TONE, so the type was low-contrast even where the backdrop was black.
@@ -1112,7 +1112,7 @@ main > .section::before,
 .newsletter .label,
 main > .section .label {
   color: var(--text-secondary);
-  text-shadow: 0 0 3px rgba(5, 5, 5, 0.98), 0 1px 2px rgba(5, 5, 5, 0.92);
+  text-shadow: 0 0 3px rgba(3, 4, 15, 0.98), 0 1px 2px rgba(3, 4, 15, 0.92);
 }
 
 /* Headings sit over the brightest band of the column and are large enough that
@@ -1120,7 +1120,7 @@ main > .section .label {
 .newsletter h2,
 .bio__body h2,
 .track-experience__intro h2 {
-  text-shadow: 0 1px 3px rgba(5, 5, 5, 0.9), 0 0 12px rgba(5, 5, 5, 0.6);
+  text-shadow: 0 1px 3px rgba(3, 4, 15, 0.9), 0 0 12px rgba(3, 4, 15, 0.6);
 }
 
 /* ---- Buttons over a lit column ------------------------------------------
@@ -1130,12 +1130,12 @@ main > .section .label {
    they read as objects sitting ON the column rather than cut out of it. */
 .track-focus-panel__actions .btn,
 .newsletter-form .btn {
-  text-shadow: 0 1px 2px rgba(5, 5, 5, 0.85);
-  box-shadow: 0 2px 14px rgba(5, 5, 5, 0.7);
+  text-shadow: 0 1px 2px rgba(3, 4, 15, 0.85);
+  box-shadow: 0 2px 14px rgba(3, 4, 15, 0.7);
 }
 .track-focus-panel__actions .btn--ghost,
 .track-experience .btn--ghost {
-  background: rgba(5, 5, 5, 0.72);
+  background: rgba(3, 4, 15, 0.72);
   backdrop-filter: blur(2px);
 }
 .track-focus-panel__actions .btn--ghost:hover {
@@ -1157,7 +1157,7 @@ main > .section .label {
 .footer__copyright,
 .footer__social a,
 .footer__nav a {
-  text-shadow: 0 0 3px rgba(5, 5, 5, 0.98), 0 1px 2px rgba(5, 5, 5, 0.92);
+  text-shadow: 0 0 3px rgba(3, 4, 15, 0.98), 0 1px 2px rgba(3, 4, 15, 0.92);
 }
 .footer__social a,
 .footer__nav a { color: var(--text-secondary); }
@@ -1168,7 +1168,7 @@ main > .section .label {
 .track-focus-nav__btn,
 .track-focus-panel__close,
 .track-sample-player__status {
-  text-shadow: 0 0 3px rgba(5, 5, 5, 0.95), 0 1px 2px rgba(5, 5, 5, 0.9);
+  text-shadow: 0 0 3px rgba(3, 4, 15, 0.95), 0 1px 2px rgba(3, 4, 15, 0.9);
 }
 
 /* 600, not 768: at a 768px viewport the desktop 330px column still reads well

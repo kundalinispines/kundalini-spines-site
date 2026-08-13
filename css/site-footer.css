@@ -58,7 +58,7 @@
 
    NO SCRIM. The obvious fix is a dark wash behind the columns, and
    css/spine-bg.css already ruled it out in writing: over flat page black a
-   #050505 scrim is invisible, but over a column sitting at L 70 the same wash
+   #03040F scrim is invisible, but over a column sitting at L 70 the same wash
    is far darker than its surroundings and reads as a dark ellipse floating on
    the spine. "Attenuate the backdrop, never paint over it." So legibility here
    comes from the ink instead: the link rows carry their own hairline rules and
@@ -83,7 +83,7 @@
   pointer-events: none; z-index: 0;
 }
 .footer.is-upgraded .sf__seed-ring circle {
-  fill: none; stroke: rgba(216, 208, 190, 0.09); stroke-width: 1;
+  fill: none; stroke: rgba(214, 213, 208, 0.09); stroke-width: 1;
   vector-effect: non-scaling-stroke;
 }
 /* SUBSTRATE ALPHAS, not label alphas. These were first set as if the names
@@ -94,7 +94,7 @@
 .footer.is-upgraded .sf__seed-name,
 .footer.is-upgraded .sf__seed-hz {
   text-anchor: middle; font-family: var(--font-mono);
-  fill: rgba(216, 208, 190, 0.20);
+  fill: rgba(214, 213, 208, 0.20);
 }
 .footer.is-upgraded .sf__seed-name { font-size: 8px; letter-spacing: 0.16em; }
 .footer.is-upgraded .sf__seed-hz {
@@ -130,7 +130,7 @@
 .footer.is-upgraded .sf-row {
   display: flex; align-items: baseline; justify-content: space-between;
   gap: var(--space-4, 16px); padding: 5px 0;
-  border-bottom: 1px solid rgba(216, 208, 190, 0.07);
+  border-bottom: 1px solid rgba(214, 213, 208, 0.07);
 }
 .footer.is-upgraded .sf-row__link,
 .footer.is-upgraded .sf-row__dead {
@@ -171,8 +171,8 @@
    contrast depends on which node colour the row carries. */
 .footer.is-upgraded .sf-row__state--standby {
   color: var(--color-bone);
-  text-shadow: 0 0 3px rgba(5, 5, 5, 0.98), 0 1px 2px rgba(5, 5, 5, 0.92);
-  border-color: rgba(216, 208, 190, 0.16);
+  text-shadow: 0 0 3px rgba(3, 4, 15, 0.98), 0 1px 2px rgba(3, 4, 15, 0.92);
+  border-color: rgba(214, 213, 208, 0.16);
 }
 
 /* ==========================================================================
@@ -200,7 +200,7 @@
   gap: var(--space-8, 32px);
   margin-top: var(--space-8, 32px);
   padding: var(--space-5, 20px) var(--space-6) 0;
-  border-top: 1px solid rgba(216, 208, 190, 0.07);
+  border-top: 1px solid rgba(214, 213, 208, 0.07);
   /* OPACITY 1, AND THE DIAL IS GONE ON PURPOSE. Owner's call 2026-08-11.
      0.7 was never a brightness control -- it is a GROUP opacity, so it
      composited the whole band toward whatever was behind it
@@ -241,13 +241,13 @@
   font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.22em;
   text-transform: uppercase; color: var(--color-gray-300); margin-bottom: 4px;
   min-height: 12px;          /* the fourth block has no head; keep the grid level */
-  text-shadow: 0 0 3px rgba(5, 5, 5, 0.98), 0 1px 2px rgba(5, 5, 5, 0.92);
+  text-shadow: 0 0 3px rgba(3, 4, 15, 0.98), 0 1px 2px rgba(3, 4, 15, 0.92);
 }
 .footer.is-upgraded .sf-instr__row {
   display: flex; justify-content: space-between; gap: var(--space-4, 16px);
   font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.08em;
   color: var(--color-gray-300);
-  text-shadow: 0 0 3px rgba(5, 5, 5, 0.98), 0 1px 2px rgba(5, 5, 5, 0.92);
+  text-shadow: 0 0 3px rgba(3, 4, 15, 0.98), 0 1px 2px rgba(3, 4, 15, 0.92);
 }
 .footer.is-upgraded .sf-instr__v { color: var(--color-bone); font-weight: 400; }
 
@@ -260,7 +260,7 @@
   margin-top: auto;          /* pinned to the bottom of the 520px block */
 }
 .footer.is-upgraded .sf__mark-text {
-  font-family: var(--font-display, "Big Shoulders Display", sans-serif);
+  font-family: var(--font-display, "Archivo", sans-serif);
   font-weight: 800; font-size: 132px; letter-spacing: 0.01em;
   /* The stroke takes a GRADIENT, which is why this is SVG text and not
      -webkit-text-stroke: that property accepts a colour and nothing else. */
@@ -283,14 +283,14 @@
   position: relative; z-index: 2;
   display: flex; align-items: baseline; justify-content: space-between;
   gap: var(--space-6); padding: var(--space-4, 16px) var(--space-6) var(--space-6);
-  border-top: 1px solid rgba(216, 208, 190, 0.07);
+  border-top: 1px solid rgba(214, 213, 208, 0.07);
 }
 .footer.is-upgraded .sf__copy {
   margin: 0; width: auto; color: var(--text-muted); font-size: var(--fs-caption);
 }
 .footer.is-upgraded .sf__seal {
   font-family: var(--font-mono); font-size: 8px; letter-spacing: 0.24em;
-  color: rgba(216, 208, 190, 0.22);
+  color: rgba(214, 213, 208, 0.22);
 }
 
 /* ==========================================================================
@@ -327,7 +327,7 @@
   position: fixed; left: 16px; bottom: 16px; z-index: 9999;
   display: flex; flex-direction: column; gap: 8px;
   padding: 12px 14px; min-width: 240px;
-  background: rgba(5,5,5,0.94);
+  background: rgba(3,4,15,0.94);
   border: 1px solid rgba(var(--node-color), 0.35);
   font-family: var(--font-mono); font-size: 10px;
   letter-spacing: 0.1em; color: var(--color-gray-400);
@@ -343,7 +343,7 @@
   font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.16em;
   text-transform: uppercase; padding: 6px 8px; cursor: pointer;
   background: transparent; color: var(--color-bone);
-  border: 1px solid rgba(216,208,190,0.28);
+  border: 1px solid rgba(214,213,208,0.28);
 }
 .sf-tune button:hover { border-color: rgba(var(--node-color),0.8); }
 .sf-tune__note { font-size: 8px; letter-spacing: 0.14em; color: var(--color-gray-500); }

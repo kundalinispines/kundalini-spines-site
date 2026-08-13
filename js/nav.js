@@ -5,17 +5,32 @@
   const links = document.querySelector('.nav__links');
   if (!nav) return;
 
+  /* ---- The collapse: --nav-p, written on every scroll frame --------------
+     The bar is a continuous mechanism (see css/components.css): every visual
+     value interpolates over the same 0→1 travel, computed here from a 150px
+     scroll ramp. rAF-throttled so a wheel flurry costs one write per frame.
+     Reduced motion still collapses — the pinned compact bar is a layout
+     affordance, not decoration — it just does it in one step.
+     (.is-scrolled is no longer toggled; the class in static markup is inert.) */
+  const COLLAPSE_PX = 150;
+  const still = window.matchMedia('(prefers-reduced-motion: reduce)');
+  let frame = 0;
   const onScroll = () => {
-    nav.classList.toggle('is-scrolled', window.scrollY > 8);
+    if (frame) return;
+    frame = requestAnimationFrame(() => {
+      frame = 0;
+      const y = window.pageYOffset || document.documentElement.scrollTop || 0;
+      const p = still.matches ? (y > 8 ? 1 : 0) : Math.min(1, Math.max(0, y / COLLAPSE_PX));
+      nav.style.setProperty('--nav-p', p.toFixed(4));
+      setNavH(); // padding-block change; ResizeObserver watches the content box and misses it
+    });
   };
-  onScroll();
-  window.addEventListener('scroll', onScroll, { passive: true });
 
   /* ---- Publish the nav's height as --nav-h -------------------------------
      THE NAV'S HEIGHT IS NOT A CONSTANT AND MUST NOT BE HARDCODED.
      It is padding plus the line boxes of the mark and the links, so it depends
      on which fonts have actually loaded. Before the webfonts arrive it is one
-     height; after Big Shoulders and IBM Plex Mono swap in it is another. It also
+     height; after Archivo and the Plex faces swap in it is another. It also
      moves with browser zoom and with a user's minimum-font-size setting.
 
      This exists because css/track-experience.css needs it: scroll-margin-top on
@@ -39,6 +54,10 @@
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(setNavH);
   window.addEventListener('resize', setNavH);
   if (window.ResizeObserver) new ResizeObserver(setNavH).observe(nav);
+
+  /* Wired here, after setNavH exists — onScroll's frame callback calls it. */
+  onScroll();
+  window.addEventListener('scroll', onScroll, { passive: true });
 
   if (toggle && links) {
     toggle.addEventListener('click', () => {

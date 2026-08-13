@@ -1,0 +1,7 @@
+/* BORDERS & SURFACES — hard geometry. Square by default; there is no shadow system.
+   Depth comes from hairlines and from surface value shifts, not from blur. */
+:root {
+  --radius-sharp: 0px;  /* default — severe/institutional, not soft */
+  --radius-min:   2px;  /* only for small interactive controls if needed */
+  --border-hairline: 1px solid var(--border-subtle);
+}

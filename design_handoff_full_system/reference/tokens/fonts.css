@@ -1,0 +1,14 @@
+/* Fonts — all from the Google Fonts CDN with font-display:swap.
+
+   REPLACED AUG 2026. The original set (Big Shoulders Display/Stencil for display,
+   Source Serif 4 for body) was retired by the owner. The system now runs on two
+   families doing nearly all the work — Archivo and IBM Plex — plus Rajdhani for
+   labels and Anton, which stays on the About page magazine masthead only.
+
+   Archivo is loaded as a VARIABLE font across both axes because the system uses
+   three distinct cuts of it: the wordmark at wdth 62 / wght 900, display headings
+   at wdth 72 / wght 750, and the showcase line at wdth 110 / wght 800. The
+   font-stretch descriptor is the MATCH KEY, not decoration — a rule asking for
+   Archivo at the default width matches no named instance and falls back silently
+   to a face ~20% wider, which is what makes the wordmark lockup drift. */
+@import url("https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@400;500&family=Rajdhani:wght@500;600;700&family=Anton&display=swap");

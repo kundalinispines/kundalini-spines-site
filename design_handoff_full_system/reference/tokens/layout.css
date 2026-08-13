@@ -1,0 +1,28 @@
+/* LAYOUT — one container, one gutter.
+   Breakpoints (used directly in @media): 480 / 768 / 1024 / 1280 / 1440.
+   --nav-h is published at runtime by js/nav.js — never hardcode the nav height. */
+:root {
+  --container-max: 1280px; /* @kind spacing */
+  --container-pad: var(--space-6); /* @kind spacing */
+  --grid-gap: var(--space-6); /* @kind spacing */
+  --nav-h: 72px; /* @kind spacing */ /* fallback only; the live value is measured and republished */
+
+  /* Track carousel geometry. --card-w is the LAYOUT STEP, not the card box. */
+  --card-w: 250px; /* @kind spacing */
+  --card-box: calc(var(--card-w) * 1.85); /* @kind spacing */
+  --arc-h: 640px; /* @kind spacing */
+  --hero-w: calc(var(--card-box) * 1.0588); /* @kind spacing */
+
+  /* TWO DIFFERENT JOBS, TWO DIFFERENT VALUES.
+     --nav-h is written from JS on every frame and tracks the CURRENT bar as it
+     collapses 92→47px. It is correct for scroll offsets and scroll-margin-top, and
+     WRONG for anything that affects layout: feeding a scroll-varying value into
+     padding makes document height a function of scroll position, which shortens the
+     page as you read it and invalidates any position measured before the scroll.
+     --nav-h-max is the EXPANDED bar height, static and declarative. Layout clearance
+     reads this one. */
+  --nav-h-max: 92px; /* @kind spacing */
+}
+@media (max-width: 760px) {
+  :root { --nav-h-max: 62px; /* @kind spacing */ }
+}

@@ -1,0 +1,43 @@
+<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Kundalini Spines primary seal">
+  <g fill="none" stroke="#F2F2EE">
+
+    <circle cx="100" cy="100" r="94" stroke-width="2"></circle>
+
+    <g stroke-width="1" opacity="0.35">
+      <circle cx="82" cy="100" r="46"></circle>
+      <circle cx="118" cy="100" r="46"></circle>
+    </g>
+
+    
+    <g stroke-width="3.5">
+      <path d="M80,100 L52,64"></path>
+      <path d="M80,100 L52,136"></path>
+    </g>
+    <path d="M142,64 C120,74 120,90 133,100 C146,110 146,126 122,136" stroke-width="3.5"></path>
+
+    
+    <g stroke-width="2" stroke-linejoin="miter">
+      <rect x="94.2" y="66.3" width="11.7" height="6.6"></rect>
+      <path d="M105.8,67.9 L110.1,71.8 L108.9,72.9 L105.8,70.8 Z"></path>
+      <path d="M94.2,67.9 L89.9,71.8 L91.1,72.9 L94.2,70.8 Z"></path>
+      <rect x="94.2" y="76.4" width="11.7" height="6.6"></rect>
+      <path d="M105.8,78.0 L112.9,81.9 L110.9,83.1 L105.8,81.0 Z"></path>
+      <path d="M94.2,78.0 L87.1,81.9 L89.1,83.1 L94.2,81.0 Z"></path>
+      <rect x="94.2" y="86.5" width="11.7" height="6.6"></rect>
+      <path d="M105.8,88.1 L115.2,92.0 L112.6,93.2 L105.8,91.1 Z"></path>
+      <path d="M94.2,88.1 L84.8,92.0 L87.4,93.2 L94.2,91.1 Z"></path>
+      <rect x="94.2" y="96.7" width="11.7" height="6.6"></rect>
+      <path d="M105.8,98.3 L116.4,102.2 L113.4,103.4 L105.8,101.2 Z"></path>
+      <path d="M94.2,98.3 L83.6,102.2 L86.6,103.4 L94.2,101.2 Z"></path>
+      <rect x="94.2" y="106.8" width="11.7" height="6.6"></rect>
+      <path d="M105.8,108.4 L115.2,112.3 L112.6,113.5 L105.8,111.4 Z"></path>
+      <path d="M94.2,108.4 L84.8,112.3 L87.4,113.5 L94.2,111.4 Z"></path>
+      <rect x="94.2" y="117.0" width="11.7" height="6.6"></rect>
+      <path d="M105.8,118.6 L112.9,122.5 L110.9,123.6 L105.8,121.5 Z"></path>
+      <path d="M94.2,118.6 L87.1,122.5 L89.1,123.6 L94.2,121.5 Z"></path>
+      <rect x="94.2" y="127.1" width="11.7" height="6.6"></rect>
+      <path d="M105.8,128.7 L110.9,132.6 L109.5,133.8 L105.8,131.7 Z"></path>
+      <path d="M94.2,128.7 L89.1,132.6 L90.5,133.8 L94.2,131.7 Z"></path>
+    </g>
+  </g>
+</svg>

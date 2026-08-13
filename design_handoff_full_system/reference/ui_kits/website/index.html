@@ -1,0 +1,85 @@
+<!-- @dsCard group="Website" viewport="1280x760" name="Kundalini Spines — website" subtitle="Home, spine navigator, transmissions terminal, archive, magazine about" -->
+<!-- @startingPoint section="Website" subtitle="Full click-through of the Kundalini Spines site" viewport="1280x760" -->
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>Kundalini Spines — Website UI Kit</title>
+<link rel="stylesheet" href="../../styles.css">
+<link rel="stylesheet" href="navigator-motion.css">
+<link rel="stylesheet" href="spine-doc.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<style>body{margin:0;background:var(--color-black);color:var(--text-primary);font-family:var(--font-body)}a{color:inherit}a:hover{color:var(--text-primary)}</style>
+</head><body>
+<div id="root"></div>
+<script type="text/babel" src="Data.jsx"></script>
+<script type="text/babel" src="HomeScreen.jsx"></script>
+<script type="text/babel" src="NavigatorScreen.jsx"></script>
+<script type="text/babel" src="SpineDocScreen.jsx"></script>
+<script type="text/babel" src="TransmissionsScreen.jsx"></script>
+<script type="text/babel" src="ArchiveScreen.jsx"></script>
+<script type="text/babel" src="AboutScreen.jsx"></script>
+<script type="text/babel">
+const { Nav, SiteFooter } = window.KundaliniSpinesDesignSystem_22e3e6;
+
+// Home IS the spine document now. About, Music and Merch are sections inside it, so
+// the nav mixes two kinds of destination: DOC_SECTIONS scroll, the rest swap screens.
+const DOC_SECTIONS = ['home','about','music','merch','connect'];
+const SCREENS = [
+  { id:'home',          label:'Home' },
+  { id:'about',         label:'About' },
+  { id:'music',         label:'Music' },
+  { id:'merch',         label:'Merch' },
+  { id:'transmissions', label:'Transmissions' },
+  { id:'archive',       label:'Archive' }
+];
+
+function App() {
+  const [screen, setScreen] = React.useState('home');
+  const go = (id) => {
+    if (DOC_SECTIONS.includes(id)) {
+      const jump = () => window.__ksdJump && window.__ksdJump(id);
+      if (screen === 'home') { jump(); return; }
+      setScreen('home');
+      // one frame for the document to mount before its offsets can be measured
+      requestAnimationFrame(() => requestAnimationFrame(jump));
+      return;
+    }
+    setScreen(id);
+    window.scrollTo(0, 0);
+  };
+  const Screen = {
+    // window.HomeScreen is still loaded and still works — it is kept as the record of
+    // the centred layout — but it is no longer reachable from the nav.
+    home: window.SpineDocScreen,
+    navigator: window.NavigatorScreen,
+    transmissions: window.TransmissionsScreen,
+    archive: window.ArchiveScreen,
+    about: window.AboutScreen
+  }[screen];
+  const bare = screen === 'navigator';
+  const current = DOC_SECTIONS.includes(screen) ? 'home' : screen;
+  return (
+    <div>
+      {/* No spacer and no negative margin. The bar is position:fixed, so it is out of
+          flow and needs neither — and a hardcoded pair of them cannot track a bar whose
+          height now varies 92→47px. Screens that want to run under it (the hero) take
+          their own clearance from var(--nav-h); screens that do not, pad for it. */}
+      <Nav items={SCREENS.map(s => ({ label:s.label, href:s.id }))} current={screen}
+        markSrc="../../assets/marks/spine-mark.svg" onNavigate={go} />
+      <main>{Screen ? <Screen onNavigate={go} /> : null}</main>
+      {bare ? null : (
+        <SiteFooter
+          blurb="Knowledge hidden in plain sight. Two Messengers, one signal."
+          columns={[
+            { head:'Kundalini Spines' },
+            { head:'Navigate', rows:[{ label:'Music', href:'#' }, { label:'Transmissions', href:'#' }, { label:'Archive', href:'#' }, { label:'About', href:'#' }] },
+            { head:'Channels', rows:[{ label:'Instagram', href:'https://www.instagram.com/kundalinispines/' }, { label:'X', href:'https://x.com/KundaliniSpines' }, { label:'YouTube', href:'https://www.youtube.com/@KundaliniSpines' }, { label:'TikTok' }, { label:'Spotify' }] },
+            { head:'Signal', rows:[{ label:'Newsletter', href:'#' }, { label:'Contact', href:'mailto:kundalinispines@gmail.com' }] }
+          ]} />
+      )}
+    </div>
+  );
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body></html>

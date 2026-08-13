@@ -1,0 +1,167 @@
+/* Navigator motion — the full state model from design/spine-ui-v2/INTERACTION_STATES.md.
+   Tempo is driven entirely by tokens set on the host page, so two pages can run
+   the identical machine at different speeds. */
+
+/* ---- Idle: the column breathes ---- */
+@keyframes ks-breathe {
+  0%, 100% { transform: translateX(-50%) scaleY(1); }
+  50%      { transform: translateX(-50%) scaleY(calc(1 + var(--spine-ui-breathe))); }
+}
+.ks-anat { animation: ks-breathe var(--spine-ui-breathe-ms) var(--ease-standard) infinite; transform-origin: center; }
+
+/* ---- Idle: the energy RISES, powering the centres up the spine ---- */
+@keyframes ks-energy {
+  0%   { top: 92%; opacity: 0; }
+  12%  { opacity: var(--comet-a); }
+  88%  { opacity: var(--comet-a); }
+  100% { top: 8%;  opacity: 0; }
+}
+.ks-comet {
+  position: absolute; left: 50%; top: 8%;
+  width: var(--comet-w); height: var(--comet-h);
+  transform: translate(-50%, 0); border-radius: 3px;
+  background: linear-gradient(180deg,
+    rgba(var(--node-color), .95) 0%,
+    rgba(255, 250, 244, .92) 9%,
+    rgba(242, 242, 238, .5) 40%,
+    rgba(242, 242, 238, .16) 70%,
+    transparent 100%);
+  filter: blur(1px); opacity: 0;
+  animation: ks-energy var(--spine-ui-energy-ms) linear infinite;
+}
+.ks-comet::before {
+  content: ""; position: absolute; top: -2.5px; left: 50%; transform: translateX(-50%);
+  width: var(--comet-head); height: var(--comet-head); border-radius: 50%;
+  background: radial-gradient(circle, #fff 0%, rgba(var(--node-color), .95) 55%, transparent 78%);
+  box-shadow: 0 0 12px rgba(var(--node-color), .8), 0 0 4px #fff;
+}
+/* THE PASS DEPARTS FROM THE OPEN NODE. Once a card is fully deployed the rising
+   light restarts from that node's own height rather than from the base, so the
+   energy reads as leaving the thing you just activated and carrying on up the
+   column. The offset is a negative animation-delay — the pass is not restarted at
+   0 and clipped, it is entered part-way through, so its speed never changes.
+   Every layer that rides the same pass takes the same delay or they desync. */
+.ks-comet, .ks-ping, .ks-point { animation-delay: var(--ks-phase-delay, 0ms); }
+.is-card .ks-comet, .is-card .ks-ping, .is-card .ks-point {
+  animation-iteration-count: 1;
+  animation-fill-mode: forwards;
+}
+
+/* ---- Idle: each node flashes as the light crosses it ---- */
+@keyframes ks-ping {
+  0%   { opacity: .9; transform: translate(-50%,-50%) scale(1.15); }
+  6%   { opacity: 0;  transform: translate(-50%,-50%) scale(1.9); }
+  100% { opacity: 0; }
+}
+.ks-ping {
+  position: absolute; top: 50%; left: 50%;
+  width: 26px; height: 26px; transform: translate(-50%,-50%) scale(.6);
+  border-radius: 50%; pointer-events: none; opacity: 0;
+  background: radial-gradient(circle, rgba(var(--node-color), .85), rgba(var(--node-color), .2) 45%, transparent 70%);
+  animation: ks-ping var(--spine-ui-energy-ms) linear infinite;
+}
+/* The open node takes a BIGGER ring at the same colour — it is already lit, so
+   size is the only axis left that reads as "and this one". */
+.ks-node.is-active .ks-ping { width: 46px; height: 46px; }
+
+/* ---- Idle: ambient points along the cord ---- */
+@keyframes ks-point {
+  0%   { opacity: calc(var(--point-flash) * var(--point-dim, 1)); box-shadow: 0 0 9px rgba(var(--node-color), .9); background: rgba(255,236,214,1); }
+  7%   { opacity: calc(var(--point-idle) * var(--point-dim, 1));  box-shadow: 0 0 3px rgba(242,242,238,.25); background: rgba(242,242,238,.7); }
+  100% { opacity: calc(var(--point-idle) * var(--point-dim, 1)); }
+}
+.ks-point {
+  position: absolute; left: 0; width: var(--point-size); height: var(--point-size);
+  transform: translate(-50%,-50%); border-radius: 50%;
+  background: rgba(242,242,238,.8); box-shadow: 0 0 4px rgba(242,242,238,.35);
+  opacity: calc(var(--point-idle) * var(--point-dim, 1)); pointer-events: none;
+  animation: ks-point var(--spine-ui-energy-ms) linear infinite;
+}
+.is-card .ks-point { --point-dim: var(--point-dim-when-active); }
+
+/* ---- Hover: two ripple rings, the second half a cycle behind ---- */
+@keyframes ks-pulse {
+  0%   { transform: translate(-50%,-50%) scale(.3); opacity: 0; }
+  12%  { opacity: var(--ring-peak-a); }
+  100% { transform: translate(-50%,-50%) scale(var(--ring-scale)); opacity: 0; }
+}
+/* LONGHANDS, deliberately — the `animation` shorthand also sets animation-delay:0
+   and would win over the ring-2 delay below, running both rings in phase drawn
+   exactly on top of each other. */
+.ks-node:hover .ks-ring, .ks-node:focus-visible .ks-ring, .ks-node.is-active .ks-ring {
+  animation-name: ks-pulse;
+  animation-duration: var(--node-pulse-ms);
+  animation-timing-function: cubic-bezier(0, .4, .3, 1);
+  animation-iteration-count: infinite;
+}
+.ks-node .ks-ring--2 { animation-delay: calc(var(--node-pulse-ms) * -.5); }
+
+/* ---- The connector overlay ---- */
+.ks-conn { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; z-index: 15; }
+.ks-conn path { fill: none; stroke-linejoin: miter; stroke-linecap: butt; }
+.ks-conn .ks-line {
+  stroke: var(--connector-color); stroke-width: var(--connector-w);
+  filter: drop-shadow(0 0 3px rgba(242,242,238,.35));
+  transition: stroke-dashoffset var(--connector-draw-ms) var(--connector-ease),
+              stroke var(--motion-base) var(--ease-standard);
+}
+/* LIT WHEN ESTABLISHED. --connector-active exists in the source for this and was
+   going unused: at --connector-color (bone at .72) over the nebula the settled
+   line is barely separable from the sky, which reads as a connector that never
+   drew rather than as one drawn quietly. */
+.ks-conn .ks-line.is-established {
+  stroke: var(--connector-active);
+  stroke-width: calc(var(--connector-w) + .3px);
+  filter: drop-shadow(0 0 5px rgba(242,242,238,.55));
+}
+.ks-conn .ks-line.is-preview { stroke: var(--connector-preview); filter: none; }
+.ks-conn .ks-head {
+  stroke: var(--connector-head); stroke-width: calc(var(--connector-w) + .5px);
+  stroke-linecap: round; filter: drop-shadow(0 0 5px rgba(242,242,238,.9));
+  transition: stroke-dashoffset var(--connector-draw-ms) linear, opacity 160ms linear;
+}
+
+/* ---- The card deploys AFTER the line lands ---- */
+.ks-card-wrap {
+  opacity: 0; transform: translateY(8px) scale(.965);
+  transition: opacity var(--card-enter-ms) var(--ease-standard),
+              transform var(--card-enter-ms) var(--ease-standard);
+}
+.ks-card-wrap.is-open { opacity: 1; transform: none; }
+/* Ghost frames stagger in behind it — the layered emergence of State 03. */
+.ks-card-wrap::before, .ks-card-wrap::after {
+  content: ""; position: absolute; inset: 0; z-index: -1;
+  border: 1px solid var(--card-ghost); opacity: 0; pointer-events: none;
+  transition: opacity var(--card-enter-ms) var(--ease-standard),
+              transform var(--card-enter-ms) var(--ease-standard);
+}
+.ks-card-wrap.is-open::before { opacity: .45; transform: translate(5px, 6px) scale(1.003); transition-delay: 60ms; }
+.ks-card-wrap.is-open::after  { opacity: .20; transform: translate(10px, 12px) scale(1.006); transition-delay: 120ms; }
+.ks-card-wrap.side-left.is-open::before { transform: translate(-5px, 6px) scale(1.003); }
+.ks-card-wrap.side-left.is-open::after  { transform: translate(-10px, 12px) scale(1.006); }
+
+@media (prefers-reduced-motion: reduce) {
+  .ks-anat, .ks-comet, .ks-ping, .ks-point, .ks-ring { animation: none; }
+  .ks-ring { display: none; }
+  .ks-comet { opacity: 0; }
+}
+
+/* THE EMISSION REACHES THE CARD. The crosshair leaves the node in the node's own
+   colour and falls off with distance; the card it points at is the end of that
+   same gesture, so it takes a hairline of the same amber rather than sitting there
+   as an unrelated white-edged panel.
+
+   It is an OUTLINE, not a border: the card's own border is doing the glass work
+   (lit lip on the spine side, darkened far edge) and a second colour on the same
+   pixels would fight it. outline sits outside the box, so the two never overlap.
+   Kept low — this is a trace confirming the connection, not a highlight. */
+.ks-card-wrap.is-open {
+  outline: 1px solid rgba(var(--node-color), .34);
+  outline-offset: 0;
+  box-shadow: 0 0 22px -6px rgba(var(--node-color), .30);
+  transition: outline-color var(--card-enter-ms) var(--ease-standard),
+              box-shadow var(--card-enter-ms) var(--ease-standard);
+}
+/* Brightest on the edge the line arrives at, falling away across the card — the
+   same direction the crosshair fades, so the two read as one emission. */
+.ks-card-wrap.is-open::before { border-color: rgba(var(--node-color), .22); }

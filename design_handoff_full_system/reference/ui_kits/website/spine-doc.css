@@ -1,0 +1,128 @@
+/* SPINE DOCUMENT — the left-axis navigation model.
+   The axis is FIXED at the hard left edge and the document scrolls past it, so the
+   spine is a permanent instrument rather than a thing you arrive at. Everything
+   reaches RIGHT: with the axis on the edge there is no second side to serve, which
+   is why the one-sided connector logic collapses to a single direction here. */
+/* THE RAIL RUNS THE DOCUMENT'S FULL LENGTH AND SCROLLS WITH IT. It is absolute
+   inside the screen wrapper, not fixed to the viewport: a fixed rail is a different
+   design — its nodes sit at viewport percentages that have no relationship to where
+   the sections actually are, so the throw ends up pointing at empty space. Here each
+   node is placed at its own section's measured offset, which makes the throw land on
+   the headline by construction rather than by coincidence. */
+.ksd-rail { position: absolute; left: var(--ksd-axis); top: 0; bottom: 0; width: 0; z-index: 40; pointer-events: none; }
+.ksd-cord { position: absolute; top: 0; bottom: 0; left: 0; width: 1px; transform: translateX(-50%);
+  background: linear-gradient(180deg, transparent, rgba(228,232,235,.5) 10%, rgba(228,232,235,.5) 90%, transparent);
+  filter: drop-shadow(0 0 4px rgba(228,232,235,.45)); opacity: var(--cord-opacity); }
+
+.ksd-node { position: absolute; left: 0; transform: translate(-50%,-50%); width: var(--node-size); height: var(--node-size);
+  border-radius: 50%; background: rgba(228,232,235,1); pointer-events: auto; cursor: pointer; border: 0; padding: 0;
+  opacity: var(--node-idle-opacity); box-shadow: 0 0 var(--node-glow) rgba(var(--node-color), var(--node-glow-a));
+  transition: opacity 260ms var(--ease-standard), transform 260ms var(--ease-standard), box-shadow 260ms var(--ease-standard); }
+.ksd-node::after { content: ''; position: absolute; top: 50%; left: 50%; width: var(--node-mark-size); height: var(--node-mark-size);
+  transform: translate(-50%,-50%); border-radius: 50%; border: 1px solid rgba(228,232,235, var(--node-mark-a)); }
+.ksd-node:hover { opacity: 1; transform: translate(-50%,-50%) scale(1.15); box-shadow: 0 0 18px rgba(var(--node-color), .85); }
+.ksd-node.is-active { opacity: 1; transform: translate(-50%,-50%) scale(1.3); box-shadow: 0 0 20px rgba(var(--node-color), .9); }
+
+/* THE THROW. 32px, and it is the whole connector — at this axis position there is
+   no distance to cross, so the line reads as a tick that pins the text to the spine
+   rather than as a cable delivering it. It draws from the node outward. */
+.ksd-throw { position: absolute; left: 0; height: 1px; transform: translateY(-50%);
+  transform-origin: left center; width: var(--ksd-throw); background: rgba(228,232,235,.9);
+  box-shadow: 0 0 3px rgba(228,232,235,.55), 0 0 9px rgba(228,232,235,.28);
+  transform: translateY(-50%) scaleX(0); transition: transform var(--connector-draw-ms) var(--connector-ease); }
+.ksd-throw.is-lit { transform: translateY(-50%) scaleX(1); }
+
+/* VERTEBRAE. The rail stays the thin architectural line it always was; the segments
+   are bilateral extensions off it, so the rail reads as the vertebral BODY and the
+   arms as transverse processes. They are drawn with the same 1px hairline as every
+   other structural line in the system — the anatomy comes from the rhythm and the
+   downward sweep of the arms, not from thicker or softer strokes.
+
+   Each segment is —┤│├—: two arms, each ending in a short vertical descender, which
+   is what stops them reading as ruler ticks. Spacing carries a small deterministic
+   variation so the column feels grown rather than stamped. */
+.ksd-vert { position: absolute; left: 0; width: 0; height: 0; pointer-events: none; }
+.ksd-vert i { position: absolute; top: 0; height: 1px; width: var(--ksd-arm);
+  background: rgba(228,232,235,.16);
+  transition: background 520ms var(--ease-standard), width 520ms var(--ease-standard); }
+.ksd-vert i.l { left: 0; transform: translateX(calc(-100% - 1.5px)); }
+.ksd-vert i.r { left: 1.5px; }
+/* the descender at the outer end of each arm — the ┤ and ├ of the segment */
+.ksd-vert i::after { content: ''; position: absolute; top: 0; width: 1px; height: 3.5px;
+  background: inherit; }
+.ksd-vert i.l::after { left: 0; }
+.ksd-vert i.r::after { right: 0; }
+
+/* Passed segments stay faintly energised — the column remembers where you have been. */
+.ksd-vert.is-passed i { background: rgba(228,232,235,.34); }
+/* The current segment is the strongest state, but it earns it through reach and line
+   weight, not through a glow: a bloom here would compete with the nodes. */
+.ksd-vert.is-active i { background: rgba(228,232,235,.82); width: calc(var(--ksd-arm) + 5px); }
+.ksd-vert.is-active i::after { height: 5px; }
+
+/* An ANCHOR segment sits where a section node does. It is the same vertebra with a
+   longer reach and a small square joint on the axis — hierarchy without adding a
+   second circle next to the node. */
+.ksd-vert.is-anchor i { width: calc(var(--ksd-arm) + 4px); background: rgba(228,232,235,.42); }
+.ksd-vert.is-anchor.is-active i { width: calc(var(--ksd-arm) + 9px); background: rgba(228,232,235,.9); }
+.ksd-vert.is-anchor b { position: absolute; top: 0; left: 0; width: 3px; height: 3px;
+  transform: translate(-50%,-50%) rotate(45deg); background: rgba(228,232,235,.5);
+  transition: background 520ms var(--ease-standard); }
+.ksd-vert.is-anchor.is-active b { background: rgba(228,232,235,.95); }
+
+/* Labels are hover-only, as on the navigator: the axis stays an instrument, not a menu. */
+.ksd-label { position: absolute; right: 14px; top: 0; transform: translateY(-50%) rotate(180deg);
+  writing-mode: vertical-rl; white-space: nowrap;
+  font-family: var(--font-label); font-weight: 600; font-size: var(--fs-label);
+  letter-spacing: var(--tracking-label); text-transform: uppercase; color: rgba(228,232,235,.82);
+  text-shadow: 0 0 3px rgba(3,4,15,.98), 0 1px 2px rgba(3,4,15,.92);
+  opacity: 0; transition: opacity 200ms var(--ease-standard); pointer-events: none; }
+/* The active label stays up; the rest surface on hover. */
+.ksd-node.is-active + .ksd-label, .ksd-node:hover + .ksd-label { opacity: 1; }
+
+@media (max-width: 900px) {
+  /* the axis moves to the very edge and the text runs beneath it, not beside it */
+  /* Mobile recomposes rather than scales: the axis moves to the very edge and the
+     text runs the full width beneath it instead of beside it. */
+  .ksd-rail { left: 22px; }
+}
+
+/* ---- The hero section ----
+   Home IS the hero: the rail starts at the video and its first node points at the
+   hero's own title. The footage breaks out of the body's left inset so it runs to the
+   page edges, while the type stays on the axis with every other section. */
+/* The hero ESCAPES the body box and re-pads itself, rather than having its media
+   reach outward. Same result for the footage — edge to edge, and up behind the bar —
+   but the type keeps the axis as its left edge through ordinary padding, so it lines
+   up with every other section without a second measurement. */
+.ksd-hero {
+  position: relative; min-height: 100svh; justify-content: flex-end;
+  margin-top: calc(-1 * var(--nav-h-max, 92px));
+  margin-left: calc(-1 * (var(--ksd-axis) + var(--ksd-throw) + 18px));
+  margin-right: calc(-1 * clamp(24px, 6vw, 120px));
+  padding-left: calc(var(--ksd-axis) + var(--ksd-throw) + 18px);
+  padding-right: clamp(24px, 6vw, 120px);
+  padding-top: calc(var(--nav-h-max, 92px) + clamp(64px, 10vh, 140px));
+}
+.ksd-hero__media { position: absolute; inset: 0; z-index: 0; overflow: hidden; }
+.ksd-hero__media img { width: 100%; height: 100%; object-fit: cover; object-position: center 20%; }
+.ksd-hero__scrim { position: absolute; inset: 0; z-index: 1; background: linear-gradient(180deg, rgba(3,4,15,.35) 0%, rgba(3,4,15,.62) 55%, rgba(3,4,15,.96) 100%); }
+/* :not(.ksd-hero__media) is load-bearing. A bare .ksd-hero > * sits at the same
+   specificity as .ksd-hero__media and comes later, so it overrode position:absolute
+   and dropped the footage into flow — it rendered as a block above the type instead
+   of behind it. */
+.ksd-hero > :not(.ksd-hero__media) { position: relative; z-index: 2; }
+/* Two-column prose — the one magazine device Home borrows, and only where a section
+   has a real passage to split. */
+.ksd-cols { columns: 2; column-gap: clamp(28px, 4vw, 56px); column-rule: 1px solid var(--color-gray-700); max-width: 78ch; }
+.ksd-cols p { break-inside: avoid-column; max-width: none; }
+@media (max-width: 900px) { .ksd-cols { columns: 1; column-rule: none; } }
+
+/* ---- Headline reveal ----
+   Headlines rise and clarify once, the first time they cross into view — mechanical
+   rather than bouncy: a short upward settle and a fade, on the system's own easing.
+   They do not re-hide on the way back up; a headline that vanishes when you scroll
+   past it and reappears when you scroll back reads as glitchy, not deliberate. */
+.ksd-reveal { opacity: 0; transform: translateY(18px); transition: opacity 640ms var(--ease-standard), transform 640ms var(--ease-standard); }
+.ksd-reveal.is-in { opacity: 1; transform: translateY(0); }
+@media (prefers-reduced-motion: reduce) { .ksd-reveal { transition: none; } }

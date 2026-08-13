@@ -1,0 +1,33 @@
+<!-- @dsCard group="Components" viewport="700x360" name="Media" subtitle="Track card, sample player, audio player, release card" -->
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<style>body{margin:0;background:var(--color-black);padding:20px;font-family:var(--font-body)}.row{display:flex;flex-wrap:wrap;gap:16px;align-items:center}.stack{display:flex;flex-direction:column;gap:18px}</style>
+</head><body><div id="root"></div>
+<script type="text/babel">
+const NS = window.KundaliniSpinesDesignSystem_22e3e6;
+
+const { TrackCard, SamplePlayer, AudioPlayer, ReleaseCard } = NS;
+function Demo() {
+  const [p, setP] = React.useState(false);
+  return (
+    <div style={{display:'grid',gridTemplateColumns:'220px 1fr',gap:'20px',alignItems:'start'}}>
+      <div>
+        <div style={{width:'220px',height:'220px',overflow:'hidden',position:'relative'}}>
+          <TrackCard size={119} artwork="../../assets/music/dark-meta-cover.webp" title="Dark Meta" active style={{position:'absolute',inset:0,width:'220px',height:'220px',transform:'none',marginRight:0}} />
+        </div>
+        <SamplePlayer playing={p} progress={p?46:0} onToggle={()=>setP(!p)} style={{marginTop:'12px'}} />
+      </div>
+      <div className="stack">
+        <AudioPlayer cover="../../assets/music/x-files-cover.webp" title="X Files" artist="Kundalini Spines" time="0:07" duration="0:20" status="20-second sample. Full track not on streaming yet." />
+        <ReleaseCard artwork="../../assets/music/the-great-work-cover.webp" label="Rise Up / 2026" title="The Great Work" description="Twenty-eight tracks, one signal." style={{maxWidth:'260px'}} />
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<Demo />);
+</script></body></html>

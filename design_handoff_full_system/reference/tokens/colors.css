@@ -1,0 +1,46 @@
+/* COLOR — the cold palette, authored by the owner against the nebula hero and
+   lightning footage. The previous warm set (amber light, bone, deep crimson) was
+   replaced wholesale: it fought the imagery, which is blue-white electrical
+   discharge on near-black. The VARIABLE NAMES are unchanged from the warm system
+   on purpose — every component, card and kit re-reads them without edits — but
+   every VALUE below is new.
+
+   Black dominates. The neutrals are cold. Signal red is a rare interruption:
+   two uses per page is the budget. The spine's light is white, not warm. */
+:root {
+  /* Core palette */
+  --color-black:       #03040F;  /* Archive Black — dominant background, blue-shifted */
+  --color-black-deep:  #080B10;  /* second ground: sections that sit off the primary */
+  --color-white:       #E4E8EB;  /* Spine Glow — the light the navigator emits, and high-contrast accents */
+  --color-bone:        #D6D5D0;  /* Cold Bone — long-form text; the warm bone (#D8D0BE) retired */
+  --color-crimson:     #7E2630;  /* Signal Red — rare interruption/accent only */
+  --color-crimson-lit: #A1333E;  /* hover/active/live states */
+  --color-moonlight:   #9DB2C0;  /* cold blue — secondary text and imagery alike */
+
+  /* Derived grayscale — cold slate, not neutral gray */
+  --color-gray-900: #080B10;
+  --color-gray-800: #131B23;
+  --color-gray-700: #1A252D;
+  --color-gray-600: #394750;
+  --color-gray-500: #57676F;
+  --color-gray-400: #78888F;
+  --color-gray-300: #9DB2C0;
+
+  /* Semantic roles */
+  --bg-primary:        var(--color-black);
+  --bg-secondary:      var(--color-black-deep);
+  --bg-surface:        var(--color-gray-800);
+  --bg-surface-raised: var(--color-gray-700);
+  --text-primary:      var(--color-bone);
+  --text-secondary:    var(--color-moonlight);
+  --text-muted:        var(--color-gray-400);
+  --border-subtle:     var(--color-gray-600);
+  --interface-muted:   var(--color-gray-500);
+  --accent-critical:   var(--color-crimson);
+  --spine-glow:        var(--color-white);
+  --focus-ring:        var(--color-white);
+
+  /* Per-track accent. Sampled from the real cover art at runtime by the
+     carousel (accentFromImage); the JSON value is only a dark fallback. */
+  --track-accent: var(--color-white);
+}

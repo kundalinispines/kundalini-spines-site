@@ -1,0 +1,83 @@
+/* SPINE UI — the living-spine navigator. Values authored in css/spine-ui.css on
+   feature/spine-ui-v2 and dialled by the owner against real hardware; they are
+   read values, not proposals.
+
+   The through-line: THE NODES CARRY THE PAGE AND THE WIREFRAME IS BACKDROP. */
+:root {
+  /* Axis */
+  --axis-shift:         0px; /* @kind spacing */      /* lateral offset of the whole spine axis — the
+                                     single source of truth every layer reads */
+  --spine-ui-opacity:   1;        /* @kind other */
+  --spine-ui-breathe:   0.03;     /* @kind other */ /* idle breath amplitude, restrained */
+  --spine-ui-breathe-ms: 7600ms;  /* @kind other */
+  --spine-ui-energy-ms: 7000ms;   /* @kind other */ /* the rising comet's period */
+
+  /* Anatomical wireframe column (assets/hero/spine-ui-wire.webp) */
+  --spine-anat-w:        clamp(240px, 28vw, 380px); /* @kind spacing */
+  --spine-anat-opacity:  0.64;    /* @kind other */ /* dimmed so the node string reads over it */
+  --spine-anat-bright:   0.9;     /* @kind other */
+  --spine-anat-contrast: 0.7;     /* @kind other */
+  --spine-anat-sat:      0;       /* @kind other */ /* neutral white wireframe */
+
+  /* Nodes */
+  --node-color:          228, 232, 235;  /* --spine-glow #E4E8EB as an RGB triplet, used inside rgba().
+                                            The spine is COLD WHITE LIGHT, matched to the lightning in
+                                            the nebula hero — not the warm amber it replaced. */
+  --node-size:           10.5px; /* @kind spacing */
+  --node-idle-opacity:   0.88;    /* @kind other */ /* raised from the source's 0.79 — over the nebula the idle string sat too far back to read as six live destinations */
+  --node-ring:           26px; /* @kind spacing */    /* hover ring */
+  --node-ring-active:    48px; /* @kind spacing */    /* clicked/active concentric circles */
+  --node-pulse-ms:       1350ms;  /* @kind other */
+  --node-dim-when-active: 0.86;   /* @kind other */ /* non-active nodes recede this far — high on purpose: the spine stays legible as a whole while a card is open, rather than collapsing to a single lit point */
+  --node-glow:           10px; /* @kind spacing */
+  --node-glow-a:         0.68;    /* @kind other */
+  --node-core-a:         0.85;    /* @kind other */
+  --node-mark-size:      200%;    /* @kind other */ /* the ring that marks a REAL destination */
+  --node-mark-a:         0.5;     /* @kind other */ /* biggest lever on "button or ambience dot" */
+  --node-label-offset:   180px; /* @kind spacing */
+  --reticle-w:           300px; /* @kind spacing */   /* crosshair span when focused */
+  --ring-scale:          1.55;    /* @kind other */
+  --ring-peak-a:         0.9;     /* @kind other */
+
+  /* Decorative energy points */
+  --point-size:          5px; /* @kind spacing */
+  --point-idle:          0.1;     /* @kind other */
+  --point-flash:         0.85;    /* @kind other */
+  --point-dim-when-active: 0.69;  /* @kind other */
+
+  /* The rising comet + cord */
+  --comet-w:             3.5px; /* @kind spacing */
+  --comet-h:             96px; /* @kind spacing */
+  --comet-a:             0.9;     /* @kind other */
+  --comet-head:          7px; /* @kind spacing */
+  --cord-opacity:        0.7;     /* @kind other */
+
+  /* Connectors — rigid, geometric, drawn outward from the spine */
+  --connector-w:         1.5px; /* @kind spacing */
+  --connector-color:     rgba(214, 213, 208, 0.72);
+  --connector-active:    rgba(228, 232, 235, 0.9);
+  --connector-preview:   rgba(214, 213, 208, 0.28);
+  --connector-head:      rgba(228, 232, 235, 1);
+  --connector-draw-ms:   520ms;   /* @kind other */
+  --connector-ease:      cubic-bezier(0.4, 0, 0.2, 1); /* @kind other */
+
+  /* Reading cards — frosted glass so the sky reads through */
+  --card-bg-solid:       rgba(19, 27, 35, 0.42);  /* --surface #131B23 at the glass's own alpha */
+  --card-blur:           18px; /* @kind spacing */
+  --card-border:         rgba(57, 71, 80, 0.9);   /* --border #394750 */
+  --card-border-lit:     rgba(228, 232, 235, 0.45);
+  --card-ghost:          rgba(57, 71, 80, 0.75);
+  --card-enter-ms:       440ms;   /* @kind other */
+  --card-w:              clamp(280px, 30vw, 400px); /* @kind spacing */
+
+  /* The glass dials. THE LIGHT IS THE SPINE — a card lights on the edge nearest
+     the column, so every inset multiplies by --lit-x rather than being written twice. */
+  --glass-rim:           1.0;     /* @kind other */ /* brightness of the lit lip */
+  --glass-sheen:         0.22;    /* @kind other */ /* specular wash across the face */
+  --glass-sheen-y:       32%;     /* @kind other */ /* a legibility number, not a taste one */
+  --glass-chroma:        1.0;     /* @kind other */ /* prismatic sliver at the lit edge */
+  --glass-dark:          0.55;    /* @kind other */ /* the shaded far edge */
+}
+@media (prefers-reduced-motion: reduce) {
+  :root { --connector-draw-ms: 1ms; /* @kind other */ --card-enter-ms: 1ms; /* @kind other */ }
+}

@@ -1,0 +1,21 @@
+/* MOTION — deliberate, mechanical, magnetic. One easing curve sitewide.
+   Nothing bounces. Durations zero out under prefers-reduced-motion. */
+:root {
+  --motion-fast: 150ms;  /* @kind other */
+  --motion-base: 300ms;  /* @kind other */
+  --motion-slow: 600ms;  /* @kind other */
+  --motion-hero: 1200ms; /* @kind other */
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1); /* @kind other */
+
+  /* How heavy the page feels under a mouse wheel — read by js/scroll-weight.js.
+     0 is native, 1 is heaviest. Wheel only; touch keeps OS momentum. */
+  --scroll-weight: 1; /* @kind other */
+}
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-fast: 0ms; /* @kind other */
+    --motion-base: 0ms; /* @kind other */
+    --motion-slow: 0ms; /* @kind other */
+    --motion-hero: 0ms; /* @kind other */
+  }
+}

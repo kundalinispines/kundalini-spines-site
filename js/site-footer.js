@@ -185,7 +185,17 @@
        and ARCHIVE in the link column. A substrate that collides with the
        navigation is not a substrate. `meet` fits the figure inside its box and
        the CSS confines that box to the lower part of the footer. */
-    var g = svg('svg', { class: 'sf__seed', viewBox: '0 0 ' + W + ' ' + H,
+    /* THE VIEWBOX MUST CONTAIN THE WHOLE FIGURE, so it is DERIVED, not typed.
+       The outer circles reach cy±2R — top edge -46, bottom 482 — which the
+       original '0 0 1000 420' box did not contain. That survived unnoticed in
+       a narrow window, where `meet` fits by WIDTH and the overhang renders
+       into the letterbox bands; a fullscreen footer is wide enough that `meet`
+       fits by HEIGHT, the viewBox edge lands on the element edge, and SVG's
+       default overflow:hidden slices the crown circle off (measured Aug 14
+       2026: clipped by 45px at both 1440 and 1920). Deriving the extents from
+       cy and R means a retuned radius can never reopen the gap. */
+    var TOP = cy - 2 * R - 4, BOT = cy + 2 * R + 4;
+    var g = svg('svg', { class: 'sf__seed', viewBox: '0 ' + TOP + ' ' + W + ' ' + (BOT - TOP),
                          preserveAspectRatio: 'xMidYMid meet', 'aria-hidden': 'true' });
     var ring = svg('g', { class: 'sf__seed-ring' });
     var pts = [[cx, cy]];

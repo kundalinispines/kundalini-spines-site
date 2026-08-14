@@ -885,7 +885,45 @@
        envelope 0.35, against the cloud's ~1.94/255 on ~50% — there is real
        headroom before it dominates the page. 0 is off. */
     { v: '--star-bolt-bright', label: 'bolt b', min: 0, max: 4, step: 0.05, unit: '',
-      file: 'css/star-bg.css' }
+      file: 'css/star-bg.css' },
+    /* THE DOCUMENT RAIL — the left-axis spine of the home document
+       (css/spine-doc.css + js/spine-doc.js), added Aug 14 2026 with the graded
+       tick field and the node ripple. All seven live in spine-doc.css, whose
+       :root block is index-only, so like the kick set these are hidden on any
+       page without a .ksd-rail — see the gate below.
+         field    the tick field falloff radius. Read by js/spine-doc.js every
+                  scroll frame, so the slider handler nudges a scroll event to
+                  show the change without the mouse leaving the slider.
+         ring on  the size the ripple scales OUT FROM while focused; ring sz is
+                  the resting size and only shapes the first frames.
+         colour   is a CHOICES row, not a slider — the value is an RGB triplet
+                  from the cold palette, and a range input cannot say that. The
+                  build loop, Copy CSS and Apply pasted all branch on
+                  `choices`. */
+    { v: '--ksd-field',        label: 'field',    min: 40,  max: 400,  step: 10,   unit: 'px',
+      file: 'css/spine-doc.css' },
+    { v: '--node-ring',        label: 'ring sz',  min: 10,  max: 64,   step: 2,    unit: 'px',
+      file: 'css/spine-doc.css' },
+    { v: '--node-ring-active', label: 'ring on',  min: 20,  max: 120,  step: 2,    unit: 'px',
+      file: 'css/spine-doc.css' },
+    /* Labels stay at 7 characters or fewer — the 56px name column was MEASURED
+       for a 7-char worst case (see the CSS note on .spine-tune span) and an
+       8-char label wraps to a second line, which is exactly the row-height bug
+       that measurement fixed. */
+    { v: '--ring-scale',       label: 'reach',    min: 1,   max: 3,    step: 0.05, unit: '',
+      file: 'css/spine-doc.css' },
+    { v: '--ring-peak-a',      label: 'peak',     min: 0,   max: 1,    step: 0.02, unit: '',
+      file: 'css/spine-doc.css' },
+    { v: '--node-pulse-ms',    label: 'pulse',    min: 500, max: 4000, step: 50,   unit: 'ms',
+      file: 'css/spine-doc.css' },
+    { v: '--ring-color',       label: 'colour',   file: 'css/spine-doc.css',
+      choices: [
+        { name: 'white',    val: '228, 232, 235' },   /* --spine-glow, the cold default */
+        { name: 'bone',     val: '214, 213, 208' },   /* #D6D5D0 */
+        { name: 'moon',     val: '157, 178, 192' },   /* #9DB2C0 */
+        { name: 'crimson',  val: '161, 51, 62'  },    /* #A1333E — mind the ~2/page budget */
+        { name: 'deep red', val: '126, 38, 48'  }     /* #7E2630 */
+      ] }
   ];
   var HOME = 'css/spine-bg.css';
 
@@ -953,7 +991,15 @@
     '--star-desync': 'Spread of the four band clocks. 1 is the shipped 1x/1.37x/1.79x/2.31x, 0 renders build 6 exactly. Too busy, come down here, not the amplitude',
     '--star-cloud': 'Headroom split for the nebula, not its brightness. Keep it low so the kick has room; for a brighter glow drag cloud b instead',
     '--star-cloud-bright': 'How bright the nebula is, carried in the cloud filter so it is not clamped. THIS is the one to drag for more or less glow',
-    '--star-bolt-bright': 'Brightness of the lightning filaments, in the layer filter so it is not clamped. Faint strikes, drag this up, not the kick range'
+    '--star-bolt-bright': 'Brightness of the lightning filaments, in the layer filter so it is not clamped. Faint strikes, drag this up, not the kick range',
+    /* rail */
+    '--ksd-field': 'Falloff radius in px each side of the viewport centre for the rail tick field. Ticks step about 30px, so 160 lights about 9 of them',
+    '--node-ring': 'Resting size of the ripple ring before a node is focused. Rings are invisible until focus, so this only shapes the first frames of each pulse',
+    '--node-ring-active': 'Ring size while a node is focused, the base the ripple scales out from. The focused node itself also scales 1.3, which multiplies this',
+    '--ring-scale': 'How far a ripple travels before dissolving, as a multiple of its size. Short stays a tight halo on the node, long reaches toward the labels',
+    '--ring-peak-a': 'Ripple brightness at the start of its travel. It always fades to nothing by the end of the cycle, so this sets the peak, not a floor',
+    '--node-pulse-ms': 'One full ripple cycle. The second ring rides half a cycle behind automatically, so the radar train stays even at any speed',
+    '--ring-color': 'Ripple colour, five stops from the cold palette. The node core stays white regardless; crimson is rationed to about two uses a page'
   };
 
   var css = document.createElement('style');
@@ -1132,7 +1178,29 @@
   };
 
   FIELDS.forEach(function (f) {
-    var start = read(f.v);
+    /* A `choices` field is a discrete palette pick riding the same range
+       element: the slider's value is an INDEX into f.choices, and everything
+       that consumes a value — the live write here, Copy CSS, Apply pasted —
+       branches on f.choices to translate. Reading the start value goes through
+       getComputedStyle raw rather than read(), because parseFloat on an RGB
+       triplet returns its first channel, which is a number and therefore a
+       silent wrong answer. */
+    var start, startIdx = 0;
+    if (f.choices) {
+      var raw = getComputedStyle(document.documentElement).getPropertyValue(f.v)
+        .replace(/\s+/g, '');
+      for (var ci = 0; ci < f.choices.length; ci++) {
+        if (f.choices[ci].val.replace(/\s+/g, '') === raw) startIdx = ci;
+      }
+      /* Dead means the variable does not exist on this page at all (its
+         stylesheet is not loaded) — distinct from hidden, and read at build
+         time so Copy CSS can refuse to emit a made-up value below. */
+      f._dead = !raw;
+      start = startIdx;
+    } else {
+      start = read(f.v);
+      f._dead = isNaN(start);
+    }
     var row = document.createElement('label');
     row.innerHTML = '<span class="spine-tune__name">' + f.label + '</span>';
     var name = row.firstChild;
@@ -1140,17 +1208,33 @@
     name.addEventListener('mouseleave', hideTip);
     var input = document.createElement('input');
     input.type = 'range';
-    input.min = f.min; input.max = f.max; input.step = f.step; input.value = start;
+    if (f.choices) {
+      input.min = 0; input.max = f.choices.length - 1; input.step = 1;
+      input.value = startIdx;
+    } else {
+      input.min = f.min; input.max = f.max; input.step = f.step; input.value = start;
+    }
     var out = document.createElement('b');
-    out.textContent = start + f.unit;
+    out.textContent = f.choices ? f.choices[startIdx].name : start + f.unit;
     input.addEventListener('input', function () {
-      document.documentElement.style.setProperty(f.v, input.value + f.unit);
-      out.textContent = input.value + f.unit;
+      if (f.choices) {
+        var c = f.choices[+input.value];
+        document.documentElement.style.setProperty(f.v, c.val);
+        out.textContent = c.name;
+      } else {
+        document.documentElement.style.setProperty(f.v, input.value + f.unit);
+        out.textContent = input.value + f.unit;
+      }
       /* Most variables are consumed by CSS and repaint on their own. --spine-from
          is not: it is read by measure(), which only runs on scroll, resize and
          the ResizeObserver, none of which a slider drag fires. Without this the
          slider would look dead until you happened to scroll. */
       if (f.v === '--spine-from') remeasure();
+      /* Same shape of problem on the rail: --ksd-field is read by
+         js/spine-doc.js in its scroll pass, so a synthetic scroll event shows
+         the new field without the hand leaving the slider. The rail's handler
+         is rAF-throttled, so this costs one frame of its work. */
+      if (f.v === '--ksd-field') window.dispatchEvent(new Event('scroll'));
     });
     row.appendChild(input); row.appendChild(out);
     f._row = row;
@@ -1171,10 +1255,18 @@
      Copy CSS still emits their current values, so nothing downstream can
      tell the difference. */
   var kickOK = !!kickMeter;
-  var hidden = kickOK ? [] : FIELDS.filter(function (f) {
-    /* The snare sliders ride the same gate: one loop runs both detectors, so
-       where the kick cannot attach the snare cannot either. */
-    return f.v.indexOf('--kick-') === 0 || f.v.indexOf('--snare-') === 0;
+  /* The rail sliders ride the same idea on a different gate: the document rail
+     exists only where a .ksd-rail is in the DOM (index.html), and
+     spine-doc.css — where their values live — is loaded nowhere else. On any
+     other page they would move nothing AND read dead values, so they hide
+     exactly as the kick set does. */
+  var railOK = !!document.querySelector('.ksd-rail');
+  var hidden = FIELDS.filter(function (f) {
+    /* The snare sliders ride the same gate as the kick: one loop runs both
+       detectors, so where the kick cannot attach the snare cannot either. */
+    if (!kickOK && (f.v.indexOf('--kick-') === 0 || f.v.indexOf('--snare-') === 0)) return true;
+    if (!railOK && f.file === 'css/spine-doc.css') return true;
+    return false;
   });
   var hiddenSet = {};
   hidden.forEach(function (f) { hiddenSet[f.v] = 1; });
@@ -1187,7 +1279,7 @@
      a property of the source and identical on every page; counting only the
      visible rows would print a smaller number on about.html and read as eight
      tips having gone missing, which is the one thing this check exists to
-     catch. The count stays FIELDS.length — 40 as of --spine-on — everywhere,
+     catch. The count stays FIELDS.length — 47 as of the rail group — everywhere,
      and the suffix says what is hidden. */
   (function () {
     var missing = FIELDS.filter(function (f) { return !TIPS[f.v]; })
@@ -1199,8 +1291,8 @@
     if (orphan.length) console.warn('[tune] tip with no slider:', orphan.join(', '));
     if (!missing.length && !orphan.length) {
       console.log('[tune] ' + FIELDS.length + ' sliders, all with hover tips' +
-        (hidden.length ? ' — ' + hidden.length + ' kick/snare sliders defined but HIDDEN on ' +
-          'this page (no Web Audio, or no .track-experience), tips still checked' : ''));
+        (hidden.length ? ' — ' + hidden.length + ' sliders defined but HIDDEN on ' +
+          'this page (each dropped group states its reason in the panel), tips still checked' : ''));
     }
   }());
 
@@ -1223,6 +1315,13 @@
        (the filter below catches the --snare- prefix too). */
     { title: 'snare', open: true, vars: ['--snare-bolt', '--snare-decay',
         '--snare-sens', '--snare-freq'] },
+    /* Open for the same reason kick and snare are: it is what is being tuned
+       now (added Aug 14 2026 with the field + ripple work). Hidden whole on
+       pages without the rail — `why` is the drop message for that case. */
+    { title: 'rail', open: true,
+      why: 'the document rail lives on index.html only',
+      vars: ['--ksd-field', '--node-ring', '--node-ring-active', '--ring-scale',
+        '--ring-peak-a', '--node-pulse-ms', '--ring-color'] },
     { title: 'column', vars: ['--spine-on', '--spine-w', '--spine-dim', '--spine-lit',
         '--spine-glow', '--spine-feather', '--spine-from', '--spine-offset',
         '--spine-bias'] },
@@ -1260,10 +1359,15 @@
       g.vars.forEach(function (v) { placed[v] = 1; });
       var why = document.createElement('p');
       why.style.cssText = 'margin:6px 0;color:#D8534F';
-      why.textContent = g.title.toUpperCase() + ': unavailable (no Web Audio, or ' +
-        'no .track-experience on this page). Its ' + g.vars.length + ' sliders are ' +
-        'hidden because they would move nothing here. Copy CSS still emits their ' +
-        'current values.';
+      /* Each group knows its own reason; the kick text stays the default so the
+         two audio groups read exactly as they always have. Whether Copy CSS
+         emits the hidden values depends on whether their stylesheet is even
+         loaded here — the rail set is dead off index.html, not just idle, and
+         a dead field is skipped rather than emitted (see Copy CSS). */
+      why.textContent = g.title.toUpperCase() + ': unavailable (' +
+        (g.why || 'no Web Audio, or no .track-experience on this page') +
+        '). Its ' + g.vars.length + ' sliders are hidden because they would ' +
+        'move nothing here.';
       scroll.appendChild(why);
       return;
     }
@@ -1479,7 +1583,7 @@
        does not come back rather than an error. The trailing [a-z0-9] is what
        keeps the widened class from taking a stray hyphen with it: the name has
        to end on a letter or a digit, never on punctuation. */
-    var re = /(--(?:spine|scroll|star|kick|snare)-[a-z0-9-]*[a-z0-9])\s*:\s*([^;\n}]+)/g, m;
+    var re = /(--(?:spine|scroll|star|kick|snare|ksd|node|ring)-[a-z0-9-]*[a-z0-9])\s*:\s*([^;\n}]+)/g, m;
     while ((m = re.exec(paste.value))) {
       var name = m[1], val = m[2].trim();
       var f = null;
@@ -1487,12 +1591,38 @@
       if (!f) {
         /* Derived values, not controls — they are computed from the sliders and
            would be overwritten by them anyway. Ignore silently rather than
-           reporting a paste of the real :root block as half-unrecognised. */
+           reporting a paste of the real :root block as half-unrecognised.
+           The node and ring names below are the rail tokens that are real
+           but deliberately not sliders (geometry and idle-read values the
+           handoffs own); same reasoning — a paste of spine-doc.css's whole
+           :root block should not read as half-failed. */
         if (name !== '--spine-build' && name !== '--spine-contrast' &&
             name !== '--star-build' && name !== '--star-twinkle-amp' && name !== '--star-cloud-amp' &&
             name !== '--band-t0' && name !== '--band-t1' &&
             /* Written every frame by the detector loop, never by a slider. */
-            name !== '--kick-sign') unknown.push(name);
+            name !== '--kick-sign' &&
+            name !== '--node-color' && name !== '--node-size' &&
+            name !== '--node-idle-opacity' && name !== '--node-glow' &&
+            name !== '--node-glow-a' && name !== '--node-mark-size' &&
+            name !== '--node-mark-a') unknown.push(name);
+        continue;
+      }
+      if (f.choices) {
+        /* A choices value round-trips as its literal (an RGB triplet), never a
+           number — parseFloat would happily take the red channel and clamp it
+           into some slider range, which is a silently wrong colour. Match by
+           normalised text against the palette; a triplet from outside the
+           palette is reported, not applied, because the panel cannot represent
+           a state its own control cannot reach. */
+        var norm = val.replace(/\s+/g, ''), idx = -1;
+        for (var j = 0; j < f.choices.length; j++) {
+          if (f.choices[j].val.replace(/\s+/g, '') === norm) idx = j;
+        }
+        if (idx < 0) { unknown.push(name + ' (not a palette stop)'); continue; }
+        document.documentElement.style.setProperty(f.v, f.choices[idx].val);
+        f._input.value = idx;
+        f._out.textContent = f.choices[idx].name;
+        found++;
         continue;
       }
       var num = parseFloat(val);
@@ -1510,6 +1640,10 @@
        unconditionally because it is cheap and idempotent, and because working
        out whether the paste contained that one name is not worth the branch. */
     remeasure();
+    /* The rail's counterpart to remeasure(): --ksd-field is read in the rail's
+       scroll pass, and a paste may have just changed it. Same reasoning — cheap,
+       idempotent, not worth detecting whether the paste contained that name. */
+    window.dispatchEvent(new Event('scroll'));
     note.textContent = found
       ? 'applied ' + found + ' value' + (found === 1 ? '' : 's') +
         (unknown.length ? ' · ignored ' + unknown.join(', ') : '')
@@ -1531,9 +1665,17 @@
        page and to nothing else. */
     var groups = {}, order = [];
     FIELDS.forEach(function (f) {
+      /* DEAD is stronger than hidden and is the one case Copy CSS skips. A
+         hidden-but-live field (kick on a page without the detector) still has
+         real values to emit; a dead one (the rail set anywhere spine-doc.css
+         is not loaded) has no source value at all, and emitting the slider's
+         browser-default midpoint would paste a number nobody chose into the
+         stylesheet. */
+      if (f._dead) return;
       var dest = f.file || HOME;
       if (!groups[dest]) { groups[dest] = []; order.push(dest); }
-      groups[dest].push('  ' + f.v + ': ' + f._input.value + f.unit + ';');
+      groups[dest].push('  ' + f.v + ': ' +
+        (f.choices ? f.choices[+f._input.value].val : f._input.value + f.unit) + ';');
     });
     /* PAGE SCOPE. index.html carries html.page-home and about.html carries
        html.page-about, with a block for each in the stylesheets beneath the

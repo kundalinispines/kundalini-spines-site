@@ -31,6 +31,15 @@
     rgba(3, 4, 15, calc(0.42 + 0.58 * var(--nav-p))) 55%,
     rgba(3, 4, 15, var(--nav-p)) 100%);
   border-bottom: 1px solid rgba(57, 71, 80, calc(0.85 * var(--nav-p)));
+  /* NO-REPEAT IS THE FIX FOR A 1px BLACK LINE AT REST, not a tidiness habit.
+     The gradient's box is the PADDING box (background-origin default), but the
+     paint area includes the transparent 1px border below it — and the default
+     background-repeat tiled the gradient's FIRST row (alpha .78, near black)
+     into that strip. Result: a hairline under the bar at --nav-p:0, sitting on
+     the footage, vanishing once the bar went opaque. Isolated Aug 14 2026 by
+     toggling one property at a time and diffing the pixel row (y=91 at 1440):
+     border:none +69.8 brightness, background:none +69.8, tail/scrim/video 0. */
+  background-repeat: no-repeat;
   will-change: padding-block;
 }
 /* OPAQUE, not 92% + blur. MEASURED 2026-08-04.

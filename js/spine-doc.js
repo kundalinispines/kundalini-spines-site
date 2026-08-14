@@ -33,6 +33,7 @@
   let tops = null;      // section id -> y on the rail (px from doc top)
   let vertEls = [];     // the vertebra spans, for the scroll pass
   let nodeBits = {};    // id -> { node, throwEl }
+  let fieldR = 160;     // vertebra field radius; the --ksd-field token owns it
 
   /* The step is ~30px with a ±5px sway. The sway is a sine, not noise: a
      repeating irregularity reads as anatomy, whereas true randomness reads as
@@ -111,6 +112,15 @@
       node.setAttribute('aria-label', sec.label);
       node.style.top = '0';
       node.addEventListener('click', function () { jump(sec.id); });
+      // the ripple pair — ring 2 exists to carry the half-cycle delay that
+      // makes the radar train (see the longhand note in spine-doc.css). The
+      // button's aria-label is its accessible name, so the spans add no noise.
+      const ring1 = document.createElement('span');
+      ring1.className = 'ksd-node__ring';
+      const ring2 = document.createElement('span');
+      ring2.className = 'ksd-node__ring ksd-node__ring--2';
+      node.appendChild(ring1);
+      node.appendChild(ring2);
       const label = document.createElement('span');
       label.className = 'ksd-label';
       label.textContent = sec.label;
@@ -161,9 +171,26 @@
 
       const docMid = window.pageYOffset + window.innerHeight / 2;
       const base = doc.getBoundingClientRect().top + window.pageYOffset;
+      /* The radius is re-read every frame, not cached at measure() time, so the
+         ?tune slider is live: the panel writes --ksd-field on <html> and then
+         dispatches a synthetic scroll, and this read is what picks it up. One
+         getComputedStyle per rAF is noise next to the rect reads above. */
+      fieldR = parseFloat(getComputedStyle(doc).getPropertyValue('--ksd-field')) || 160;
+      /* The graded field (Aug 14 2026): each tick gets --vt = smoothstepped
+         nearness to the viewport-centre point inside the --ksd-field radius,
+         and css/spine-doc.css interpolates every visual value from it. The
+         write is skipped when the rounded value is unchanged, so a settled
+         page costs zero style writes: only the ~⌈2R/30⌉ ticks inside a moving
+         field are ever touched in a frame. (.is-active is gone with the hard
+         ±26px window it expressed; .is-passed survives — the memory state is
+         a threshold, not a falloff.) */
       vertEls.forEach(function (el) {
         const d = base + Number(el.dataset.y) - docMid;
-        el.classList.toggle('is-active', Math.abs(d) < 26);
+        const a = Math.abs(d);
+        let t = a >= fieldR ? 0 : 1 - a / fieldR;
+        t = t * t * (3 - 2 * t);
+        const q = Math.round(t * 100) / 100;
+        if (el._vt !== q) { el.style.setProperty('--vt', q); el._vt = q; }
         el.classList.toggle('is-passed', d < -26);
       });
     });

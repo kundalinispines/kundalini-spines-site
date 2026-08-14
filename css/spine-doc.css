@@ -26,6 +26,33 @@
   --cord-opacity:       0.7;
   --connector-draw-ms:  520ms;
   --connector-ease:     cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Ripple rings — ported from the lab Aug 14 2026 (owner: "emit light as it
+     did with our older version"). Same names and values as css/spine-ui.css;
+     the mirror rule above applies to these too. */
+  --node-ring:          26px;    /* ring resting size */
+  --node-ring-active:   48px;    /* ring size while the node is focused */
+  --node-pulse-ms:      1350ms;
+  --ring-scale:         1.55;    /* how far a ripple travels before dissolving */
+  --ring-peak-a:        0.9;     /* brightness at the start of its travel */
+  /* DOC-ONLY, not mirrored: the lab's rings read --node-color directly. Hoisted
+     here so the ripple can take a different palette colour with a one-line
+     change (moonlight is 157, 178, 192; crimson is 161, 51, 62 — but mind the
+     ~2-uses-per-page crimson budget). Cold white was the default the owner was
+     offered with the port. */
+  --ring-color:         var(--node-color);
+
+  /* The vertebra field's falloff radius, each side of the viewport-centre
+     point. js/spine-doc.js reads this every scroll frame (it owns the per-tick
+     distance math), so retune it HERE, not in the script. Ticks step ~30px, so
+     160px lights ~9 of them on a smooth falloff — the owner asked for more
+     than the old hard ±26px window, which lit two.
+     ON :root, NOT ON .ksd-doc, AND THAT IS LOAD-BEARING: the ?tune sliders
+     write inline styles on <html>, which only reach the rail's read by
+     INHERITANCE — a local declaration on .ksd-doc would beat the inherited
+     value and leave the panel's field slider dead. Same trap as the
+     html-vs-body scoping note in js/spine-bg.js. */
+  --ksd-field:          160px;
 }
 @media (prefers-reduced-motion: reduce) {
   :root { --connector-draw-ms: 1ms; }
@@ -86,15 +113,22 @@
    ABOVE the arc viewport's top (measured Aug 13 2026, 1440×900) — in the old
    layout the intro block inside .track-arc-wrap absorbed that; here the clip
    box must be grown upward instead. padding-top makes the room inside the
-   clip, the negative margin puts the arch back where it was. overflow-x alone
-   is not the fix: an unpaired overflow-x forces overflow-y to auto, and the
-   overshooting card then grows a phantom scrollbar. */
+   clip. overflow-x alone is not the fix: an unpaired overflow-x forces
+   overflow-y to auto, and the overshooting card then grows a phantom
+   scrollbar.
+
+   THERE IS DELIBERATELY NO NEGATIVE MARGIN PULLING THE ARCH BACK UP. The
+   first cut had margin-top:-140px so the layout stayed where it was designed —
+   and the risen card then sat ON the platform note, hiding its middle two
+   lines (overlap measured 121.7px, identical at 1440×900 and 1920×1080,
+   Aug 14 2026; the owner called it). Letting the headroom BE the gap parks
+   the card's risen top ~18px below the note instead. Restoring the negative
+   margin restores the collision. */
 .ksd-bleed {
   position: relative;
   margin-right: calc(-1 * clamp(24px, 6vw, 120px));
   overflow: hidden;
   padding-top: 140px;
-  margin-top: -140px;
 }
 
 /* The music head centres over the carousel, not on the axis — the owner's
@@ -123,13 +157,49 @@
   filter: drop-shadow(0 0 4px rgba(228,232,235,.45)); opacity: var(--cord-opacity); }
 
 .ksd-node { position: absolute; left: 0; transform: translate(-50%,-50%); width: var(--node-size); height: var(--node-size);
+  z-index: 1;  /* under .ksd-label's 2 — the ripple stays beneath the labels */
   border-radius: 50%; background: rgba(228,232,235,1); pointer-events: auto; cursor: pointer; border: 0; padding: 0;
   opacity: var(--node-idle-opacity); box-shadow: 0 0 var(--node-glow) rgba(var(--node-color), var(--node-glow-a));
   transition: opacity 260ms var(--ease-standard), transform 260ms var(--ease-standard), box-shadow 260ms var(--ease-standard); }
 .ksd-node::after { content: ''; position: absolute; top: 50%; left: 50%; width: var(--node-mark-size); height: var(--node-mark-size);
   transform: translate(-50%,-50%); border-radius: 50%; border: 1px solid rgba(228,232,235, var(--node-mark-a)); }
 .ksd-node:hover { opacity: 1; transform: translate(-50%,-50%) scale(1.15); box-shadow: 0 0 18px rgba(var(--node-color), .85); }
-.ksd-node.is-active { opacity: 1; transform: translate(-50%,-50%) scale(1.3); box-shadow: 0 0 20px rgba(var(--node-color), .9); }
+.ksd-node.is-active { opacity: 1; transform: translate(-50%,-50%) scale(1.3); box-shadow: 0 0 20px rgba(var(--node-color), .9);
+  --node-ring: var(--node-ring-active); }
+
+/* THE RIPPLE — the focused node emits light, ported from the lab's
+   .spine-node__ring (css/spine-ui.css) Aug 14 2026 at the owner's ask. Two
+   rings, radar train: ring 2 rides half a cycle behind so a ripple is always
+   travelling out. js/spine-doc.js appends both spans inside each node button. */
+.ksd-node__ring { position: absolute; top: 50%; left: 50%;
+  width: var(--node-ring); height: var(--node-ring);
+  transform: translate(-50%,-50%) scale(0.4);
+  border-radius: 50%;
+  /* the glow reaches out and fades — colour gradient, not a hard line */
+  border: 1px solid rgba(var(--ring-color), 0.55);
+  background: radial-gradient(circle, transparent 58%, rgba(var(--ring-color), 0.14) 100%);
+  box-shadow: 0 0 14px rgba(var(--ring-color), 0.35);
+  opacity: 0; pointer-events: none; }
+/* LONGHANDS, deliberately — do not collapse these into the `animation`
+   shorthand. The lab paid for this once (measured Aug 9 2026): the shorthand
+   also sets animation-delay:0s and outranked ring 2's delay rule, so both
+   rings ran in phase, drawn exactly on top of each other, and the radar train
+   had never once rendered. Longhands leave animation-delay alone. */
+.ksd-node.is-active .ksd-node__ring {
+  animation-name: ksd-node-pulse;
+  animation-duration: var(--node-pulse-ms);
+  animation-timing-function: cubic-bezier(0, 0.4, 0.3, 1);
+  animation-iteration-count: infinite;
+}
+.ksd-node .ksd-node__ring--2 { animation-delay: calc(var(--node-pulse-ms) * -0.5); }
+@keyframes ksd-node-pulse {
+  0%   { transform: translate(-50%,-50%) scale(0.3); opacity: 0; }
+  12%  { opacity: var(--ring-peak-a); }
+  100% { transform: translate(-50%,-50%) scale(var(--ring-scale)); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ksd-node__ring { display: none; }
+}
 
 /* THE THROW. 32px, and it is the whole connector — at this axis position there
    is no distance to cross, so the line reads as a tick that pins the text to
@@ -152,39 +222,58 @@
    which is what stops them reading as ruler ticks. Spacing carries a small
    deterministic variation so the column feels grown rather than stamped. */
 .ksd-vert { position: absolute; left: 0; width: 0; height: 0; pointer-events: none; }
-.ksd-vert i { position: absolute; top: 0; height: 1px; width: var(--ksd-arm);
-  background: rgba(228,232,235,.16);
-  transition: background 520ms var(--ease-standard), width 520ms var(--ease-standard); }
+/* THE FIELD IS GRADED, NOT BINARY — rebuilt Aug 14 2026 at the owner's ask
+   ("more of them light up, more ticks react"). js/spine-doc.js writes --vt
+   (0..1, smoothstepped) per tick from its distance to the viewport-centre
+   point inside the --ksd-field radius; every visual value below interpolates
+   from it, so a wave of reach and brightness travels the rail instead of one
+   segment snapping on. The old .is-active rules (hard ±26px window, two lit
+   ticks) are gone — a binary class cannot express a falloff.
+
+   The transition is 200ms, down from the binary era's 520ms: --vt retargets
+   every scroll frame, so the transition acts as a low-pass filter on a moving
+   value. At 520ms the wave trailed the scroll by half a second and read as
+   lag; 200ms keeps a soft settle without the disconnect. The endpoints match
+   the old states exactly: idle .16 → full .82, arm +5px, descender 3.5→5px. */
+.ksd-vert i { position: absolute; top: 0; height: 1px;
+  width: calc(var(--ksd-arm) + var(--vt, 0) * 5px);
+  background: rgba(228,232,235, calc(0.16 + var(--vt, 0) * 0.66));
+  transition: background 200ms var(--ease-standard), width 200ms var(--ease-standard); }
 .ksd-vert i.l { left: 0; transform: translateX(calc(-100% - 1.5px)); }
 .ksd-vert i.r { left: 1.5px; }
 /* the descender at the outer end of each arm — the ┤ and ├ of the segment */
-.ksd-vert i::after { content: ''; position: absolute; top: 0; width: 1px; height: 3.5px;
+.ksd-vert i::after { content: ''; position: absolute; top: 0; width: 1px;
+  height: calc(3.5px + var(--vt, 0) * 1.5px);
   background: inherit; }
 .ksd-vert i.l::after { left: 0; }
 .ksd-vert i.r::after { right: 0; }
 
 /* Passed segments stay faintly energised — the column remembers where you have
-   been. */
-.ksd-vert.is-passed i { background: rgba(228,232,235,.34); }
-/* The current segment is the strongest state, but it earns it through reach
-   and line weight, not through a glow: a bloom here would compete with the
-   nodes. */
-.ksd-vert.is-active i { background: rgba(228,232,235,.82); width: calc(var(--ksd-arm) + 5px); }
-.ksd-vert.is-active i::after { height: 5px; }
+   been. The field's grade rides on top of the raised base. */
+.ksd-vert.is-passed i { background: rgba(228,232,235, calc(0.34 + var(--vt, 0) * 0.48)); }
 
 /* An ANCHOR segment sits where a section node does. It is the same vertebra
    with a longer reach and a small square joint on the axis — hierarchy without
-   adding a second circle next to the node. */
-.ksd-vert.is-anchor i { width: calc(var(--ksd-arm) + 4px); background: rgba(228,232,235,.42); }
-.ksd-vert.is-anchor.is-active i { width: calc(var(--ksd-arm) + 9px); background: rgba(228,232,235,.9); }
+   adding a second circle next to the node. Same graded endpoints as before:
+   +4→+9px reach, .42→.9 line, .5→.95 joint. */
+.ksd-vert.is-anchor i { width: calc(var(--ksd-arm) + 4px + var(--vt, 0) * 5px);
+  background: rgba(228,232,235, calc(0.42 + var(--vt, 0) * 0.48)); }
 .ksd-vert.is-anchor b { position: absolute; top: 0; left: 0; width: 3px; height: 3px;
-  transform: translate(-50%,-50%) rotate(45deg); background: rgba(228,232,235,.5);
-  transition: background 520ms var(--ease-standard); }
-.ksd-vert.is-anchor.is-active b { background: rgba(228,232,235,.95); }
+  transform: translate(-50%,-50%) rotate(45deg);
+  background: rgba(228,232,235, calc(0.5 + var(--vt, 0) * 0.45));
+  transition: background 200ms var(--ease-standard); }
 
 /* Labels are hover-only, as on the navigator: the axis stays an instrument,
    not a menu. */
 .ksd-label { position: absolute; right: 14px; top: 0; transform: translateY(-50%) rotate(180deg);
+  /* ABOVE the ripple, owner's call Aug 14 2026: the active ring's travel
+     (48px × 1.55, × the node's 1.3 scale ≈ a 97px halo) reaches the label
+     column, and the ring must land UNDER the vertical labels — the label is
+     interface, the ripple is light. DOM order alone already paints it so
+     (label follows node), but that is one reorder away from breaking; the
+     explicit z-index pins it. The node carries z-index:1 below for the same
+     reason. */
+  z-index: 2;
   writing-mode: vertical-rl; white-space: nowrap;
   font-family: var(--font-label); font-weight: 600; font-size: var(--fs-label);
   letter-spacing: var(--tracking-label); text-transform: uppercase; color: rgba(228,232,235,.82);

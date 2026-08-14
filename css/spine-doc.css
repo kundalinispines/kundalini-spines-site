@@ -332,6 +332,31 @@
    connect.html where the block runs as a page. */
 .ksd-connect { max-width: 520px; }
 
+/* ---- The merch video ----
+   The spine render stands beside the merch copy — the object that carries it,
+   next to "Objects That Carry It". The element is TALL on purpose: the render
+   is a vertical column cropped to portrait at encode time, so its height is
+   its size (the earlier 3D-model pass measured the same lesson: a short stage
+   shrinks a spine to a sliver). The video column flexes RIGHT of the copy
+   only — the music bleed's rule applies to anything wide: nothing covers the
+   axis. */
+.ksd-merch { display: flex; flex-wrap: wrap; gap: clamp(28px, 4vw, 64px); align-items: center; }
+.ksd-merch__copy { flex: 1 1 34ch; min-width: 0; }
+.ksd-merch__video { flex: 1 1 300px; min-width: 0; margin: 0; display: flex; flex-direction: column; align-items: center; }
+.ksd-merch__video video { display: block; height: clamp(540px, 78vh, 780px); width: auto; max-width: 100%; }
+/* is-flat = the browser refused the alpha WebM and is playing the mp4, which
+   still has its black backdrop. Screen blend zeroes black against any
+   background — the poor browser's transparency. Not applied to the WebM:
+   blending REAL alpha would let bright nebula bleed through the spine's dark
+   body. js/spine-doc.js owns the tagging. */
+.ksd-merch__video video.is-flat { mix-blend-mode: screen; }
+.ksd-merch__video-note { margin-top: var(--space-2); font-family: var(--font-mono); font-size: 10px; letter-spacing: .14em; color: var(--text-secondary); }
+@media (max-width: 900px) {
+  /* Stacked under the copy the render keeps portrait height for the same
+     reason as above — a squat stage on a phone is a thumbnail. */
+  .ksd-merch__video video { height: min(130vw, 620px); }
+}
+
 /* ---- Headline reveal ----
    Headlines rise and clarify once, the first time they cross into view —
    mechanical rather than bouncy: a short upward settle and a fade, on the

@@ -21,13 +21,27 @@
    That is the entire mechanism. Give body a transform one day and this layer
    vanishes behind the page background with no error to explain it.
 
-   THE VALUES ARE THE OWNER'S, tuned by hand in clouds-lab.html and pasted back
-   with its Copy options button. To retune: open clouds-lab.html, drag, Copy
-   options, replace OPTIONS below. Do not "tidy" them toward the library
-   defaults — opacity 0.08 against shadow 0.39 looks like a mistake and is not.
-   At that pairing the cloud BODY is nearly invisible and what reads on the page
-   is the shadow it throws, offset -220px. It is a drift of shade across the
-   nebula rather than cloud sitting on top of it.
+   THE VALUES START FROM THE OWNER'S, tuned by hand in clouds-lab.html, with
+   opacity and shadow re-balanced afterwards to kill a visible edge. To retune:
+   open clouds-lab.html, drag, Copy options, replace OPTIONS below.
+
+   OPACITY IS THE PART THAT CLIPS; SHADOW IS THE PART THAT DOES NOT. This layer
+   sits UNDER all content, so every opaque picture is a hole in it, and the
+   owner reported a hard line at the bottom edge of the About video. Measured at
+   that edge, in one run so the numbers compare (the field seeds its time
+   randomly, so cross-run figures do not):
+
+     opacity 0.08 / shadow 0.39   edge 1.49   presence 2.08
+     opacity 0.03 / shadow 0.80   edge 0.52   presence 0.96
+     opacity 0.02 / shadow 1.00   edge 0.30   presence 0.86
+     opacity 0.00 / shadow 1.00   edge 0.04   presence 0.64
+
+   Shipping the third: a fifth of the edge for 41% of the presence. The first
+   diagnosis was the opposite of this — that the shadow made the big soft shapes
+   that clipped — and the measurement said no: raising shadow 0 to 1 lifted
+   presence by two thirds while the edge stayed flat. Cut opacity to soften a
+   content edge, raise shadow to win the presence back. Doing it the other way
+   round makes the line worse.
 
    quality 0.2 is also deliberate and is what makes this affordable: the field
    renders at a fifth of the viewport and is upsampled. Clouds are soft, so it
@@ -45,13 +59,13 @@
   if (!window.KSClouds) return;
 
   var OPTIONS = {
-    opacity: 0.08,
+    opacity: 0.02,
     cover: 0,
     density: 1.5,
     scale: 1.1,
     speed: 0.6,
     shading: 1,
-    shadow: 0.39,
+    shadow: 1,
     shadowOffsetX: -220,
     shadowOffsetY: -10,
     shadowSoftness: 1,
@@ -80,9 +94,27 @@
     stage.appendChild(out);
     document.body.appendChild(stage);
 
+    /* content IS documentElement, NOT the fixed stage, and that one choice is
+       what stops the clouds "scrubbing in" (owner's words, Aug 15 2026).
+
+       js/clouds.js offsets the noise field by content.scrollTop / clientHeight.
+       Pointed at the fixed stage that is permanently 0, so the field was nailed
+       to the viewport while the page slid over it — and since the layer sits
+       UNDER all content, every opaque block wiped across a stationary sky and
+       uncovered it as it went. That wipe is what read as clouds arriving with
+       the scroll, and as a hard line at the bottom edge of the About video.
+
+       documentElement gives the same viewport-sized canvas (its clientWidth /
+       clientHeight ARE the viewport) while its scrollTop is the page scroll, so
+       the offset now moves the field 1:1 with the document: a cloud stays glued
+       to the same place on the page and content never travels across it. The
+       nebula underneath stays fixed, so what is left is parallax between the
+       two rather than a reveal.
+
+       The stage stays fixed — it is only the frame the canvas is painted in. */
     var instance = window.KSClouds.create({
       source: src,
-      content: stage,
+      content: document.documentElement,
       output: out,
       pointerTarget: document
     }, OPTIONS);

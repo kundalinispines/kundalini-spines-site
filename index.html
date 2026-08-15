@@ -47,6 +47,7 @@
 <link rel="stylesheet" href="css/site-footer.css">
 <link rel="stylesheet" href="css/track-experience.css">
 <link rel="stylesheet" href="css/spine-doc.css">
+<link rel="stylesheet" href="css/astral-scrim.css">
 <link rel="stylesheet" href="css/spine-bg.css">
 </head>
 <body>
@@ -108,10 +109,19 @@
       </section>
 
       <section class="ksd-section" id="about" data-ksd-section="about" data-ksd-label="About">
-        <h2 class="ksd-head ksd-reveal">Two Messengers. One Signal.</h2>
-        <p class="ksd-body">Kundalini Spines is a two-member creative and musical project moving between underground hip-hop, mysticism, symbolism, street experience, ancient knowledge, and speculative thought.</p>
-        <p class="ksd-body">The Messengers don&rsquo;t claim mastery over the Signal &mdash; they receive it, interpret it, and carry it forward. You&rsquo;re invited to decode it for yourself.</p>
-        <p style="margin-top:var(--space-2);"><a class="btn btn--ghost" href="about.html">Read the Feature</a></p>
+        <!-- The .astral-scrim wrapper exists ONLY to give the scrim a box the
+             size of the copy. It cannot go on .ksd-section: that has
+             min-height 92vh and centres its children, so the scrim would be a
+             slab most of a screen tall behind a few lines of text. Nothing
+             styles these children by position (checked: no `>` or `+` rules
+             reach them, no JS queries them), so the wrapper is inert apart
+             from the scrim. css/astral-scrim.css explains the layer. -->
+        <div class="astral-scrim">
+          <h2 class="ksd-head ksd-reveal">Two Messengers. One Signal.</h2>
+          <p class="ksd-body">Kundalini Spines is a two-member creative and musical project moving between underground hip-hop, mysticism, symbolism, street experience, ancient knowledge, and speculative thought.</p>
+          <p class="ksd-body">The Messengers don&rsquo;t claim mastery over the Signal &mdash; they receive it, interpret it, and carry it forward. You&rsquo;re invited to decode it for yourself.</p>
+          <p style="margin-top:var(--space-2);"><a class="btn btn--ghost" href="about.html">Read the Feature</a></p>
+        </div>
       </section>
 
       <!-- MUSIC IS THE EXCEPTION. The carousel is protected behavior — the
@@ -160,7 +170,12 @@
       <section class="ksd-section" id="merch" data-ksd-section="merch" data-ksd-label="Merch">
         <h2 class="ksd-head ksd-reveal">Objects That Carry It</h2>
         <div class="ksd-merch">
-          <div class="ksd-merch__copy">
+          <!-- The scrim goes on the COPY COLUMN, never on .ksd-merch. On the
+               row it would sit behind the spine render too and darken the
+               field that render is transparent in order to float in — which
+               would undo the point of keying it. Scoped here the two never
+               meet. -->
+          <div class="ksd-merch__copy astral-scrim">
             <p class="ksd-body">The Signal doesn&rsquo;t only travel as sound. Some of it ends up in things you can hold &mdash; apparel and headwear, the record as a physical object, printed work, and pieces closer to talismans than products.</p>
             <p class="ksd-body">The Messengers wear the same marks you&rsquo;ll find here. Nothing in the range is made to advertise. It&rsquo;s made to carry &mdash; the same way a transmission is received, preserved, and passed on without weakening.</p>
             <p class="ksd-body">None of it is listed yet and there is no date. Objects go out as each one is made, in the quantity it can be made in, and they are filed like everything else.</p>

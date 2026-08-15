@@ -118,11 +118,70 @@
        two rather than a reveal.
 
        The stage stays fixed — it is only the frame the canvas is painted in. */
+    /* CONTINUING THE SKY OVER OPAQUE MEDIA.
+
+       The layer sits under all content, so every opaque element is a hard-edged
+       hole in it. Swept at opacity 0.9 across the whole document, the holes are:
+       the hero scrim, the nav, the track cards, and — the ones the owner
+       objected to — the two scrubbable film-row videos, 195 and 184 tiles of
+       dead rectangle with the sky carrying on around them.
+
+       These mirrors fix that WITHOUT a second cloud field. A second instance
+       would seed its own random time and never line up; instead each overlay
+       copies the exact region of the real canvas that lies behind its video, so
+       the field continues across the video as one piece of sky.
+
+       It has to happen inside the render frame — a WebGL canvas clears its
+       drawing buffer once composited, and a copy taken at any other moment is
+       silently blank. That is what onFrame is for. The alternative,
+       preserveDrawingBuffer, costs a readback on every frame forever.
+
+       Only the film-row videos are mirrored. The hero is deliberately left as a
+       hole — the owner does not want cloud on the footage — and the track cards
+       are protected behaviour that nothing here should reach into. */
+    var mirrors = [];
+    Array.prototype.forEach.call(
+      document.querySelectorAll('.ksd-filmrow__media'), function (fig) {
+        var vid = fig.querySelector('video');
+        if (!vid) return;
+        // isolate so the overlay cannot escape the figure's own stacking context
+        fig.style.position = 'relative';
+        fig.style.isolation = 'isolate';
+        var mc = document.createElement('canvas');
+        mc.setAttribute('aria-hidden', 'true');
+        mc.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;' +
+          'z-index:1;pointer-events:none';
+        fig.appendChild(mc);
+        mirrors.push({ el: vid, canvas: mc, ctx: mc.getContext('2d') });
+      });
+
+    function paintMirrors(source) {
+      var dpr = Math.min(window.devicePixelRatio || 1, 2);
+      for (var i = 0; i < mirrors.length; i++) {
+        var m = mirrors[i];
+        var r = m.el.getBoundingClientRect();
+        if (r.bottom < 0 || r.top > window.innerHeight || r.width < 2) continue;
+        var w = Math.max(1, Math.round(r.width * dpr));
+        var h = Math.max(1, Math.round(r.height * dpr));
+        if (m.canvas.width !== w || m.canvas.height !== h) {
+          m.canvas.width = w;
+          m.canvas.height = h;
+        }
+        m.ctx.clearRect(0, 0, w, h);
+        // Source rect is the video's viewport box in device pixels — the main
+        // canvas is fixed and viewport-sized, so this is literally the sky the
+        // video is standing in front of.
+        m.ctx.drawImage(source, r.left * dpr, r.top * dpr, r.width * dpr, r.height * dpr,
+                        0, 0, w, h);
+      }
+    }
+
     var instance = window.KSClouds.create({
       source: src,
       content: document.documentElement,
       output: out,
-      pointerTarget: document
+      pointerTarget: document,
+      onFrame: mirrors.length ? paintMirrors : null
     }, OPTIONS);
 
     /* No WebGL2, or a lost context: take the layer back out rather than leave

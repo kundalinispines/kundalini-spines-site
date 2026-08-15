@@ -163,17 +163,34 @@
               <a class="btn btn--ghost" href="#newsletter">Be Told First</a>
             </div>
           </div>
-          <!-- The spine render (owner's footage, Aug 14 2026). The source mov
-               was ProRes 4444 WITHOUT an alpha channel despite its filename —
-               the transparency here is DERIVED: the pure-black backdrop was
-               keyed to alpha (colorkey 0.09/0.06, measured clean at the crop
-               530x1540+1660+300 of the 4K frame) and encoded as VP9 WebM, the
-               codec Chrome/Firefox/Edge decode with alpha. The mp4 fallback
-               still carries the black backdrop: js/spine-doc.js tags the
-               element is-flat where VP9 is unsupported and the CSS
-               screen-blends the black away instead. KNOWN GAP: a Safari that
-               claims VP9 but drops the alpha would show the backdrop —
-               Safari is untested project-wide (see the handoffs). -->
+          <!-- The spine render (owner's TRUE-ALPHA re-export SpineSpin.mov,
+               Aug 15 2026 — it replaced the Aug 14 footage, which shipped a
+               DERIVED key because its alpha had been dropped on export).
+               This source really carries the matte: ProRes 4444 XQ,
+               yuva444p12le, 98% of the frame transparent. So there is NO
+               colorkey in this pipeline any more, and the problem the key
+               existed to fight is gone with it — the spine's near-black BACK
+               side used to fall inside the threshold and go see-through as it
+               turned (3–15% of the interior per frame even at the tightest
+               usable key). Measured on the real matte: 0.01–0.24%. That
+               residue is the anatomical gaps between vertebrae, not a leak.
+               Encoded straight from the embedded alpha: crop 264x1296+1760+456
+               (the union bounding box of all 241 frames, +12px margin), NO
+               rescale — the crop is already even on both axes, so resampling
+               a straight-alpha image would only risk edge fringing for
+               nothing. 24fps, -g 4, VP9 crf 40 -> yuva420p WebM, the codec
+               Chrome/Firefox/Edge decode with alpha. Note ffmpeg's own decoder
+               reports such a file as plain yuv420p — it does not surface VP9's
+               alpha side-track. Read the container's alpha_mode flag (or the
+               browser) instead; the pix_fmt is a red herring that will
+               otherwise read as a failed encode.
+               The mp4 fallback carries a black backdrop on purpose (flattened
+               via premultiply, since the source alpha is straight):
+               js/spine-doc.js tags the element is-flat where VP9 is
+               unsupported and the CSS screen-blends the black away instead.
+               KNOWN GAP, unchanged: a Safari that claims VP9 but drops the
+               alpha would show the backdrop — Safari is untested project-wide
+               (see the handoffs). -->
           <!-- NO autoplay and NO loop — the render is scrubbed by scroll
                (js/spine-doc.js owns the mapping). preload="auto", not
                metadata: the scrub seeks from its first wheel tick, and with

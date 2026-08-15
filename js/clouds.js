@@ -255,14 +255,6 @@
        on the document instead restores it without giving the layer a hit area.
        Defaults to content, so the lab is unaffected. */
     var pointerTarget = elements.pointerTarget || content;
-    /* onFrame runs at the END of render(), while the GL drawing buffer is still
-       valid. That timing is the whole point: a WebGL canvas clears its buffer
-       once the frame is composited, so drawImage() from it at any other moment
-       copies nothing at all and looks exactly like a dead renderer. Called here,
-       a consumer can mirror the finished field somewhere else — which is how the
-       sky continues over opaque media instead of stopping at its edge — without
-       preserveDrawingBuffer, which would cost a readback every frame. */
-    var onFrame = elements.onFrame || null;
 
     var gl = output.getContext('webgl2', {
       alpha: true,
@@ -529,10 +521,6 @@
       gl.uniform1f(composite.uniforms.uFogBlur, Math.min(Math.max(config.fogBlur, 0), 1));
       gl.uniform1f(composite.uniforms.uHasContent, htmlInCanvas ? 1 : 0);
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-
-      // Still inside the frame, so the drawing buffer is readable. See the note
-      // where onFrame is read.
-      if (onFrame) onFrame(output);
     }
 
     var raf = 0;

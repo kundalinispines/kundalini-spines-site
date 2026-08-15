@@ -56,6 +56,25 @@
    noise loops per pixel, so the saving is real on a weaker machine even where
    the fps counter does not show it.
 
+   COVER IS THE DIAL FOR "HOW MUCH OF THE SKY HAS CLOUD IN IT", and at the
+   owner's 0 the noise field has genuinely empty regions. Now that the field is
+   nailed to the viewport (see the note by `content` below) an empty region parks
+   on screen and only creeps as the field drifts, instead of scrolling past.
+   Measured at 1440x900, opacity 0.08, three drift phases, cloud layer isolated
+   against a flat background:
+
+     cover   sky with no cloud   largest single empty patch
+     0.00        30–34%              6.4% / 11.3% / 13.6% of the viewport
+     0.05        26%                 6.4%
+     0.10        19%                 5.2%
+     0.15        14%                 3.8%
+     0.20        10%                 2.7%
+
+   Left at the owner's 0 because it is his tuning and the nebula fills those
+   gaps on its own. If he says clouds are still missing in open sky, cover is
+   the one number to raise — it adds baseline coverage everywhere without
+   touching the colour or the contrast.
+
    The layer is decorative: aria-hidden, pointer-events none, and it never
    handles a click. Cursor wind is read from the document instead (see
    pointerTarget in js/clouds.js). Reduced motion is handled inside the library
@@ -100,88 +119,41 @@
     stage.appendChild(out);
     document.body.appendChild(stage);
 
-    /* content IS documentElement, NOT the fixed stage, and that one choice is
-       what stops the clouds "scrubbing in" (owner's words, Aug 15 2026).
+    /* content IS THE FIXED STAGE, and that one choice is what makes the layer
+       persistent (owner, Aug 15 2026: "that layer will be FIXED above the
+       nebula, with everything else layered on top of it").
 
        js/clouds.js offsets the noise field by content.scrollTop / clientHeight.
-       Pointed at the fixed stage that is permanently 0, so the field was nailed
-       to the viewport while the page slid over it — and since the layer sits
-       UNDER all content, every opaque block wiped across a stationary sky and
-       uncovered it as it went. That wipe is what read as clouds arriving with
-       the scroll, and as a hard line at the bottom edge of the About video.
+       Pointed at document.documentElement — which an earlier pass tried — that
+       offset IS the page scroll, so the whole field translated through the
+       viewport 1:1 with the document: at every scroll depth you were looking at
+       a different piece of noise, with fresh cloud continuously arriving from
+       below. That is the "scrubbing in" the owner kept seeing. Measured with the
+       drift frozen and the page content hidden, the isolated cloud layer at
+       scroll 200/400/600/800 correlated 0.94–0.99 with the scroll-0 layer SHIFTED
+       BY THE SCROLL, and 0.21/0.06/0.00/-0.05 with it left in place — the field
+       was glued to the document, not to the sky.
 
-       documentElement gives the same viewport-sized canvas (its clientWidth /
-       clientHeight ARE the viewport) while its scrollTop is the page scroll, so
-       the offset now moves the field 1:1 with the document: a cloud stays glued
-       to the same place on the page and content never travels across it. The
-       nebula underneath stays fixed, so what is left is parallax between the
-       two rather than a reveal.
+       The stage is position:fixed, so its scrollTop and scrollLeft are
+       permanently 0 and uOffset never moves. Its clientWidth/clientHeight are the
+       viewport, so the canvas stays viewport-sized instead of asking for one
+       thousands of pixels tall. The field is now nailed to the viewport exactly
+       like the nebula it sits on: scrolling changes nothing about it. What does
+       change it is time — speed 0.6 keeps the clouds drifting, which the owner
+       wants. Never ship speed 0; freeze it only to measure.
 
-       The stage stays fixed — it is only the frame the canvas is painted in. */
-    /* CONTINUING THE SKY OVER OPAQUE MEDIA.
-
-       The layer sits under all content, so every opaque element is a hard-edged
-       hole in it. Swept at opacity 0.9 across the whole document, the holes are:
-       the hero scrim, the nav, the track cards, and — the ones the owner
-       objected to — the two scrubbable film-row videos, 195 and 184 tiles of
-       dead rectangle with the sky carrying on around them.
-
-       These mirrors fix that WITHOUT a second cloud field. A second instance
-       would seed its own random time and never line up; instead each overlay
-       copies the exact region of the real canvas that lies behind its video, so
-       the field continues across the video as one piece of sky.
-
-       It has to happen inside the render frame — a WebGL canvas clears its
-       drawing buffer once composited, and a copy taken at any other moment is
-       silently blank. That is what onFrame is for. The alternative,
-       preserveDrawingBuffer, costs a readback on every frame forever.
-
-       Only the film-row videos are mirrored. The hero is deliberately left as a
-       hole — the owner does not want cloud on the footage — and the track cards
-       are protected behaviour that nothing here should reach into. */
-    var mirrors = [];
-    Array.prototype.forEach.call(
-      document.querySelectorAll('.ksd-filmrow__media'), function (fig) {
-        var vid = fig.querySelector('video');
-        if (!vid) return;
-        // isolate so the overlay cannot escape the figure's own stacking context
-        fig.style.position = 'relative';
-        fig.style.isolation = 'isolate';
-        var mc = document.createElement('canvas');
-        mc.setAttribute('aria-hidden', 'true');
-        mc.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;' +
-          'z-index:1;pointer-events:none';
-        fig.appendChild(mc);
-        mirrors.push({ el: vid, canvas: mc, ctx: mc.getContext('2d') });
-      });
-
-    function paintMirrors(source) {
-      var dpr = Math.min(window.devicePixelRatio || 1, 2);
-      for (var i = 0; i < mirrors.length; i++) {
-        var m = mirrors[i];
-        var r = m.el.getBoundingClientRect();
-        if (r.bottom < 0 || r.top > window.innerHeight || r.width < 2) continue;
-        var w = Math.max(1, Math.round(r.width * dpr));
-        var h = Math.max(1, Math.round(r.height * dpr));
-        if (m.canvas.width !== w || m.canvas.height !== h) {
-          m.canvas.width = w;
-          m.canvas.height = h;
-        }
-        m.ctx.clearRect(0, 0, w, h);
-        // Source rect is the video's viewport box in device pixels — the main
-        // canvas is fixed and viewport-sized, so this is literally the sky the
-        // video is standing in front of.
-        m.ctx.drawImage(source, r.left * dpr, r.top * dpr, r.width * dpr, r.height * dpr,
-                        0, 0, w, h);
-      }
-    }
-
+       NO MIRRORING OVER MEDIA. The layer sits under all in-flow content, so the
+       hero, the film-row videos and the track cards each punch a hole in it.
+       That is correct and wanted: the owner's stack is nebula, then clouds, then
+       "text, headings, scrubbable videos, the carousel, etcetera" on top. An
+       earlier pass painted mirror canvases over the two .ksd-filmrow__media
+       videos to continue the field across them; that has been removed. The
+       clouds belong in the open sky, and only there. */
     var instance = window.KSClouds.create({
       source: src,
-      content: document.documentElement,
+      content: stage,
       output: out,
-      pointerTarget: document,
-      onFrame: mirrors.length ? paintMirrors : null
+      pointerTarget: document
     }, OPTIONS);
 
     /* No WebGL2, or a lost context: take the layer back out rather than leave

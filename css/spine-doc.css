@@ -311,29 +311,7 @@
   padding-right: clamp(24px, 6vw, 120px);
   padding-top: calc(var(--nav-h-max, 92px) + clamp(64px, 10vh, 140px));
 }
-/* z-index -1, NOT 0, and this is what stops the cloud sky from "arriving" as
-   you leave the hero (owner's call, Aug 15 2026).
-
-   js/clouds-sky.js is a fixed body child at z-index -1, so it paints under all
-   IN-FLOW content. At 0 this media was in-flow content, which meant the hero
-   video covered the cloud layer completely: measured, the layer changed 0.0% of
-   the frame at the top of the page and then ramped 10% / 18% / 28% as the hero
-   scrolled away. That ramp was the reveal.
-
-   At -1 the media joins the same negative layer as the sky and the clouds, and
-   TREE ORDER sorts it: html/body ::before/::after first, then this (a
-   descendant of main), then the cloud stage (body's last element child). So the
-   video still covers the nebula and the clouds now sit over the video. Measured
-   after: 35.9% at scroll 0 against 35.6% at 300 — flat across the boundary,
-   which is the whole point.
-
-   THIS ONLY WORKS BECAUSE NOTHING BETWEEN HERE AND <body> IS A STACKING
-   CONTEXT — checked: .ksd-hero, .ksd-doc__col, .ksd-doc, main and body are all
-   clear. Give any of them a transform, filter, opacity or isolation and this
-   media drops behind its ancestor's background and the hero goes black, with no
-   error to explain it. The hero's own text is unaffected: it sits at z-index 2
-   under the `:not(.ksd-hero__media)` rule below. */
-.ksd-hero__media { position: absolute; inset: 0; z-index: -1; overflow: hidden; }
+.ksd-hero__media { position: absolute; inset: 0; z-index: 0; overflow: hidden; }
 .ksd-hero__media img, .ksd-hero__media video { width: 100%; height: 100%; object-fit: cover; object-position: center 20%; }
 .ksd-hero__scrim { position: absolute; inset: 0; z-index: 1; background: linear-gradient(180deg, rgba(3,4,15,.35) 0%, rgba(3,4,15,.62) 55%, rgba(3,4,15,.96) 100%); }
 /* :not(.ksd-hero__media) is load-bearing. A bare .ksd-hero > * sits at the same

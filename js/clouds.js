@@ -4,10 +4,10 @@
    passes, same uniforms, same defaults. What was removed is only the wrapper —
    the <Clouds> component, the hooks and the type declarations.
 
-   NOT WIRED INTO ANY PAGE. clouds-lab.html is the only consumer; the nebula on
-   index.html is still the CSS layer in css/star-bg.css, which has years of
-   tuning in it and answers the kick detector. This is a thing to look at
-   before deciding whether it earns a place beside that.
+   TWO CONSUMERS: clouds-lab.html (the tuning lab) and js/clouds-sky.js (the
+   live layer on index.html, which owns the shipped OPTIONS and the placement
+   rationale — read its header before changing anything here). The CSS nebula
+   in css/star-bg.css is untouched underneath; this drifts over it.
 
    THE html-in-canvas PATH IS DEAD ON ARRIVAL HERE, and that is fine. The
    original renders page content INTO the cloud field so the clouds can refract

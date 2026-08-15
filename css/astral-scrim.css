@@ -1,4 +1,26 @@
 /* ==========================================================================
+   *** PARKED, Aug 15 2026. THIS FILE IS NOT LINKED BY ANY PAGE. ***
+
+   The owner looked at it on the real nebula and it was not landing —
+   "not really feeling the scrim" — so the whole idea is on the shelf rather
+   than in the tree half-wired. Nothing is deleted: this stylesheet, its
+   generator (scripts/make-astral-scrim.py), the tile it makes and both source
+   references (assets/scrim/source/) are all still here.
+
+   TO BRING IT BACK: re-add the <link> to index.html (its <head> carries a
+   comment marking the spot), wrap the target copy in a .astral-scrim div, and
+   restore the eight sliders to FIELDS/TIPS/GROUPS in js/spine-bg.js plus the
+   --scrim- prefix in the Apply-pasted regex. The comments below survive intact
+   and record what every value is and why, including three geometry guards that
+   were found by measurement and would have to be re-derived otherwise.
+
+   WHAT IS WORTH KNOWING IF IT IS REVIVED: the look was never the problem to
+   solve twice — the ellipse in the owner's package was rejected, the textured
+   slab replaced it, and the second cut still did not land. If there is a third
+   attempt, get the owner's eye on a still BEFORE wiring geometry, tuner and
+   guards around it.
+   ==========================================================================
+
    ASTRAL SCRIM — a weathered pool of dark under the body copy, with a dot
    matrix of the site's own palette floating in it. Owner's package + two style
    references, Aug 15 2026.

@@ -902,32 +902,11 @@
                   `choices`. */
     { v: '--ksd-field',        label: 'field',    min: 40,  max: 400,  step: 10,   unit: 'px',
       file: 'css/spine-doc.css' },
-    /* The astral scrim. Labels stay <= 7 chars for the reason spelled out
-       below. Declared on :root in css/astral-scrim.css — NOT on .ksd-doc, or
-       these sliders would be dead on arrival (the inline style this panel
-       writes on <html> only reaches the scrim by inheritance). */
-    { v: '--scrim-ink',      label: 'dark',     min: 0,   max: 1,    step: 0.02, unit: '',
-      file: 'css/astral-scrim.css' },
-    /* Separate from `dark` on purpose — the whole reason the pool and the
-       matrix are two elements is so noise can come up without darkness
-       following it (owner's call). Merge them and this slider is gone. */
-    { v: '--scrim-noise',    label: 'noise',    min: 0,   max: 1.6,  step: 0.02, unit: '',
-      file: 'css/astral-scrim.css' },
-    { v: '--scrim-tile',     label: 'grain',    min: 220, max: 1400, step: 20,   unit: 'px',
-      file: 'css/astral-scrim.css' },
-    { v: '--scrim-fade',     label: 'soften',   min: 0,   max: 80,   step: 2,    unit: '%',
-      file: 'css/astral-scrim.css' },
-    { v: '--scrim-noise-fade', label: 'n edge', min: 0,   max: 80,   step: 2,    unit: '%',
-      file: 'css/astral-scrim.css' },
-    { v: '--scrim-blur',     label: 'blur',     min: 0,   max: 8,    step: 0.1,  unit: 'px',
-      file: 'css/astral-scrim.css' },
-    /* reach x tops out at 120 because that is where the CSS stops listening:
-       the right inset is clamped to the column's padding, whose own ceiling is
-       clamp(24px, 6vw, 120px). A higher maximum would just be dead travel. */
-    { v: '--scrim-bleed-x',  label: 'reach x',  min: 0,   max: 120,  step: 4,    unit: 'px',
-      file: 'css/astral-scrim.css' },
-    { v: '--scrim-bleed-y',  label: 'reach y',  min: 0,   max: 160,  step: 4,    unit: 'px',
-      file: 'css/astral-scrim.css' },
+    /* The astral scrim's eight sliders were here and came out again when the
+       layer was parked (Aug 15 2026). Do not re-add them without re-linking
+       css/astral-scrim.css and putting a .astral-scrim wrapper back in the
+       markup: a slider whose variable no page reads moves nothing, and this
+       panel has no way to tell that from a slider that is simply at zero. */
     { v: '--node-ring',        label: 'ring sz',  min: 10,  max: 64,   step: 2,    unit: 'px',
       file: 'css/spine-doc.css' },
     { v: '--node-ring-active', label: 'ring on',  min: 20,  max: 120,  step: 2,    unit: 'px',
@@ -1020,15 +999,9 @@
     '--star-bolt-bright': 'Brightness of the lightning filaments, in the layer filter so it is not clamped. Faint strikes, drag this up, not the kick range',
     /* rail */
     '--ksd-field': 'Falloff radius in px each side of the viewport centre for the rail tick field. Ticks step about 30px, so 160 lights about 9 of them',
-    /* scrim — no apostrophes in these strings, one kills the whole panel */
-    '--scrim-ink': 'Darkness of the pool under the About and Merch paragraphs. This is the soft gradient only, with no texture in it — it is what blurs into the background at the edges',
-    '--scrim-noise': 'Strength of the dot matrix and the broken streak lines, independent of the darkness. Goes past 1 because the layer is faint by design and the top of the range is where it starts reading as a readout',
-    '--scrim-tile': 'Size the noise tile repeats at. It TILES, so a bigger number means coarser dots and longer lines, not a bigger slab. Percentages and cover would stretch it and moire',
-    '--scrim-fade': 'How much of the pool stays at full darkness before it starts falling away. LOW is softer: near 0 there is no flat middle at all, just blur. HIGH is a big flat middle with a tighter edge',
-    '--scrim-noise-fade': 'Same for the noise layer. Keep it BELOW soften so the matrix has faded out before the pool has, and the shape you see is the soft gradient rather than the blocky edge of the texture',
-    '--scrim-blur': 'Softens the dot matrix so it blends INTO the pool instead of sitting crisply on top of it. Affects the noise layer only — the pool is a gradient and blurring a gradient does nothing. Past about 3px the dots stop being dots',
-    '--scrim-bleed-x': 'How far the layer reaches past the copy left and right. The soft edge has to land outside the text or the falloff reads as a crop. Phones ship 22 to keep the page from scrolling sideways',
-    '--scrim-bleed-y': 'How far the layer reaches above and below the copy. Same rule as reach x',
+    /* The astral scrim's eight tips left with its sliders — the coverage check
+       below fails loudly in BOTH directions, so a tip surviving its control
+       would print "tip with no slider" on every page load. */
     '--node-ring': 'Resting size of the ripple ring before a node is focused. Rings are invisible until focus, so this only shapes the first frames of each pulse',
     '--node-ring-active': 'Ring size while a node is focused, the base the ripple scales out from. The focused node itself also scales 1.3, which multiplies this',
     '--ring-scale': 'How far a ripple travels before dissolving, as a multiple of its size. Short stays a tight halo on the node, long reaches toward the labels',
@@ -1296,18 +1269,11 @@
      other page they would move nothing AND read dead values, so they hide
      exactly as the kick set does. */
   var railOK = !!document.querySelector('.ksd-rail');
-  /* The scrim gate is the element, not the stylesheet: css/astral-scrim.css is
-     linked by index.html only today, but the class is what decides whether the
-     sliders move anything, and a page could link the CSS without ever using it.
-     Asking the DOM keeps the gate true by construction if the scrim spreads to
-     other pages later. */
-  var scrimOK = !!document.querySelector('.astral-scrim');
   var hidden = FIELDS.filter(function (f) {
     /* The snare sliders ride the same gate as the kick: one loop runs both
        detectors, so where the kick cannot attach the snare cannot either. */
     if (!kickOK && (f.v.indexOf('--kick-') === 0 || f.v.indexOf('--snare-') === 0)) return true;
     if (!railOK && f.file === 'css/spine-doc.css') return true;
-    if (!scrimOK && f.v.indexOf('--scrim-') === 0) return true;
     return false;
   });
   var hiddenSet = {};
@@ -1321,9 +1287,9 @@
      a property of the source and identical on every page; counting only the
      visible rows would print a smaller number on about.html and read as eight
      tips having gone missing, which is the one thing this check exists to
-     catch. The count stays FIELDS.length — 55 as of the astral scrim group,
-     was 47 at the rail group — everywhere, and the suffix says what is
-     hidden. */
+     catch. The count stays FIELDS.length — back to 47 now the astral scrim
+     group is parked; it read 55 while that group was live — everywhere, and
+     the suffix says what is hidden. */
   (function () {
     var missing = FIELDS.filter(function (f) { return !TIPS[f.v]; })
                         .map(function (f) { return f.v; });
@@ -1365,13 +1331,6 @@
       why: 'the document rail lives on index.html only',
       vars: ['--ksd-field', '--node-ring', '--node-ring-active', '--ring-scale',
         '--ring-peak-a', '--node-pulse-ms', '--ring-color'] },
-    /* Open by default because it is what is being tuned now (Aug 15 2026), and
-       dropped whole off pages that have no scrim — same pattern as `rail`. */
-    { title: 'astral scrim', open: true,
-      why: 'the astral scrim is on index.html only, behind About and Merch',
-      vars: ['--scrim-ink', '--scrim-noise', '--scrim-tile', '--scrim-fade',
-        '--scrim-noise-fade', '--scrim-blur', '--scrim-bleed-x',
-        '--scrim-bleed-y'] },
     { title: 'column', vars: ['--spine-on', '--spine-w', '--spine-dim', '--spine-lit',
         '--spine-glow', '--spine-feather', '--spine-from', '--spine-offset',
         '--spine-bias'] },
@@ -1607,8 +1566,8 @@
      Copy CSS is only half a round trip. Without this, restoring an earlier
      setting means typing seven numbers back into seven sliders by hand and
      getting one of them wrong. Accepts anything containing --spine-* or
-     --scroll-* / --star-* / --scrim-* lines, so a whole :root block pasted
-     straight out of any of those stylesheets works — comments, braces and unrelated properties are ignored,
+     --scroll-* / --star-* lines, so a whole :root block pasted straight out of
+     any of the three stylesheets works — comments, braces and unrelated properties are ignored,
      including the "css/base.css" headings Copy CSS writes. The page-scoped
      blocks Copy CSS now emits — html.page-home { … } / html.page-about { … } —
      go through the same path for the same reason: the selector and the braces
@@ -1633,7 +1592,7 @@
        does not come back rather than an error. The trailing [a-z0-9] is what
        keeps the widened class from taking a stray hyphen with it: the name has
        to end on a letter or a digit, never on punctuation. */
-    var re = /(--(?:spine|scroll|star|kick|snare|ksd|node|ring|scrim)-[a-z0-9-]*[a-z0-9])\s*:\s*([^;\n}]+)/g, m;
+    var re = /(--(?:spine|scroll|star|kick|snare|ksd|node|ring)-[a-z0-9-]*[a-z0-9])\s*:\s*([^;\n}]+)/g, m;
     while ((m = re.exec(paste.value))) {
       var name = m[1], val = m[2].trim();
       var f = null;

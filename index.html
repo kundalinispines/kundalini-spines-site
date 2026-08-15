@@ -109,19 +109,21 @@
       </section>
 
       <section class="ksd-section" id="about" data-ksd-section="about" data-ksd-label="About">
-        <!-- The .astral-scrim wrapper exists ONLY to give the scrim a box the
-             size of the copy. It cannot go on .ksd-section: that has
-             min-height 92vh and centres its children, so the scrim would be a
+        <!-- The .astral-scrim wrapper holds THE PARAGRAPHS ONLY — the headline
+             stays above it and the button below it, owner's call Aug 15 2026.
+             The wrapper exists because the scrim needs a box the size of the
+             thing it sits under: it cannot go on .ksd-section, which has
+             min-height 92vh and centres its children, so the layer would be a
              slab most of a screen tall behind a few lines of text. Nothing
              styles these children by position (checked: no `>` or `+` rules
              reach them, no JS queries them), so the wrapper is inert apart
              from the scrim. css/astral-scrim.css explains the layer. -->
+        <h2 class="ksd-head ksd-reveal">Two Messengers. One Signal.</h2>
         <div class="astral-scrim">
-          <h2 class="ksd-head ksd-reveal">Two Messengers. One Signal.</h2>
           <p class="ksd-body">Kundalini Spines is a two-member creative and musical project moving between underground hip-hop, mysticism, symbolism, street experience, ancient knowledge, and speculative thought.</p>
           <p class="ksd-body">The Messengers don&rsquo;t claim mastery over the Signal &mdash; they receive it, interpret it, and carry it forward. You&rsquo;re invited to decode it for yourself.</p>
-          <p style="margin-top:var(--space-2);"><a class="btn btn--ghost" href="about.html">Read the Feature</a></p>
         </div>
+        <p style="margin-top:var(--space-2);"><a class="btn btn--ghost" href="about.html">Read the Feature</a></p>
       </section>
 
       <!-- MUSIC IS THE EXCEPTION. The carousel is protected behavior — the
@@ -170,15 +172,18 @@
       <section class="ksd-section" id="merch" data-ksd-section="merch" data-ksd-label="Merch">
         <h2 class="ksd-head ksd-reveal">Objects That Carry It</h2>
         <div class="ksd-merch">
-          <!-- The scrim goes on the COPY COLUMN, never on .ksd-merch. On the
-               row it would sit behind the spine render too and darken the
-               field that render is transparent in order to float in — which
-               would undo the point of keying it. Scoped here the two never
-               meet. -->
-          <div class="ksd-merch__copy astral-scrim">
-            <p class="ksd-body">The Signal doesn&rsquo;t only travel as sound. Some of it ends up in things you can hold &mdash; apparel and headwear, the record as a physical object, printed work, and pieces closer to talismans than products.</p>
-            <p class="ksd-body">The Messengers wear the same marks you&rsquo;ll find here. Nothing in the range is made to advertise. It&rsquo;s made to carry &mdash; the same way a transmission is received, preserved, and passed on without weakening.</p>
-            <p class="ksd-body">None of it is listed yet and there is no date. Objects go out as each one is made, in the quantity it can be made in, and they are filed like everything else.</p>
+          <!-- The scrim stays INSIDE the copy column and never goes on
+               .ksd-merch. On the row it would sit behind the spine render too
+               and darken the field that render is transparent in order to
+               float in — which would undo the point of keying it. It also
+               wraps the PARAGRAPHS ONLY (owner's call, Aug 15 2026): not the
+               heading above, not the buttons below. -->
+          <div class="ksd-merch__copy">
+            <div class="astral-scrim">
+              <p class="ksd-body">The Signal doesn&rsquo;t only travel as sound. Some of it ends up in things you can hold &mdash; apparel and headwear, the record as a physical object, printed work, and pieces closer to talismans than products.</p>
+              <p class="ksd-body">The Messengers wear the same marks you&rsquo;ll find here. Nothing in the range is made to advertise. It&rsquo;s made to carry &mdash; the same way a transmission is received, preserved, and passed on without weakening.</p>
+              <p class="ksd-body">None of it is listed yet and there is no date. Objects go out as each one is made, in the quantity it can be made in, and they are filed like everything else.</p>
+            </div>
             <div style="display:flex;flex-wrap:wrap;gap:var(--space-4);margin-top:var(--space-2);">
               <a class="btn btn--ghost" href="merch.html">View the Objects</a>
               <a class="btn btn--ghost" href="#newsletter">Be Told First</a>

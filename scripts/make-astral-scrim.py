@@ -1,46 +1,58 @@
 #!/usr/bin/env python
-"""Generate the Astral Scrim texture tile.
+"""Generate the Astral Scrim NOISE tile — the dot matrix and streak layer.
 
 WHY THIS IS GENERATED AND NOT SUPPLIED ART
 ------------------------------------------
 The owner's package (Aug 15 2026) carried `astral-scrim-2k-transparent.png`, a
 2560x1440 elliptical vignette. Measured, it was a pure radial gradient: plateau
 alpha 163 with sd 0.52, radially symmetric to within 0.73/255, 310 unique RGB
-colours in 3.7M pixels. It also was not the look the owner wanted.
+colours in 3.7M pixels. It was also not the look the owner wanted.
 
-The look the owner DID want arrived as a second reference image — a hard-edged
-slab of near-black full of horizontal data-streaks and coloured speckle, edges
-dissolving in blocks. That image had NO alpha channel: the transparency
-checkerboard was baked into its RGB pixels, and it had been resampled after
-baking (checker period ran 16,16,16,16,21,17), so the alpha could not be
-recovered either. It was a style reference, not an asset — the owner confirmed
-as much.
+The look he wanted arrived as a second reference — a slab of near-black full of
+horizontal data-streaks and coloured speckle, edges dissolving in blocks. That
+image had NO alpha channel: its transparency checkerboard was baked into the RGB
+and then resampled (checker period 16,16,16,16,21,17), so the matte could not be
+recovered either. Style reference, not asset — the owner confirmed as much.
 
-So the texture is built here instead. That buys three things a supplied slab
-could not: it TILES (so two scrims of different heights are the same material
-rather than the same picture stretched two ways), it carries real alpha, and it
-is reproducible — change a flag, re-run, commit the new tile.
+WHAT THIS FILE PRODUCES, AND WHAT IT DOES NOT
+---------------------------------------------
+This tile is MARKS ONLY. It carries no dark base. The darkening under the copy
+is a CSS radial-gradient in css/astral-scrim.css, on its own element and its own
+token, and that split is the point: the owner asked to dial noise up without
+dialling darkness with it, so the two cannot share an opacity. Adding a dark
+wash back into this tile would silently re-couple them.
 
-HOW THE RAGGED DISSOLVE WORKS — the important part
---------------------------------------------------
-There is no second mask asset and no `mask-composite`. The tile's own alpha is
-COARSE, BLOCKY and HIGH-CONTRAST (0.34..1.0 in ~24px cells). The CSS applies a
-smooth gradient mask for the edge falloff, and the multiplication of the two is
-what produces the dissolve: where the gradient is at a tenth a 0.34 cell lands
-at 0.034 and vanishes while a 1.0 cell lands at 0.1 and hangs on. That reads as
-blocks breaking apart, which is the reference's edge.
+The marks are three things:
 
-Do not "clean up" the tile's alpha to a flat value. A flat tile multiplied by a
-smooth gradient gives a smooth fade, and the whole ragged quality — the entire
-reason this look was chosen over the ellipse — disappears. The mottling visible
-in the middle of the slab is the same variation doing its other job.
+1. A DOT MATRIX on a regular ~5px lattice — the owner's word, and regularity is
+   what makes it read as a screen or a readout rather than as film grain. The
+   dots are drawn OPAQUE and are thinned by the envelope below, not by being
+   painted faint; a faint dot and a thinned dot look different at these sizes.
+2. Horizontal streaks. The reference measured row-to-row luminance variation of
+   5.48 against column-to-column 1.74 — strongly directional, and that is most
+   of why it reads as data rather than texture.
+3. Colour from the site's own palette (tokens.css), NOT the reference's cyan.
+   The reference speckle sat at hue 180; tokens.css has no such colour, and the
+   owner's call was to use the project's palette. Signal Red is in the mix at a
+   deliberately tiny share — tokens.css calls it "a rare interruption: two uses
+   per page is the budget", so it is seasoning here, not a colourway.
+
+THE RAGGED DISSOLVE IS A MULTIPLICATION
+---------------------------------------
+There is no second mask asset and no `mask-composite`. Marks are modulated by a
+COARSE, BLOCKY, HIGH-CONTRAST envelope (~24px cells) before they are written.
+The CSS applies a smooth gradient mask for the edge falloff, and the product of
+the two is the dissolve: thin cells fall out of sight long before dense ones, so
+the layer breaks into blocks as it fades instead of dimming evenly. Flatten
+either half and it becomes an ordinary vignette — the asset the owner already
+turned down.
 
 Everything is drawn with wraparound so the tile repeats seamlessly; a seam in a
 layer that sits under running text is glaring once you have seen it.
 
 Usage:
     python scripts/make-astral-scrim.py
-    python scripts/make-astral-scrim.py --speck "#9DB2C0" --seed 7
+    python scripts/make-astral-scrim.py --dot-step 4 --red 0.05 --seed 7
 """
 import argparse
 import numpy as np
@@ -71,106 +83,131 @@ def tileable_noise(size, cells, rng):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument('--size', type=int, default=512)
+    # 480, not 512. The dot lattice has to divide the tile exactly or the matrix
+    # steps at the wrap, and 512 only divides by powers of two — a 5px pitch
+    # snapped straight to 8 and the dots came out visibly coarse. 480 takes
+    # 4/5/6/8/10/12/16, so the pitch below is actually reachable.
+    ap.add_argument('--size', type=int, default=480)
     ap.add_argument('--seed', type=int, default=11)
-    # Moonlight (--color-moonlight) by default. The owner's reference used a
-    # true cyan (hue 180); tokens.css has no such colour, and the owner's call
-    # was to use the project's palette, so the marks are the site's cold blue.
-    ap.add_argument('--speck', default='#9DB2C0')
-    ap.add_argument('--ink', default='#03040F')       # --color-black
-    ap.add_argument('--streak', default='#93A6B2')    # bright end of the marks
+    ap.add_argument('--dot-step', type=int, default=5,
+                    help='lattice pitch in px for the dot matrix')
+    ap.add_argument('--red', type=float, default=0.025,
+                    help='share of marks taking Signal Red. Tiny on purpose')
     ap.add_argument('--out', default='assets/scrim/astral-scrim-tile.png')
     a = ap.parse_args()
 
     S = a.size
     rng = np.random.default_rng(a.seed)
-    ink, speck, streak = hex_rgb(a.ink), hex_rgb(a.speck), hex_rgb(a.streak)
 
-    # --- alpha: coarse blocky field (the dissolve engine, see module docstring)
+    # tokens.css, verbatim. Weighted so the cold blue leads, bone and white
+    # carry the highlights, and red barely registers.
+    PALETTE = [
+        (hex_rgb('#9DB2C0'), 0.46),   # --color-moonlight
+        (hex_rgb('#D6D5D0'), 0.22),   # --color-bone
+        (hex_rgb('#E4E8EB'), 0.17),   # --color-white  (Spine Glow)
+        (hex_rgb('#57676F'), 0.12),   # --color-gray-500, the dim end
+        (hex_rgb('#7E2630'), 0.03),   # --color-crimson, replaced by --red below
+    ]
+    cols = np.array([c for c, _ in PALETTE], float)
+    wts = np.array([w for _, w in PALETTE], float)
+    wts[4] = a.red
+    wts = wts / wts.sum()
+
+    # --- the envelope: coarse, blocky, high-contrast (drives the dissolve)
     coarse = tileable_noise(S, 24, rng)
-    # np.ptp(), not coarse.ptp() — numpy 2 removed the ndarray method.
     coarse = (coarse - coarse.min()) / (np.ptp(coarse) + 1e-9)
-    # CONTRAST FIRST, and this step is the dissolve. Interpolated value noise
-    # piles up around its mean — raw, this field measured sd 0.219 and the
-    # alpha built from it only 0.173, which multiplied by a smooth gradient
-    # gives a smooth fade and no raggedness at all. Pushing it toward bimodal
-    # before the alpha mapping is what puts the blocks back: measured across
-    # k = 1.0/1.6/2.2/2.8 the alpha sd runs 0.225/0.293/0.325/0.344. 1.6 is the
-    # chosen middle — at 2.2 and beyond a third of the tile is under 0.3 alpha
-    # and the slab starts reading as holes rather than as weathering.
-    coarse = np.clip((coarse - 0.5) * 1.6 + 0.5, 0, 1)
+    # Contrast BEFORE anything reads it. Interpolated value noise piles up
+    # around its mean — raw it measured sd 0.219, which multiplied by a smooth
+    # gradient gives a smooth fade and no raggedness at all. Pushing it toward
+    # bimodal is what puts the blocks back.
+    coarse = np.clip((coarse - 0.5) * 1.7 + 0.5, 0, 1)
     coarse = coarse * coarse * (3 - 2 * coarse)
-    # FLOOR 0.34, not 0.18. At 0.18 the slab averaged too thin to read as a
-    # surface: on the page the bright marks were the only thing visible and the
-    # darkening — the entire job of the layer — did not land. The floor sets how
-    # solid the body is; the SPREAD above it is what still breaks the edge into
-    # blocks when the gradient multiplies it down. 0.34..1.0 keeps a 3:1 ratio,
-    # which is enough to chunk the dissolve while giving the middle something to
-    # actually be.
-    alpha = 0.34 + 0.66 * (coarse ** 0.85)
-    # a finer break-up so the blocks are not obviously square
-    alpha *= 0.82 + 0.18 * tileable_noise(S, 96, rng)
+    # a floor so the matrix never disappears completely mid-slab
+    env = 0.30 + 0.70 * coarse
 
-    rgb = np.zeros((S, S, 3), np.float64)
-    rgb[:] = ink
-    mark = np.zeros((S, S))          # 0..1 how "lit" a pixel is
-    speckle = np.zeros((S, S))       # separate, so specks can take their own hue
+    alpha = np.zeros((S, S))
+    rgb = np.zeros((S, S, 3))
 
-    # --- horizontal streaks: the reference measured row-to-row variation of
-    # 5.48 against column-to-column 1.74, i.e. strongly directional. Dashes are
-    # drawn with wraparound in x.
-    # Density is deliberately below the reference's: the reference is a title
-    # card carrying two lines of type, and the same density behind four
-    # paragraphs fights the words (owner's call — "sparser to start"). Raise
-    # this count to go louder; --scrim-ink in the CSS dims it without changing
-    # the grain, and that is the knob to reach for first.
-    for _ in range(int(S * 0.85)):
-        y = rng.integers(0, S)
-        x = rng.integers(0, S)
-        ln = int(abs(rng.normal(38, 34))) + 3
-        th = 1 if rng.random() < 0.78 else 2
-        # Dimmer than the first cut (0.42/0.30). The marks are seasoning, not
-        # the dish — bright enough and they out-shout the darkening they are
-        # supposed to be sitting in, which is exactly how the first render read
-        # on the real nebula.
-        val = min(1.0, abs(rng.normal(0.24, 0.19)) + 0.03)
-        xs = (np.arange(x, x + ln)) % S
-        for dy in range(th):
-            yy = (y + dy) % S
-            mark[yy, xs] = np.maximum(mark[yy, xs], val)
+    # --- 1. THE DOT MATRIX -------------------------------------------------
+    # A regular lattice, jittered in presence but NOT in position: moving the
+    # dots off the grid turns a readout into noise, and the grid is the thing
+    # the owner asked for. S must divide by the step for the tile to wrap, so
+    # the step is snapped to a divisor rather than trusted.
+    step = a.dot_step
+    while S % step:
+        step += 1
+    gy, gx = np.mgrid[0:S:step, 0:S:step]
+    gy, gx = gy.ravel(), gx.ravel()
+    n = gy.size
+    # presence: the envelope decides which lattice sites are lit at all, so the
+    # matrix thins in the same blocks the streaks do.
+    live = rng.random(n) < (0.34 + 0.46 * env[gy, gx])
+    gy, gx = gy[live], gx[live]
+    idx = rng.choice(len(cols), size=gy.size, p=wts)
+    # Opaque dots (the owner's word). Variation lives in WHICH sites are lit,
+    # not in how faint each one is.
+    dot_a = np.where(rng.random(gy.size) < 0.22, 1.0, 0.72)
+    alpha[gy, gx] = dot_a
+    rgb[gy, gx] = cols[idx]
+    # a minority run 2px wide, which stops the lattice reading as a screen door
+    wide = rng.random(gy.size) < 0.18
+    alpha[gy[wide], (gx[wide] + 1) % S] = dot_a[wide] * 0.85
+    rgb[gy[wide], (gx[wide] + 1) % S] = cols[idx[wide]]
 
-    # --- speckle: short 1-2px marks, denser than the streaks, carrying the
-    # accent hue. This is what reads as "data" rather than "scratches".
-    n = int(S * S * 0.0026)
-    sy = rng.integers(0, S, n)
-    sx = rng.integers(0, S, n)
-    sv = np.clip(np.abs(rng.normal(0.30, 0.22, n)) + 0.05, 0, 1)
-    speckle[sy, sx] = sv
-    ext = rng.random(n) < 0.34          # a third of them run 2px wide
-    speckle[sy[ext], (sx[ext] + 1) % S] = sv[ext]
+    # --- 2. HORIZONTAL STREAKS, BROKEN INTO PHRASES -------------------------
+    # Not solid runs. A line reads as a long segment, then a gap, then a few
+    # dots, then another segment — the owner's description was "long line to dot
+    # dot dot dot back to a long line", and that alternation is what makes it
+    # scan as transmitted data rather than as a scratch. A solid dash of the
+    # same length says nothing; the rhythm is the content.
+    def emit(y, x, val, ci):
+        xs = (np.arange(x, x + 1)) % S
+        hit = val > alpha[y, xs]
+        alpha[y, xs[hit]] = val
+        rgb[y, xs[hit]] = cols[ci]
 
-    # compose colour: ink -> streak for the grey dashes, ink -> speck for the
-    # accent marks. Specks win where they overlap, which keeps the hue readable.
-    for c in range(3):
-        rgb[:, :, c] = ink[c] + (streak[c] - ink[c]) * mark
-        rgb[:, :, c] = np.where(speckle > 0,
-                                ink[c] + (speck[c] - ink[c]) * speckle,
-                                rgb[:, :, c])
+    for _ in range(int(S * 1.3)):
+        y0 = int(rng.integers(0, S))
+        cur = int(rng.integers(0, S))
+        budget = int(abs(rng.normal(120, 90))) + 20
+        th = 1 if rng.random() < 0.82 else 2
+        val = min(1.0, abs(rng.normal(0.34, 0.24)) + 0.05) * env[y0, cur]
+        ci = int(rng.choice(len(cols), p=wts))
+        used = 0
+        while used < budget:
+            if rng.random() < 0.45:
+                seg = int(rng.integers(8, 46))          # a long segment
+                run = np.arange(cur, cur + seg) % S
+                for dy in range(th):
+                    yy = (y0 + dy) % S
+                    hit = val > alpha[yy, run]
+                    alpha[yy, run[hit]] = val
+                    rgb[yy, run[hit]] = cols[ci]
+                cur += seg
+                used += seg
+            else:
+                for _d in range(int(rng.integers(2, 7))):   # dot dot dot dot
+                    for dy in range(th):
+                        emit((y0 + dy) % S, cur, val, ci)
+                    gap = int(rng.integers(2, 5))
+                    cur += gap
+                    used += gap
+            gap = int(rng.integers(3, 11))              # the breath between
+            cur += gap
+            used += gap
 
-    # The marks lift alpha where they land — otherwise a bright dash sitting in
-    # a low-alpha cell is drawn and then thrown away — but they are lifted
-    # THROUGH the same coarse envelope, not around it, so the blocks thin the
-    # streaks too. The 0.4 floor stops them vanishing entirely in the thinnest
-    # blocks. (This was once blamed for flattening the dissolve; it was not the
-    # cause — the noise field's own contrast was, see above.)
-    env = 0.4 + 0.6 * coarse
-    alpha = np.clip(np.maximum(alpha, np.maximum(mark, speckle) * 0.92 * env), 0, 1)
+    # --- 3. a faint sub-grain so the gaps are not perfectly empty -----------
+    fine = tileable_noise(S, 128, rng)
+    grain = np.clip((fine - 0.62) * 2.4, 0, 1) * 0.18 * env
+    take = grain > alpha
+    alpha[take] = grain[take]
+    rgb[take] = cols[3]
 
     out = np.dstack([rgb, alpha * 255]).astype(np.uint8)
-    im = Image.fromarray(out, 'RGBA')
-    im.save(a.out)
-    print('wrote %s  %dx%d  alpha mean %.3f sd %.3f' %
-          (a.out, S, S, alpha.mean(), alpha.std()))
+    Image.fromarray(out, 'RGBA').save(a.out)
+    lit = (alpha > 0.02).mean()
+    print('wrote %s  %dx%d  step %dpx  lit %.1f%%  alpha mean %.3f sd %.3f  red %.1f%%'
+          % (a.out, S, S, step, 100 * lit, alpha.mean(), alpha.std(), 100 * a.red))
 
 
 if __name__ == '__main__':

@@ -318,8 +318,16 @@
     if (!reducedMotion) scrubToScroll(merchVid);
   }
 
-  const aboutVid = document.querySelector('.ksd-about__media video');
-  if (aboutVid && !reducedMotion) scrubToScroll(aboutVid);
+  /* Every film row on the page, not a named list — the owner has more clips
+     coming and each one should be markup plus an encode, never another line
+     here. Add a .ksd-filmrow__media and it scrubs. */
+  if (!reducedMotion) {
+    document.querySelectorAll('.ksd-filmrow__media video').forEach(function (v) {
+      scrubToScroll(v);   // wrapped, not passed bare: forEach also hands over
+                          // the index and the list, and a second parameter here
+                          // one day would silently start receiving them.
+    });
+  }
 
   measure();
   watchReveals();

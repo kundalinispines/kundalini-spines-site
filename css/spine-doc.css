@@ -336,14 +336,19 @@
    connect.html where the block runs as a page. */
 .ksd-connect { max-width: 520px; }
 
-/* ---- About: the copy and the black tide, as one block ----
-   The footage stands to the RIGHT of "Two Messengers. One Signal." and the
-   headline lives inside the copy column with the prose, so headline, copy and
-   film read as a single unit in the scroll rather than as a heading with two
-   things under it (owner's call, Aug 15 2026).
+/* ---- FILM ROW: a section's copy and its footage, as one block ----
+   Shared by About (the black tide) and Transmissions (spine frequency), and
+   built to take the rest of the owner's clips without another copy of this
+   block. Merch is deliberately NOT on it: that render is portrait, transparent
+   and sized by height, which is a different problem wearing the same shape.
+
+   The headline lives inside the copy column with the prose, so headline, copy
+   and film read as a single unit in the scroll rather than as a heading with
+   two things under it (owner's call, Aug 15 2026).
 
    The media column sits RIGHT of the copy only — the axis rule: nothing covers
-   the spine rail.
+   the spine rail. That is also why the film never swaps sides: the copy hangs
+   off the axis, so a film on the left would be the thing crowding it.
 
    GRID, NOT FLEX, and the two columns STRETCH. Flex was the first cut and the
    split barely moved however the bases were set — with equal flex-grow the free
@@ -360,28 +365,31 @@
    thinner. A crop that swings that far with the viewport is a composition
    nobody chose.
 
-   aspect-ratio 1.2 pins it at a constant 20% at every width — taller than the
-   source so the block reads full, shallow enough that the frame survives.
-   Measured against the footage: both figures sit between 25% and 72% across,
-   so a centred 20% crop keeps them whole and takes rock from the left and open
-   sea from the right. If the shot is ever recut and the subjects move outward,
-   this is the line to revisit. */
-.ksd-about {
+   aspect-ratio 1.2 pins it at a constant crop at every width — taller than any
+   of the sources so the block reads full, shallow enough that the frame
+   survives. It is ONE value for every clip on purpose: the sources differ
+   (black tide is 3:2, spine frequency 1.34:1), so the crop differs with them —
+   20% and 10% respectively — while the BOX stays identical and the rows go on
+   looking like one system. Checked per clip that a centred crop keeps the
+   subjects whole: black tide's pair sit between 25% and 72% across, spine
+   frequency's between 15% and 80%. A future clip with subjects nearer the
+   edges is the case that would force a per-section override. */
+.ksd-filmrow {
   display: grid;
   grid-template-columns: minmax(0, 0.88fr) minmax(0, 1.12fr);
   gap: clamp(28px, 4vw, 56px);
   align-items: center;
 }
-.ksd-about__copy { min-width: 0; }
-.ksd-about__media { min-width: 0; margin: 0; aspect-ratio: 1.2; }
-.ksd-about__media video { display: block; width: 100%; height: 100%; object-fit: cover; }
+.ksd-filmrow__copy { min-width: 0; }
+.ksd-filmrow__media { min-width: 0; margin: 0; aspect-ratio: 1.2; }
+.ksd-filmrow__media video { display: block; width: 100%; height: 100%; object-fit: cover; }
 @media (max-width: 900px) {
   /* Stacked, there is no second column to match, so the film goes back to its
      own proportions — cropping to fill a height nothing is standing beside is
      throwing frame away for nothing. */
-  .ksd-about { grid-template-columns: minmax(0, 1fr); }
-  .ksd-about__media { aspect-ratio: auto; }
-  .ksd-about__media video { height: auto; object-fit: fill; }
+  .ksd-filmrow { grid-template-columns: minmax(0, 1fr); }
+  .ksd-filmrow__media { aspect-ratio: auto; }
+  .ksd-filmrow__media video { height: auto; object-fit: fill; }
 }
 
 /* ---- The merch video ----

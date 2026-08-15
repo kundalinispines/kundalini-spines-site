@@ -119,8 +119,8 @@
              it: keeping it in the column makes the block taller, which is what
              lets the video carry real height beside it instead of being a strip.
              The rail node still measures off .ksd-head wherever it lives. -->
-        <div class="ksd-about">
-          <div class="ksd-about__copy">
+        <div class="ksd-filmrow">
+          <div class="ksd-filmrow__copy">
             <h2 class="ksd-head ksd-reveal">Two Messengers. One Signal.</h2>
             <p class="ksd-body">Kundalini Spines is a two-member creative and musical project moving between underground hip-hop, mysticism, symbolism, street experience, ancient knowledge, and speculative thought.</p>
             <p class="ksd-body">The Messengers don&rsquo;t claim mastery over the Signal &mdash; they receive it, interpret it, and carry it forward. You&rsquo;re invited to decode it for yourself.</p>
@@ -137,7 +137,7 @@
                The source has no audio track at all, so there is nothing to
                mute beyond the attribute and no sound toggle to offer.
                aria-hidden because it is atmosphere, not content. -->
-          <figure class="ksd-about__media">
+          <figure class="ksd-filmrow__media">
             <video muted playsinline preload="auto" aria-hidden="true"
                    poster="assets/video/black-tide-poster.jpg">
               <source src="assets/video/black-tide.webm" type="video/webm">
@@ -252,9 +252,25 @@
       </section>
 
       <section class="ksd-section" data-ksd-section="transmissions" data-ksd-label="Transmissions">
-        <h2 class="ksd-head ksd-reveal">Tune to a Frequency</h2>
-        <p class="ksd-body">Every signal the Messengers put out &mdash; posts, clips, releases and filed pieces &mdash; arrives here, timestamped and numbered. Select a channel to isolate it, or take the whole band.</p>
-        <p style="margin-top:var(--space-2);"><a class="btn btn--ghost" href="transmissions.html">Open the Terminal</a></p>
+        <!-- Second .ksd-filmrow (Aug 15 2026). Same block as About: headline and
+             copy left, footage right, scrubbed by the scroll. The poster here is
+             the owner's own still (05-spine-frequency.png) rather than a frame
+             pulled with -ss, matched to the clip's exact pixel size so the
+             hand-off from poster to first frame does not resample. -->
+        <div class="ksd-filmrow">
+          <div class="ksd-filmrow__copy">
+            <h2 class="ksd-head ksd-reveal">Tune to a Frequency</h2>
+            <p class="ksd-body">Every signal the Messengers put out &mdash; posts, clips, releases and filed pieces &mdash; arrives here, timestamped and numbered. Select a channel to isolate it, or take the whole band.</p>
+            <p style="margin-top:var(--space-2);"><a class="btn btn--ghost" href="transmissions.html">Open the Terminal</a></p>
+          </div>
+          <figure class="ksd-filmrow__media">
+            <video muted playsinline preload="auto" aria-hidden="true"
+                   poster="assets/video/spine-frequency-poster.jpg">
+              <source src="assets/video/spine-frequency.webm" type="video/webm">
+              <source src="assets/video/spine-frequency.mp4" type="video/mp4">
+            </video>
+          </figure>
+        </div>
       </section>
 
       <section class="ksd-section" data-ksd-section="archive" data-ksd-label="Archive">

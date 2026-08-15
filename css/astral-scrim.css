@@ -65,6 +65,11 @@
      before the pool has: the silhouette you see is then the soft gradient
      rather than the blocky edge of the texture. */
   --scrim-noise-fade: 30%;
+  /* Blends the matrix INTO the pool instead of leaving it sitting crisply on
+     top. It blurs the noise layer only — the pool is already a gradient and
+     blurring a gradient does close to nothing, so pointing this at both would
+     spend GPU to no effect. The pool's own softness is --scrim-fade. */
+  --scrim-blur: 0.8px;
   /* How far the layer reaches past the copy it sits under. The falloff happens
      across this, so it has to be generous or the fade eats into the text
      instead of the empty space around it. */
@@ -77,7 +82,16 @@
    the nearest ancestor that has one and can end up behind an ancestor's
    background instead of behind the copy. The wrapper paints no background of
    its own, so the nebula still shows through from below. */
-.astral-scrim { position: relative; isolation: isolate; }
+/* width: fit-content IS THE FIX FOR "it reaches past the paragraph". A block
+   wrapper fills its column, but base.css caps paragraphs at `max-width: 65ch`
+   — so at 1440 the About wrapper measured 1217px around paragraphs only 744px
+   wide and the layer ran 473px past the last character. (Merch never showed it:
+   its flex column is already narrower than the measure, slack 0.)
+   fit-content derives the width from the paragraphs' own cap rather than
+   restating 65ch here, so the two cannot drift apart: it resolves to
+   min(the paragraph measure, the space available), which is 744 at 1440 and
+   the full column at 390 where the measure no longer binds. */
+.astral-scrim { position: relative; isolation: isolate; width: fit-content; }
 
 .astral-scrim::before,
 .astral-scrim::after {
@@ -130,6 +144,12 @@
   background-repeat: repeat;
   background-size: var(--scrim-tile) var(--scrim-tile);
   opacity: var(--scrim-noise);
+  /* Static — it is painted once and never animated, which is the only reason a
+     filter is acceptable on this layer at all. The blur spreads past the box,
+     but the mask has already taken the edges to zero alpha by then, so nothing
+     visible escapes toward the rail or the spine render. Verified against both
+     guards at every width. */
+  filter: blur(var(--scrim-blur));
   -webkit-mask-image: radial-gradient(ellipse 50% 50% at 50% 50%,
     #000 var(--scrim-noise-fade), rgba(0,0,0,0) 100%);
   mask-image: radial-gradient(ellipse 50% 50% at 50% 50%,

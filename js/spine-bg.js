@@ -919,6 +919,8 @@
       file: 'css/astral-scrim.css' },
     { v: '--scrim-noise-fade', label: 'n edge', min: 0,   max: 80,   step: 2,    unit: '%',
       file: 'css/astral-scrim.css' },
+    { v: '--scrim-blur',     label: 'blur',     min: 0,   max: 8,    step: 0.1,  unit: 'px',
+      file: 'css/astral-scrim.css' },
     /* reach x tops out at 120 because that is where the CSS stops listening:
        the right inset is clamped to the column's padding, whose own ceiling is
        clamp(24px, 6vw, 120px). A higher maximum would just be dead travel. */
@@ -1024,6 +1026,7 @@
     '--scrim-tile': 'Size the noise tile repeats at. It TILES, so a bigger number means coarser dots and longer lines, not a bigger slab. Percentages and cover would stretch it and moire',
     '--scrim-fade': 'How much of the pool stays at full darkness before it starts falling away. LOW is softer: near 0 there is no flat middle at all, just blur. HIGH is a big flat middle with a tighter edge',
     '--scrim-noise-fade': 'Same for the noise layer. Keep it BELOW soften so the matrix has faded out before the pool has, and the shape you see is the soft gradient rather than the blocky edge of the texture',
+    '--scrim-blur': 'Softens the dot matrix so it blends INTO the pool instead of sitting crisply on top of it. Affects the noise layer only — the pool is a gradient and blurring a gradient does nothing. Past about 3px the dots stop being dots',
     '--scrim-bleed-x': 'How far the layer reaches past the copy left and right. The soft edge has to land outside the text or the falloff reads as a crop. Phones ship 22 to keep the page from scrolling sideways',
     '--scrim-bleed-y': 'How far the layer reaches above and below the copy. Same rule as reach x',
     '--node-ring': 'Resting size of the ripple ring before a node is focused. Rings are invisible until focus, so this only shapes the first frames of each pulse',
@@ -1318,7 +1321,7 @@
      a property of the source and identical on every page; counting only the
      visible rows would print a smaller number on about.html and read as eight
      tips having gone missing, which is the one thing this check exists to
-     catch. The count stays FIELDS.length — 54 as of the astral scrim group,
+     catch. The count stays FIELDS.length — 55 as of the astral scrim group,
      was 47 at the rail group — everywhere, and the suffix says what is
      hidden. */
   (function () {
@@ -1367,7 +1370,8 @@
     { title: 'astral scrim', open: true,
       why: 'the astral scrim is on index.html only, behind About and Merch',
       vars: ['--scrim-ink', '--scrim-noise', '--scrim-tile', '--scrim-fade',
-        '--scrim-noise-fade', '--scrim-bleed-x', '--scrim-bleed-y'] },
+        '--scrim-noise-fade', '--scrim-blur', '--scrim-bleed-x',
+        '--scrim-bleed-y'] },
     { title: 'column', vars: ['--spine-on', '--spine-w', '--spine-dim', '--spine-lit',
         '--spine-glow', '--spine-feather', '--spine-from', '--spine-offset',
         '--spine-bias'] },

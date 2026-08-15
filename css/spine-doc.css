@@ -151,6 +151,10 @@
    pointing at empty space. Here each node is placed at its own section's
    measured offset, which makes the throw land on the headline by construction
    rather than by coincidence. */
+/* top: 0 is only the pre-script fallback — js/spine-doc.js overwrites it with
+   the hero video's measured bottom edge so the rail BEGINS below the footage
+   instead of crossing it (owner's call, Aug 15 2026). bottom: 0 is left to the
+   stylesheet, so the cord always ends where the document does. */
 .ksd-rail { position: absolute; left: var(--ksd-axis); top: 0; bottom: 0; width: 0; z-index: 40; pointer-events: none; }
 .ksd-cord { position: absolute; top: 0; bottom: 0; left: 0; width: 1px; transform: translateX(-50%);
   background: linear-gradient(180deg, transparent, rgba(228,232,235,.5) 10%, rgba(228,232,235,.5) 90%, transparent);

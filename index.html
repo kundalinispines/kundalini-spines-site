@@ -79,9 +79,15 @@
 
     <div class="ksd-doc__col">
 
-      <!-- Home IS the hero: the rail starts at the video and its first node
-           points at the footage's foot. -->
-      <section class="ksd-section ksd-hero" data-ksd-section="home" data-ksd-label="Home">
+      <!-- NO data-ksd-section here, deliberately (Aug 15 2026, owner's call).
+           The hero used to carry data-ksd-section="home", which gave it a node
+           on the rail and made the rail run the full height of the document —
+           straight over the footage. Both went: the rail now BEGINS at this
+           video's bottom edge (js/spine-doc.js measures .ksd-hero__media and
+           sets the rail's top from it) and there is no Home node at all. Adding
+           the attribute back would restore both at once. The header's "Home"
+           link is a different thing entirely — it points at "/". -->
+      <section class="ksd-section ksd-hero">
         <div class="ksd-hero__media">
           <video id="hero-video" poster="assets/hero/messengers-hero-video-poster.jpg"
                  muted loop playsinline preload="auto" aria-hidden="true">

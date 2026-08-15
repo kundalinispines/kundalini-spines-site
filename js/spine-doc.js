@@ -30,18 +30,20 @@
     });
   if (!sections.length) return;
 
-  let tops = null;      // section id -> y on the rail (px from doc top)
+  let tops = null;      // section id -> y in DOC coordinates (px from doc top)
+  let railTop = 0;      // where the rail begins in doc coordinates — see measure()
   let vertEls = [];     // the vertebra spans, for the scroll pass
   let nodeBits = {};    // id -> { node, throwEl }
   let fieldR = 160;     // vertebra field radius; the --ksd-field token owns it
 
   /* The step is ~30px with a ±5px sway. The sway is a sine, not noise: a
      repeating irregularity reads as anatomy, whereas true randomness reads as
-     a mistake. */
-  function vertebraYs(height) {
+     a mistake. Takes an explicit start because the rail no longer begins at the
+     top of the document; the 26px is the inset from wherever it does begin. */
+  function vertebraYs(start, end) {
     const out = [];
-    let y = 26, i = 0;
-    while (y < height - 20) {
+    let y = start + 26, i = 0;
+    while (y < end - 20) {
       out.push(Math.round(y));
       y += 30 + Math.sin(i * 1.7) * 5;
       i++;
@@ -51,18 +53,26 @@
 
   /* Node placement is measured off each headline's first text line, then
      re-measured whenever the layout can have moved (fonts swapping in, images
-     landing, resize). The Home node sits at the footage's foot, not on its
-     headline: the hero is a destination in its own right, measured by where
-     the footage ends. */
+     landing, resize).
+
+     The rail STARTS BELOW THE HERO (Aug 15 2026, owner's call — it used to run
+     the full height of the document and crossed the footage). railTop is the
+     hero video's bottom edge, measured rather than guessed, because the hero is
+     a viewport-height block that escapes the content column: any constant here
+     would be wrong at the next breakpoint. Everything below stays in DOC
+     coordinates and is converted at the point of placement — the field maths in
+     onScroll compares against document positions, so keeping one coordinate
+     space and subtracting late is what stops the two from drifting apart.
+
+     There is no Home node any more; the hero carries no data-ksd-section, so it
+     never enters `sections` and the special case that used to place its node at
+     the footage's foot went with it. */
   function measure() {
     const docTop = doc.getBoundingClientRect().top;
+    const media = document.querySelector('.ksd-hero__media');
+    railTop = media ? Math.max(0, Math.round(media.getBoundingClientRect().bottom - docTop)) : 0;
     const next = {};
     sections.forEach(function (sec) {
-      if (sec.id === 'home') {
-        const media = sec.el.querySelector('.ksd-hero__media');
-        if (media) next[sec.id] = Math.round(media.getBoundingClientRect().bottom - docTop);
-        return;
-      }
       if (!sec.head) return;
       const r = sec.head.getBoundingClientRect();
       // half a line down from the headline's top edge — the throw meets the
@@ -85,15 +95,22 @@
     nodeBits = {};
 
     const railH = doc.offsetHeight;
-    vertebraYs(railH).forEach(function (y) {
+    // The rail element itself is pulled down to railTop; its `bottom: 0` in the
+    // stylesheet does the rest, so the cord ends where the document does.
+    rail.style.top = railTop + 'px';
+    vertebraYs(railTop, railH).forEach(function (y) {
       let anchor = false;
       for (const sec of sections) {
         if (tops[sec.id] != null && Math.abs(tops[sec.id] - y) < 16) { anchor = true; break; }
       }
       const v = document.createElement('span');
       v.className = 'ksd-vert' + (anchor ? ' is-anchor' : '');
+      // dataset.y stays in DOC coordinates for onScroll's field maths; only the
+      // style.top is rail-relative. Collapsing these two into one number is the
+      // obvious simplification and it silently offsets the whole field by the
+      // height of the hero.
       v.dataset.y = y;
-      v.style.top = y + 'px';
+      v.style.top = (y - railTop) + 'px';
       v.style.setProperty('--ksd-arm', (anchor ? 9 : 6) + 'px');
       v.innerHTML = '<i class="l"></i><i class="r"></i>' + (anchor ? '<b></b>' : '');
       rail.appendChild(v);
@@ -103,7 +120,7 @@
     sections.forEach(function (sec) {
       if (tops[sec.id] == null) return;
       const wrap = document.createElement('span');
-      wrap.style.cssText = 'position:absolute;left:0;width:0;top:' + tops[sec.id] + 'px;';
+      wrap.style.cssText = 'position:absolute;left:0;width:0;top:' + (tops[sec.id] - railTop) + 'px;';
       const throwEl = document.createElement('span');
       throwEl.className = 'ksd-throw';
       const node = document.createElement('button');
@@ -155,7 +172,13 @@
     frame = requestAnimationFrame(function () {
       frame = 0;
       const mid = window.innerHeight / 2;
-      let found = sections[0].id;
+      /* null, not sections[0] — while the hero owns the middle of the screen NO
+         node is lit. The old default lit the first section from the moment the
+         page loaded, which was invisible while Home was that first section and
+         sat on the hero itself; with Home gone it would light About from the
+         top of the document instead. The rail belongs to the document below the
+         hero, so an unlit rail up there is the honest state. */
+      let found = null;
       for (const s of sections) {
         const r = s.el.getBoundingClientRect();
         if (r.top <= mid && r.bottom >= mid) { found = s.id; break; }
@@ -196,9 +219,17 @@
     });
   }
 
-  /* Headlines reveal once, on the way past. */
+  /* Headlines reveal once, on the way past.
+
+     Sourced from .ksd-reveal in the DOM, NOT from `sections` (Aug 15 2026). It
+     used to map over the section list, which quietly tied "does this headline
+     ever appear" to "does this section have a rail node" — two unrelated
+     things. The moment the hero stopped carrying data-ksd-section its <h1> was
+     dropped from this list and never got .is-in, so it stayed transparent and
+     the hero rendered with no headline at all. Anything marked .ksd-reveal
+     reveals, whether or not the rail knows about it. */
   function watchReveals() {
-    const els = sections.map(function (s) { return s.head; }).filter(Boolean);
+    const els = Array.prototype.slice.call(document.querySelectorAll('.ksd-reveal'));
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
       els.forEach(function (el) { el.classList.add('is-in'); });
       return;

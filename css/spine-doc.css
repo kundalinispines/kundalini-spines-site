@@ -350,7 +350,9 @@
    blending REAL alpha would let bright nebula bleed through the spine's dark
    body. js/spine-doc.js owns the tagging. */
 .ksd-merch__video video.is-flat { mix-blend-mode: screen; }
-.ksd-merch__video-note { margin-top: var(--space-2); font-family: var(--font-mono); font-size: 10px; letter-spacing: .14em; color: var(--text-secondary); }
+/* .ksd-merch__video-note is gone (Aug 15 2026) — the figure's caption was
+   removed on the owner's call and this rule had no other user. The figure
+   keeps its column flex so the video stays centred in the column on its own. */
 @media (max-width: 900px) {
   /* Stacked under the copy the render keeps portrait height for the same
      reason as above — a squat stage on a phone is a thumbnail. */

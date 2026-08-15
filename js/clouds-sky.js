@@ -25,23 +25,29 @@
    opacity and shadow re-balanced afterwards to kill a visible edge. To retune:
    open clouds-lab.html, drag, Copy options, replace OPTIONS below.
 
-   OPACITY IS THE PART THAT CLIPS; SHADOW IS THE PART THAT DOES NOT. This layer
-   sits UNDER all content, so every opaque picture is a hole in it, and the
-   owner reported a hard line at the bottom edge of the About video. Measured at
-   that edge, in one run so the numbers compare (the field seeds its time
-   randomly, so cross-run figures do not):
+   SHADOW IS ZERO, AND IT HAS TO STAY THERE. In the no-content branch the
+   composite writes `rgb = cloudRGB * cloudA` but `a = cloudA + shadowA * (1 -
+   cloudA)` — the shadow contributes ALPHA WITHOUT COLOUR. On a premultiplied
+   canvas that is literally black paint: wherever the shadow is strong and the
+   cloud thin, the layer multiplies the nebula down toward black. Turned up it
+   does not read as shade on cloud, it reads as black blobs, which is what the
+   owner saw.
 
-     opacity 0.08 / shadow 0.39   edge 1.49   presence 2.08
-     opacity 0.03 / shadow 0.80   edge 0.52   presence 0.96
-     opacity 0.02 / shadow 1.00   edge 0.30   presence 0.86
-     opacity 0.00 / shadow 1.00   edge 0.04   presence 0.64
+   Measured as SIGNED change against the sky (+ve lightens, -ve darkens), which
+   is the metric that matters and the one an earlier pass got wrong by using
+   absolute difference — that counts a black blob and a lit cloud as equally
+   "present", and led to shipping the worst row here:
 
-   Shipping the third: a fifth of the edge for 41% of the presence. The first
-   diagnosis was the opposite of this — that the shadow made the big soft shapes
-   that clipped — and the measurement said no: raising shadow 0 to 1 lifted
-   presence by two thirds while the edge stayed flat. Cut opacity to soften a
-   content edge, raise shadow to win the presence back. Doing it the other way
-   round makes the line worse.
+     opacity / shadow    net    % darker   darkest px
+     0.02 / 1.00        -0.54     12.5       -235      <- shipped, the black
+     0.08 / 0.39        +2.06      4.8        -92      <- owner's lab tuning
+     0.08 / 0.10        +2.26      0.3        -24
+     0.08 / 0.00        +2.34      0.5        -11      <- now
+
+   Zero shadow is strictly better here: more net lift than the owner's own
+   tuning AND no blackening. The cloud colour lives entirely in opacity. To make
+   the layer stronger, raise OPACITY (0.12 measured +3.51 net, still clean) —
+   never shadow.
 
    quality 0.2 is also deliberate and is what makes this affordable: the field
    renders at a fifth of the viewport and is upsampled. Clouds are soft, so it
@@ -59,13 +65,13 @@
   if (!window.KSClouds) return;
 
   var OPTIONS = {
-    opacity: 0.02,
+    opacity: 0.08,
     cover: 0,
     density: 1.5,
     scale: 1.1,
     speed: 0.6,
     shading: 1,
-    shadow: 1,
+    shadow: 0,
     shadowOffsetX: -220,
     shadowOffsetY: -10,
     shadowSoftness: 1,

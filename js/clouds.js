@@ -245,6 +245,16 @@
     var source = elements.source;
     var content = elements.content;
     var output = elements.output;
+    /* pointerTarget is an addition to the original, and it exists for the
+       site-wide sky layer. There, `content` is a FIXED full-viewport div: that
+       is what keeps the field locked to the viewport like the rest of the sky
+       (its scrollLeft/scrollTop are permanently 0, so uOffset never drifts with
+       the page) and what keeps the canvas viewport-sized instead of
+       document-sized. But a fixed decorative div is pointer-events: none, so no
+       pointermove ever reaches it and the cursor wind would be dead. Listening
+       on the document instead restores it without giving the layer a hit area.
+       Defaults to content, so the lab is unaffected. */
+    var pointerTarget = elements.pointerTarget || content;
 
     var gl = output.getContext('webgl2', {
       alpha: true,
@@ -570,9 +580,9 @@
     }
     function onPointerLeave() { hasPointer = false; }
 
-    content.addEventListener('pointermove', onPointerMove, { passive: true });
-    content.addEventListener('pointerleave', onPointerLeave, { passive: true });
-    content.addEventListener('scroll', start, { passive: true });
+    pointerTarget.addEventListener('pointermove', onPointerMove, { passive: true });
+    pointerTarget.addEventListener('pointerleave', onPointerLeave, { passive: true });
+    pointerTarget.addEventListener('scroll', start, { passive: true });
 
     var themeTimer = 0;
     function onThemeShift() {
@@ -609,9 +619,9 @@
         schemeQuery.removeEventListener('change', onThemeShift);
         window.clearTimeout(themeTimer);
         motionQuery.removeEventListener('change', onMotionChange);
-        content.removeEventListener('pointermove', onPointerMove);
-        content.removeEventListener('pointerleave', onPointerLeave);
-        content.removeEventListener('scroll', start);
+        pointerTarget.removeEventListener('pointermove', onPointerMove);
+        pointerTarget.removeEventListener('pointerleave', onPointerLeave);
+        pointerTarget.removeEventListener('scroll', start);
         if (htmlInCanvas) source.onpaint = null;
         gl.deleteTexture(fieldTexture);
         gl.deleteTexture(contentTexture);

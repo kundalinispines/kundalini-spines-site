@@ -113,10 +113,38 @@
       </section>
 
       <section class="ksd-section" id="about" data-ksd-section="about" data-ksd-label="About">
-        <h2 class="ksd-head ksd-reveal">Two Messengers. One Signal.</h2>
-        <p class="ksd-body">Kundalini Spines is a two-member creative and musical project moving between underground hip-hop, mysticism, symbolism, street experience, ancient knowledge, and speculative thought.</p>
-        <p class="ksd-body">The Messengers don&rsquo;t claim mastery over the Signal &mdash; they receive it, interpret it, and carry it forward. You&rsquo;re invited to decode it for yourself.</p>
-        <p style="margin-top:var(--space-2);"><a class="btn btn--ghost" href="about.html">Read the Feature</a></p>
+        <!-- Two columns so the headline, the copy and the footage read as ONE
+             block in the scroll (owner's call, Aug 15 2026). The headline sits
+             INSIDE the copy column rather than above the row the way Merch does
+             it: keeping it in the column makes the block taller, which is what
+             lets the video carry real height beside it instead of being a strip.
+             The rail node still measures off .ksd-head wherever it lives. -->
+        <div class="ksd-about">
+          <div class="ksd-about__copy">
+            <h2 class="ksd-head ksd-reveal">Two Messengers. One Signal.</h2>
+            <p class="ksd-body">Kundalini Spines is a two-member creative and musical project moving between underground hip-hop, mysticism, symbolism, street experience, ancient knowledge, and speculative thought.</p>
+            <p class="ksd-body">The Messengers don&rsquo;t claim mastery over the Signal &mdash; they receive it, interpret it, and carry it forward. You&rsquo;re invited to decode it for yourself.</p>
+            <p style="margin-top:var(--space-2);"><a class="btn btn--ghost" href="about.html">Read the Feature</a></p>
+          </div>
+          <!-- SCRUBBED BY THE SCROLL, like the merch render — no autoplay and
+               NO loop (owner's call, Aug 15 2026). js/spine-doc.js owns the
+               mapping; a playing or looping video fights every seek it makes.
+               preload="auto", not metadata: the scrub seeks from the first
+               wheel tick, and with metadata-only there is no frame to paint
+               until a range fetch lands, which reads as a blank stage.
+               The clip is encoded 24fps with -g 4 for the same reason the spine
+               render is — sparse keyframes make every seek decode a chain.
+               The source has no audio track at all, so there is nothing to
+               mute beyond the attribute and no sound toggle to offer.
+               aria-hidden because it is atmosphere, not content. -->
+          <figure class="ksd-about__media">
+            <video muted playsinline preload="auto" aria-hidden="true"
+                   poster="assets/video/black-tide-poster.jpg">
+              <source src="assets/video/black-tide.webm" type="video/webm">
+              <source src="assets/video/black-tide.mp4" type="video/mp4">
+            </video>
+          </figure>
+        </div>
       </section>
 
       <!-- MUSIC IS THE EXCEPTION. The carousel is protected behavior — the

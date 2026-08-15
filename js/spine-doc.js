@@ -242,68 +242,84 @@
     els.forEach(function (el) { io.observe(el); });
   }
 
-  /* The merch render is SCRUBBED BY THE SCROLL, not played — the spine turns
-     while the document moves and holds when it holds (owner's call, Aug 14
-     2026). Progress is the element's travel through the viewport: 0 as its
-     top enters at the bottom edge, 1 as its bottom exits at the top, so the
-     full rotation spreads across the whole pass.
+  /* VIDEO IS SCRUBBED BY THE SCROLL, NEVER PLAYED. Two clips use this now — the
+     merch spine render (owner's call, Aug 14 2026) and the About footage
+     (Aug 15) — so it lives in one function rather than twice. It was written
+     twice first; the second copy is how the About clip nearly shipped without
+     the -g 4 re-encode the mechanism depends on.
 
-     The seek is rAF-driven and LERPED, so a wheel step reads as a settle
-     rather than a snap, and a new currentTime is only written when the last
-     seek has landed (v.seeking) and the move is over half a source frame —
-     without both guards a fast scroll queues seeks faster than the decoder
-     clears them. The ENCODE IS PART OF THIS MECHANISM: 24fps with a keyframe
-     every 4 frames — at the default sparse keyframes every seek decodes a
-     chain back to the last one and the scrub visibly lags. Re-encode with
-     -g 4 or the feel regresses. (Serving matters too: python -m http.server
-     answers without Ranges and every one of these seeks clamps to 0 — the
-     scripts/serve.py rule is load-bearing here.)
+     Progress is the element's travel through the viewport: 0 as its top enters
+     at the bottom edge, 1 as its bottom exits at the top, so the clip spreads
+     across the whole pass and holds whenever the document holds.
 
-     Reduced-motion visitors keep the still first frame — scroll-linked
-     motion is exactly what that preference declines.
+     The seek is rAF-driven and LERPED, so a wheel step reads as a settle rather
+     than a snap, and a new currentTime is only written when the last seek has
+     landed (v.seeking) and the move is over half a source frame — without both
+     guards a fast scroll queues seeks faster than the decoder clears them.
 
-     The transparency is real alpha in the WebM (VP9); the mp4 fallback still
-     carries its black backdrop, so a browser that can't take the WebM gets
-     tagged is-flat and css/spine-doc.css screen-blends the black away.
-     canPlayType answers ''/'maybe'/'probably' — the empty string is the no. */
+     THE ENCODE IS PART OF THIS MECHANISM: 24fps with a keyframe every 4 frames.
+     At the default sparse keyframes every seek decodes a chain back to the last
+     one and the scrub visibly lags. Any clip handed to this function must be
+     encoded with -g 4 — that is the cost of admission, and it roughly triples
+     the file (black-tide went 708KB to 2.2MB). Re-encode without it and the
+     feel regresses silently.
+
+     Serving matters too: python -m http.server answers without Range support
+     and every one of these seeks clamps to 0 — the scripts/serve.py rule is
+     load-bearing here, and the failure looks like a mapping bug in this file
+     rather than a server that cannot seek.
+
+     Reduced-motion visitors keep the still first frame. Scroll-linked motion is
+     exactly what that preference declines, so the caller gates on it. */
+  function scrubToScroll(v) {
+    let target = 0, shown = 0, raf = 0;
+    const tick = function () {
+      raf = 0;
+      // 0.3, up from a first cut at 0.22 — the softer settle trailed the
+      // scroll enough that the turn read as loose (owner's call).
+      shown += (target - shown) * 0.3;
+      if (!v.seeking && v.duration && Math.abs(v.currentTime - shown) > 1 / 48) {
+        v.currentTime = shown;
+      }
+      if (Math.abs(target - shown) > 0.005) raf = requestAnimationFrame(tick);
+    };
+    const onScrub = function () {
+      if (!v.duration) return;
+      const r = v.getBoundingClientRect();
+      const p = Math.min(1, Math.max(0,
+        (window.innerHeight - r.top) / (window.innerHeight + r.height)));
+      // The raw pass maps 0..1 over enter-to-exit, which parks the END of the
+      // clip past the point anyone is still looking — the first cut used it
+      // directly and the spine never visibly closed its turn (owner's call).
+      // Re-normalising to the 0.10..0.80 slice finishes while the element is
+      // still well inside the viewport, with a still hold either side.
+      const p2 = Math.min(1, Math.max(0, (p - 0.10) / 0.70));
+      // −0.05: never ask for the exact last timestamp — seeking to duration
+      // lands past the final frame in some decoders.
+      target = p2 * (v.duration - 0.05);
+      if (!raf) raf = requestAnimationFrame(tick);
+    };
+    v.addEventListener('loadedmetadata', onScrub);
+    window.addEventListener('scroll', onScrub, { passive: true });
+    window.addEventListener('resize', onScrub);
+    onScrub();
+  }
+
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* The merch render's transparency is real alpha in the WebM (VP9); the mp4
+     fallback still carries its black backdrop, so a browser that cannot take
+     the WebM gets tagged is-flat and css/spine-doc.css screen-blends the black
+     away. canPlayType answers ''/'maybe'/'probably' — the empty string is the
+     no. The About clip needs none of this: it is opaque footage either way. */
   const merchVid = document.querySelector('.ksd-merch__video video');
   if (merchVid) {
     if (!merchVid.canPlayType('video/webm; codecs="vp9"')) merchVid.classList.add('is-flat');
-    if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      let target = 0, shown = 0, raf = 0;
-      const tick = function () {
-        raf = 0;
-        // 0.3, up from a first cut at 0.22 — the softer settle trailed the
-        // scroll enough that the turn read as loose (owner's call).
-        shown += (target - shown) * 0.3;
-        if (!merchVid.seeking && merchVid.duration &&
-            Math.abs(merchVid.currentTime - shown) > 1 / 48) {
-          merchVid.currentTime = shown;
-        }
-        if (Math.abs(target - shown) > 0.005) raf = requestAnimationFrame(tick);
-      };
-      const onScrub = function () {
-        if (!merchVid.duration) return;
-        const r = merchVid.getBoundingClientRect();
-        const p = Math.min(1, Math.max(0,
-          (window.innerHeight - r.top) / (window.innerHeight + r.height)));
-        // The raw pass maps 0..1 over enter-to-exit, which parks the END of
-        // the rotation past the point anyone is still looking — the first cut
-        // used it directly and the spine never visibly closed its turn
-        // (owner's call). Re-normalising to the 0.10..0.80 slice completes
-        // the full 360 while the element is still well inside the viewport,
-        // with a still hold either side.
-        const p2 = Math.min(1, Math.max(0, (p - 0.10) / 0.70));
-        // −0.05: never ask for the exact last timestamp — seeking to
-        // duration lands past the final frame in some decoders.
-        target = p2 * (merchVid.duration - 0.05);
-        if (!raf) raf = requestAnimationFrame(tick);
-      };
-      merchVid.addEventListener('loadedmetadata', onScrub);
-      window.addEventListener('scroll', onScrub, { passive: true });
-      window.addEventListener('resize', onScrub);
-    }
+    if (!reducedMotion) scrubToScroll(merchVid);
   }
+
+  const aboutVid = document.querySelector('.ksd-about__media video');
+  if (aboutVid && !reducedMotion) scrubToScroll(aboutVid);
 
   measure();
   watchReveals();

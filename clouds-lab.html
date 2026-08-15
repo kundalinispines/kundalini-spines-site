@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<!-- CLOUDS LAB — the owner's WebGL volumetric cloud field, dropped Aug 15 2026,
+     laid OVER the real nebula so the two can be judged together.
+
+     page-home is deliberate: it loads the same star/cloud background index.html
+     uses, so what is behind the effect here is the actual sky and not a mock.
+     Nothing on this page touches index.html; js/clouds.js is linked by this
+     file alone. -->
+<html lang="en" class="page-home">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Clouds lab — Kundalini Spines</title>
+<meta name="robots" content="noindex">
+
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/star-bg.css">
+
+<style>
+  /* The stage fills the viewport and sits UNDER the panel. pointer-events stay
+     on so the wind effect can follow the cursor; the panel is a sibling with a
+     higher z-index rather than a child, so dragging a slider never stamps wind
+     into the field underneath it. */
+  #stage { position: fixed; inset: 0; z-index: 1; }
+  #stage-content { position: absolute; inset: 0; overflow: auto; }
+  #stage-out { position: absolute; inset: 0; width: 100%; height: 100%;
+    pointer-events: none; }
+  #stage-src { display: none; }
+
+  /* Sample type, so the effect can be judged for what it does to READABILITY
+     and not only for how it looks on empty sky — the whole reason the scrim
+     was tried and parked. */
+  .sample { position: absolute; left: 8vw; top: 22vh; max-width: 42ch; }
+  .sample h1 { font-family: var(--font-display); font-weight: 900;
+    font-size: clamp(38px, 5vw, 76px); line-height: .94; letter-spacing: -.01em;
+    text-transform: uppercase; margin: 0 0 var(--space-4); color: var(--color-white); }
+  .sample p { color: var(--color-bone); font-size: 17px; line-height: 1.65; }
+
+  #panel { position: fixed; top: 12px; right: 12px; z-index: 10; width: 262px;
+    max-height: calc(100vh - 24px); overflow: auto;
+    background: rgba(4,6,14,.92); border: 1px solid #2E2E2E; border-radius: 4px;
+    padding: 10px 12px; font: 11px/1.4 "IBM Plex Mono", monospace;
+    color: #D6D5D0; }
+  #panel h2 { font-size: 11px; letter-spacing: .14em; margin: 0 0 8px;
+    text-transform: uppercase; color: var(--color-white); }
+  #panel label { display: flex; align-items: center; gap: 6px; margin: 3px 0; }
+  #panel label span { width: 66px; flex: none; color: #9DB2C0; }
+  #panel input[type=range] { flex: 1; min-width: 0; accent-color: #9DB2C0; }
+  #panel output { width: 42px; flex: none; text-align: right; color: #E4E8EB; }
+  #panel .row { display: flex; gap: 6px; margin-top: 8px; }
+  #panel button { flex: 1; background: #10131A; color: #D6D5D0;
+    border: 1px solid #2E2E2E; padding: 5px; font: inherit; cursor: pointer; }
+  #panel button:hover { border-color: #9DB2C0; }
+  #note { margin-top: 8px; color: #78888F; font-size: 10px; line-height: 1.5; }
+  #fps { color: #9DB2C0; }
+</style>
+</head>
+<body>
+
+<div id="stage">
+  <canvas id="stage-src"></canvas>
+  <div id="stage-content">
+    <div class="sample">
+      <h1>Two Messengers.<br>One Signal.</h1>
+      <p>Kundalini Spines is a two-member creative and musical project moving
+         between underground hip-hop, mysticism, symbolism, street experience,
+         ancient knowledge, and speculative thought.</p>
+    </div>
+  </div>
+  <canvas id="stage-out"></canvas>
+</div>
+
+<div id="panel">
+  <h2>Clouds</h2>
+  <div id="controls"></div>
+  <div class="row">
+    <button id="reset">Reset</button>
+    <button id="copy">Copy options</button>
+  </div>
+  <p id="note"></p>
+</div>
+
+<script src="js/clouds.js"></script>
+<script>
+(function () {
+  /* Ranges are the owner's documented ones, not invented. That matters: the
+     first cut let `cover` go to -1, and js/clouds.js does Math.max(cover, 0)
+     before it reaches the shader — so the panel read -0.1 while the field got
+     0. A slider that lies about what it is sending is worse than no slider.
+
+     Tips are the owner's own descriptions, so hovering a control says what it
+     does rather than what it is called.
+
+     refraction and fogBlur are NOT here. Both act only on page content captured
+     into the field via html-in-canvas, which is off in every browser this
+     project targets, so they would be two more controls that do nothing. */
+  var FIELDS = [
+    { k: 'opacity',       min: 0,   max: 1,   step: 0.01,
+      tip: 'Maximum opacity of the cloud layer (0 to 1)' },
+    { k: 'cover',         min: 0,   max: 1,   step: 0.01,
+      tip: 'Base cloud coverage added everywhere (0 to 1)' },
+    { k: 'density',       min: 0,   max: 16,  step: 0.1,
+      tip: 'How sharply the shapes condense out of the noise field (0 to 16)' },
+    { k: 'scale',         min: 0.3, max: 3,   step: 0.05,
+      tip: 'Cloud pattern scale (0.3 to 3). LOWER values make BIGGER clouds' },
+    { k: 'speed',         min: 0,   max: 5,   step: 0.05,
+      tip: 'Drift speed multiplier (0 to 5). 0 freezes the sky' },
+    { k: 'shading',       min: 0,   max: 1,   step: 0.01,
+      tip: 'Internal depth shading (0 to 1). On a dark ground it lifts highlights' },
+    { k: 'shadow',        min: 0,   max: 1,   step: 0.01,
+      tip: 'Strength of the shadow the clouds cast on what is behind (0 to 1)' },
+    { k: 'shadowOffsetX', min: -600, max: 600, step: 10,
+      tip: 'Horizontal shadow displacement in CSS px. Positive shifts right' },
+    { k: 'shadowOffsetY', min: -600, max: 600, step: 10,
+      tip: 'Vertical shadow displacement in CSS px. Positive shifts down' },
+    { k: 'shadowSoftness', min: 0,  max: 1,   step: 0.01,
+      tip: 'How diffuse the shadow edges are (0 to 1)' },
+    { k: 'wind',          min: 0,   max: 1,   step: 0.01,
+      tip: 'How strongly the cursor parts the clouds (0 to 1). They drift shut after' },
+    { k: 'windRadius',    min: 20,  max: 900, step: 10,
+      tip: 'Radius of the cursor clearing, in CSS px' },
+    { k: 'quality',       min: 0.2, max: 1,   step: 0.05,
+      tip: 'Field render resolution as a fraction of the viewport. Clouds are soft, so low looks nearly identical and costs far less' },
+    { k: 'tint',          min: 0,   max: 1,   step: 0.01,
+      tip: 'Cloud colour, Archive Black at 0 to Moonlight at 1. Replaces the "auto" mode, which resolves the page background and would paint near-black on near-black here' }
+  ];
+
+  var START = {
+    opacity: 0.42, cover: 0.06, density: 2.2, scale: 1.1, speed: 0.6,
+    shading: 0.35, shadow: 0, shadowOffsetX: 200, shadowOffsetY: -10,
+    shadowSoftness: 1, wind: 0.6, windRadius: 350, quality: 1, tint: 0.72
+  };
+
+  var state = {};
+  for (var k in START) state[k] = START[k];
+
+  // tint 0..1 walks Archive Black -> Moonlight, so one slider covers "barely
+  // there" through "clearly lit cloud" without a colour picker.
+  function tintColor(t) {
+    var a = [0x03 / 255, 0x04 / 255, 0x0F / 255];   // --color-black
+    var b = [0x9D / 255, 0xB2 / 255, 0xC0 / 255];   // --color-moonlight
+    return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
+  }
+
+  function options() {
+    var o = {};
+    for (var key in state) if (key !== 'tint') o[key] = state[key];
+    o.color = tintColor(state.tint);
+    return o;
+  }
+
+  var clouds = KSClouds.create({
+    source: document.getElementById('stage-src'),
+    content: document.getElementById('stage-content'),
+    output: document.getElementById('stage-out')
+  }, options());
+
+  var note = document.getElementById('note');
+  if (!clouds) {
+    note.textContent = 'WebGL2 unavailable — nothing is rendering.';
+    return;
+  }
+
+  var controls = document.getElementById('controls');
+  FIELDS.forEach(function (f) {
+    var label = document.createElement('label');
+    label.title = f.tip;          // the owner's own description, on hover
+    var name = document.createElement('span');
+    name.textContent = f.k.replace('shadowOffset', 'sh.').replace('shadowSoftness', 'sh.soft');
+    var input = document.createElement('input');
+    input.type = 'range';
+    input.min = f.min; input.max = f.max; input.step = f.step;
+    input.value = state[f.k];
+    var out = document.createElement('output');
+    out.textContent = state[f.k];
+    input.addEventListener('input', function () {
+      state[f.k] = parseFloat(input.value);
+      out.textContent = state[f.k];
+      clouds.setOptions(options());
+    });
+    label.appendChild(name); label.appendChild(input); label.appendChild(out);
+    controls.appendChild(label);
+  });
+
+  document.getElementById('reset').addEventListener('click', function () {
+    for (var key in START) state[key] = START[key];
+    controls.querySelectorAll('input').forEach(function (input, i) {
+      input.value = state[FIELDS[i].k];
+      input.nextSibling.textContent = state[FIELDS[i].k];
+    });
+    clouds.setOptions(options());
+  });
+
+  document.getElementById('copy').addEventListener('click', function () {
+    var o = options();
+    var text = JSON.stringify(o, null, 2);
+    navigator.clipboard && navigator.clipboard.writeText(text);
+    note.textContent = 'Copied. ' + text.replace(/\s+/g, ' ');
+  });
+
+  /* fps in the panel, because this is a full-screen fragment shader running
+     four multi-octave noise loops per pixel — the number is the whole question
+     of whether it can ship beside the existing sky. */
+  var frames = 0, since = performance.now();
+  var fpsEl = document.createElement('span');
+  fpsEl.id = 'fps';
+  note.appendChild(fpsEl);
+  (function count(now) {
+    frames++;
+    if (now - since >= 1000) {
+      fpsEl.textContent = Math.round(frames * 1000 / (now - since)) + ' fps · ' +
+        (clouds.htmlInCanvas ? 'html-in-canvas' : 'overlay mode');
+      frames = 0; since = now;
+    }
+    requestAnimationFrame(count);
+  })(performance.now());
+
+  window.__clouds = clouds;
+  window.__cloudState = state;
+})();
+</script>
+</body>
+</html>

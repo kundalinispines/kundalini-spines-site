@@ -161,6 +161,16 @@
        on its own and always was. */
     if (!instance) {
       stage.remove();
+      /* Say so, once. The graceful bail is right — the nebula alone is the
+         design — but a silent one cost a debugging round: "no clouds" in a
+         browser is indistinguishable from a broken layer until someone opens
+         devtools and finds nothing. Measured in real Brave on this machine
+         (fresh profile, RTX 3090 Ti): WebGL2 works and the layer paints, so a
+         Brave showing no clouds is that PROFILE blocking WebGL — Shields
+         fingerprint protection on "strict", or hardware acceleration off —
+         not the site and not Brave. */
+      console.warn('[cloud-sky] WebGL2 unavailable — cloud layer skipped. ' +
+        'Likely hardware acceleration off or fingerprint protection blocking WebGL.');
       return;
     }
     window.__cloudSky = instance;

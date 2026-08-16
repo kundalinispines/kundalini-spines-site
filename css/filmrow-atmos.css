@@ -1,0 +1,504 @@
+/* ==========================================================================
+   FILM-ROW ATMOSPHERE — the two scrubbed clips stop being rectangles.
+
+   The film rows (.ksd-filmrow, css/spine-doc.css) sat as hard-edged boxes on
+   the starfield.  Two layers dissolve that boundary, and they are independent:
+
+     1. FEATHER  — a baked fractal-noise alpha mask on the <video>, so the
+                   outer band of the frame wanders out into the nebula instead
+                   of ending on a straight line.
+     2. GLOW     — a field of soft radial gradients BEHIND the clip, carrying
+                   the clip's own dominant colours out past its edges, so what
+                   the feather dissolves into is lit rather than empty.
+
+   A third layer — the foreground atmosphere, js/filmrow-atmos-fg.js +
+   css/filmrow-atmos-fg.css — is a separate module and is NOT in this file.
+
+   THIS FILE IS NOT LINKED BY index.html YET.  It is judged in
+   filmrow-atmos-lab.html; the two-line edit that ships it is written at the
+   bottom of this file.
+
+   THE ONE HARD CONSTRAINT: BOTH CLIPS ARE SCRUBBED BY THE SCROLL.
+   js/spine-doc.js maps scroll position onto video.currentTime for every
+   .ksd-filmrow__media video, so each wheel tick costs a seek, a decode and a
+   paint before anything here is composited.  Everything below therefore:
+     - adds no per-frame RASTER work (the mask is a baked PNG, the gradients
+       are static, and the only thing the scroll changes is `opacity`, which
+       the compositor handles without repainting the layer),
+     - changes no layout box (the mask and the ::before are both paint-only,
+       and the ::before is absolutely positioned out of flow),
+     - binds no listener to the <video> and never reads or writes currentTime.
+   Break any of those three and the scrub is what degrades, not this.
+
+   WHAT IT ACTUALLY COSTS, measured 2026-08-16 in headless Chrome on hardware
+   ANGLE (D3D11, RTX 3090 Ti) at 1440x900.  Three alternating bursts per
+   condition, 30 wheel events each, every rAF loop cancelled between runs, and
+   1200ms of settle after the class toggle so the layer's first raster is
+   OUTSIDE the measurement window:
+
+                      median   p90    p99          frames >16ms (of ~585)
+       layers off     2.1ms    2.2ms  2.3-4.2ms    0, 0, 0
+       feather+glow   2.1ms    4.1ms  16.6-23.3ms  12, 8, 7
+
+   The median is identical and p90 rises 1.9ms.  The >16ms frames are real but
+   they are NOT spread through the scroll — every one of them lands in the
+   first 1-8% of the burst (spike positions 0.012 to 0.080 of the way in,
+   across all three runs), then nothing for the remaining 92%.  That is the
+   layer being rastered and promoted when the scroll starts, once per burst,
+   not a per-frame cost.  It survives a 1200ms settle, so it is not merely the
+   class toggle's own first paint.
+
+   THIS IS RECORDED, NOT OPTIMISED.  If the owner decides those 7-12 frames
+   matter, the levers are: shrink the ::before box (it is 2.8x the clip and the
+   size is argued below — going smaller reintroduces the clipped-lobe cliff),
+   or add `will-change: opacity` to hold the layer promoted between bursts at
+   the cost of keeping it in memory permanently.  Neither was applied.
+
+   ==========================================================================
+   DELIBERATE — DO NOT "FIX" THESE
+   ==========================================================================
+
+   1. THE GLOW'S SCROLL RESPONSE DOES NOT USE THE SCRUB'S WINDOW, AND MUST NOT
+      BE MADE TO.  js/spine-doc.js drives the video from a re-normalised
+      (p - 0.10) / 0.70 slice of the element's enter-to-exit travel.  This
+      layer's --fr-focus is a different measure entirely: the distance from the
+      FIGURE's centre to the viewport's centre, peaking at 1 when the row is
+      centred on screen.
+
+      The two peak at different scroll positions and that is the point.  The
+      scrub window is about where the CLIP is in its own timeline; reflected
+      light is about whether the thing is in front of you.  A glow that peaked
+      when the clip ran out would brighten as the row was leaving.  Owner's
+      call, 2026-08-16, after the divergence was raised explicitly.
+
+      js/filmrow-atmos-fg.js carries its own copy of the scrub window for its
+      own purposes.  Three different mappings of scroll position now exist on
+      this element on purpose.  Do not unify them.
+
+   2. THE GRADIENTS ARE DRAWN AT TWICE THE TUNED INTENSITY and the layer sits
+      at opacity 0.5.  See --fr-glow-base below; it is what keeps the scroll
+      response off the raster path.
+
+   3. THE GLOW FIELD IS LOPSIDED on both clips.  The light in the footage is,
+      and an even halo would light corners the footage keeps dark.
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   Typed custom properties.
+
+   @property, not plain custom properties, for the numbers that get written
+   from script.  A plain --fr-focus set to a garbage value poisons every calc()
+   that reads it and the whole declaration drops — which in this codebase
+   presents as "the CSS silently did nothing".  Typed as <number> with an
+   initial value, a bad write is clamped to the initial instead of taking the
+   layer out.  Typing --fr-focus also makes it interpolable, which is what lets
+   `opacity` stay a compositor-only property while it moves.
+   -------------------------------------------------------------------------- */
+@property --fr-focus {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 0;
+}
+@property --fr-glow-base {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 0.5;
+}
+@property --fr-glow-resp {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 0.35;
+}
+@property --fr-glow-grow {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 0.2;
+}
+
+.ksd-filmrow__media {
+  /* WHICH BAKED MASK.  Three are shipped, from three seeds, so the two rows on
+     the page are not the same silhouette — an identical outline twice down one
+     page reads as a frame, which is the thing being removed.  Override with
+     data-fr-mask on the figure. */
+  --fr-mask: url("../assets/atmos/filmrow-mask-01.png");
+
+  /* HOW MUCH BIGGER THE GLOW FIELD IS THAN THE CLIP, as a fraction: 0.20 is a
+     field 20% larger, and the owner's range is 0.15 to 0.25.
+
+     IT IS NOT THE ::before's SIZE.  It scales the LOBES.  The ::before box is
+     fixed at 2.8x the clip and the field's extent is set by how far the
+     gradients reach inside it — see the note on the box below for why that
+     separation is load-bearing.
+
+     0.5 + 2.5 * grow puts scale at exactly 1.0 at the shipped 0.20, and spans
+     0.875 to 1.125 across the owner's range. */
+  --fr-glow-grow: 0.2;
+  --fr-glow-scale: calc(0.5 + 2.5 * var(--fr-glow-grow));
+
+  /* INTENSITY, AND HOW MUCH OF IT THE SCROLL OWNS.
+     --fr-glow-base 0.5 IS THE MEASURED TUNING, not half of it: every gradient
+     below is written at twice its tuned alpha, and this halves the whole layer
+     back down.  That indirection is the entire reason the scroll response is
+     free.  Composing the response into the gradients' alpha channels — which
+     is how this was built first — means every change to --fr-focus rewrites
+     nine radial gradients across a layer 2.8x the size of the clip, on every
+     scroll frame.  Composing it into `opacity` instead is a compositor
+     operation on an already-rasterised layer.
+
+     resp is a FRACTION OF the base, never the whole of it, and that is what
+     stops the layer disappearing: --fr-focus is 0 before any script has run,
+     and with resp at its 0.35 maximum the field still opens at 65%.  A glow
+     that is black until the visitor scrolls is worse than one that never
+     moves, and a no-JS page must not look broken. */
+  --fr-glow-base: 0.5;
+  --fr-glow-resp: 0.35;
+  --fr-focus: 0;
+}
+
+.ksd-filmrow__media[data-fr-mask="2"] { --fr-mask: url("../assets/atmos/filmrow-mask-02.png"); }
+.ksd-filmrow__media[data-fr-mask="3"] { --fr-mask: url("../assets/atmos/filmrow-mask-03.png"); }
+
+/* ==========================================================================
+   LAYER 1 — THE EDGE FEATHER
+   ==========================================================================
+   scripts/make-filmrow-mask.py bakes the PNG and its header carries the whole
+   argument for the method; the short version is that css/spine-doc.css pins
+   `aspect-ratio: 1.2` on this element at every width, so ONE baked mask fits
+   every viewport at `mask-size: 100% 100%` with no distortion and no per-frame
+   cost.  An SVG feTurbulence filter re-runs on every painted frame of a
+   scrubbing video; a stack of radial-gradients reads as overlapping circles.
+
+   MASK THE <video>, NOT THE FIGURE.  The glow below is a ::before on the
+   figure, and a mask on the figure would clip the glow to the same wandering
+   outline — the light would stop exactly where the picture stops, which is
+   the boundary being dissolved.  Masking the video leaves the glow free to run
+   past it.
+
+   `mask-size: 100% 100%`, not cover and not contain.  Above 900px the element
+   is 1.2:1 and the mask is 1.2:1, so all three agree.  Below 900px
+   css/spine-doc.css drops the aspect-ratio and the element takes the clip's own
+   shape (black-tide 1176x780 = 1.508, spine-frequency 1108x828 = 1.338), and
+   only 100% 100% still covers the whole frame — it stretches the mask
+   horizontally by up to 26%, which on a cloud edge is invisible, where
+   `contain` would leave two unmasked bars and `cover` would crop the feather
+   off two sides entirely.  Confirmed at a 390px viewport: element 294x195,
+   ratio 1.508, mask-size still 100% 100%.
+
+   `mask-mode: alpha` is the default for a raster mask-image (match-source
+   resolves to alpha) and is stated anyway, because the failure mode when it is
+   wrong is silent: hand the property an opaque greyscale PNG under a luminance
+   mode mismatch and the mask is a no-op that looks exactly like a stylesheet
+   that did not load.  The baked PNGs are LA with the value in BOTH channels,
+   so they are correct under either mode.
+
+   MEASURED IN CHROME at 1440x900, black-tide, depth 0.11, feather on vs off:
+
+       sharpest luminance step across the top edge   61.7  ->  4.2   (15x)
+       corner luminance, top-left                   123.7  -> 13.3
+       corner luminance, top-right                  147.1  ->  7.8
+       middle 40% x 40% of the frame, max px diff             1 of 255
+
+   That last row is the contract: the crisp core is untouched video.  The bake
+   asserts it geometrically, and this is the same thing measured through a
+   browser at the end of the pipeline.
+   -------------------------------------------------------------------------- */
+.ksd-filmrow__media.has-fr-feather video {
+  -webkit-mask-image: var(--fr-mask);
+          mask-image: var(--fr-mask);
+  -webkit-mask-size: 100% 100%;
+          mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+          mask-repeat: no-repeat;
+  -webkit-mask-position: 50% 50%;
+          mask-position: 50% 50%;
+          mask-mode: alpha;
+}
+
+/* ==========================================================================
+   LAYER 2 — THE GLOW FIELD
+   ==========================================================================
+   WHERE IT SITS.  A ::before on the figure at z-index -1, which drops it into
+   the ROOT stacking context's negative layer — the same trick js/clouds-sky.js
+   documents at length.  Nothing between this element and <html> creates a
+   stacking context (.ksd-doc is position:relative with z-index auto,
+   .ksd-section and .ksd-filmrow are plain flex/grid), so the negative child
+   escapes all the way out.  Audited in the browser by walking the ancestor
+   chain for z-index, transform, filter, isolation, opacity, contain and
+   will-change: zero hits.  What it buys:
+
+     - it paints ABOVE the nebula (html::before/::after, also z-index -1, but
+       earlier in tree order),
+     - it paints BELOW every scrap of in-flow content, so it can bleed left
+       over the copy column without ever lightening a glyph,
+     - it needs no z-index on the video and no isolation anywhere.
+
+   The cloud field (js/clouds-sky.js) is also at z-index -1 and is appended at
+   the END of body, so it paints OVER this.  That is the right order — clouds
+   in front of a reflected-light haze — and at the sky's 0.08 opacity it takes
+   about 3 units of 255 off the glow's peak.  Do not "fix" it by raising this
+   above 0: the moment it is non-negative it paints over the copy.
+
+   IF THIS EVER GOES INVISIBLE, look for a transform, a filter, a z-index or an
+   `isolation` on body, .ksd-doc, .ksd-section or .ksd-filmrow.  Any one of them
+   turns that ancestor into a stacking context and traps this behind the page
+   background with no error to explain it.
+
+   SCREEN, NOT NORMAL.  These are light sources; screen can only lighten, so a
+   lobe that happens to land on a bright patch of nebula cannot grey it down
+   the way plain alpha compositing of a mid-grey would.  css/spine-doc.css
+   already uses mix-blend-mode: screen for the same reason on the merch
+   render's mp4 fallback.
+
+   NO drop-shadow and NO filter: blur().  A shadow is one flat offset
+   silhouette of the box — it re-states the rectangle instead of dissolving it
+   — and a blur would put a filter back in the paint path of a scrubbing video,
+   which is the cost this whole approach exists to avoid.  Several overlapping
+   radial gradients cost one raster of one layer, once.
+
+   THE BOX IS 2.8x THE CLIP AND THE FIELD IS NOT.
+   -----------------------------------------------
+   inset: -90% makes the ::before 2.8x the clip on both axes, which is far
+   larger than the 15-25% field the owner asked for.  That is not a mistake and
+   it is not the field's size — it is headroom, and it exists because A
+   GRADIENT IS CLIPPED BY ITS ELEMENT BOX.
+
+   The first cut sized the box AS the field: inset: calc(size / -2), so a 20%
+   field meant a box running -10% to 110% of the clip.  Every lobe is bigger
+   than that and most are off-centre, so all nine were cut off mid-falloff by
+   the box edge.  Scanned as mean luminance lift in 4px rings walking outward
+   from the clip, at the shipped intensity:
+
+       distance out    48px   52px   56px   60px   64px   68px   72px
+       lift            4.08   3.97   2.15   2.07   1.92   0.11   0.10
+
+   A 1.8-unit cliff, at a straight line, 65px out on all four sides — the layer
+   whose entire job is removing a rectangle was drawing one of its own in the
+   sky.  Only visible once it was scanned; it does not announce itself in a
+   screenshot.
+
+   Re-measured after the fix, as a clean 1-D scan running LEFT from the clip's
+   edge across 700px of runway (all of it inside the viewport, so nothing in
+   the number is the scan window running out of page — the first re-measure
+   used expanding rectangular rings and reported two "drops" that were just the
+   ring hitting the viewport's right edge at 87px and its top at 179px):
+
+       largest adjacent drop, 8px bins    before 1.113 at 56px
+                                          after  0.405 at 240px
+
+   And the 0.405 is not an edge — it is the left-hand foam lobe, whose centre
+   sits outside the clip at 35.7% of the box, peaking where it should.  The
+   profile now runs 3.40 at the clip's edge down to 0.005 by 600px out with no
+   step in it.
+
+   2.8x is the smallest whole step where every lobe on both clips completes its
+   falloff inside the box AT THE TOP OF THE SLIDER's range — checked as
+   centre +/- radius against [0,1] for all nine lobes at scale 1.125.  2.6x
+   fits at the shipped scale but overshoots by 1% of the box at 0.25 grow, and
+   a defect that only appears at one end of a slider is the kind that ships.
+
+   Lobe geometry below is therefore in BOX coordinates, where the clip occupies
+   35.7% to 64.3% on both axes: a feature at x% of the clip sits at
+   (x + 90) / 2.8 % of the box.  The conversion is noted per lobe.  Unlike the
+   first cut's, this mapping is FIXED — it does not drift when the size slider
+   moves, because the slider now scales the lobes and leaves the box alone.
+   -------------------------------------------------------------------------- */
+.ksd-filmrow__media.has-fr-glow { position: relative; }
+
+.ksd-filmrow__media.has-fr-glow::before {
+  content: "";
+  position: absolute;
+  inset: -90%;
+  z-index: -1;
+  pointer-events: none;      /* decorative, and it overlaps the copy column */
+  mix-blend-mode: screen;
+
+  /* The whole intensity chain, on the one property the compositor can change
+     without re-rastering the layer.  See --fr-glow-base above. */
+  opacity: calc(
+    var(--fr-glow-base) *
+    (1 - var(--fr-glow-resp) + var(--fr-glow-resp) * var(--fr-focus))
+  );
+
+  /* Overridden per clip below.  A figure with no data-fr-glow still gets a
+     field, built from the two clips' shared blue-grey, rather than nothing. */
+  background:
+    /* the blue-grey both clips share */
+    radial-gradient(calc(27.9% * var(--fr-glow-scale)) calc(23.6% * var(--fr-glow-scale)) at 57.1% 41.4%,
+      rgb(139 155 173 / 0.2000) 0%,
+      rgb(139 155 173 / 0.1240) 28%,
+      rgb(139 155 173 / 0.0560) 52%,
+      rgb(139 155 173 / 0.0140) 76%,
+      rgb(139 155 173 / 0) 100%),
+    /* and its shadow side */
+    radial-gradient(calc(25.7% * var(--fr-glow-scale)) calc(22.5% * var(--fr-glow-scale)) at 45.7% 55.7%,
+      rgb(105 115 126 / 0.1400) 0%,
+      rgb(105 115 126 / 0.0868) 28%,
+      rgb(105 115 126 / 0.0392) 52%,
+      rgb(105 115 126 / 0.0098) 76%,
+      rgb(105 115 126 / 0) 100%);
+}
+
+/* --------------------------------------------------------------------------
+   THE COLOURS ARE MEASURED OFF THE CLIPS, NOT INVENTED.
+
+   Method (2026-08-16): 12 frames pulled at even spacing from each .mp4 with
+   ffmpeg (imageio_ffmpeg's binary — ffmpeg is not on PATH), scaled to 160px
+   wide, then per-cell in a 4x4 grid the mean of that cell's top-quintile-
+   luminance pixels.  Highlights, not averages: this is reflected LIGHT, and
+   both clips are mostly near-black, so the frame mean (rgb 54,63,74 and
+   47,50,53) describes the shadows and would put a flat grey wash round the box.
+
+   Both clips are cool and almost colourless.  black-tide has NO saturated lit
+   pixel at all — 10 pixels out of 203,520 clear a 0.30 saturation and a 55
+   luminance, which is nothing.  spine-frequency has exactly one warm source:
+   327 pixels, 0.14% of the frame, mean rgb(105,65,59) and p90 rgb(184,121,112),
+   the red readouts on the rack unit at the lower right.  So there is one red
+   lobe on this page and it belongs to one clip.  Do not add red to black-tide
+   to "balance" them; it is not in the footage.
+
+   Every alpha below is TWICE its tuned value — the layer is halved again by
+   --fr-glow-base.  The tuned peaks, for reading: black-tide 0.115 / 0.095 /
+   0.075 / 0.062, spine-frequency 0.125 / 0.095 / 0.070 / 0.062 / 0.052.
+   -------------------------------------------------------------------------- */
+
+/* BLACK-TIDE — two figures on black rock, storm sea behind.  The light is a
+   hard diagonal: bright sky top and right, white foam mid-right and a weaker
+   patch mid-left, and the bottom-left corner is the darkest cell in the frame
+   (highlight luminance 30 against 158 at the brightest).  The field is
+   deliberately lopsided to match. */
+.ksd-filmrow__media[data-fr-glow="black-tide"].has-fr-glow::before {
+  background:
+    /* sky, upper right. clip 88%,15%. #8B9BAD, highlight lum 153, and the brightest CELL MEAN in the frame at 134 - the largest lit area, so the largest lobe */
+    radial-gradient(calc(30.0% * var(--fr-glow-scale)) calc(25.7% * var(--fr-glow-scale)) at 63.6% 37.5%,
+      rgb(139 155 173 / 0.2300) 0%,
+      rgb(139 155 173 / 0.1426) 28%,
+      rgb(139 155 173 / 0.0644) 52%,
+      rgb(139 155 173 / 0.0161) 76%,
+      rgb(139 155 173 / 0) 100%),
+    /* breaking foam, right of centre. clip 88%,62%. #999DA5, highlight lum 158 - the hottest highlight in the clip but a small one. Tighter, and near-neutral: almost no blue in it */
+    radial-gradient(calc(19.7% * var(--fr-glow-scale)) calc(17.1% * var(--fr-glow-scale)) at 63.6% 54.3%,
+      rgb(153 157 165 / 0.1900) 0%,
+      rgb(153 157 165 / 0.1178) 28%,
+      rgb(153 157 165 / 0.0532) 52%,
+      rgb(153 157 165 / 0.0133) 76%,
+      rgb(153 157 165 / 0) 100%),
+    /* sky spilling left along the top. clip 45%,10%. #738498, highlight lum 130 */
+    radial-gradient(calc(24.9% * var(--fr-glow-scale)) calc(19.7% * var(--fr-glow-scale)) at 48.2% 35.7%,
+      rgb(115 132 152 / 0.1500) 0%,
+      rgb(115 132 152 / 0.0930) 28%,
+      rgb(115 132 152 / 0.0420) 52%,
+      rgb(115 132 152 / 0.0105) 76%,
+      rgb(115 132 152 / 0) 100%),
+    /* the left-hand foam. clip 10%,55%. #4F5F74 off the outer-12% left band, highlight lum 94 - the bluest and dimmest lobe, and the only thing on this side. The bottom-left cell of the frame measures 30 against 158 at the brightest, so nothing is placed down there at all */
+    radial-gradient(calc(20.6% * var(--fr-glow-scale)) calc(21.4% * var(--fr-glow-scale)) at 35.7% 51.8%,
+      rgb(79 95 116 / 0.1240) 0%,
+      rgb(79 95 116 / 0.0769) 28%,
+      rgb(79 95 116 / 0.0347) 52%,
+      rgb(79 95 116 / 0.0087) 76%,
+      rgb(79 95 116 / 0) 100%);
+}
+
+/* SPINE-FREQUENCY — interior, the lit X-ray spine on the back wall.  The light
+   is a vertical column just right of centre (the two brightest cells in the
+   frame are stacked at x 62%, highlight lum 193 both), everything else falls
+   away fast, and the red rack readouts are the one piece of colour on the
+   page. */
+.ksd-filmrow__media[data-fr-glow="spine-frequency"].has-fr-glow::before {
+  background:
+    /* the spine column, upper. clip 62%,22%. #B8C2CB, highlight lum 193 - the brightest measurement of either clip, so the brightest lobe */
+    radial-gradient(calc(26.6% * var(--fr-glow-scale)) calc(24.0% * var(--fr-glow-scale)) at 54.3% 40.0%,
+      rgb(184 194 203 / 0.2500) 0%,
+      rgb(184 194 203 / 0.1550) 28%,
+      rgb(184 194 203 / 0.0700) 52%,
+      rgb(184 194 203 / 0.0175) 76%,
+      rgb(184 194 203 / 0) 100%),
+    /* the same column, lower. clip 62%,58%. #A2ADB5, highlight lum 172. Two stacked lobes rather than one tall one: a single ellipse tall enough to cover both reads as a pillar, and a pillar is a shape */
+    radial-gradient(calc(21.4% * var(--fr-glow-scale)) calc(20.6% * var(--fr-glow-scale)) at 54.3% 52.9%,
+      rgb(162 173 181 / 0.1900) 0%,
+      rgb(162 173 181 / 0.1178) 28%,
+      rgb(162 173 181 / 0.0532) 52%,
+      rgb(162 173 181 / 0.0133) 76%,
+      rgb(162 173 181 / 0) 100%),
+    /* the red rack readouts. clip 67%,70%. Sampled rgb(105,65,59) mean / rgb(184,121,112) p90 over the 327 warm pixels - 0.14% of the frame, and the only chroma in either clip. Shipped at rgb(168,74,58): between the two in luminance and pushed back toward the source hue, because a glow this dim over near-black loses almost all its chroma and the p90 colour (already half desaturated by the bloom around the LEDs) came out as warm grey */
+    radial-gradient(calc(14.6% * var(--fr-glow-scale)) calc(12.9% * var(--fr-glow-scale)) at 56.1% 57.1%,
+      rgb(168 74 58 / 0.1400) 0%,
+      rgb(168 74 58 / 0.0868) 28%,
+      rgb(168 74 58 / 0.0392) 52%,
+      rgb(168 74 58 / 0.0098) 76%,
+      rgb(168 74 58 / 0) 100%),
+    /* spill along the top left. clip 35%,12%. #868F98, highlight lum 143 */
+    radial-gradient(calc(22.3% * var(--fr-glow-scale)) calc(18.0% * var(--fr-glow-scale)) at 44.6% 36.4%,
+      rgb(134 143 152 / 0.1240) 0%,
+      rgb(134 143 152 / 0.0769) 28%,
+      rgb(134 143 152 / 0.0347) 52%,
+      rgb(134 143 152 / 0.0087) 76%,
+      rgb(134 143 152 / 0) 100%),
+    /* the left wall. clip 12%,60%. #69737E, highlight lum 114 - the dimmest lobe of the five, and it exists only so the left edge is not feathering into nothing */
+    radial-gradient(calc(19.7% * var(--fr-glow-scale)) calc(20.6% * var(--fr-glow-scale)) at 36.4% 53.6%,
+      rgb(105 115 126 / 0.1040) 0%,
+      rgb(105 115 126 / 0.0645) 28%,
+      rgb(105 115 126 / 0.0291) 52%,
+      rgb(105 115 126 / 0.0073) 76%,
+      rgb(105 115 126 / 0) 100%);
+}
+
+/* THE STOP LADDER — 1.00 / 0.62 / 0.28 / 0.07 / 0 at 0 / 28 / 52 / 76 / 100%
+   of each lobe's radius — is identical on every lobe, and it is the shape that
+   matters, not the count.
+
+   A radial-gradient interpolates LINEARLY between stops, so what the eye picks
+   up at the outside of a lobe is the kink where the last segment's slope drops
+   to zero.  Measured as slope in units of peak-alpha per unit radius:
+
+       stops                                terminating slope   rms vs gaussian
+       1 @0, 0 @100%                              1.00               0.171
+       1 @0, 0 @73%                               1.37               0.049
+       1 @0, 0.5 @36%, 0 @73%   <- first cut      1.35               0.049
+       1, .62, .28, .07, 0 @ 0/28/52/76/100%      0.29               0.055
+
+   The first cut was three stops chosen to "front-load the falloff", and the
+   arithmetic says it bought nothing: front-loading the first half steepens the
+   second half by the same amount, and it terminated at 1.35 — marginally WORSE
+   than the plain two-stop ramp it replaced.  The ladder above is a piecewise
+   fit to a gaussian, and it is the fit's TAIL that does the work: it lands at
+   0.29, a 4.7x gentler terminating kink, for 0.006 more rms error against the
+   curve.  Under a single lobe none of this is visible; where three overlap the
+   kinks add. */
+
+/* --------------------------------------------------------------------------
+   REDUCED MOTION.  The feather is a still image and stays.  The scroll
+   response is scroll-linked motion, which is exactly what the preference
+   declines, so the field is pinned to the value it would hold in focus: the
+   visitor gets the full glow all the time rather than a dimmer one, because
+   the alternative is a layer that reads as under-lit for no reason they can
+   see.  The lab's script also stops writing --fr-focus under this preference.
+
+   WATCH FOR AN INLINE STYLE BEATING THIS.  filmrow-atmos-lab.html used to
+   write --fr-glow-resp inline from its slider, which outranks a stylesheet
+   rule, so the lab reported 0.35 here where the shipped page would have 0 — a
+   lab quietly disagreeing with production.  Found by reading the computed
+   value in a reduced-motion context, not by looking at it.
+   -------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .ksd-filmrow__media { --fr-glow-resp: 0; }
+}
+
+/* --------------------------------------------------------------------------
+   WHAT SHIPPING THIS INTO index.html TAKES
+
+   1. In <head>, after css/spine-doc.css:
+        <link rel="stylesheet" href="css/filmrow-atmos.css">
+
+   2. On each of the two figures (index.html ~line 140 and ~line 266), add the
+      classes and the two data attributes:
+        <figure class="ksd-filmrow__media has-fr-feather has-fr-glow"
+                data-fr-mask="1" data-fr-glow="black-tide">
+        <figure class="ksd-filmrow__media has-fr-feather has-fr-glow"
+                data-fr-mask="2" data-fr-glow="spine-frequency">
+
+   3. For the scroll response only, the eight-line rAF loop from
+      filmrow-atmos-lab.html (search: "focusPass").  WITHOUT IT everything above
+      still works — --fr-focus stays 0 and the field sits at its out-of-focus
+      level, which is 65% of full at the shipped --fr-glow-resp.  It is the
+      optional part; nothing else here depends on script at all.
+   -------------------------------------------------------------------------- */

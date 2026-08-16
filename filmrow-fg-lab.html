@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<!-- FILM ROW FOREGROUND ATMOSPHERE LAB — the tuner for js/filmrow-atmos-fg.js.
+
+     page-home is deliberate, the same call clouds-lab.html makes: it loads the
+     real star background, so the layer is judged against the actual sky it has
+     to dissolve into and not against a flat #000 that would flatter it.
+
+     The page is deliberately TALL and the film row sits in the middle of it, so
+     the parallax and the scrub can both be exercised by scrolling the real
+     document. A row parked at the top of a short page never leaves the 0.10
+     dead zone of the scrub mapping and the lag is invisible.
+
+     THE SCRUB HERE IS A VERBATIM COPY of scrubToScroll from js/spine-doc.js
+     (Aug 16 2026). It is copied rather than imported because spine-doc.js also
+     builds the axis rail and the reveal observers against markup this page does
+     not have. If the mapping is ever retuned there, retune it here AND in
+     js/filmrow-atmos-fg.js readProgress(), which mirrors the same window.
+
+     Nothing on this page is linked from the site. It exists to tune two files:
+     js/filmrow-atmos-fg.js and css/filmrow-atmos-fg.css. -->
+<html lang="en" class="page-home">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Film row FG atmosphere lab — Kundalini Spines</title>
+<meta name="robots" content="noindex">
+
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/star-bg.css">
+<link rel="stylesheet" href="css/spine-doc.css">
+<link rel="stylesheet" href="css/filmrow-atmos-fg.css">
+
+<style>
+  body { margin: 0; }
+
+  /* The stage stops 300px short of the right edge so the fixed panel never
+     covers the film row. The first cut used the site's real 1280px container
+     and the panel sat on top of the exact corner being tuned. */
+  .lab-wrap { max-width: 1040px; margin: 0; padding: 0 24px 0 48px; }
+  .lab-spacer { height: 90vh; display: flex; align-items: center; }
+  .lab-spacer p { font-family: var(--font-mono); font-size: 12px;
+    letter-spacing: .08em; text-transform: uppercase; color: var(--color-moonlight);
+    opacity: .55; }
+
+  .ksd-head { font-family: var(--font-display); font-weight: 900;
+    font-size: clamp(30px, 3.4vw, 54px); line-height: .94; letter-spacing: -.02em;
+    text-transform: uppercase; color: var(--color-white); margin: 0 0 20px; }
+  .ksd-body { color: var(--color-bone); font-size: 17px; line-height: 1.65;
+    margin: 0 0 16px; max-width: 46ch; }
+
+  /* Panel is a fixed sibling of the row, never a child — a child would be
+     inside the same stacking context experiments and could change what the
+     canvas blends against, which is the one thing this lab must not perturb. */
+  #panel { position: fixed; top: 10px; right: 10px; width: 268px; z-index: 50;
+    max-height: calc(100vh - 20px); overflow: auto;
+    background: rgba(3,4,15,.92); border: 1px solid rgba(157,178,192,.28);
+    padding: 12px 12px 14px; font-family: var(--font-mono); font-size: 11px;
+    color: var(--color-moonlight); letter-spacing: .04em;
+    backdrop-filter: blur(6px); }
+  #panel h2 { font-size: 11px; letter-spacing: .18em; text-transform: uppercase;
+    margin: 0 0 10px; color: var(--color-white); }
+  #panel .row { margin: 0 0 9px; }
+  #panel label { display: flex; justify-content: space-between; gap: 8px;
+    text-transform: uppercase; margin-bottom: 3px; }
+  #panel label b { color: var(--color-white); font-weight: 500; }
+  #panel input[type=range] { width: 100%; height: 14px; }
+  #panel .edges { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px; }
+  #panel .edges > div { display: flex; flex-direction: column; }
+  #panel select, #panel button { width: 100%; font-family: var(--font-mono);
+    font-size: 11px; letter-spacing: .08em; text-transform: uppercase;
+    background: rgba(157,178,192,.10); color: var(--color-white);
+    border: 1px solid rgba(157,178,192,.32); padding: 6px; cursor: pointer; }
+  #panel button { margin-top: 6px; }
+  #panel .sep { border-top: 1px solid rgba(157,178,192,.20); margin: 10px 0; }
+  #readout { white-space: pre-wrap; line-height: 1.5; color: var(--color-moonlight); }
+  #readout b { color: var(--color-white); font-weight: 500; }
+  #readout .bad { color: #E0616E; }
+  #readout .ok { color: #7FD1A6; }
+  #copyout { width: 100%; height: 92px; margin-top: 6px; display: none;
+    background: #05070f; color: var(--color-bone); border: 1px solid rgba(157,178,192,.32);
+    font-family: var(--font-mono); font-size: 10px; }
+</style>
+</head>
+<body>
+
+<div class="lab-wrap">
+  <div class="lab-spacer"><p>scroll down — the row is below</p></div>
+
+  <!-- Markup copied from index.html's About row so the module is attached to
+       the real element shape, class names and aspect ratio it ships against. -->
+  <div class="ksd-filmrow" id="row-a">
+    <div class="ksd-filmrow__copy">
+      <h2 class="ksd-head">Two Messengers. One Signal.</h2>
+      <p class="ksd-body">Kundalini Spines is a two-member creative and musical project moving between underground hip-hop, mysticism, symbolism, street experience, ancient knowledge, and speculative thought.</p>
+      <p class="ksd-body">The Messengers don&rsquo;t claim mastery over the Signal &mdash; they receive it, interpret it, and carry it forward.</p>
+    </div>
+    <figure class="ksd-filmrow__media">
+      <video muted playsinline preload="auto" aria-hidden="true"
+             poster="assets/video/black-tide-poster.jpg">
+        <source src="assets/video/black-tide.webm" type="video/webm">
+        <source src="assets/video/black-tide.mp4" type="video/mp4">
+      </video>
+    </figure>
+  </div>
+
+  <div class="lab-spacer"><p>second row below — same options, second clip</p></div>
+
+  <div class="ksd-filmrow" id="row-b">
+    <div class="ksd-filmrow__copy">
+      <h2 class="ksd-head">Tune to a Frequency</h2>
+      <p class="ksd-body">Every signal the Messengers put out &mdash; posts, clips, releases and filed pieces &mdash; arrives here, timestamped and numbered.</p>
+    </div>
+    <figure class="ksd-filmrow__media">
+      <video muted playsinline preload="auto" aria-hidden="true"
+             poster="assets/video/spine-frequency-poster.jpg">
+        <source src="assets/video/spine-frequency.webm" type="video/webm">
+        <source src="assets/video/spine-frequency.mp4" type="video/mp4">
+      </video>
+    </figure>
+  </div>
+
+  <div class="lab-spacer"><p>end of stage</p></div>
+</div>
+
+<div id="panel">
+  <h2>FG atmosphere</h2>
+  <div id="controls"></div>
+
+  <div class="sep"></div>
+  <div class="edges" id="edge-controls"></div>
+
+  <div class="sep"></div>
+  <div class="row">
+    <label>blend</label>
+    <select id="blend">
+      <option value="screen">screen</option>
+      <option value="plus-lighter">plus-lighter</option>
+      <option value="normal">normal</option>
+    </select>
+  </div>
+  <button id="reseed">reseed layout</button>
+  <button id="toggle">layer off</button>
+  <button id="copy">copy options</button>
+  <textarea id="copyout" readonly></textarea>
+
+  <div class="sep"></div>
+  <div id="readout"></div>
+</div>
+
+<script src="js/filmrow-atmos-fg.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  /* ---- the scrub, copied verbatim from js/spine-doc.js -------------------
+     Kept identical on purpose: the point of having it here is to prove the
+     atmosphere layer does not disturb it, and a paraphrase proves nothing. */
+  var scrubbed = [];
+  function scrubToScroll(v) {
+    var target = 0, shown = 0, raf = 0;
+    var tick = function () {
+      raf = 0;
+      shown += (target - shown) * 0.3;
+      if (!v.seeking && v.duration && Math.abs(v.currentTime - shown) > 1 / 48) {
+        v.currentTime = shown;
+      }
+      if (Math.abs(target - shown) > 0.005) raf = requestAnimationFrame(tick);
+    };
+    var onScrub = function () {
+      if (!v.duration) return;
+      var r = v.getBoundingClientRect();
+      var p = Math.min(1, Math.max(0,
+        (window.innerHeight - r.top) / (window.innerHeight + r.height)));
+      var p2 = Math.min(1, Math.max(0, (p - 0.10) / 0.70));
+      target = p2 * (v.duration - 0.05);
+      if (!raf) raf = requestAnimationFrame(tick);
+    };
+    v.addEventListener('loadedmetadata', onScrub);
+    window.addEventListener('scroll', onScrub, { passive: true });
+    window.addEventListener('resize', onScrub);
+    onScrub();
+    scrubbed.push(v);
+  }
+  document.querySelectorAll('.ksd-filmrow__media video').forEach(function (v) {
+    scrubToScroll(v);
+  });
+
+  /* ---- attach the layer -------------------------------------------------- */
+  var D = window.KSFilmrowFG.defaults;
+  var opts = {
+    intensity: D.intensity, density: D.density, spill: D.spill, reach: D.reach,
+    parallax: D.parallax, drift: D.drift, wisps: D.wisps, motes: D.motes,
+    blend: D.blend, seed: D.seed,
+    edges: { top: D.edges.top, right: D.edges.right, bottom: D.edges.bottom, left: D.edges.left }
+  };
+
+  var media = [].slice.call(document.querySelectorAll('.ksd-filmrow__media'));
+  var handles = [];
+  function mount() {
+    handles = media.map(function (m) { return window.KSFilmrowFG.attach(m, opts); });
+  }
+  function push() { handles.forEach(function (h) { h.setOptions(opts); }); }
+  mount();
+
+  /* ---- sliders ----------------------------------------------------------- */
+  var SPEC = [
+    ['intensity', 0, 1, 0.01],
+    ['density',   0, 2, 0.05],
+    ['spill',     0, 160, 1],
+    ['reach',     0, 0.45, 0.01],
+    ['parallax',  0, 0.6, 0.01],
+    ['drift',     0, 2, 0.05],
+    ['wisps',     0, 24, 1],
+    ['motes',     0, 240, 1]
+  ];
+  var host = document.getElementById('controls');
+  SPEC.forEach(function (s) {
+    var key = s[0];
+    var wrap = document.createElement('div');
+    wrap.className = 'row';
+    wrap.innerHTML = '<label>' + key + ' <b id="v-' + key + '"></b></label>' +
+      '<input type="range" id="c-' + key + '" min="' + s[1] + '" max="' + s[2] +
+      '" step="' + s[3] + '">';
+    host.appendChild(wrap);
+    var input = wrap.querySelector('input');
+    var out = wrap.querySelector('b');
+    input.value = opts[key];
+    out.textContent = opts[key];
+    input.addEventListener('input', function () {
+      opts[key] = parseFloat(input.value);
+      out.textContent = input.value;
+      push();
+    });
+  });
+
+  var eHost = document.getElementById('edge-controls');
+  ['top', 'right', 'bottom', 'left'].forEach(function (e) {
+    var d = document.createElement('div');
+    d.innerHTML = '<label>' + e + ' <b id="ev-' + e + '"></b></label>' +
+      '<input type="range" min="0" max="1" step="0.05">';
+    eHost.appendChild(d);
+    var input = d.querySelector('input');
+    var out = d.querySelector('b');
+    input.value = opts.edges[e];
+    out.textContent = opts.edges[e];
+    input.addEventListener('input', function () {
+      opts.edges[e] = parseFloat(input.value);
+      out.textContent = input.value;
+      push();
+    });
+  });
+
+  document.getElementById('blend').value = opts.blend;
+  document.getElementById('blend').addEventListener('change', function () {
+    opts.blend = this.value; push();
+  });
+  document.getElementById('reseed').addEventListener('click', function () {
+    opts.seed = (Math.random() * 1e9) | 0; push();
+  });
+
+  var on = true;
+  document.getElementById('toggle').addEventListener('click', function () {
+    on = !on;
+    this.textContent = on ? 'layer off' : 'layer on';
+    if (on) mount();
+    else { handles.forEach(function (h) { h.destroy(); }); handles = []; }
+  });
+
+  document.getElementById('copy').addEventListener('click', function () {
+    var ta = document.getElementById('copyout');
+    ta.style.display = 'block';
+    ta.value = JSON.stringify(handles.length ? handles[0].getOptions() : opts, null, 2);
+    ta.select();
+    try { document.execCommand('copy'); } catch (err) { /* manual select is fine */ }
+  });
+
+  /* ---- readout ----------------------------------------------------------
+     scrollWidth vs innerWidth is checked live, every frame, because the whole
+     spill mechanism is one clamp away from putting a horizontal scrollbar on
+     the site. If this ever goes red, the clamp in measure() is wrong. */
+  var ro = document.getElementById('readout');
+  var frames = 0, fps = 0, last = performance.now(), acc = 0;
+  function tick(now) {
+    frames++;
+    acc += now - last;
+    last = now;
+    if (acc > 500) { fps = Math.round(frames / (acc / 1000)); frames = 0; acc = 0; }
+    var de = document.documentElement;
+    var over = de.scrollWidth - de.clientWidth;
+    var v = scrubbed[0];
+    ro.innerHTML =
+      'fps <b>' + fps + '</b>\n' +
+      'canvases <b>' + document.querySelectorAll('.ksfg__canvas').length + '</b>\n' +
+      'scrollWidth <b>' + de.scrollWidth + '</b> / client <b>' + de.clientWidth + '</b>\n' +
+      'h-overflow <span class="' + (over > 0 ? 'bad' : 'ok') + '">' +
+        (over > 0 ? over + 'px OVERFLOW' : 'none') + '</span>\n' +
+      'clip A t=<b>' + (v && v.duration ? v.currentTime.toFixed(2) + '/' + v.duration.toFixed(2) : '—') + '</b>';
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+
+  /* Handles reachable from the console / Playwright. */
+  window.__fg = { handles: function () { return handles; }, opts: opts, videos: scrubbed };
+})();
+</script>
+</body>
+</html>

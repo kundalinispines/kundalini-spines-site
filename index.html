@@ -47,6 +47,64 @@
 <link rel="stylesheet" href="css/site-footer.css">
 <link rel="stylesheet" href="css/track-experience.css">
 <link rel="stylesheet" href="css/spine-doc.css">
+<!-- The film-row atmosphere: feather mask + glow field (css/filmrow-atmos.css)
+     and the foreground smoke/dust layer (css/filmrow-atmos-fg.css). Both must
+     come AFTER spine-doc.css, which owns .ksd-filmrow__media itself.
+     Loading these does NOT switch the effect on: the layers only apply once
+     js/filmrow-atmos.js adds .has-fr-feather / .has-fr-glow, and that is gated
+     until the look is approved. See the LIVE flag at the top of that file. -->
+<link rel="stylesheet" href="css/filmrow-atmos.css">
+<link rel="stylesheet" href="css/filmrow-atmos-fg.css">
+<style>
+  /* The glow field's ::before is `inset: -90%` -- 2.8x the clip on both axes.
+     That size is deliberate and documented in css/filmrow-atmos.css: a gradient
+     is clipped by its element box, and a correctly-sized box cut all nine lobes
+     off mid-falloff. The cost is that on a 650px-wide clip it reaches 585px
+     past each side, which is more room than the page has: measured 499px of
+     horizontal scroll at 1440 and 241px at 390, and a real wheel gesture did
+     move the page sideways to scrollX 499.
+
+     Clipping the overflow loses nothing -- the clipped part is off-screen by
+     definition. A frozen-page pixel diff with the clip on versus off changed
+     zero pixels.
+
+     CLIP, NOT HIDDEN. about.html carries the same declaration for its own
+     full-bleed figures and explains why at length: `overflow-x: hidden`
+     computes overflow-y to `auto`, making the element a scroll container -- and
+     that becomes the nearest scrolling ancestor for anything sticky inside it,
+     which here is the rail. `clip` clips without creating one.
+
+     ON `main`, AND THAT IS MEASURED, NOT COPIED. The obvious version of this
+     line is `body { overflow-x: clip }`, which is what about.html uses and what
+     was tried first. It does not work here: body computes to `clip` and
+     `scrollBy(500,0)` still moved the page to scrollX 499, because with
+     html at `overflow: visible` the clip is not reaching the viewport.
+     Tried on every candidate ancestor at 1440x900, Aug 16 2026:
+
+       body            does NOT stop it. scrollX still 499.
+       html            stops it, and is harmless -- see the correction below.
+       main            stops it. 1440 wide at left 0, so it clips exactly at
+                       the viewport edge and cuts nothing that was visible.
+       .ksd-doc        also works, also full width.
+       .ksd-doc__col   works, but is 1304 wide starting at x=136, so it would
+       .ksd-filmrow    works, but is 1217 wide -- both cut glow that is still
+                       on screen in the left margin.
+
+     `main` over `html` because it is the narrowest scope that is still exactly
+     viewport-wide: it leaves root/viewport overflow semantics alone entirely.
+
+     A CORRECTION WORTH KEEPING, because it was nearly written down as fact:
+     the first pass rejected `html` on the grounds that it collapsed the cloud
+     canvas to 0x0. It does not. js/clouds-sky.js builds TWO canvases -- a
+     hidden `src` appended first with display:none, then the visible `out` --
+     and `.ks-cloud-sky canvas` selects the hidden one. Re-measured across all
+     three conditions, the visible canvas is 1440x900 every time. If you are
+     ever measuring that layer, select the second canvas.
+
+     So: main. Removing .has-fr-glow drops scrollWidth from 1939 to exactly
+     1440, which is how we know the glow is the whole of it. */
+  main { overflow-x: clip; }
+</style>
 <!-- css/astral-scrim.css is PARKED, not deleted (owner's call, Aug 15 2026 —
      the look was not landing). The stylesheet, its generator and both source
      references are still in the tree; re-linking this one line and re-adding a
@@ -137,7 +195,11 @@
                The source has no audio track at all, so there is nothing to
                mute beyond the attribute and no sound toggle to offer.
                aria-hidden because it is atmosphere, not content. -->
-          <figure class="ksd-filmrow__media">
+          <!-- data-fr-* are inert on their own: css/filmrow-atmos.css only acts
+               once .has-fr-feather / .has-fr-glow are present, which
+               js/filmrow-atmos.js adds. mask 1 and mask 2 are different noise
+               seeds so the two rows do not wear an identical torn edge. -->
+          <figure class="ksd-filmrow__media" data-fr-mask="1" data-fr-glow="black-tide">
             <video muted playsinline preload="auto" aria-hidden="true"
                    poster="assets/video/black-tide-poster.jpg">
               <source src="assets/video/black-tide.webm" type="video/webm">
@@ -263,7 +325,7 @@
             <p class="ksd-body">Every signal the Messengers put out &mdash; posts, clips, releases and filed pieces &mdash; arrives here, timestamped and numbered. Select a channel to isolate it, or take the whole band.</p>
             <p style="margin-top:var(--space-2);"><a class="btn btn--ghost" href="transmissions.html">Open the Terminal</a></p>
           </div>
-          <figure class="ksd-filmrow__media">
+          <figure class="ksd-filmrow__media" data-fr-mask="2" data-fr-glow="spine-frequency">
             <video muted playsinline preload="auto" aria-hidden="true"
                    poster="assets/video/spine-frequency-poster.jpg">
               <source src="assets/video/spine-frequency.webm" type="video/webm">
@@ -328,6 +390,10 @@
   </div>
 </footer>
 
+<!-- FIRST, always: js/tune-panel.js defines window.KSTunePanel, and every tuner
+     on the page registers a tab into it. A tuner that loads before the shell
+     finds no KSTunePanel and silently renders no controls. -->
+<script src="js/tune-panel.js"></script>
 <script src="js/nav.js"></script>
 <script src="js/hero-video.js"></script>
 <script src="js/track-experience.js"></script>
@@ -344,5 +410,11 @@
 <script>document.getElementById('year').textContent = new Date().getFullYear();</script>
 <script src="js/ks-chakras.js"></script>
 <script src="js/site-footer.js"></script>
+<!-- The film-row atmosphere. filmrow-atmos-fg.js is the foreground module (it
+     only exposes window.KSFilmrowFG and does nothing on its own);
+     filmrow-atmos.js is what decides whether the layers apply, runs the glow's
+     focus pass, attaches the foreground, and registers the Film tab. -->
+<script src="js/filmrow-atmos-fg.js"></script>
+<script src="js/filmrow-atmos.js"></script>
 </body>
 </html>

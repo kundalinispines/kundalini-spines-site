@@ -1,0 +1,86 @@
+/* THE FILM ROW FOREGROUND ATMOSPHERE — stylesheet for js/filmrow-atmos-fg.js.
+
+   This is layer three of the boundary dissolve the owner asked for on Aug 16
+   2026: a little smoke, dust and star material IN FRONT of the scrubbed film
+   rows, hanging off SELECTED edges and crossing the boundary, so the video
+   stops reading as a rectangle pasted onto the sky. The edge feather and the
+   glow field are separate layers owned elsewhere (css/filmrow-atmos.css); this
+   file must not know about them and never selects on their classes.
+
+   THERE IS ALMOST NOTHING HERE ON PURPOSE. Everything that could be a CSS
+   number is a JS option instead, because the owner needs to dial the layer back
+   to nearly nothing from one place, live. What is left in this file is the
+   handful of declarations that are load-bearing for HOW THE LAYER COMPOSITES,
+   and each one is a trap if it is changed.
+
+   WHY .ksfg CARRIES NO z-index, NO opacity, NO transform, NO filter, NO
+   isolation AND NO contain
+   ------------------------------------------------------------------------
+   Four separate reasons, all of which have bitten this project before:
+
+   1. STACKING CONTEXT / BLEND. .ksfg__canvas is mix-blend-mode: screen. A
+      blended element blends against the backdrop of its nearest stacking-context
+      ANCESTOR. If .ksfg were a stacking context, the canvas would only see
+      .ksfg's own (empty, transparent) content and screen would degrade to
+      normal — the layer would still draw, just flat and wrong, with no error to
+      explain it. So the wrapper stays a plain positioned box and the canvas
+      blends against the real backdrop, which is the video.
+   2. PAINT ORDER WITHOUT A z-index. The wrapper is position: absolute with
+      z-index auto, and it is appended AFTER the <video> in the figure. In CSS
+      2.1 painting order a positioned descendant with z-index auto paints in
+      step 8, above in-flow non-positioned content (steps 4–6). So it lands over
+      the film for free. That matters because the site's sky is a fixed canvas
+      at z-index -1 (see the header of js/clouds-sky.js) and every positive
+      z-index added anywhere is one more thing that can punch through a layer
+      order nobody re-derives.
+   3. CLIPPING. The whole point of the layer is that material crosses the
+      boundary, so nothing in the chain may clip: no overflow, no contain: paint,
+      no clip-path. .ksfg deliberately sits OUTSIDE the media box's own bounds.
+   4. OPACITY. Master intensity is baked into the canvas paint alpha, not set as
+      CSS opacity on the wrapper — opacity below 1 creates a stacking context and
+      would break (1).
+
+   .ksfg-host is added to the .ksd-filmrow__media the layer is attached to, and
+   only sets position: relative — which gives the absolutely positioned wrapper
+   something to hang off WITHOUT changing the media element's layout box and
+   WITHOUT making it a stacking context (position: relative at z-index auto is
+   not one). If the host already had a position other than static the module
+   leaves it alone and does not add the class.
+
+   REDUCED MOTION is handled in JS, not here: the module stops its rAF and paints
+   one still frame with the parallax frozen mid-travel. There is no CSS animation
+   or transition in this file, so there is nothing for a media query to switch
+   off — a @media block here would be decoration on an empty room. */
+
+/* Anchor only. Nothing else — see note 4 above about what must not go on it. */
+.ksfg-host { position: relative; }
+
+.ksfg {
+  position: absolute;
+  pointer-events: none;
+  /* left/top/width/height are written inline by the module after it measures
+     the media box and clamps the spill against the viewport. They are not here
+     because they are geometry, not style, and they change on every resize. */
+}
+
+.ksfg__canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+
+  /* SCREEN, AND THE CHOICE IS THE WHOLE DEFENCE AGAINST "DIRT ON THE SCREEN".
+     screen can only ever lighten. Dust that darkens the frame reads as grime on
+     the glass; the same dust as faint added light reads as atmosphere in front
+     of the lens. It also means the layer self-hides over the bright parts of the
+     footage and shows most over the dark parts and the sky, which is exactly
+     where a hard rectangle edge is visible in the first place.
+     Overridable to normal / plus-lighter via the `blend` option for the cases
+     where a browser mis-composites video into a blend group. */
+  mix-blend-mode: screen;
+}
+
+.ksfg[data-ksfg-blend="normal"] .ksfg__canvas { mix-blend-mode: normal; }
+.ksfg[data-ksfg-blend="plus-lighter"] .ksfg__canvas { mix-blend-mode: plus-lighter; }

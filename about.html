@@ -374,6 +374,10 @@
   </div>
 </footer>
 
+<!-- FIRST: defines window.KSTunePanel, the shared /?tune shell every tuner on
+     the page registers a tab into. Loaded before any of them, or they find no
+     shell and silently render no controls. -->
+<script src="js/tune-panel.js"></script>
 <script src="js/nav.js"></script>
 <script src="js/scroll-weight.js"></script>
 <!-- spine-bg.js also carries the kick detector and the /?tune panel. Both are

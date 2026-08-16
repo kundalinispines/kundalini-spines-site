@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<!-- FILM-ROW ATMOSPHERE LAB — the two scrubbed clips judged against the real
+     sky, with each of the three atmosphere layers switchable on its own.
+
+     page-home on <html> is deliberate and load-bearing: it selects the same
+     background block index.html uses, so css/star-bg.css paints the real
+     nebula through html::before / html::after and js/clouds-sky.js lays the
+     real cloud field over it at z-index -1.  The whole point of the feather is
+     what it dissolves INTO, and judging it on flat black would answer the wrong
+     question.  IT BELONGS ON <html>, NOT ON <body> — a pseudo-element of html
+     resolves its variables from html and can never see a value set on body.
+
+     Nothing on this page writes to index.html.  css/filmrow-atmos.css is linked
+     by this file alone until someone ships it (the exact edit is at the foot of
+     that stylesheet).
+
+     THE FOREGROUND LAYER IS NOT MINE.  js/filmrow-atmos-fg.js and
+     css/filmrow-atmos-fg.css are a separate module being built alongside this
+     one; they are loaded optionally below and the third toggle drives its
+     documented mount point, window.KSFilmrowFG.attach(mediaEl, options).  If
+     the files are not on disk this page still works and the toggle says so.
+
+     BODY MUST NEVER GET A z-index, A transform OR AN isolation.  Both the
+     cloud field and the glow layer are negative-z-index children that escape
+     to the root stacking context; any one of those on body traps them behind
+     the page background with no error to explain it. -->
+<html lang="en" class="page-home">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Film-row atmosphere lab — Kundalini Spines</title>
+<meta name="robots" content="noindex">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/star-bg.css">
+<link rel="stylesheet" href="css/components.css">
+<link rel="stylesheet" href="css/spine-doc.css">
+<link rel="stylesheet" href="css/filmrow-atmos.css">
+<!-- The other agent's module. Absent on disk this 404s and changes nothing;
+     the browser treats a missing stylesheet as an empty one. -->
+<link rel="stylesheet" href="css/filmrow-atmos-fg.css">
+
+<style>
+  /* Lab chrome only. Nothing in this block describes the effect — everything
+     that would ship lives in css/filmrow-atmos.css. */
+  #panel { position: fixed; top: 12px; right: 12px; z-index: 60; width: 286px;
+    max-height: calc(100vh - 24px); overflow: auto;
+    background: rgba(4,6,14,.93); border: 1px solid #2E2E2E; border-radius: 4px;
+    padding: 10px 12px; font: 11px/1.4 "IBM Plex Mono", monospace; color: #D6D5D0; }
+  #panel h2 { font-size: 11px; letter-spacing: .14em; margin: 0 0 8px;
+    text-transform: uppercase; color: var(--color-white);
+    display: flex; align-items: center; gap: 8px; }
+  #panel h2 button { margin-left: auto; flex: none; width: 22px; padding: 1px 0; }
+
+  /* THE PANEL SITS OVER THE RIGHT-HAND COLUMN, WHICH IS WHERE THE VIDEO IS.
+     At 1440px the film row's media box runs x 703-1353 and the panel starts at
+     1142, so a third of the clip — including the right edge the feather is
+     supposed to be dissolving — is behind the controls.  Narrowing the column
+     to dodge it would be worse: it would stop being the real layout.  So the
+     panel collapses to its title bar instead, and `h` takes it off screen
+     entirely.  Both are needed: collapsed still covers the top-right corner. */
+  #panel.is-collapsed > :not(h2) { display: none; }
+  #panel.is-collapsed { width: 190px; }
+  body.lab-nopanel #panel { display: none; }
+  #panel-hint { position: fixed; bottom: 10px; right: 12px; z-index: 60;
+    font: 10px/1 "IBM Plex Mono", monospace; color: #4A5560;
+    letter-spacing: .1em; text-transform: uppercase; pointer-events: none; }
+  #panel h3 { font-size: 10px; letter-spacing: .12em; margin: 12px 0 4px;
+    text-transform: uppercase; color: #9DB2C0; border-top: 1px solid #23262E;
+    padding-top: 8px; }
+  #panel label { display: flex; align-items: center; gap: 6px; margin: 3px 0; }
+  #panel label span.n { width: 84px; flex: none; color: #9DB2C0; }
+  #panel input[type=range] { flex: 1; min-width: 0; accent-color: #9DB2C0; }
+  #panel output { width: 46px; flex: none; text-align: right; color: #E4E8EB; }
+  #panel .tog { display: flex; align-items: center; gap: 8px; margin: 4px 0;
+    cursor: pointer; }
+  #panel .tog input { accent-color: #9DB2C0; }
+  #panel .tog b { font-weight: 500; color: #E4E8EB; }
+  #panel .tog em { font-style: normal; color: #78888F; margin-left: auto; }
+  #panel .row { display: flex; gap: 6px; margin-top: 10px; }
+  #panel button { flex: 1; background: #10131A; color: #D6D5D0;
+    border: 1px solid #2E2E2E; padding: 5px; font: inherit; cursor: pointer; }
+  #panel button:hover { border-color: #9DB2C0; }
+  #note { margin-top: 8px; color: #78888F; font-size: 10px; line-height: 1.55;
+    white-space: pre-wrap; }
+  #note b { color: #9DB2C0; font-weight: 500; }
+
+  /* The lab overrides the baked mask with a live canvas so depth, softness and
+     seed can be dragged. The canvas runs the same noise as
+     scripts/make-filmrow-mask.py; "Check parity" proves it. */
+  .lab-note { color: #78888F; font: 11px/1.5 "IBM Plex Mono", monospace;
+    letter-spacing: .04em; text-transform: uppercase; }
+
+  /* Scroll runway, so both rows can be driven all the way through focus and
+     the scrub can be exercised over its full 0.10-0.80 mapping. */
+  .lab-runway { height: 70vh; }
+</style>
+</head>
+<body>
+
+<main id="main">
+  <div class="ksd-doc">
+    <div class="ksd-doc__col">
+
+      <div class="lab-runway"></div>
+
+      <section class="ksd-section">
+        <div class="ksd-filmrow">
+          <div class="ksd-filmrow__copy">
+            <h2 class="ksd-head">Two Messengers. One Signal.</h2>
+            <p class="ksd-body">Kundalini Spines is a two-member creative and musical project moving between underground hip-hop, mysticism, symbolism, street experience, ancient knowledge, and speculative thought.</p>
+            <p class="ksd-body">The Messengers don&rsquo;t claim mastery over the Signal &mdash; they receive it, interpret it, and carry it forward.</p>
+            <p class="lab-note">Row 1 &middot; black-tide &middot; mask seed A</p>
+          </div>
+          <!-- Markup copied from index.html and left alone apart from the three
+               atmosphere hooks: has-fr-feather, has-fr-glow, data-fr-glow. The
+               video attributes are NOT to be changed — preload="auto" and the
+               absence of loop/autoplay are what the scrub depends on. -->
+          <figure class="ksd-filmrow__media has-fr-feather has-fr-glow"
+                  id="row-black-tide" data-fr-mask="1" data-fr-glow="black-tide">
+            <video muted playsinline preload="auto" aria-hidden="true"
+                   poster="assets/video/black-tide-poster.jpg">
+              <source src="assets/video/black-tide.webm" type="video/webm">
+              <source src="assets/video/black-tide.mp4" type="video/mp4">
+            </video>
+          </figure>
+        </div>
+      </section>
+
+      <section class="ksd-section">
+        <div class="ksd-filmrow">
+          <div class="ksd-filmrow__copy">
+            <h2 class="ksd-head">Tune to a Frequency</h2>
+            <p class="ksd-body">Every signal the Messengers put out &mdash; posts, clips, releases and filed pieces &mdash; arrives here, timestamped and numbered. Select a channel to isolate it, or take the whole band.</p>
+            <p class="lab-note">Row 2 &middot; spine-frequency &middot; mask seed B</p>
+          </div>
+          <figure class="ksd-filmrow__media has-fr-feather has-fr-glow"
+                  id="row-spine-frequency" data-fr-mask="2" data-fr-glow="spine-frequency">
+            <video muted playsinline preload="auto" aria-hidden="true"
+                   poster="assets/video/spine-frequency-poster.jpg">
+              <source src="assets/video/spine-frequency.webm" type="video/webm">
+              <source src="assets/video/spine-frequency.mp4" type="video/mp4">
+            </video>
+          </figure>
+        </div>
+      </section>
+
+      <div class="lab-runway"></div>
+
+    </div>
+  </div>
+</main>
+
+<div id="panel">
+  <h2>Film-row atmosphere <button type="button" id="collapse" title="Collapse to the title bar. Press h to hide the panel entirely.">&ndash;</button></h2>
+
+  <label class="tog"><input type="checkbox" id="t-feather" checked><b>1 &middot; Feather</b><em>mask</em></label>
+  <label class="tog"><input type="checkbox" id="t-glow" checked><b>2 &middot; Glow</b><em>gradients</em></label>
+  <label class="tog"><input type="checkbox" id="t-fg"><b>3 &middot; Foreground</b><em id="fg-state">&mdash;</em></label>
+
+  <h3>Feather</h3>
+  <div id="feather-controls"></div>
+
+  <h3>Glow</h3>
+  <div id="glow-controls"></div>
+
+  <div class="row">
+    <button id="reset">Reset</button>
+    <button id="copy">Copy values</button>
+  </div>
+  <div class="row">
+    <button id="parity">Check parity vs baked PNG</button>
+  </div>
+  <p id="note"></p>
+</div>
+<p id="panel-hint">h &middot; hide panel</p>
+
+<script src="js/clouds.js"></script>
+<script src="js/clouds-sky.js"></script>
+<!-- The other agent's module, loaded defensively. A 404 here leaves
+     window.KSFilmrowFG undefined and the toggle below reports it. -->
+<script src="js/filmrow-atmos-fg.js"></script>
+
+<script>
+/* ==========================================================================
+   THE SCRUB — a verbatim copy of scrubToScroll from js/spine-doc.js.
+
+   js/spine-doc.js is NOT loaded on this page: it builds the rail, and it
+   returns early without one anyway.  But the whole risk of these two
+   atmosphere layers is that they cost the scrub something, so the scrub has to
+   be here to be judged.  This is a copy, not a fork — js/spine-doc.js owns the
+   mechanism, and if the mapping is ever retuned there it should be re-copied
+   here rather than diverged.
+
+   Note what it does NOT do, because that is the constraint the atmosphere
+   layers work under: it binds one listener to the video (loadedmetadata) and
+   the rest to window, and it never touches the element's box.
+   ========================================================================== */
+function scrubToScroll(v) {
+  let target = 0, shown = 0, raf = 0;
+  const tick = function () {
+    raf = 0;
+    shown += (target - shown) * 0.3;
+    if (!v.seeking && v.duration && Math.abs(v.currentTime - shown) > 1 / 48) {
+      v.currentTime = shown;
+    }
+    if (Math.abs(target - shown) > 0.005) raf = requestAnimationFrame(tick);
+  };
+  const onScrub = function () {
+    if (!v.duration) return;
+    const r = v.getBoundingClientRect();
+    const p = Math.min(1, Math.max(0,
+      (window.innerHeight - r.top) / (window.innerHeight + r.height)));
+    const p2 = Math.min(1, Math.max(0, (p - 0.10) / 0.70));
+    target = p2 * (v.duration - 0.05);
+    if (!raf) raf = requestAnimationFrame(tick);
+  };
+  v.addEventListener('loadedmetadata', onScrub);
+  window.addEventListener('scroll', onScrub, { passive: true });
+  window.addEventListener('resize', onScrub);
+  onScrub();
+}
+
+(function () {
+  'use strict';
+
+  var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var rows = [
+    { el: document.getElementById('row-black-tide'), seedOffset: 0 },
+    { el: document.getElementById('row-spine-frequency'), seedOffset: 1 }
+  ];
+
+  if (!reduced) {
+    rows.forEach(function (r) { scrubToScroll(r.el.querySelector('video')); });
+  }
+
+  /* ======================================================================
+     THE NOISE — a transcription of scripts/make-filmrow-mask.py, not a port.
+
+     The lab regenerates the mask live so depth, softness and seed can be
+     dragged; the Python script is what actually bakes what ships.  Two
+     implementations of one algorithm is a standing invitation to drift, so
+     they are held together by the "Check parity" button, which generates here
+     at the bake's own 768x640 and diffs against assets/atmos/filmrow-mask-01.png
+     pixel by pixel.  MEASURED 2026-08-16 IN CHROME: max per-pixel difference 0
+     of 255 over all 491,520 pixels.
+
+     It agrees bit for bit because every step is chosen to: the hash is uint32
+     integer arithmetic (Math.imul is exactly numpy's wrapping uint32 multiply),
+     the divide is by 2**32 which is exact in float64 on both sides, and the
+     interpolation is written in the same operation order in both files.  Change
+     the maths in one and you must change it in the other and re-run parity.
+     ====================================================================== */
+  var NOISE_SIGMAS = 2.2;   // must match the constant in the Python
+  var WOBBLE = 1.35;
+  var REACH = 1.8;
+
+  function hash01(ix, iy, seed) {
+    var h = (Math.imul(ix, 374761393) + Math.imul(iy, 668265263) + seed) >>> 0;
+    h = (h ^ (h >>> 13)) >>> 0;
+    h = Math.imul(h, 1274126177) >>> 0;
+    h = (h ^ (h >>> 16)) >>> 0;
+    return h / 4294967296;
+  }
+
+  /* fbm over the whole field, OCTAVE-MAJOR WITH A CACHED LATTICE ROW PAIR.
+
+     base 3.0 / 5 octaves / gain 0.5 / lacunarity 2 — see the Python's fbm()
+     docstring for why three cells across the height is the number that decides
+     cloud versus fur.
+
+     The direct transcription — hash the four lattice corners per pixel per
+     octave — is 20 hash calls per pixel and measured 616ms for two 512x427
+     masks in Chrome, which is not a slider, it is a wait.  But within one pixel
+     ROW and one octave, y0 is constant and x0 only advances every height/freq
+     pixels: the top octave at freq 48 touches 59 distinct lattice columns
+     across 768 pixels, not 768.  Hoisting the two lattice rows out and
+     interpolating from them drops the hash count for a 768x640 five-octave
+     field from ~9.8M to ~14k.
+
+     THE ARITHMETIC IS UNCHANGED, which is the whole point — parity with the
+     Python bake is what makes this lab worth looking at.  Same hash, same
+     smoothstep, same interpolation order, and the octaves still accumulate
+     0..4 into each pixel before the divide, so every float64 operation happens
+     in the same sequence it does in numpy.  Verified by "Check parity": max
+     per-pixel difference 0 of 255 across all 491,520 pixels, before and after
+     this rewrite. */
+  function fbmField(width, height, seed, out) {
+    var n = width * height, i, x, y, k;
+    var u = new Float64Array(width);
+    for (x = 0; x < width; x++) u[x] = x / height;
+    out.fill(0);
+    var amp = 1, norm = 0, freq = 3.0;
+    for (var o = 0; o < 5; o++) {
+      // The seed is folded the same way as the Python's: (seed + o*101)
+      // multiplied by the third constant, reduced mod 2**32, then ADDED into
+      // the lattice hash.
+      var s = Math.imul((seed + o * 101) >>> 0, 1274126177) >>> 0;
+      var kmax = Math.floor(u[width - 1] * freq) + 1;
+      var A = new Float64Array(kmax + 1), B = new Float64Array(kmax + 1);
+      var prevY0 = -1;
+      i = 0;
+      for (y = 0; y < height; y++) {
+        var yy = (y / height) * freq;
+        var y0 = Math.floor(yy);
+        var fy = yy - y0;
+        var sy = fy * fy * (3 - 2 * fy);
+        if (y0 !== prevY0) {
+          var iy0 = y0 >>> 0, iy1 = (y0 + 1) >>> 0;
+          for (k = 0; k <= kmax; k++) { A[k] = hash01(k, iy0, s); B[k] = hash01(k, iy1, s); }
+          prevY0 = y0;
+        }
+        for (x = 0; x < width; x++, i++) {
+          var xx = u[x] * freq;
+          var x0 = Math.floor(xx);
+          var fx = xx - x0;
+          var sx = fx * fx * (3 - 2 * fx);
+          var n00 = A[x0], n10 = A[x0 + 1], n01 = B[x0], n11 = B[x0 + 1];
+          var a = n00 + (n10 - n00) * sx;
+          var b = n01 + (n11 - n01) * sx;
+          out[i] += amp * (a + (b - a) * sy);
+        }
+      }
+      norm += amp;
+      amp *= 0.5;
+      freq *= 2.0;
+    }
+    for (i = 0; i < n; i++) out[i] /= norm;
+  }
+
+  /* Returns a Uint8ClampedArray of width*height alpha values. Two passes over
+     the field, because the noise has to be standardised against its own mean
+     and spread inside the band before it can be used — see the long note in
+     the Python. */
+  function buildMask(width, height, depth, softness, seed) {
+    var n = width * height;
+    var f = new Float64Array(n);
+    var e = new Float64Array(n);
+    var bandPx = depth * height;
+    var i = 0, x, y, count = 0;
+
+    /* Kahan-compensated, and TWO PASSES for the variance, because this is the
+       one place where "close enough" costs the parity check its meaning.
+       numpy sums pairwise (error ~ log2(n) eps) where a naive JS loop over
+       200k terms accumulates ~ n eps — about 1e-11 on the mean here. That
+       propagates through the standardisation to roughly 1e-8 of a 0-255 alpha
+       step, which is under the rounding boundary for all but a handful of
+       pixels out of half a million: enough to make the diff report a stray 1
+       and leave the next session wondering which side is wrong. Compensated
+       summation costs one add per pixel and removes the question. */
+    var sum = 0, c = 0, tt, yy;
+    fbmField(width, height, seed, f);
+    for (y = 0; y < height; y++) {
+      var dyv = Math.min(y + 0.5, height - 0.5 - y);
+      for (x = 0; x < width; x++, i++) {
+        var dxv = Math.min(x + 0.5, width - 0.5 - x);
+        var ev = Math.min(dxv, dyv) / bandPx;
+        e[i] = ev;
+        if (ev < REACH) {
+          yy = f[i] - c; tt = sum + yy; c = (tt - sum) - yy; sum = tt;
+          count++;
+        }
+      }
+    }
+    var mean = sum / count;
+    var vs = 0; c = 0;
+    for (i = 0; i < n; i++) {
+      if (e[i] < REACH) {
+        var dv = f[i] - mean;
+        yy = dv * dv - c; tt = vs + yy; c = (tt - vs) - yy; vs = tt;
+      }
+    }
+    // Population standard deviation — numpy's .std() default is ddof=0.
+    var sd = Math.sqrt(vs / count) || 1e-6;
+
+    var out = new Uint8ClampedArray(n);
+    var gamma = 0.55 + 2.20 * softness;
+    for (i = 0; i < n; i++) {
+      var nn = (f[i] - mean) / (NOISE_SIGMAS * sd);
+      if (nn > 1) nn = 1; else if (nn < -1) nn = -1;
+      var ec = e[i] / REACH;
+      if (ec > 1) ec = 1; else if (ec < 0) ec = 0;
+      var taper = 1 - (ec * ec * (3 - 2 * ec));
+      var eff = e[i] * (1 + WOBBLE * nn * taper);
+      var t = eff > 1 ? 1 : (eff < 0 ? 0 : eff);
+      t = t * t * (3 - 2 * t);
+      out[i] = Math.round(Math.pow(t, gamma) * 255);
+    }
+    return out;
+  }
+
+  /* The alpha values go into a canvas as an LA-equivalent RGBA image — value in
+     both the colour and the alpha channel, exactly like the baked LA PNG, so
+     the mask is right whether the browser resolves mask-mode to alpha or
+     luminance. */
+  /* A FRESH CANVAS PER CALL, not one shared module-level canvas. toBlob is
+     asynchronous and reads the canvas when it gets round to it, so with the
+     two rows regenerated back to back a shared canvas hands both callbacks the
+     SECOND row's mask — intermittently, and only on a slow frame. */
+  function maskToBlobURL(alpha, width, height, cb) {
+    var cv = document.createElement('canvas');
+    cv.width = width; cv.height = height;
+    var cx = cv.getContext('2d');
+    var img = cx.createImageData(width, height);
+    var d = img.data;
+    for (var i = 0, j = 0; i < alpha.length; i++, j += 4) {
+      // Value in the colour channels AND the alpha channel, matching the baked
+      // LA PNG, so the mask is right under mask-mode alpha or luminance.
+      d[j] = d[j + 1] = d[j + 2] = alpha[i];
+      d[j + 3] = alpha[i];
+    }
+    cx.putImageData(img, 0, 0);
+    cv.toBlob(function (b) { cb(URL.createObjectURL(b)); }, 'image/png');
+  }
+
+  /* THE LAB GENERATES AT THE BAKE'S OWN 768x640.
+
+     It did not, at first.  With the naive per-pixel hash a regenerate of both
+     rows cost 616ms at 512x427 and 2395ms at 768x640, so the lab ran at 512 and
+     carried a note explaining that resolution only changes the sampling.  The
+     lattice-row cache in fbmField ended that argument by making it moot —
+     measured in Chrome on this machine, both rows regenerated:
+
+         naive per-pixel hash     512x427  616ms     768x640  2395ms
+         lattice-row cache        512x427   60ms     768x640    62ms
+
+     — the cache is ~10x at 512 and ~39x at 768, and at 768 it is now within
+     2ms of the smaller size because the cost has moved off the hashing
+     entirely.  Generating at the bake's exact size removes the last difference
+     between what is on screen and what will ship, and it is the size the
+     parity check has to run at anyway, since that is the file it is diffing. */
+  var LAB_W = 768, LAB_H = 640;
+
+  var STATE_DEFAULTS = {
+    feather: true, glow: true, fg: false,
+    depth: 0.11, softness: 0.50, seed: 1,
+    /* glowBase is in TUNING MULTIPLES here, not in the CSS's units. The
+       stylesheet draws every gradient at twice its tuned alpha and halves the
+       layer back with --fr-glow-base: 0.5, so 1.00x on this slider is 0.5 in
+       the CSS. The panel shows the multiple because that is what the owner is
+       judging; applyGlow does the halving. */
+    glowGrow: 0.20, glowBase: 1.00, glowResp: 0.35
+  };
+  var state = {};
+  for (var k in STATE_DEFAULTS) state[k] = STATE_DEFAULTS[k];
+
+  var note = document.getElementById('note');
+  var lastURLs = [];
+
+  function regenerate() {
+    var t0 = performance.now();
+    // Revoke the PREVIOUS urls only once the new ones are on the elements.
+    // Revoking up front leaves a window in which the mask a row is still
+    // painting from has been torn down, and the row flashes unmasked.
+    var stale = lastURLs;
+    lastURLs = [];
+    var pending = rows.length;
+    rows.forEach(function (r) {
+      // seedOffset, so the two rows are never the same silhouette — the same
+      // reason the bake ships three seeds.
+      var a = buildMask(LAB_W, LAB_H, state.depth, state.softness,
+                        state.seed + r.seedOffset);
+      maskToBlobURL(a, LAB_W, LAB_H, function (url) {
+        lastURLs.push(url);
+        r.el.style.setProperty('--fr-mask', 'url("' + url + '")');
+        if (--pending === 0) {
+          stale.forEach(function (u) { URL.revokeObjectURL(u); });
+          status('mask ' + LAB_W + 'x' + LAB_H + ' x2 in ' +
+                 Math.round(performance.now() - t0) + 'ms');
+          window.__filmrowMaskReady = (window.__filmrowMaskReady || 0) + 1;
+        }
+      });
+    });
+  }
+
+  function applyGlow() {
+    rows.forEach(function (r) {
+      r.el.style.setProperty('--fr-glow-grow', state.glowGrow);
+      r.el.style.setProperty('--fr-glow-base', state.glowBase * 0.5);
+      /* UNDER REDUCED MOTION THE SLIDER MUST NOT WRITE THIS. An inline style
+         beats a stylesheet rule, so writing it here overrode the
+         `@media (prefers-reduced-motion: reduce) { --fr-glow-resp: 0 }` in
+         css/filmrow-atmos.css and the lab reported 0.35 where the shipped page
+         would have 0 — a lab quietly disagreeing with production, found by
+         reading the computed value in a reduced-motion context rather than by
+         looking at it. Leaving the property unwritten lets the media query
+         own it, which is the shipped behaviour. */
+      if (!reduced) r.el.style.setProperty('--fr-glow-resp', state.glowResp);
+    });
+  }
+
+  function applyToggles() {
+    rows.forEach(function (r) {
+      r.el.classList.toggle('has-fr-feather', state.feather);
+      r.el.classList.toggle('has-fr-glow', state.glow);
+    });
+  }
+
+  /* ----------------------------------------------------------------------
+     LAYER 3 — the other agent's module, at its documented mount point.
+     window.KSFilmrowFG.attach(mediaEl, options) -> { setOptions, destroy }.
+     Guarded on every access: this page must keep working with the two files
+     absent, which is how it was built and how it was tested.
+     ---------------------------------------------------------------------- */
+  var fgHandles = [];
+  function applyFG() {
+    var t = document.getElementById('t-fg');
+    var lbl = document.getElementById('fg-state');
+    if (!window.KSFilmrowFG || typeof window.KSFilmrowFG.attach !== 'function') {
+      t.checked = false; t.disabled = true;
+      lbl.textContent = 'module absent';
+      return;
+    }
+    t.disabled = false;
+    if (state.fg && !fgHandles.length) {
+      fgHandles = rows.map(function (r) {
+        return window.KSFilmrowFG.attach(r.el, {});
+      }).filter(Boolean);
+      /* The module publishes a read-only copy of its tuned defaults so a lab
+         can label itself off the module rather than off a hardcoded guess that
+         goes stale the first time the other side retunes. Count them rather
+         than naming them — this page owns no opinion about what they are. */
+      var d = window.KSFilmrowFG.defaults;
+      lbl.textContent = 'attached x' + fgHandles.length +
+        (d ? ' · ' + Object.keys(d).length + ' opts' : '');
+    } else if (!state.fg && fgHandles.length) {
+      fgHandles.forEach(function (h) { h && h.destroy && h.destroy(); });
+      fgHandles = [];
+      lbl.textContent = 'detached';
+    } else if (!fgHandles.length) {
+      lbl.textContent = 'ready';
+    }
+  }
+
+  /* ----------------------------------------------------------------------
+     focusPass — the glow's scroll response, and the ONLY script the shipped
+     effect wants.  Copy this block into index.html to take it (see the foot of
+     css/filmrow-atmos.css).
+
+     focus is 1 when the figure's centre sits on the viewport's centre and
+     falls to 0 as it leaves, measured off the FIGURE and never off the video:
+     the video is the scrub's element and nothing here goes near it.  One
+     passive scroll listener, coalesced into one rAF, writing one custom
+     property — no layout is invalidated, because --fr-focus only feeds a
+     colour.
+
+     Reduced motion opts out entirely and css/filmrow-atmos.css pins
+     --fr-glow-resp to 0 in the same media query, so the field holds full
+     brightness rather than dimming to something the visitor cannot explain.
+     ---------------------------------------------------------------------- */
+  var focusRAF = 0;
+  function focusPass() {
+    focusRAF = 0;
+    var vh = window.innerHeight;
+    rows.forEach(function (r) {
+      var b = r.el.getBoundingClientRect();
+      var d = Math.abs((b.top + b.height / 2) - vh / 2);
+      var f = 1 - Math.min(1, d / (vh / 2 + b.height / 2));
+      r.el.style.setProperty('--fr-focus', f.toFixed(3));
+    });
+  }
+  function queueFocus() { if (!focusRAF) focusRAF = requestAnimationFrame(focusPass); }
+  if (!reduced) {
+    window.addEventListener('scroll', queueFocus, { passive: true });
+    window.addEventListener('resize', queueFocus);
+    focusPass();
+  }
+
+  /* ---------------------------------------------------------------------- */
+
+  var FEATHER_FIELDS = [
+    { k: 'depth', label: 'depth', min: 0.08, max: 0.15, step: 0.005, bake: true,
+      fmt: function (x) { return (x * 100).toFixed(1) + '%'; },
+      tip: 'Feather band as a fraction of the clip’s SHORT side. The owner’s range is 8-15%. The erosion can walk to 1.8x this, so the crisp core is 1 - 2*1.8*depth of the height.' },
+    { k: 'softness', label: 'softness', min: 0, max: 1, step: 0.05, bake: true,
+      fmt: function (x) { return x.toFixed(2); },
+      tip: '0 = a torn near-hard edge (gamma 0.55), 1 = a long faint tail (gamma 2.75). Nothing visible changes outside those ends.' },
+    { k: 'seed', label: 'seed', min: 1, max: 12, step: 1, bake: true,
+      fmt: function (x) { return 'A' + x + ' / B' + (x + 1); },
+      tip: 'Mask variant. Row 1 takes this seed, row 2 takes the next one, so the two silhouettes are never the same. Seeds 1, 2 and 3 are the ones already baked to assets/atmos.' }
+  ];
+
+  var GLOW_FIELDS = [
+    { k: 'glowGrow', label: 'size', min: 0.15, max: 0.25, step: 0.01,
+      fmt: function (x) { return '+' + Math.round(x * 100) + '%'; },
+      tip: 'How much bigger the glow field is than the clip. It scales the LOBES — the ::before box is fixed at 2.8x the clip so no lobe is ever clipped by it. See the box note in css/filmrow-atmos.css.' },
+    { k: 'glowBase', label: 'intensity', min: 0, max: 2, step: 0.05,
+      fmt: function (x) { return x.toFixed(2) + 'x'; },
+      tip: 'Master dimmer, in multiples of the measured tuning. 1.00x is the tuning (CSS --fr-glow-base 0.5); lobe peaks run 5-13% alpha there. It drives the layer’s opacity, not the gradient alphas, so moving it costs no repaint.' },
+    { k: 'glowResp', label: 'scroll resp', min: 0, max: 1, step: 0.05,
+      fmt: function (x) { return (x * 100).toFixed(0) + '%'; },
+      tip: 'How much of the intensity the scroll owns. 0.35 means the field sits at 65% away from focus and reaches 100% when the row is centred. It is a fraction OF the base, so the field never goes dark.' }
+  ];
+
+  function buildControls(host, fields) {
+    fields.forEach(function (f) {
+      var label = document.createElement('label');
+      label.title = f.tip;
+      var name = document.createElement('span');
+      name.className = 'n';
+      name.textContent = f.label;
+      var input = document.createElement('input');
+      input.type = 'range';
+      input.min = f.min; input.max = f.max; input.step = f.step;
+      input.value = state[f.k];
+      var out = document.createElement('output');
+      out.textContent = f.fmt(state[f.k]);
+      f.input = input; f.out = out;
+      input.addEventListener('input', function () {
+        state[f.k] = parseFloat(input.value);
+        out.textContent = f.fmt(state[f.k]);
+        if (f.bake) queueRegen(); else applyGlow();
+      });
+      label.appendChild(name); label.appendChild(input); label.appendChild(out);
+      host.appendChild(label);
+    });
+  }
+
+  /* One trailing regenerate per animation frame. Without the coalesce a drag
+     across the depth slider queues a 118ms rebuild per input event and the
+     panel stops responding — the events arrive far faster than the mask can be
+     built, and every one of them is stale by the time it lands. */
+  var regenRAF = 0;
+  function queueRegen() {
+    if (regenRAF) return;
+    regenRAF = requestAnimationFrame(function () { regenRAF = 0; regenerate(); });
+  }
+
+  buildControls(document.getElementById('feather-controls'), FEATHER_FIELDS);
+  buildControls(document.getElementById('glow-controls'), GLOW_FIELDS);
+
+  /* Reduced motion takes the scroll response away entirely — the stylesheet
+     pins --fr-glow-resp to 0 and nothing here writes it. Say so on the control
+     rather than leaving a slider that moves and does nothing. */
+  if (reduced) {
+    GLOW_FIELDS.forEach(function (f) {
+      if (f.k !== 'glowResp') return;
+      f.input.disabled = true;
+      f.out.textContent = 'off';
+      f.input.parentNode.title = 'prefers-reduced-motion is on: the scroll ' +
+        'response is pinned off by css/filmrow-atmos.css and the field holds ' +
+        'full intensity.';
+    });
+  }
+
+  [['t-feather', 'feather'], ['t-glow', 'glow'], ['t-fg', 'fg']].forEach(function (p) {
+    var el = document.getElementById(p[0]);
+    el.checked = state[p[1]];
+    el.addEventListener('change', function () {
+      state[p[1]] = el.checked;
+      if (p[1] === 'fg') applyFG(); else applyToggles();
+    });
+  });
+
+  function status(extra) {
+    var fgTxt = window.KSFilmrowFG ? 'KSFilmrowFG present' : 'KSFilmrowFG absent';
+    var sky = window.__cloudSky ? 'cloud sky up' : 'cloud sky DOWN (WebGL2?)';
+    note.innerHTML = '<b>' + fgTxt + '</b> · ' + sky +
+      (extra ? '\n' + extra : '');
+  }
+
+  document.getElementById('reset').addEventListener('click', function () {
+    for (var key in STATE_DEFAULTS) state[key] = STATE_DEFAULTS[key];
+    FEATHER_FIELDS.concat(GLOW_FIELDS).forEach(function (f) {
+      f.input.value = state[f.k];
+      f.out.textContent = f.fmt(state[f.k]);
+    });
+    document.getElementById('t-feather').checked = state.feather;
+    document.getElementById('t-glow').checked = state.glow;
+    document.getElementById('t-fg').checked = state.fg;
+    applyToggles(); applyGlow(); applyFG(); regenerate();
+  });
+
+  /* COPY VALUES — the clouds-lab.html idiom (write to the clipboard, echo into
+     the note so it is legible even when the clipboard is not available), but
+     emitting EDITS rather than an options object. clouds-lab copies a JSON blob
+     because js/clouds-sky.js has one OPTIONS literal to paste it into; this
+     effect lands in three different places, so what comes out is the bake
+     command, the CSS declarations, and the markup. */
+  document.getElementById('copy').addEventListener('click', function () {
+    var seedA = state.seed, seedB = state.seed + 1;
+    var text = [
+      '# 1. bake the two masks (writes assets/atmos/filmrow-mask-NN.png)',
+      'python scripts/make-filmrow-mask.py --seed ' + seedA +
+        ' --depth ' + state.depth.toFixed(3) + ' --softness ' + state.softness.toFixed(2),
+      'python scripts/make-filmrow-mask.py --seed ' + seedB +
+        ' --depth ' + state.depth.toFixed(3) + ' --softness ' + state.softness.toFixed(2),
+      '',
+      '/* 2. css/filmrow-atmos.css — replace the block on .ksd-filmrow__media */',
+      '.ksd-filmrow__media {',
+      '  --fr-mask: url("../assets/atmos/filmrow-mask-' +
+        ('0' + seedA).slice(-2) + '.png");',
+      '  --fr-glow-grow: ' + state.glowGrow.toFixed(2) + ';',
+      '  --fr-glow-scale: calc(0.5 + 2.5 * var(--fr-glow-grow));',
+      '  /* ' + state.glowBase.toFixed(2) + 'x the tuning; the gradients are drawn at 2x, so halve it */',
+      '  --fr-glow-base: ' + (state.glowBase * 0.5).toFixed(3) + ';',
+      '  --fr-glow-resp: ' + state.glowResp.toFixed(2) + ';',
+      '  --fr-focus: 0;',
+      '}',
+      '.ksd-filmrow__media[data-fr-mask="' + seedB + '"] { --fr-mask: url("../assets/atmos/filmrow-mask-' +
+        ('0' + seedB).slice(-2) + '.png"); }',
+      '',
+      '<!-- 3. index.html — the two figures -->',
+      '<figure class="ksd-filmrow__media' +
+        (state.feather ? ' has-fr-feather' : '') + (state.glow ? ' has-fr-glow' : '') +
+        '" data-fr-mask="' + seedA + '" data-fr-glow="black-tide">',
+      '<figure class="ksd-filmrow__media' +
+        (state.feather ? ' has-fr-feather' : '') + (state.glow ? ' has-fr-glow' : '') +
+        '" data-fr-mask="' + seedB + '" data-fr-glow="spine-frequency">',
+      '<link rel="stylesheet" href="css/filmrow-atmos.css">  <!-- in <head>, after spine-doc.css -->'
+    ].join('\n');
+    if (navigator.clipboard) navigator.clipboard.writeText(text);
+    note.textContent = text;
+    window.__filmrowCopy = text;
+  });
+
+  /* PARITY — generate here at the bake's own resolution and diff against the
+     shipped PNG. This is the only thing keeping the JS transcription honest. */
+  document.getElementById('parity').addEventListener('click', function () {
+    runParity(768, 640, 0.11, 0.50, 1, 'assets/atmos/filmrow-mask-01.png',
+      function (msg) { note.textContent = msg; });
+  });
+
+  function runParity(w, h, depth, softness, seed, url, done) {
+    var t0 = performance.now();
+    var mine = buildMask(w, h, depth, softness, seed);
+    var genMs = Math.round(performance.now() - t0);
+    var img = new Image();
+    img.onload = function () {
+      var c = document.createElement('canvas');
+      c.width = w; c.height = h;
+      var g = c.getContext('2d', { willReadFrequently: true });
+      g.clearRect(0, 0, w, h);
+      g.drawImage(img, 0, 0, w, h);
+      var px = g.getImageData(0, 0, w, h).data;
+      var maxDiff = 0, sum = 0, over1 = 0;
+      for (var i = 0, j = 3; i < mine.length; i++, j += 4) {
+        var d = Math.abs(mine[i] - px[j]);
+        if (d > maxDiff) maxDiff = d;
+        if (d > 1) over1++;
+        sum += d;
+      }
+      done('parity ' + w + 'x' + h + ' seed ' + seed +
+           '\n  max diff ' + maxDiff + '/255' +
+           '\n  mean diff ' + (sum / mine.length).toFixed(4) +
+           '\n  pixels off by >1: ' + over1 + ' of ' + mine.length +
+           '\n  JS generate ' + genMs + 'ms' +
+           '\n  ' + (maxDiff <= 1 ? 'MATCH — the lab is showing what will bake.'
+                                  : 'DRIFT — the transcription and the Python disagree.'));
+      window.__filmrowParity = { maxDiff: maxDiff, mean: sum / mine.length,
+                                 over1: over1, n: mine.length, genMs: genMs };
+    };
+    img.onerror = function () {
+      done('parity: could not load ' + url + ' — has the bake been run?');
+      window.__filmrowParity = { error: url };
+    };
+    img.src = url + '?cb=' + Date.now();
+  }
+
+  document.getElementById('collapse').addEventListener('click', function () {
+    document.getElementById('panel').classList.toggle('is-collapsed');
+  });
+  document.addEventListener('keydown', function (ev) {
+    if (ev.key === 'h' && !/^(INPUT|TEXTAREA)$/.test(document.activeElement.tagName)) {
+      document.body.classList.toggle('lab-nopanel');
+    }
+  });
+
+  applyToggles();
+  applyGlow();
+  applyFG();
+  regenerate();
+  status('');
+
+  // Handles for the Playwright checks.
+  window.__filmrowLab = {
+    state: state, rows: rows, regenerate: regenerate, buildMask: buildMask,
+    runParity: runParity, focusPass: focusPass,
+    set: function (k, v) {
+      state[k] = v;
+      FEATHER_FIELDS.concat(GLOW_FIELDS).forEach(function (f) {
+        if (f.k === k) { f.input.value = v; f.out.textContent = f.fmt(v); }
+      });
+      applyToggles(); applyGlow();
+      if (k === 'depth' || k === 'softness' || k === 'seed') regenerate();
+    }
+  };
+})();
+</script>
+</body>
+</html>

@@ -100,6 +100,69 @@
     color: [0.615686274509804, 0.6980392156862745, 0.7529411764705882]
   };
 
+  /* ==========================================================================
+     THE TUNING PATH
+
+     OPTIONS above stays the SHIPPED source of truth -- the literal the Copy
+     button prints and the only thing to edit when a value is settled. Nothing
+     below ever rewrites it, so reading this file still tells you what a
+     visitor gets.
+
+     Until Aug 16 2026 the only way to move these numbers was clouds-lab.html,
+     which renders the field over a mock stage with two paragraphs on it. That
+     is the wrong judge: the whole point of this layer is how it reads against
+     the real nebula, the hero, the rail and the film rows, and none of those
+     exist in the lab. The panel now also opens at /?tune on the real page --
+     the same gate js/spine-bg.js and js/site-footer.js use, so there is one
+     thing to remember rather than three. The lab stays: it is still the place
+     to explore wild values without the site around them.
+
+     Values dialled here persist for this browser, the same bargain the footer
+     torch makes: the cache-busting workflow reloads constantly, and a panel
+     that forgets on every reload cannot be used to judge anything. Reset puts
+     the file's values back, and the note line says so whenever the live field
+     is running on something other than what is committed. */
+  var STORE_KEY = 'ks.cloudSky';
+
+  /* tint 0..1 walks Archive Black -> Moonlight: one slider instead of a colour
+     picker. Same mapping as clouds-lab.html on purpose, so a value dialled in
+     either place means the same thing in the other. */
+  var TINT_A = [0x03 / 255, 0x04 / 255, 0x0F / 255];   /* --color-black */
+  var TINT_B = [0x9D / 255, 0xB2 / 255, 0xC0 / 255];   /* --color-moonlight */
+  function tintColor(t) {
+    return [TINT_A[0] + (TINT_B[0] - TINT_A[0]) * t,
+            TINT_A[1] + (TINT_B[1] - TINT_A[1]) * t,
+            TINT_A[2] + (TINT_B[2] - TINT_A[2]) * t];
+  }
+  /* Derived from the shipped colour instead of hard-coded to 1, so pasting a
+     different colour into OPTIONS still opens the slider in the right place.
+     Projected on the blue channel because it has the widest span of the three
+     (0.059 -> 0.753) and so loses the least precision. */
+  function tintOf(c) {
+    if (!c) return 1;
+    var t = (c[2] - TINT_A[2]) / (TINT_B[2] - TINT_A[2]);
+    return Math.max(0, Math.min(1, Math.round(t * 100) / 100));
+  }
+
+  var state = {};
+  for (var key in OPTIONS) if (key !== 'color') state[key] = OPTIONS[key];
+  state.tint = tintOf(OPTIONS.color);
+  var shipped = {};
+  for (var sk in state) shipped[sk] = state[sk];
+  try {
+    var saved = JSON.parse(localStorage.getItem(STORE_KEY) || 'null');
+    if (saved) for (var s in state) if (isFinite(saved[s])) state[s] = saved[s];
+  } catch (e) {}
+
+  /* What actually reaches the shader: every state key except tint, which is
+     resolved into the colour triplet the library wants. */
+  function liveOptions() {
+    var o = {};
+    for (var k in state) if (k !== 'tint') o[k] = state[k];
+    o.color = tintColor(state.tint);
+    return o;
+  }
+
   function build() {
     /* Fixed, not absolute: the sky does not scroll, so neither does this. It
        also keeps the canvas viewport-sized — an absolute wrapper would take the
@@ -154,7 +217,7 @@
       content: stage,
       output: out,
       pointerTarget: document
-    }, OPTIONS);
+    }, liveOptions());
 
     /* No WebGL2, or a lost context: take the layer back out rather than leave
        an empty canvas over the sky. The nebula underneath is the whole design
@@ -174,6 +237,147 @@
       return;
     }
     window.__cloudSky = instance;
+    tuner(instance);
+  }
+
+  /* ==========================================================================
+     THE TUNING PANEL — only ever runs at /?tune
+
+     Nothing below this line executes on a normal load: no panel, no stylesheet,
+     no rAF, no listeners. A visitor pays nothing for it.
+
+     It writes through instance.setOptions(), which is the same call the lab
+     makes and the same one the initial build uses, so the panel cannot flatter
+     itself with a preview the real code does not do.
+
+     IT DOES NOT OWN A BOX. This was briefly its own top-left panel, and that
+     immediately reproduced the problem every other tuner already had: it landed
+     on the footer torch's hide button, which no screenshot showed and only a
+     Playwright click interception caught. There is now one shared shell
+     (js/tune-panel.js) and this registers a tab in it, so there is no corner to
+     collide over and one hide button instead of four. Do not give this file a
+     fixed position, panel chrome, or a minimize button again.
+     ========================================================================== */
+  function tuner(instance) {
+    /* The shared shell owns the /?tune gate now: KSTunePanel.tab() returns null
+       off it, so there is ONE gate for four tuners instead of four copies of
+       the same read. The old local copy carried a note about never writing this
+       as a regex -- a generator once turned a word-boundary escape into a
+       literal backspace (0x08), giving a pattern that could never match and was
+       invisible in every diff and every grep. That note now lives in
+       js/tune-panel.js, the only place that reads the query string.
+
+       Fails soft if the shell is missing: a page that forgot the script tag
+       loses its controls, not its clouds. */
+    if (!window.KSTunePanel) return;
+    var P = window.KSTunePanel;
+    var body = P.tab('sky', 'Sky', 'the WebGL cloud field drifting over the nebula');
+    if (!body) return;
+
+    /* Ranges and tips are the owner's documented ones, carried over from
+       clouds-lab.html rather than re-invented -- two panels disagreeing about
+       what `density` means is worse than one panel. The lab's hard-won note
+       applies here too: `cover` must not go below 0, because js/clouds.js does
+       Math.max(cover, 0) before the shader sees it, so a negative slider would
+       read -0.1 while the field got 0. A control that lies about what it is
+       sending is worse than no control.
+
+       `g` groups a field into a collapsible section. Fourteen flat rows made
+       the tab a scroll; grouped, the three you are actually dialling fit on
+       screen at once. */
+    var FIELDS = [
+      { k: 'opacity', g: 'form', label: 'opacity', min: 0, max: 1, step: 0.01,
+        tip: 'Maximum opacity of the cloud layer. THIS is how you make the layer stronger, never shadow' },
+      { k: 'cover', g: 'form', label: 'cover', min: 0, max: 1, step: 0.01,
+        tip: 'Base cloud coverage added everywhere. At 0 the sky has genuinely empty patches; 0.10 leaves 19% bare, 0.20 leaves 10%' },
+      { k: 'density', g: 'form', label: 'density', min: 0, max: 16, step: 0.1,
+        tip: 'How sharply the shapes condense out of the noise field' },
+      { k: 'scale', g: 'form', label: 'scale', min: 0.3, max: 3, step: 0.05,
+        tip: 'Cloud pattern scale. LOWER values make BIGGER clouds' },
+      { k: 'tint', g: 'form', label: 'tint', min: 0, max: 1, step: 0.01,
+        tip: 'Cloud colour, Archive Black at 0 to Moonlight at 1. Ships at 1' },
+
+      { k: 'speed', g: 'motion', label: 'speed', min: 0, max: 5, step: 0.05,
+        tip: 'Drift speed. 0 freezes the sky -- freeze only to measure, never ship it' },
+      { k: 'wind', g: 'motion', label: 'wind', min: 0, max: 1, step: 0.01,
+        tip: 'How strongly the cursor parts the clouds. They drift shut after' },
+      { k: 'windRadius', g: 'motion', label: 'wind radius', min: 20, max: 900, step: 10,
+        tip: 'Radius of the cursor clearing, in CSS px' },
+
+      { k: 'shading', g: 'shade', label: 'shading', min: 0, max: 1, step: 0.01,
+        tip: 'Internal depth shading. On a dark ground it lifts highlights' },
+      { k: 'shadow', g: 'shade', label: 'shadow', min: 0, max: 1, step: 0.01,
+        tip: 'BLACK PAINT, not shade. The shadow term is alpha without colour on a premultiplied canvas, so it multiplies the nebula toward black. Ships at 0 and should stay there' },
+      { k: 'shadowOffsetX', g: 'shade', label: 'shadow x', min: -600, max: 600, step: 10,
+        tip: 'Horizontal shadow displacement in CSS px. Positive shifts right' },
+      { k: 'shadowOffsetY', g: 'shade', label: 'shadow y', min: -600, max: 600, step: 10,
+        tip: 'Vertical shadow displacement in CSS px. Positive shifts down' },
+      { k: 'shadowSoftness', g: 'shade', label: 'shadow soft', min: 0, max: 1, step: 0.01,
+        tip: 'How diffuse the shadow edges are' },
+
+      { k: 'quality', g: 'cost', label: 'quality', min: 0.2, max: 1, step: 0.05,
+        tip: 'Field resolution as a fraction of the viewport. Clouds are soft, so 0.2 measured visually identical to 1.0 for a fifth of the fragment work' }
+    ];
+
+    /* Form open by default because it is where a session starts; the rest
+       collapsed. The shell remembers each one after that. */
+    var GROUPS = [
+      ['form', 'Form', true],
+      ['motion', 'Motion', false],
+      ['shade', 'Shading', false],
+      ['cost', 'Cost', false]
+    ];
+
+    var paints = [];
+    GROUPS.forEach(function (g) {
+      var sec = P.section(body, 'sky-' + g[0], g[1], g[2]);
+      FIELDS.forEach(function (f) {
+        if (f.g !== g[0]) return;
+        paints.push(P.slider(sec, f,
+          function () { return state[f.k]; },
+          function (v) { state[f.k] = v; apply(); }));
+      });
+    });
+
+    var row = P.row(body);
+    P.button(row, 'Reset', function () {
+      for (var n in shipped) state[n] = shipped[n];
+      apply();
+    });
+    var copyBtn = P.button(row, 'Copy options', function () {
+      P.copy(copyBtn, note, copyText(), 'Copy options');
+    });
+    var note = P.note(body);
+
+    /* The exact edit, not the numbers alone -- a value without its home is a
+       note somebody has to decode later. Prints the whole OPTIONS literal ready
+       to replace the one at the top of this file. */
+    function copyText() {
+      var o = liveOptions();
+      var order = ['opacity', 'cover', 'density', 'scale', 'speed', 'shading',
+                   'shadow', 'shadowOffsetX', 'shadowOffsetY', 'shadowSoftness',
+                   'wind', 'windRadius', 'quality'];
+      var lines = order.map(function (n) { return '    ' + n + ': ' + o[n] + ','; });
+      lines.push('    color: [' + o.color.join(', ') + ']');
+      return 'js/clouds-sky.js  ->  var OPTIONS = {\n' + lines.join('\n') + '\n  };';
+    }
+
+    function apply() {
+      instance.setOptions(liveOptions());
+      paints.forEach(function (p) { p(); });
+      try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) {}
+      /* Say plainly when the field is running on something other than what is
+         committed. Persisted values are the right default for tuning, but they
+         also mean the owner can be looking at a sky no other machine shows --
+         and that has read as "the site changed" before. */
+      var off = [];
+      for (var n in shipped) if (state[n] !== shipped[n]) off.push(n);
+      note.innerHTML = off.length
+        ? 'live values differ from the file: <em>' + off.join(', ') + '</em> &middot; Reset restores'
+        : 'matches js/clouds-sky.js &middot; persisted &middot; /?tune only';
+    }
+
+    apply();
   }
 
   if (document.readyState === 'loading') {

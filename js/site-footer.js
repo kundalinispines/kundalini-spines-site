@@ -545,11 +545,6 @@
     torchApply = apply;
     window.addEventListener('resize', invalidate);
     window.addEventListener('scroll', invalidate, { passive: true });
-
-    /* Lab hook, mirroring window.__music / window.__spineLab / window.__cal.
-       Not used by the page; it is how the torch can be driven or inspected
-       from a console without the tuning panel being present. */
-    window.__sfTorch = torchCtl;
   })();
 
 
@@ -574,73 +569,96 @@
     }
   };
 
-  /* ==========================================================================
-     THE TUNING PANEL — only ever runs at /?tune
+  /* Lab hook, mirroring window.__music / window.__spineLab / window.__cal.
+     Not used by the page; it is how the torch can be driven or inspected from
+     a console without the tuning panel being present.
 
-     Same gate the spine tuner uses (js/spine-bg.js), so there is one thing to
-     remember rather than two. A visitor never sees it, never downloads a
-     stylesheet for it, and never pays a listener for it: nothing below this
-     line executes unless the query string asks for it.
+     PUBLISHED HERE, not inside torch(). It sat at the end of that closure,
+     which runs BEFORE this assignment -- so the hook it published was the
+     `torchCtl` of the moment, which is null. Measured Aug 16 2026 at
+     about.html: window.__sfTorch === null on a hover-capable desktop, i.e. the
+     hook had never worked. Module scope is also where the closure's own comment
+     says the control object lives "whether or not this closure ever ran", so a
+     touch device now gets the hook too -- which is the path where brightness is
+     the only thing there is to drive. */
+  window.__sfTorch = torchCtl;
+
+  /* ==========================================================================
+     THE TUNING TAB — only ever exists at /?tune
+
+     This used to be a panel of its own, pinned bottom-left, with its own fixed
+     box in css/site-footer.css, its own hide-to-chip button and its own
+     localStorage key for whether that chip was open. It shared /?tune with
+     three other panels that each did the same thing in a different corner, and
+     bottom-left is exactly where a short viewport puts the footer this panel
+     tunes. All of that chrome now belongs to js/tune-panel.js, which owns the
+     box, the hide button and the gate; this file contributes three sliders and
+     two buttons and nothing else.
+
+     THE GATE IS STILL A URLSearchParams READ, it has just moved one file over.
+     Do not reintroduce a local regex check here: the guard that stood in this
+     spot was written with a word-boundary escape in it, a generator rewrote
+     that escape into a literal backspace character (0x08), and the resulting
+     pattern could never match and was invisible in every diff and every grep.
+     KSTunePanel.tab() returns null off /?tune, so the early return below is the
+     whole gate and a visitor pays for nothing past it.
 
      It writes through torchCtl, which is the same path the pointer uses, so
      what is on screen while dragging is exactly what a visitor would get --
      the panel cannot flatter itself with a preview the real code does not do.
      ========================================================================== */
   (function tuner() {
-    /* NO REGEX. This guard was written with a word-boundary escape in it and
-       a generator turned that escape into a literal backspace character
-       (0x08), producing a pattern that
-       could never match and was invisible in every diff and every grep. Reading
-       the query string as data cannot rot that way. */
-    var tuneOn = new URLSearchParams(location.search).has('tune');
-    if (!tuneOn || !torchCtl) return;
+    var P = window.KSTunePanel;
+    if (!P) { console.warn('site-footer: js/tune-panel.js must load first'); return; }
+    var body = P.tab('torch', 'Torch',
+                     'the light that travels across the footer wordmark');
+    if (!body || !torchCtl) return;
 
-    var box = document.createElement('div');
-    box.className = 'sf-tune';
-    box.innerHTML =
-      '<b>Footer torch</b>' +
-      '<label>Size<i data-out="r"></i>' +
-        '<input type="range" data-k="r" min="120" max="1400" step="10"></label>' +
-      '<label>Height above rule<i data-out="ceilBias"></i>' +
-        '<input type="range" data-k="ceilBias" min="-400" max="0" step="5"></label>' +
-      '<label>Brightness<i data-out="core"></i>' +
-        '<input type="range" data-k="core" min="0" max="1" step="0.02"></label>' +
-      '<button type="button" data-act="copy">Copy values</button>' +
-      '<button type="button" data-act="reset">Reset</button>' +
-      '<span class="sf-tune__note">persisted &middot; /?tune only</span>';
-    document.body.appendChild(box);
-
-    function paint() {
-      var v = torchCtl.get();
-      box.querySelectorAll('input').forEach(function (i) { i.value = v[i.dataset.k]; });
-      box.querySelector('[data-out="r"]').textContent = v.r + ' units';
-      box.querySelector('[data-out="ceilBias"]').textContent = v.ceilBias + ' units';
-      box.querySelector('[data-out="core"]').textContent = Number(v.core).toFixed(2);
+    var shine = P.section(body, 'torch-shine', 'Shine');
+    /* Collected rather than discarded: Reset writes through torchCtl and then
+       has to pull every slider back to the value it just wrote. Repainting the
+       three controls is not the same as rebuilding the tab -- rebuilding would
+       drop the section's remembered open state and the listeners with it. */
+    var paints = [];
+    function dial(k, def) {
+      paints.push(P.slider(shine, def,
+                           function () { return torchCtl.get()[k]; },
+                           function (v) { torchCtl.set(k, v); }));
     }
-    box.addEventListener('input', function (e) {
-      var k = e.target.dataset.k; if (!k) return;
-      torchCtl.set(k, Number(e.target.value));
-      paint();
+    /* Ranges unchanged from the standalone panel. ceilBias tops out at 0
+       because torchCtl clamps positive values away anyway -- the rule is a
+       hard floor no dial can breach -- so a slider that ran past 0 would have
+       a dead half. */
+    dial('r', { label: 'Size', min: 120, max: 1400, step: 10,
+                fmt: function (v) { return v + ' units'; },
+                tip: 'how far the light reaches, in viewBox units' });
+    dial('ceilBias', { label: 'Height above rule', min: -400, max: 0, step: 5,
+                       fmt: function (v) { return v + ' units'; },
+                       tip: 'how far above the rule the source sits; 0 is on the rule' });
+    dial('core', { label: 'Brightness', min: 0, max: 1, step: 0.02,
+                   tip: 'the centre stop of the static core -- lit even where the torch never binds' });
+
+    /* Outside the section on purpose: collapse Shine to read the wordmark and
+       Copy values is still one click away, which is the whole reason the old
+       panel grew a hide button. */
+    var buttons = P.row(body);
+    var note = P.note(body, 'persisted · /?tune only');
+
+    var copyBtn = P.button(buttons, 'Copy values', function () {
+      var v = torchCtl.get();
+      /* The exact edit, not the numbers alone -- a value without its home is a
+         note somebody has to decode later. Printed from TORCH verbatim, which
+         is why no UI state is ever allowed onto that object: a stray panel flag
+         would get pasted back into this file as a torch default. */
+      P.copy(copyBtn, note,
+             'js/site-footer.js  ->  var TORCH = { r: ' + v.r +
+             ', ceilBias: ' + v.ceilBias + ', core: ' + v.core + ' };',
+             'Copy values');
     });
-    box.addEventListener('click', function (e) {
-      var a = e.target.dataset.act;
-      if (a === 'reset') {
-        Object.keys(TORCH_DEFAULTS).forEach(function (k) { torchCtl.set(k, TORCH_DEFAULTS[k]); });
-        paint();
-      }
-      if (a === 'copy') {
-        var v = torchCtl.get();
-        /* The exact edits, not the numbers alone -- a value without its home
-           is a note somebody has to decode later. */
-        var txt = 'js/site-footer.js  ->  var TORCH = { r: ' + v.r +
-                  ', ceilBias: ' + v.ceilBias + ', core: ' + v.core + ' };';
-        (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject())
-          .then(function () { e.target.textContent = 'Copied'; },
-                function () { e.target.textContent = txt; })
-          .then(function () { setTimeout(function () { e.target.textContent = 'Copy values'; }, 1600); });
-      }
+    P.button(buttons, 'Reset', function () {
+      Object.keys(TORCH_DEFAULTS).forEach(function (k) { torchCtl.set(k, TORCH_DEFAULTS[k]); });
+      paints.forEach(function (p) { p(); });
     });
-    paint();
   })();
 
 })();

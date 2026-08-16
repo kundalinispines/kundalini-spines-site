@@ -239,6 +239,10 @@
      bar and no .archive-grid to drive. The rest is the root-page set.
      ks-chakras.js MUST precede site-footer.js: the footer reads KS.CHAKRAS and
      KS.RECORD and bails with a console warning if that file has not run. -->
+<!-- FIRST: defines window.KSTunePanel, the shared /?tune shell every tuner on
+     the page registers a tab into. Loaded before any of them, or they find no
+     shell and silently render no controls. -->
+<script src="js/tune-panel.js"></script>
 <script src="js/nav.js"></script>
 <script>document.getElementById('year').textContent = new Date().getFullYear();</script>
 <script src="js/ks-chakras.js"></script>

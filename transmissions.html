@@ -110,6 +110,10 @@
   </div>
 </footer>
 
+<!-- FIRST: defines window.KSTunePanel, the shared /?tune shell every tuner on
+     the page registers a tab into. Loaded before any of them, or they find no
+     shell and silently render no controls. -->
+<script src="js/tune-panel.js"></script>
 <script src="js/nav.js"></script>
 <script src="js/transmissions.js"></script>
 <script>document.getElementById('year').textContent = new Date().getFullYear();</script>

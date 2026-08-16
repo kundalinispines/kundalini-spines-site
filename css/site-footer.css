@@ -321,37 +321,15 @@
 }
 
 /* ==========================================================================
-   THE TUNING PANEL — /?tune only
-   js/site-footer.js does not create this element unless the query string asks
-   for it, so these rules match nothing on a normal page load. They are kept
-   here rather than injected as inline styles so the panel can be restyled
-   without touching the logic that drives it.
+   THE TUNING PANEL — no longer lives here.
+
+   The footer torch had its own fixed box in this file: bottom-left, 240px
+   wide, with a hide-to-chip button and a specificity note about the doubled
+   `.sf-tune.sf-tune--min` selector. It is a tab in the shared shell now --
+   js/tune-panel.js owns the box, the chrome and the /?tune gate, and
+   js/site-footer.js contributes only sliders. The specificity lesson moved
+   with the rules; the note is in tune-panel.js beside `.ks-tune--min`.
+
+   Nothing named .sf-tune should reappear here. A tuner that styles itself is
+   how /?tune ended up with four boxes in four corners.
    ========================================================================== */
-.sf-tune {
-  /* BOTTOM-LEFT, because /?tune already belongs to somebody. js/spine-bg.js
-     opens its own 40-slider panel down the right-hand side at the same gate,
-     and this one landed on top of it -- two tuners fighting for one corner,
-     which was only visible in a screenshot with the query string on. */
-  position: fixed; left: 16px; bottom: 16px; z-index: 9999;
-  display: flex; flex-direction: column; gap: 8px;
-  padding: 12px 14px; min-width: 240px;
-  background: rgba(3,4,15,0.94);
-  border: 1px solid rgba(var(--node-color), 0.35);
-  font-family: var(--font-mono); font-size: 10px;
-  letter-spacing: 0.1em; color: var(--color-gray-400);
-}
-.sf-tune b {
-  font-weight: 500; font-size: 9px; letter-spacing: 0.22em;
-  text-transform: uppercase; color: var(--color-bone);
-}
-.sf-tune label { display: flex; flex-direction: column; gap: 4px; text-transform: uppercase; }
-.sf-tune i { font-style: normal; color: rgba(var(--node-color), 0.9); letter-spacing: 0.06em; }
-.sf-tune input[type="range"] { width: 100%; accent-color: rgb(var(--node-color)); }
-.sf-tune button {
-  font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.16em;
-  text-transform: uppercase; padding: 6px 8px; cursor: pointer;
-  background: transparent; color: var(--color-bone);
-  border: 1px solid rgba(214,213,208,0.28);
-}
-.sf-tune button:hover { border-color: rgba(var(--node-color),0.8); }
-.sf-tune__note { font-size: 8px; letter-spacing: 0.14em; color: var(--color-gray-500); }

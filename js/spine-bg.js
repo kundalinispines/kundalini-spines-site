@@ -707,14 +707,37 @@
   })();
 
   /* ========================================================================
-     TUNING PANEL — only ever runs at /?tune
+     TUNING TAB — only ever runs at /?tune
      Visitors never load it, so this is safe to leave in the repo: without the
      flag nothing below the guard executes and no markup is created.
      Open http://localhost:8000/?tune, dial it in on the REAL page rather than
      a mock, then press Copy and paste the block into the :root of
      css/spine-bg.css. That is the whole workflow — no numbers relayed by hand.
-     ======================================================================== */
-  if (!/[?&]tune\b/.test(location.search)) return;
+
+     THIS WAS ITS OWN FIXED PANEL UNTIL 2026-08-16 — `.spine-tune`, pinned
+     bottom-right, 328px wide, with its own scroller, its own minimize chip and
+     its own stylesheet. It is now a tab in the shared shell (js/tune-panel.js),
+     which owns the box, the tab bar, the one hide button and the styling of
+     every label/range/button/textarea in it. What survives here is everything
+     the shell has no opinion about: FIELDS, TIPS, GROUPS, the hover tips, the
+     view modes, the meters, Copy CSS and Apply pasted.
+
+     THE GATE IS NOW KSTunePanel.tab() RETURNING NULL, not a regex on
+     location.search. That is deliberate beyond tidiness: the shell reads the
+     flag as DATA through URLSearchParams, and the header of tune-panel.js
+     records what a `\b` in a guard like the old one cost once — a generator
+     rewrote the escape into a literal backspace, giving a pattern that could
+     never match and was invisible in every diff and every grep.
+
+     tune-panel.js is loaded before this file on both index.html and
+     about.html. The || guard is for a page that adds spine-bg.js and forgets
+     it: no panel is a far better failure than a TypeError that takes the
+     charge front down with it. ======================================== */
+  if (!window.KSTunePanel) return;
+  var panel = window.KSTunePanel;
+  var tab = panel.tab('spine', 'Spine',
+    'the charge column, the kick and snare detectors, the sky and the rail');
+  if (!tab) return;
 
   var FIELDS = [
     /* THE WHOLE-COLUMN TOGGLE. step 1 so it snaps 0/1 — intermediate values
@@ -911,10 +934,13 @@
       file: 'css/spine-doc.css' },
     { v: '--node-ring-active', label: 'ring on',  min: 20,  max: 120,  step: 2,    unit: 'px',
       file: 'css/spine-doc.css' },
-    /* Labels stay at 7 characters or fewer — the 56px name column was MEASURED
-       for a 7-char worst case (see the CSS note on .spine-tune span) and an
-       8-char label wraps to a second line, which is exactly the row-height bug
-       that measurement fixed. */
+    /* Labels stay short. 7 characters was a hard limit while this panel had its
+       own 56px name column — that width was MEASURED for a 7-char worst case,
+       and an 8th character wrapped the row and split the hover underline across
+       both lines. The shared shell drops that column: the name and its value
+       share one row above a full-width slider, so the failure mode is no longer
+       a wrap at exactly 8 characters, it is just a long name crowding the value
+       out of a 330px row. Nothing enforces it now; keep them short anyway. */
     { v: '--ring-scale',       label: 'reach',    min: 1,   max: 3,    step: 0.05, unit: '',
       file: 'css/spine-doc.css' },
     { v: '--ring-peak-a',      label: 'peak',     min: 0,   max: 1,    step: 0.02, unit: '',
@@ -1010,125 +1036,72 @@
     '--ring-color': 'Ripple colour, five stops from the cold palette. The node core stays white regardless; crimson is rationed to about two uses a page'
   };
 
+  /* ---- WHAT IS LEFT OF THIS PANEL'S OWN STYLESHEET -----------------------
+     The shell paints label, input[type=range], select, textarea, button,
+     .ks-tune__row and .ks-tune__note, so every rule that described the BOX went
+     with the box: the fixed position, the 328px max-width, the scroller and its
+     scrollbar, the <details> chrome, the 56px name column, the minimize chip.
+     What is left styles the two things the shell has never heard of — the hover
+     tip and the paste box's drag handle.
+
+     PREFIXED `spine-`, NOT `ks-tune__`. The tip is a body child (see below), so
+     it could not be scoped under .ks-tune even if we wanted it to be, and
+     borrowing the shell's block name for something the shell does not own would
+     send the next reader to tune-panel.js to find it. The one selector that
+     does reach into the shell — the hover state — is scoped under .ks-tune on
+     purpose: it should only fire for a row inside the panel. */
   var css = document.createElement('style');
   css.textContent =
-    '.spine-tune{position:fixed;right:12px;bottom:12px;z-index:9999;background:rgba(5,5,5,.94);' +
-    'border:1px solid #2E2E2E;padding:10px 12px;font:11px/1.5 "IBM Plex Mono",monospace;' +
-    /* MAX-WIDTH IS LOAD-BEARING — do not remove it as redundant. The panel is
-       position:fixed with no width, so it shrink-to-fits: its width is its own
-       max-content, and a <p> contributes its ENTIRE text as one unwrapped line
-       to max-content regardless of white-space. On index.html the widest thing
-       is a slider row and the panel settles at 327px. On about.html the two
-       prose lines about the unavailable kick detector are ~70 and ~150 chars,
-       and the panel measured 1350px — over half a 2560px screen. Capping at
-       328px leaves index.html's natural width untouched (327 < 328, so nothing
-       about the home page changes) and forces the prose to wrap on every other
-       page. Any future long string in here is covered by the same cap. */
-    'color:#8F8F8F;letter-spacing:.08em;backdrop-filter:blur(8px);min-width:240px;max-width:328px}' +
-    /* padding-right clears the minimize button pinned to the panel corner —
-       the build line can run the full width on about.html. */
-    '.spine-tune h6{margin:0 0 8px;padding-right:26px;color:#D8D0BE;font:inherit;letter-spacing:.14em;text-transform:uppercase}' +
-    '.spine-tune label{display:flex;align-items:center;gap:8px;margin:5px 0}' +
-    /* 44px wrapped the two-word labels — `puls lo`, `puls hi`, `puls ms`,
-       `twnk hi`, `twnk ms` — onto a second line, which made those five rows
-       taller than the rest and split the hover underline across both lines.
-       MEASURED in the browser: the wrap clears at 54px and not at 52. The
-       longest label is 7 characters, and canvas measureText puts those at
-       46.36px, but it does NOT count letter-spacing, and .08em at 11px adds
-       0.88px per character — so the real cost is 46.36 + 7*0.88 = 52.5px.
-       56 is that plus headroom. Checked against "IBM Plex Mono", the generic
-       monospace fallback and DejaVu Sans Mono: all three measure identically,
-       so this does not depend on the webfont having loaded.
-       The panel does not get wider, it stays 328px: the 12px comes out of the
-       slider, 192px -> 180px. Worth knowing what that costs at the tightest
-       control rather than assuming it is free — `band` is the worst, 150 steps
-       across the track, so it goes from 1.28px per step to 1.20px. Every other
-       field is 60 steps or fewer and has 3px or more. If a slider ever does
-       need finer travel, widen the panel rather than narrowing this column
-       back; the wrap is the thing that was actually costing a row of height. */
-    '.spine-tune span:first-child{width:56px;text-transform:uppercase}' +
-    '.spine-tune input{flex:1;accent-color:#D8D0BE}' +
-    '.spine-tune b{width:46px;text-align:right;color:#F2F2EE;font-weight:400}' +
-    '.spine-tune button{margin-top:8px;width:100%;background:#D8D0BE;color:#050505;border:0;' +
-    'padding:6px;font:inherit;letter-spacing:.12em;text-transform:uppercase;cursor:pointer}' +
-    '.spine-tune p{margin:6px 0 0;color:#6B6B6B;max-width:none}' +
-    /* THE PANEL OUTGREW THE SCREEN. It is a fixed box pinned to the bottom
-       right, so when the control count passed about 20 the top of it went off
-       the top of the viewport and those rows became unreachable — silently,
-       because a fixed element does not scroll the page to reveal itself.
-       Two changes: the rows live in their own scroll area, and they are
-       grouped into collapsible sections so the common case is short enough not
-       to need scrolling at all.
-       min-height:0 on the scroller is load-bearing — a flex child defaults to
-       min-height:auto, which refuses to shrink below its content, and without
-       it the box grows past the viewport again and the overflow never engages. */
-    '.spine-tune{display:flex;flex-direction:column;max-height:calc(100vh - 24px)}' +
-    '.spine-tune__scroll{flex:1 1 auto;min-height:0;overflow-y:auto;' +
-      'overscroll-behavior:contain;margin:0 -2px;padding:0 2px}' +
-    '.spine-tune__scroll::-webkit-scrollbar{width:8px}' +
-    '.spine-tune__scroll::-webkit-scrollbar-thumb{background:#2E2E2E}' +
-    '.spine-tune__scroll::-webkit-scrollbar-track{background:transparent}' +
-    '.spine-tune details{border-top:1px solid #1C1C1C}' +
-    '.spine-tune summary{cursor:pointer;padding:5px 0;color:#8F8F8F;' +
-      'text-transform:uppercase;letter-spacing:.14em;list-style:none;' +
-      '-webkit-user-select:none;user-select:none}' +
-    '.spine-tune summary::-webkit-details-marker{display:none}' +
-    '.spine-tune summary::before{content:"+ ";color:#6B6B6B}' +
-    '.spine-tune details[open]>summary::before{content:"- "}' +
-    '.spine-tune details[open]>summary{color:#D8D0BE}' +
-    '.spine-tune details>label:last-child{margin-bottom:7px}' +
-    '.spine-tune__foot{flex:0 0 auto;border-top:1px solid #2E2E2E;' +
-      'margin-top:7px;padding-top:2px}' +
     /* THE TIP IS position:fixed AND A CHILD OF <body>, NOT OF THE ROW.
-       .spine-tune__scroll is overflow-y:auto, and an overflow container clips
-       its descendants whatever their position — absolute included, since the
+       The tab body is overflow-y:auto, and an overflow container clips its
+       descendants whatever their position — absolute included, since the
        scroller is itself the containing block once it is positioned. A tip
        parented to the row would be cut off at the panel edge, which is exactly
        the direction it needs to open in. Fixed + body sidesteps the clip
-       entirely, at the cost of having to place it by hand on hover.
+       entirely, at the cost of having to place it by hand on hover. That was
+       true of the old .spine-tune__scroll and it is true of .ks-tune__body for
+       precisely the same reason, so do not reparent it now that the panel is
+       somebody else's element.
 
        Left of the panel by preference, flipped to the right only if there is
        no room, and clamped into the viewport vertically so a row near the top
-       or bottom does not push it off screen. */
-    '.spine-tune__name{cursor:help;border-bottom:1px dotted #3A3A3A}' +
-    '.spine-tune label:hover .spine-tune__name{color:#D8D0BE;border-bottom-color:#6B6B6B}' +
-    '.spine-tune__tip{position:fixed;z-index:10000;display:none;max-width:270px;' +
-      'background:rgba(5,5,5,.97);border:1px solid #2E2E2E;padding:7px 9px;' +
-      'font:11px/1.45 "IBM Plex Mono",monospace;color:#B4B4B4;letter-spacing:.04em;' +
-      'backdrop-filter:blur(8px);pointer-events:none;box-shadow:0 2px 14px rgba(5,5,5,.7)}' +
-    '.spine-tune__tip i{display:block;font-style:normal;letter-spacing:.08em}' +
-    '.spine-tune__tip i.v{color:#D8D0BE}' +
-    '.spine-tune__tip i.f{color:#6B6B6B;margin-bottom:4px}' +
-    /* MINIMIZE. The panel is a third of the viewport and sits exactly where
-       the nebula does its work, so judging the page means getting it out of
-       the way — and closing the tab loses every undialed slider, which is
-       the wrong price. Minimized, the box keeps its identity (same element,
-       same inline state, same listeners) and collapses to a corner chip:
-       every child hides except the button, and the fixed box with no width
-       shrink-to-fits the chip. Nothing is torn down, so restore is a class
-       toggle, not a rebuild. */
-    /* button.spine-tune__min, not bare .spine-tune__min: the shared
-       `.spine-tune button` rule above is (0,1,1) and paints every button
-       cream — a bare class at (0,1,0) loses to it and the chip renders as a
-       big light block. The element name lifts these to (0,1,2)/(0,2,2). */
-    '.spine-tune button.spine-tune__min{position:absolute;top:8px;right:10px;width:auto;margin:0;' +
-      'padding:0 6px 1px;line-height:15px;background:#1F1F1F;color:#8F8F8F;cursor:pointer}' +
-    '.spine-tune button.spine-tune__min:hover{color:#D8D0BE}' +
-    '.spine-tune--min{min-width:0;padding:5px 6px}' +
-    '.spine-tune--min>*{display:none}' +
-    '.spine-tune--min>button.spine-tune__min{display:block;position:static;padding:2px 9px}';
+       or bottom does not push it off screen.
+
+       z-index 10000 is one above the shell's 9999: the tip has to open over the
+       panel that spawned it, and the shell is the topmost thing on the page. */
+    '.spine-tip{position:fixed;z-index:10000;display:none;max-width:270px;' +
+      'background:rgba(3,4,15,.97);border:1px solid rgba(157,178,192,.35);' +
+      'padding:7px 9px;font:10px/1.5 "IBM Plex Mono",monospace;color:#B4B4B4;' +
+      'letter-spacing:.04em;backdrop-filter:blur(8px);pointer-events:none;' +
+      'box-shadow:0 2px 14px rgba(3,4,15,.7)}' +
+    '.spine-tip i{display:block;font-style:normal;letter-spacing:.08em}' +
+    '.spine-tip i.v{color:#D6D5D0}' +
+    '.spine-tip i.f{color:#57676F;margin-bottom:4px}' +
+    '.spine-tip-name{cursor:help;border-bottom:1px dotted #3A3A3A}' +
+    '.ks-tune label:hover .spine-tip-name{color:#D6D5D0;border-bottom-color:#57676F}' +
+    /* Tabular figures so the meter's numbers do not shuffle sideways as the
+       envelope redraws ten times a second. */
+    '.spine-meter{font-variant-numeric:tabular-nums}' +
+    /* The shell sizes and colours the textarea; only the drag handle is ours.
+       Its own class rather than `.ks-tune textarea`, which would reach into
+       every other tab's paste boxes. */
+    '.spine-paste{resize:vertical}';
   document.head.appendChild(css);
 
-  var box = document.createElement('div');
-  box.className = 'spine-tune';
   var build = getComputedStyle(document.documentElement).getPropertyValue('--spine-build').trim() || '?';
   var hasOldScrim = !!getComputedStyle(document.querySelector('.track-focus-panel') || document.body, '::before')
       .backgroundImage.match(/radial/);
   var starBuild = getComputedStyle(document.documentElement).getPropertyValue('--star-build').trim();
-  box.innerHTML = '<h6>Spine tuning &middot; css build ' + build +
+  /* The build line was an <h6> when this panel had its own heading; the shell
+     owns the heading now and the tab is named on its button, so it is a note.
+     The warnings stay <em> with an inline colour — the shell styles
+     .ks-tune__note em, and inline beats it. Do not reach for <b>: `.ks-tune b`
+     is the panel TITLE rule (9px, uppercase, 30px of right padding for the hide
+     button) and a bold word inside a note inherits all of it. */
+  panel.note(tab).innerHTML = 'css build ' + build +
     (starBuild ? ' &middot; star ' + starBuild : ' <em style="color:#D8534F;font-style:normal">NO STAR CSS</em>') +
-    (hasOldScrim ? ' <em style="color:#D8534F;font-style:normal">STALE CSS</em>' : '') + '</h6>' +
-    '<p id="spine-jsck" style="margin:0 0 6px">checking js...</p>';
+    (hasOldScrim ? ' <em style="color:#D8534F;font-style:normal">STALE CSS</em>' : '');
+  var jsNote = panel.note(tab, 'checking js...');
 
   /* CSS and JS are cached independently, so "css build 10" says nothing about
      whether track-experience.js reloaded. The card shadows live in that file;
@@ -1136,15 +1109,15 @@
      background, which is the blob. Read the shadow off the live overlay and
      say which one is loaded, rather than leaving it to be argued about. */
   setTimeout(function () {
-    var out = document.getElementById('spine-jsck');
     var el = document.querySelector('.track-hero-layer');
     var sh = el ? getComputedStyle(el).boxShadow : '';
-    if (!sh || sh === 'none') { out.textContent = 'js: no hero shadow to read yet'; return; }
+    if (!sh || sh === 'none') { jsNote.textContent = 'js: no hero shadow to read yet'; return; }
     if (/rgba\(0, 0, 0/.test(sh)) {
-      out.innerHTML = '<b style="color:#D8534F">STALE JS</b> — card shadows are still ' +
-        'pure black. Hard-reload (Ctrl+Shift+R).';
+      jsNote.innerHTML = '<em style="color:#D8534F;font-style:normal">STALE JS</em> — card ' +
+        'shadows are still pure black. Hard-reload (Ctrl+Shift+R).';
     } else {
-      out.innerHTML = '<span style="color:#7FB37F">js OK</span> — card shadows are page-black.';
+      jsNote.innerHTML = '<em style="color:#7FB37F;font-style:normal">js OK</em> — card ' +
+        'shadows are page-black.';
     }
   }, 2500);
 
@@ -1153,10 +1126,10 @@
   };
 
   /* One tip element reused by every row, parented to <body> — see the CSS note
-     on why it cannot live inside the scroller. Hiding is on a short timer so
+     on why it cannot live inside the tab body. Hiding is on a short timer so
      that sliding the mouse from one label to the next does not flicker. */
   var tipEl = document.createElement('div');
-  tipEl.className = 'spine-tune__tip';
+  tipEl.className = 'spine-tip';
   tipEl.setAttribute('role', 'tooltip');
   document.body.appendChild(tipEl);
   var tipTimer;
@@ -1185,70 +1158,101 @@
     tipTimer = setTimeout(function () { tipEl.style.display = 'none'; }, 90);
   };
 
+  /* ---- EVERY FIELD'S CURRENT VALUE, WHETHER OR NOT IT GETS A ROW ----------
+     The value now lives on the field (f._val) rather than in the range input,
+     because the shell builds the input and hands back a paint() instead. That
+     turns out to be the right shape anyway: Copy CSS has always emitted the
+     HIDDEN fields too (the kick set on about.html has real values, it just has
+     no detector to move), and those never get a control to read a value off.
+     Previously they got a detached one built purely so Copy CSS could read it.
+
+     THE VALUE IS SNAPPED THROUGH A THROWAWAY RANGE INPUT, and that is not
+     ceremony. Copy CSS used to read `input.value`, i.e. the browser's own
+     sanitisation of the stylesheet value against min/max/step, while the row
+     DISPLAYED the raw unsnapped number — so an off-step value in the CSS showed
+     one figure and copied another. Doing the same rounding in JS disagrees with
+     the browser on steps like 0.02. One detached input does exactly what the
+     old live one did; range inputs sanitise on assignment, not on insertion.
+     Copy CSS therefore still emits character-for-character what it did before,
+     and the row now agrees with it.
+
+     `choices` fields skip all of that: their value is an INDEX into f.choices,
+     read from the raw property text rather than through read(), because
+     parseFloat on an RGB triplet returns its first channel — a number, and so
+     a silently wrong answer. */
+  var snap = document.createElement('input');
+  snap.type = 'range';
   FIELDS.forEach(function (f) {
-    /* A `choices` field is a discrete palette pick riding the same range
-       element: the slider's value is an INDEX into f.choices, and everything
-       that consumes a value — the live write here, Copy CSS, Apply pasted —
-       branches on f.choices to translate. Reading the start value goes through
-       getComputedStyle raw rather than read(), because parseFloat on an RGB
-       triplet returns its first channel, which is a number and therefore a
-       silent wrong answer. */
-    var start, startIdx = 0;
     if (f.choices) {
       var raw = getComputedStyle(document.documentElement).getPropertyValue(f.v)
         .replace(/\s+/g, '');
+      var idx = 0;
       for (var ci = 0; ci < f.choices.length; ci++) {
-        if (f.choices[ci].val.replace(/\s+/g, '') === raw) startIdx = ci;
+        if (f.choices[ci].val.replace(/\s+/g, '') === raw) idx = ci;
       }
       /* Dead means the variable does not exist on this page at all (its
          stylesheet is not loaded) — distinct from hidden, and read at build
          time so Copy CSS can refuse to emit a made-up value below. */
       f._dead = !raw;
-      start = startIdx;
-    } else {
-      start = read(f.v);
-      f._dead = isNaN(start);
+      f._val = idx;
+      return;
     }
-    var row = document.createElement('label');
-    row.innerHTML = '<span class="spine-tune__name">' + f.label + '</span>';
-    var name = row.firstChild;
-    name.addEventListener('mouseenter', function () { showTip(name, f); });
-    name.addEventListener('mouseleave', hideTip);
-    var input = document.createElement('input');
-    input.type = 'range';
-    if (f.choices) {
-      input.min = 0; input.max = f.choices.length - 1; input.step = 1;
-      input.value = startIdx;
-    } else {
-      input.min = f.min; input.max = f.max; input.step = f.step; input.value = start;
-    }
-    var out = document.createElement('b');
-    out.textContent = f.choices ? f.choices[startIdx].name : start + f.unit;
-    input.addEventListener('input', function () {
-      if (f.choices) {
-        var c = f.choices[+input.value];
-        document.documentElement.style.setProperty(f.v, c.val);
-        out.textContent = c.name;
-      } else {
-        document.documentElement.style.setProperty(f.v, input.value + f.unit);
-        out.textContent = input.value + f.unit;
-      }
-      /* Most variables are consumed by CSS and repaint on their own. --spine-from
-         is not: it is read by measure(), which only runs on scroll, resize and
-         the ResizeObserver, none of which a slider drag fires. Without this the
-         slider would look dead until you happened to scroll. */
-      if (f.v === '--spine-from') remeasure();
-      /* Same shape of problem on the rail: --ksd-field is read by
-         js/spine-doc.js in its scroll pass, so a synthetic scroll event shows
-         the new field without the hand leaving the slider. The rail's handler
-         is rAF-throttled, so this costs one frame of its work. */
-      if (f.v === '--ksd-field') window.dispatchEvent(new Event('scroll'));
-    });
-    row.appendChild(input); row.appendChild(out);
-    f._row = row;
-    f._input = input;
-    f._out = out;
+    var start = read(f.v);
+    f._dead = isNaN(start);
+    /* Left as NaN on purpose when dead. Copy CSS skips dead fields, and a
+       dead-but-visible row showing "NaN" is the honest reading — substituting
+       the slider's midpoint would invent a number nobody chose. */
+    if (f._dead) { f._val = start; return; }
+    snap.min = f.min; snap.max = f.max; snap.step = f.step; snap.value = start;
+    f._val = parseFloat(snap.value);
   });
+
+  /* The live write. Everything that changes a value — a drag, a paste — goes
+     through here, so the two side effects below cannot be forgotten by one of
+     them. */
+  var applyField = function (f) {
+    document.documentElement.style.setProperty(f.v,
+      f.choices ? f.choices[f._val].val : f._val + f.unit);
+    /* Most variables are consumed by CSS and repaint on their own. --spine-from
+       is not: it is read by measure(), which only runs on scroll, resize and
+       the ResizeObserver, none of which a slider drag fires. Without this the
+       slider would look dead until you happened to scroll. */
+    if (f.v === '--spine-from') remeasure();
+    /* Same shape of problem on the rail: --ksd-field is read by
+       js/spine-doc.js in its scroll pass, so a synthetic scroll event shows
+       the new field without the hand leaving the slider. The rail's handler
+       is rAF-throttled, so this costs one frame of its work. */
+    if (f.v === '--ksd-field') window.dispatchEvent(new Event('scroll'));
+  };
+
+  /* Build one row into a section. Called from the GROUPS loop below rather than
+     up front, because the shell's slider() appends as it builds — there is no
+     detached row to place later, which is how this file used to do it. */
+  var makeRow = function (parent, f) {
+    var def = f.choices
+      ? { label: f.label, min: 0, max: f.choices.length - 1, step: 1,
+          fmt: function (v) { return f.choices[+v].name; } }
+      /* An explicit fmt even for the plain case: the shell's default drops the
+         unit and rounds to 2dp, and `130px` / `2500ms` / `8000` are what these
+         rows have always read. */
+      : { label: f.label, min: f.min, max: f.max, step: f.step,
+          fmt: function (v) { return v + f.unit; } };
+    /* No `tip` in def — that would set a native title attribute, and the tip
+       here is the fixed panel below, which can say which stylesheet the
+       variable lives in and does not wait 500ms for the OS to decide. */
+    f._paint = panel.slider(parent, def,
+      function () { return f._val; },
+      function (v) { f._val = v; applyField(f); });
+    /* The shell builds label > span > (span.name + i.value), then the range.
+       Reaching for the name span is the one structural assumption this file
+       makes about the shell; the alternative is a second label element beside
+       the real one, which is worse. */
+    var lbl = parent.lastElementChild;
+    var nameEl = lbl.firstElementChild.firstElementChild;
+    nameEl.className = 'spine-tip-name';
+    nameEl.addEventListener('mouseenter', function () { showTip(nameEl, f); });
+    nameEl.addEventListener('mouseleave', hideTip);
+  };
 
   /* ---- WHICH CONTROLS ARE LIVE ON THIS PAGE ------------------------------
      The kick detector only attaches where .track-experience exists, which is
@@ -1344,18 +1348,13 @@
     { title: 'page feel', vars: ['--scroll-weight'] }
   ];
 
-  var scroll = document.createElement('div');
-  scroll.className = 'spine-tune__scroll';
-
-  var remember = function (title, open) {
-    try { localStorage.setItem('ks-tune-' + title, open ? '1' : '0'); } catch (e) {}
-  };
-  var recall = function (title, dflt) {
-    try {
-      var v = localStorage.getItem('ks-tune-' + title);
-      return v === null ? dflt : v === '1';
-    } catch (e) { return dflt; }
-  };
+  /* Open/closed used to be remembered here under `ks-tune-<title>`; the shell
+     remembers it under `ks.tunePanelSec.<id>` for every tab at once, so those
+     keys are gone and one session's worth of remembered groups reverts to the
+     defaults above. The id has to be unique across the WHOLE page — the sky,
+     the torch and the film row are sections in the same store — hence the
+     `spine-` prefix on every one. */
+  var secId = function (title) { return 'spine-' + title.replace(/[^a-z0-9]+/g, '-'); };
 
   var placed = {};
   GROUPS.forEach(function (g) {
@@ -1366,32 +1365,23 @@
        so the ungrouped safety net below does not resurrect them in red. */
     if (g.vars.length && g.vars.every(function (v) { return hiddenSet[v]; })) {
       g.vars.forEach(function (v) { placed[v] = 1; });
-      var why = document.createElement('p');
-      why.style.cssText = 'margin:6px 0;color:#D8534F';
       /* Each group knows its own reason; the kick text stays the default so the
          two audio groups read exactly as they always have. Whether Copy CSS
          emits the hidden values depends on whether their stylesheet is even
          loaded here — the rail set is dead off index.html, not just idle, and
          a dead field is skipped rather than emitted (see Copy CSS). */
-      why.textContent = g.title.toUpperCase() + ': unavailable (' +
+      panel.note(tab, g.title.toUpperCase() + ': unavailable (' +
         (g.why || 'no Web Audio, or no .track-experience on this page') +
         '). Its ' + g.vars.length + ' sliders are hidden because they would ' +
-        'move nothing here.';
-      scroll.appendChild(why);
+        'move nothing here.').style.color = '#D8534F';
       return;
     }
-    var d = document.createElement('details');
-    if (recall(g.title, !!g.open)) d.open = true;
-    d.addEventListener('toggle', function () { remember(g.title, d.open); });
-    var sum = document.createElement('summary');
-    sum.textContent = g.title;
-    d.appendChild(sum);
+    var sec = panel.section(tab, secId(g.title), g.title, !!g.open);
     g.vars.forEach(function (v) {
       for (var i = 0; i < FIELDS.length; i++) {
-        if (FIELDS[i].v === v) { d.appendChild(FIELDS[i]._row); placed[v] = 1; }
+        if (FIELDS[i].v === v) { makeRow(sec, FIELDS[i]); placed[v] = 1; }
       }
     });
-    scroll.appendChild(d);
   });
 
   /* SAFETY NET, and the reason this cannot rot. Anything added to FIELDS and
@@ -1400,19 +1390,10 @@
      that is a bug nobody would think to look for in a layout change. */
   var orphans = FIELDS.filter(function (f) { return !placed[f.v]; });
   if (orphans.length) {
-    var d2 = document.createElement('details');
-    d2.open = true;
-    var s2 = document.createElement('summary');
-    s2.textContent = 'ungrouped';
-    s2.style.color = '#D8534F';
-    d2.appendChild(s2);
-    orphans.forEach(function (f) { d2.appendChild(f._row); });
-    scroll.appendChild(d2);
+    var loose = panel.section(tab, 'spine-ungrouped', 'ungrouped', true);
+    loose.parentNode.firstElementChild.style.color = '#D8534F';
+    orphans.forEach(function (f) { makeRow(loose, f); });
   }
-  box.appendChild(scroll);
-
-  var foot = document.createElement('div');
-  foot.className = 'spine-tune__foot';
 
   /* ---- ISOLATE: bisect the blob on the user's own hardware ----------------
      Everything above is measurable from a headless screenshot. This is not:
@@ -1484,19 +1465,27 @@
   var isoStyle = document.createElement('style');
   document.head.appendChild(isoStyle);
   var isoAt = 0;
-  var isoRow = document.createElement('label');
-  isoRow.innerHTML = '<span>hide</span>';
-  var isoBtn = document.createElement('button');
-  isoBtn.style.cssText = 'margin:0;flex:1;background:#1F1F1F;color:#D8D0BE;text-align:left;padding:4px 8px';
-  isoBtn.textContent = ISOLATE[0][0];
-  isoBtn.addEventListener('click', function () {
+  /* One button that cycles, not a <select>: the modes are worth stepping
+     through in order while watching the page, and a dropdown puts a menu over
+     the thing being judged. The label is the mode itself, so the button always
+     says what you are looking at rather than what it will do next — which is
+     why the row carries the word `view` beside it. */
+  var isoRow = panel.row(tab);
+  var isoTag = document.createElement('span');
+  isoTag.textContent = 'view';
+  isoTag.style.cssText = 'flex:0 0 auto;align-self:center;text-transform:uppercase';
+  isoRow.appendChild(isoTag);
+  var isoBtn = panel.button(isoRow, ISOLATE[0][0], function () {
     isoAt = (isoAt + 1) % ISOLATE.length;
     isoStyle.textContent = ISOLATE[isoAt][1];
     isoBtn.textContent = ISOLATE[isoAt][0];
-    isoBtn.style.color = isoAt ? '#F2F2EE' : '#D8D0BE';
+    /* Lit while a mode is active, so "the page looks wrong" is never a mystery
+       with the panel minimized — restore it and this row is the reason. */
+    isoBtn.style.color = isoAt ? '#F2F2EE' : '';
+    isoBtn.style.borderColor = isoAt ? 'rgba(157,178,192,.8)' : '';
   });
-  isoRow.appendChild(isoBtn);
-  foot.appendChild(isoRow);
+  isoBtn.style.textAlign = 'left';
+  isoBtn.title = 'cycle the page isolation views';
 
   /* ---- KICK METER --------------------------------------------------------
      The detector is the one thing on this panel that cannot be judged by
@@ -1514,13 +1503,17 @@
      numbers: it should punch to full and fall back to nothing between hits. A
      bar that never drops means --kick-decay is longer than the gap between
      beats; a bar that twitches constantly means --kick-sens is too low. */
-  var meterRow = document.createElement('p');
-  meterRow.style.cssText = 'margin:6px 0 0;font-variant-numeric:tabular-nums';
-  foot.appendChild(meterRow);
+  var meterRow = panel.note(tab);
+  meterRow.className += ' spine-meter';
   setInterval(function () {
-    /* Minimized, the meter row is display:none — skip building four bars of
-       innerHTML 10x a second for an element nobody can see. */
-    if (box.classList.contains('spine-tune--min')) return;
+    /* Skip the work whenever nobody can see it. offsetParent goes null the
+       moment any ancestor is display:none, which covers BOTH ways this row can
+       be hidden now — the shell minimized, and another tab selected (the shell
+       hides an unselected body with display:none). Reading it is one layout
+       query 10x a second against building four bars of innerHTML; checking the
+       shell's classes instead would only catch the first case, and would mean
+       this file knowing the shell's minimized class name. */
+    if (!meterRow.offsetParent) return;
     if (!kickMeter) {
       meterRow.innerHTML = '<span style="color:#D8534F">kick: unavailable</span> ' +
         '(no Web Audio, or no .track-experience on this page)';
@@ -1573,17 +1566,17 @@
      go through the same path for the same reason: the selector and the braces
      are simply text the scan never matches. Paste ONE block at a time; two
      blocks pasted together apply in order and the later one wins. */
-  var pasteWrap = document.createElement('div');
-  pasteWrap.style.cssText = 'margin-top:8px';
+  /* The shell paints the textarea (width, ground, border, font, padding); the
+     only thing left to say is that it may be dragged taller. */
   var paste = document.createElement('textarea');
   paste.rows = 2;
+  paste.className = 'spine-paste';
   paste.placeholder = 'paste a --spine-… block here';
-  paste.style.cssText = 'width:100%;background:#0A0A0A;border:1px solid #2E2E2E;color:#D8D0BE;' +
-    'font:11px/1.4 "IBM Plex Mono",monospace;padding:5px 6px;resize:vertical;box-sizing:border-box';
-  var apply = document.createElement('button');
-  apply.textContent = 'Apply pasted';
-  apply.style.cssText = 'margin-top:4px';
-  apply.addEventListener('click', function () {
+  tab.appendChild(paste);
+  /* Both buttons and the status line they share are built together at the
+     bottom of the tab, so this is the handler rather than the button. */
+  var note;
+  var applyPasted = function () {
     var found = 0, unknown = [];
     /* DIGITS ARE PART OF A CUSTOM PROPERTY NAME. The old class was [a-z-]+,
        which silently skipped every variable with a number in it while Copy CSS
@@ -1628,9 +1621,9 @@
           if (f.choices[j].val.replace(/\s+/g, '') === norm) idx = j;
         }
         if (idx < 0) { unknown.push(name + ' (not a palette stop)'); continue; }
+        f._val = idx;
         document.documentElement.style.setProperty(f.v, f.choices[idx].val);
-        f._input.value = idx;
-        f._out.textContent = f.choices[idx].name;
+        if (f._paint) f._paint();
         found++;
         continue;
       }
@@ -1639,9 +1632,14 @@
       /* Clamp to the slider's own range, otherwise an out-of-range value applies
          to the page but the slider snaps elsewhere and the two disagree. */
       num = Math.min(f.max, Math.max(f.min, num));
+      f._val = num;
       document.documentElement.style.setProperty(f.v, num + f.unit);
-      f._input.value = num;
-      f._out.textContent = num + f.unit;
+      /* _paint is the shell's re-sync for that one control: it writes the value
+         back into the range input and reformats the readout, so a paste moves
+         the sliders instead of leaving them disagreeing with the page. Absent
+         on a HIDDEN field — those have no control, only a value, and Copy CSS
+         reads that value straight off f._val. */
+      if (f._paint) f._paint();
       found++;
     }
     /* Same reason as the slider handler: --spine-from is read by measure(), not
@@ -1657,14 +1655,10 @@
       ? 'applied ' + found + ' value' + (found === 1 ? '' : 's') +
         (unknown.length ? ' · ignored ' + unknown.join(', ') : '')
       : 'nothing recognised — expects --spine-… lines';
-  });
-  pasteWrap.appendChild(paste);
-  pasteWrap.appendChild(apply);
+  };
 
-  var copy = document.createElement('button');
-  copy.textContent = 'Copy CSS';
-  var note = document.createElement('p');
-  copy.addEventListener('click', function () {
+  var copy;
+  var copyCss = function () {
     /* Grouped by destination file. Everything without a `file` belongs in
        spine-bg.css, under the page-scoped selector chosen below; anything with
        a `file` goes to that stylesheet and gets its own heading,
@@ -1684,7 +1678,7 @@
       var dest = f.file || HOME;
       if (!groups[dest]) { groups[dest] = []; order.push(dest); }
       groups[dest].push('  ' + f.v + ': ' +
-        (f.choices ? f.choices[+f._input.value].val : f._input.value + f.unit) + ';');
+        (f.choices ? f.choices[f._val].val : f._val + f.unit) + ';');
     });
     /* PAGE SCOPE. index.html carries html.page-home and about.html carries
        html.page-about, with a block for each in the stylesheets beneath the
@@ -1734,37 +1728,28 @@
       return (order.length > 1 ? '/* ' + dest + ' */\n' : '') +
         scope + ' {\n' + groups[dest].join('\n') + '\n}';
     }).join('\n\n');
-    (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject())
-      .then(function () { note.textContent = 'copied — paste into ' + scope; })
-      .catch(function () { note.textContent = text; });
-  });
-  foot.appendChild(copy);
-  foot.appendChild(pasteWrap);
-  foot.appendChild(note);
-  box.appendChild(foot);
-
-  /* ---- MINIMIZE ----------------------------------------------------------
-     See the CSS note above. Remembered across reloads through the same
-     localStorage helper the group sections use, because the cache-busting
-     workflow reloads constantly and a panel that reopens over the sky on
-     every one of them defeats its own button. Stored as an OPEN flag so the
-     default (nothing stored) is open, matching every session before this. */
-  var minBtn = document.createElement('button');
-  minBtn.className = 'spine-tune__min';
-  var setMin = function (min) {
-    box.classList.toggle('spine-tune--min', min);
-    minBtn.textContent = min ? '+ tune' : '−';
-    minBtn.title = min ? 'restore the tuning panel' : 'minimize to a corner chip';
-    minBtn.setAttribute('aria-label', minBtn.title);
-    remember('panel', !min);
+    /* Set the destination BEFORE the copy resolves: the shell's helper flashes
+       "Copied" on the button itself for the success case and only touches the
+       note to dump the raw text when the clipboard is refused — which lands
+       after this line and correctly replaces it. Saying which block to paste
+       into is the half of the old message worth keeping; a :root block and a
+       page-scoped one are indistinguishable once they are on the clipboard. */
+    note.textContent = 'copied — paste into ' + scope;
+    panel.copy(copy, note, text, 'Copy CSS');
   };
-  minBtn.addEventListener('click', function () {
-    setMin(!box.classList.contains('spine-tune--min'));
-  });
-  box.appendChild(minBtn);
-  setMin(!recall('panel', true));
 
-  document.body.appendChild(box);
+  /* Both buttons on one row, and the status line under them. The row is the
+     shell's, so they share its gap and its button styling instead of the
+     full-width cream blocks this panel used to paint for itself. */
+  var btnRow = panel.row(tab);
+  copy = panel.button(btnRow, 'Copy CSS', copyCss);
+  panel.button(btnRow, 'Apply pasted', applyPasted);
+  note = panel.note(tab);
+
+  /* The minimize button and its chip CSS left with the box: the shell has one
+     hide button for the whole panel, which is the point of merging four of
+     them. The old `ks-tune-panel` localStorage key is dead — the shell stores
+     the same open flag under `ks.tunePanel`. */
 
   /* The mobile media query sets its own values. Anything dialled here is an
      inline style on <html>, which outranks it — so a phone-width window shows

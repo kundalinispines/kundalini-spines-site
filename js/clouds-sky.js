@@ -84,18 +84,18 @@
   if (!window.KSClouds) return;
 
   var OPTIONS = {
-    opacity: 0.08,
+    opacity: 0.02,
     cover: 0,
-    density: 1.5,
-    scale: 1.1,
+    density: 16,
+    scale: 1.5,
     speed: 0.6,
     shading: 1,
     shadow: 0,
-    shadowOffsetX: -220,
-    shadowOffsetY: -10,
+    shadowOffsetX: -600,
+    shadowOffsetY: -600,
     shadowSoftness: 1,
-    wind: 0.97,
-    windRadius: 350,
+    wind: 1,
+    windRadius: 90,
     quality: 0.2,
     color: [0.615686274509804, 0.6980392156862745, 0.7529411764705882]
   };

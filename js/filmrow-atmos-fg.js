@@ -108,70 +108,135 @@
        can put grime on the footage; the worst it can do is put too much light
        on it. The -1 at 1.00 is screenshot rounding, not a darkening.
 
-       0.70, up from a first cut at 0.55. 0.55 was chosen to be safe and then
-       looked at: it is legible on the dark black-tide water but effectively
-       absent on the spine-frequency row, whose backdrop is a bright nebula that
-       screen has little room to add to. 0.70 carries both. It was checked at
-       1.00 first — even there the layer reads as weather and not as a dirty
-       screen, so 0.70 is not near the edge of anything. */
-    intensity: 0.70,
+       The table above was built when this shipped at 0.70. THE OWNER TOOK IT TO
+       0.06 on Aug 17 2026, an order of magnitude down, and that is the tuning —
+       not a stray decimal. Read it together with the two options under it: the
+       population went UP (wisps 14 -> 20, motes 90 -> 211) while density went
+       DOWN to 0.3 and every edge was switched on, which is a different layer
+       from the one the table measures — more, smaller, fainter pieces spread
+       right around the box instead of a few strong ones on three sides. The
+       readability guarantee is untouched by the change and cannot be broken by
+       it: every row of that table has a zero centre and a zero darkest pixel,
+       and 0.06 is below all of them. */
+    intensity: 0.06,
 
     /* Multiplies both counts below. 1 = the tuned population. Range 0..2;
        above ~1.6 the clumps merge into a continuous band and the edge comes
-       back as a soft border, which is the failure this layer exists to avoid. */
-    density: 1,
+       back as a soft border, which is the failure this layer exists to avoid.
+       At 0.3 the raw 20/211 populations land as 6 wisps and 63 motes. */
+    density: 0.3,
 
     /* WHICH EDGES CARRY MATERIAL. Accepts:
          'top,right'            (string, equal weight)
          ['top','right']        (array, equal weight)
          {top:1, right:0.85, …} (object, per-edge weight 0..1)
        A weight is the share of the population that edge gets, so 0 means the
-       edge is bare. The default leaves LEFT at zero: at desktop the media is
-       the right-hand column of .ksd-filmrow and its left edge faces the copy,
-       where added light lands on type. On the stacked <=900px layout there is
-       no copy beside it and the owner may well want left back — that is a
-       setOptions call, not a code change. */
-    edges: { top: 1, right: 0.85, bottom: 0.45, left: 0 },
+       edge is bare.
+
+       LEFT USED TO BE 0 AND IS NOW 1 — deliberate, Aug 17 2026. The old reason
+       for zeroing it was that at desktop the media is the right-hand column of
+       .ksd-filmrow and its left edge faces the copy, where added light lands on
+       type. That reason was written at intensity 0.70; at 0.06 the material on
+       that side is roughly a twelfth as strong, and the owner judged it on the
+       real page and wanted the box ringed rather than lit from three sides. If
+       intensity is ever taken back up, THIS is the option to re-examine first —
+       the copy column is the one thing the layer can actually damage. */
+    edges: { top: 1, right: 0.9, bottom: 0.9, left: 1 },
 
     /* How far material reaches OUTWARD past the boundary, in CSS px. This is
-       the "crossing" half of the layer. 56 is a little over a tenth of the
-       box's height at desktop — far enough that a wisp clearly belongs to the
-       page as much as the film, near enough that it does not wander into the
-       copy column. Range 0..160.
+       the "crossing" half of the layer. Range 0..160.
        Clamped per side at measure time so the wrapper can never extend past the
-       viewport's right edge; see measure(). */
-    spill: 56,
+       viewport's right edge; see measure().
+       27 since Aug 17 2026, down from 56. Note what that does NOT do: it does
+       not pull the layer's outer boundary in by 29px, because edgeFeather below
+       is measured outward from the spill and is now nearly four times it. The
+       field crosses less far at full strength and then dissolves for a long way
+       after — which is the shape the owner tuned to, and the reason the two
+       numbers moved in opposite directions in the same sitting. */
+    spill: 27,
 
     /* How far material reaches INWARD from the boundary, as a fraction of the
-       box's SHORT side. This is the guard on readability: at 0.30 the top and
-       bottom bands each claim 30% of the height and the middle 40% is clear
-       before the alpha falloff is even applied. Range 0..0.45. */
-    reach: 0.30,
+       box's SHORT side. This is the guard on readability: at 0.19 the top and
+       bottom bands each claim 19% of the height and the middle 62% is clear
+       before the alpha falloff is even applied — a wider clear centre than the
+       0.30 this shipped at. Range 0..0.45. */
+    reach: 0.19,
 
     /* Parallax against the scrub, as a fraction of the box height travelled
        across the element's whole pass through the viewport. 0 pins the field to
-       the element (no lag at all); 0.18 is the tuned value; above ~0.45 the
-       field visibly slides and stops reading as atmosphere. Range 0..0.6. */
-    parallax: 0.18,
+       the element (no lag at all); above ~0.45 the field visibly slides and
+       stops reading as atmosphere. 0.28 since Aug 17 2026, up from 0.18 — still
+       comfortably inside that ceiling, and a fainter field can carry more lag
+       before the slide becomes the thing you notice. Range 0..0.6. */
+    parallax: 0.28,
 
     /* Autonomous drift speed — the slow sway that runs whether or not anyone is
        scrolling. 0 freezes the field into a still (which is also what reduced
-       motion forces). 1 is roughly one full sway cycle per 30s. Range 0..2. */
-    drift: 0.5,
+       motion forces). 1 is roughly one full sway cycle per 30s. Range 0..2.
+       0.85 since Aug 17 2026, up from 0.5. */
+    drift: 0.85,
 
     /* Population before `density` is applied.
        wisps = the big soft smoke/nebula forms; they do the dissolving.
        motes = the small dust and star points; they do the "in front of a lens"
        read. Ranges 0..24 and 0..240. Both are cheap — the cost is drawImage of
-       a baked sprite, so 100 particles is ~100 composited quads a frame. */
-    wisps: 14,
-    motes: 90,
+       a baked sprite, so 100 particles is ~100 composited quads a frame.
+       These are BEFORE `density`, which is 0.3, so the field that actually
+       mounts is 6 wisps and 63 motes — fewer than the 14/90 this shipped at,
+       despite both raw numbers going up. Read the pair, never one alone. */
+    wisps: 20,
+    motes: 211,
 
     /* Colours, most-used first: the sampler biases toward the head of the list
        (index = floor(rng^1.7 * n)), so tint[0] carries roughly two thirds of
-       the material. Moonlight is the site's cold blue, spine glow its white,
-       and the violet ties the wisps to the nebula behind the row. Any CSS hex. */
-    tint: ['#9DB2C0', '#E4E8EB', '#7A6BA8'],
+       the material and tint[2] about a fifth. Moonlight is the site's cold blue
+       (--color-moonlight) and spine glow its white (--color-white). Any CSS hex.
+
+       THE THIRD TINT IS A BLUE, AND IT USED TO BE A VIOLET — do not put the
+       violet back. #7A6BA8 shipped here to "tie the wisps to the nebula behind
+       the row", and it does not: measured Aug 17 2026, the page around a film
+       row at 1440x900 averages hsl(230 31% 15%) and its lit highlights sit at
+       hsl(210 14% 89%), so the site's whole cold band runs about 204-230. The
+       violet was at hue 255 — 25 degrees outside it, far enough that it read as
+       purple against everything near it rather than as part of the sky.
+       #7284B6 is hsl(224 32% 58%): the backdrop's own hue at wisp lightness,
+       more saturated than moonlight so the list still carries hue variety
+       instead of three shades of the same grey. B > G > R by a clear margin
+       (114/132/182), which is what keeps it blue under `lighter` — the moment R
+       climbs past G it is a violet again. */
+    tint: ['#9DB2C0', '#E4E8EB', '#7284B6'],
+
+    /* HOW FAR THE FIELD DISSOLVES AT THE OUTER BORDER OF ITS OWN CANVAS, in CSS
+       px. This is the layer's own feather, and it is not optional decoration —
+       without it the foreground reads as a box, which is the exact failure the
+       layer exists to prevent.
+
+       Why it is needed at all: `fade(d)` fades a particle by the depth of its
+       CENTRE, and a wisp is not a point — it is a sprite 92-233px across, up to
+       ~490px on the stretched long axis. A wisp centred at d = 0.3 on the top
+       edge sits 39px inside a 56px spill at FULL alpha, and the other ~100px of
+       it hangs outside the backing store, where the canvas cuts it off square.
+       Measured before this existed: the brightest pixel sitting on the canvas's
+       own right border was 14.2/255 with a 2.0 mean down the whole column — low,
+       but a straight line at low luminance is still a straight line, and the eye
+       finds it. Nothing in the (t, d) mapping fades along t either, so a wisp
+       near t = 0 or t = 1 was sliced by the left and right borders at full
+       strength.
+
+       The margin is ADDED OUTSIDE the spill rather than carved out of it, so the
+       tuned 56px crossing survives intact and the ramp only ever eats sprite
+       tails — `fade()` already guarantees no particle CENTRE reaches this far.
+       Clamped per side against the same viewport budget as the spill; see
+       measure(). Range 0..120, 0 restores the old square cut.
+
+       100 since Aug 17 2026, up from the 48 this was introduced at, and now
+       almost four times the 27px spill — the dissolve is the bulk of the
+       layer's outward extent rather than a trim on it. One consequence worth
+       knowing: vertical gets the full 100 because the page scrolls, but the
+       horizontal pad is still clamped to whatever the viewport has spare, so
+       the sides run shorter ramps and fall back into the spill. That is by
+       design and measured — see buildEdgeMask(). */
+    edgeFeather: 100,
 
     /* 'screen' | 'plus-lighter' | 'normal'. See css/filmrow-atmos-fg.css for
        why screen is the default and what it is defending against. */
@@ -396,8 +461,17 @@
     /* Geometry, in CSS px in the wrapper's own space. box* is where the media
        element sits inside the (larger) wrapper. */
     var spillL = 0, spillR = 0, spillT = 0, spillB = 0;
+    /* The feather margin OUTSIDE the spill on each side — canvas the field is
+       allowed to bleed into and be dissolved in, never placed in. */
+    var padL = 0, padR = 0, padT = 0, padB = 0;
+    /* Where the media box's top-left corner sits in wrapper space. Was
+       (spillL, spillT); the pads push it in further, so every mapping goes
+       through these two rather than reaching for spill directly. */
+    var originX = 0, originY = 0;
     var boxW = 0, boxH = 0, cw = 0, ch = 0, reachPx = 0, shortSide = 0;
     var dpr = 1;
+    /* Baked once per size change, then one composite a frame. */
+    var edgeMask = null, maskKey = '';
 
     var wisps = [], motes = [];
     var wispSprites = [], moteSprites = [];
@@ -435,16 +509,31 @@
       spillT = sp;
       spillB = sp;
 
+      /* FEATHER MARGIN, outside the spill, clamped against WHAT THE SPILL LEFT
+         of the same budget. The horizontal clamp above is the no-sideways-scroll
+         guard and this margin is just as absolutely positioned as the spill is,
+         so it has to answer to it too — subtracting the spill already taken is
+         what keeps the two from double-spending the room. At 1440x900 that
+         leaves the right side ~29px of the 48 asked for and every other side the
+         full amount; a short side degrades to a narrower ramp, never to a cut. */
+      var fe = clamp(num(opts.edgeFeather, DEFAULTS.edgeFeather), 0, 120);
+      padR = Math.min(fe, Math.max(0, docW - r.right - 1 - spillR));
+      padL = Math.min(fe, Math.max(0, r.left - spillL));
+      padT = fe;
+      padB = fe;
+
       boxW = r.width;
       boxH = r.height;
       shortSide = Math.min(boxW, boxH);
       reachPx = clamp(num(opts.reach, DEFAULTS.reach), 0, 0.45) * shortSide;
 
-      cw = spillL + boxW + spillR;
-      ch = spillT + boxH + spillB;
+      originX = padL + spillL;
+      originY = padT + spillT;
+      cw = originX + boxW + spillR + padR;
+      ch = originY + boxH + spillB + padB;
 
-      wrap.style.left = (-spillL) + 'px';
-      wrap.style.top = (-spillT) + 'px';
+      wrap.style.left = (-originX) + 'px';
+      wrap.style.top = (-originY) + 'px';
       wrap.style.width = cw + 'px';
       wrap.style.height = ch + 'px';
 
@@ -455,7 +544,86 @@
         canvas.width = bw;
         canvas.height = bh;
       }
+      buildEdgeMask();
       return true;
+    }
+
+    /* ---- the border feather ----------------------------------------------
+       A rectangular vignette, baked to its own canvas and composited over the
+       field with `destination-in` once a frame. See DEFAULTS.edgeFeather for
+       why the layer needs one at all.
+
+       Why a mask pass and not per-particle maths: the cut is a function of a
+       sprite's EXTENT, not its centre, and the extent changes every frame with
+       breathe, sway, spin and stretch. Fading a particle by how close its centre
+       sits to the border would still slice the ones that are large enough, which
+       is precisely the set that was slicing before. A mask applied after the
+       fact cannot miss one.
+
+       The four ramps go on with `destination-out`, so their alphas MULTIPLY
+       rather than add and the corners come out feathered on both axes for free —
+       a corner ends up at (1 - ax)(1 - ay), which is the separable falloff we
+       want and not the sum, which would have over-erased the corners to nothing.
+
+       Stops are a sampled smoothstep, not a two-stop linear ramp. A linear ramp
+       is continuous in value but not in slope, and the kink at each end of it
+       shows up on a dark page as a faint band exactly where this is trying to
+       stop drawing lines. */
+    function buildEdgeMask() {
+      /* RAMP LENGTH IS NOT THE PAD. The pad is the room we managed to claim
+         outside the spill; the ramp is how far in from the border the dissolve
+         actually runs, and it has to be non-zero on every side or the cut comes
+         back on that one. Where the viewport granted the full pad the two are
+         the same number and the spill is untouched — which is the desktop case
+         on three sides. Where it granted less (a phone, where the media is
+         nearly full-bleed and the horizontal clamp leaves nothing spare: at
+         390px both padL and padR come out 0) the ramp falls back into the spill
+         rather than collapsing to a hard border. Losing some crossing on a side
+         the viewport was never going to show is the cheaper half of that trade;
+         a straight bright line down the edge of the footage is not. */
+      var fe = clamp(num(opts.edgeFeather, DEFAULTS.edgeFeather), 0, 120);
+      var rampL = Math.min(fe, padL + spillL);
+      var rampR = Math.min(fe, padR + spillR);
+      var rampT = Math.min(fe, padT + spillT);
+      var rampB = Math.min(fe, padB + spillB);
+
+      var key = canvas.width + 'x' + canvas.height + ':' +
+                rampL + ',' + rampT + ',' + rampR + ',' + rampB;
+      if (key === maskKey && edgeMask) return;
+      maskKey = key;
+
+      if (!(rampL || rampR || rampT || rampB)) { edgeMask = null; return; }
+
+      var m = edgeMask || document.createElement('canvas');
+      m.width = canvas.width;
+      m.height = canvas.height;
+      var g = m.getContext('2d');
+      if (!g) { edgeMask = null; return; }
+
+      g.setTransform(dpr, 0, 0, dpr, 0, 0);
+      g.clearRect(0, 0, cw, ch);
+      g.fillStyle = '#000';
+      g.fillRect(0, 0, cw, ch);
+
+      g.globalCompositeOperation = 'destination-out';
+      /* Erase hardest ON the border and not at all by `pad` px inside it. */
+      function ramp(x0, y0, x1, y1, len) {
+        if (len <= 0) return;
+        var grd = g.createLinearGradient(x0, y0, x1, y1);
+        for (var i = 0; i <= 8; i++) {
+          var u = i / 8;                       // 0 at the border, 1 at pad
+          var s = u * u * (3 - 2 * u);         // smoothstep
+          grd.addColorStop(u, 'rgba(0,0,0,' + (1 - s) + ')');
+        }
+        g.fillStyle = grd;
+        g.fillRect(0, 0, cw, ch);
+      }
+      ramp(0, 0, rampL, 0, rampL);
+      ramp(cw, 0, cw - rampR, 0, rampR);
+      ramp(0, 0, 0, rampT, rampT);
+      ramp(0, ch, 0, ch - rampB, rampB);
+
+      edgeMask = m;
     }
 
     /* The scrub's own mapping, recomputed off the media rect rather than the
@@ -628,10 +796,10 @@
 
     function positionOf(p, t, d, out) {
       var o = offsetPx(p.edge, d);
-      if (p.edge === 'top') { out.x = spillL + t * boxW; out.y = spillT - o; }
-      else if (p.edge === 'bottom') { out.x = spillL + t * boxW; out.y = spillT + boxH + o; }
-      else if (p.edge === 'left') { out.x = spillL - o; out.y = spillT + t * boxH; }
-      else { out.x = spillL + boxW + o; out.y = spillT + t * boxH; }
+      if (p.edge === 'top') { out.x = originX + t * boxW; out.y = originY - o; }
+      else if (p.edge === 'bottom') { out.x = originX + t * boxW; out.y = originY + boxH + o; }
+      else if (p.edge === 'left') { out.x = originX - o; out.y = originY + t * boxH; }
+      else { out.x = originX + boxW + o; out.y = originY + t * boxH; }
     }
 
     /* ---- paint ---- */
@@ -690,7 +858,14 @@
         ctx.drawImage(p.sprite, pos.x - s / 2, pos.y + oy - s / 2, s, s);
       }
 
+      /* Dissolve the field into its own border. Last, and unconditionally —
+         every particle has to be down before the mask goes on, or the ones drawn
+         after it come back square. */
       ctx.globalAlpha = 1;
+      if (edgeMask) {
+        ctx.globalCompositeOperation = 'destination-in';
+        ctx.drawImage(edgeMask, 0, 0, cw, ch);
+      }
       ctx.globalCompositeOperation = 'source-over';
     }
 

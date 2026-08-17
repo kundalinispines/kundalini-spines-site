@@ -41,6 +41,15 @@
 :root {
   /* Bumped on every change, same reason as --spine-build: a browser sitting on
      a cached stylesheet is indistinguishable from a change that did not work.
+     28 = the FIRST non-empty page block in this file — html.page-home gets
+     --star-desync 1 and --star-cloud-bright 2.1. Every page block before this
+     one was a hook with nothing in it; this is the first time index.html has
+     needed to differ from the baseline at all. The Copy CSS carried thirteen
+     sky sliders and the other eleven matched :root exactly. Placed ABOVE the
+     mobile block, which matters: that block sets --star-cloud-bright 1.27, and
+     source order is the only thing keeping the phone value winning.
+     26 and 27 = the cloud sky (js/clouds-sky.js) and the merged /?tune panel;
+     neither changed a value in this file.
      25 = the sky reaches merch.html. Empty page block, class added to the
      mobile selector list at the bottom of this file. No sky variable changed.
      THIS ONE WAS NOT FOUND BY A SWEEP, unlike 23 and 24, and the difference
@@ -93,7 +102,7 @@
      as worth 63 -> 88 fps; that figure was taken on a software renderer and is
      corrected under html::after below). 6 was the single lockstep cores
      layer. */
-  --star-build: 27;
+  --star-build: 28;
 
   /* Brightness of the whole field. 0 is off — the layer still exists but adds
      no light, and under screen blending (see below) that is exactly the same
@@ -1132,6 +1141,39 @@ html.page-merch {
      (baseline 2.2) for the nebula alone — NOT --star-cloud, which is the
      kick-headroom split and means nothing on a page with no kick. Put the
      value here and leave the other pages on the baseline. */
+}
+
+html.page-home {
+  /* index.html, tuned Aug 17 2026 at /?tune on the real page. Until now this
+     file had NO page-home block at all — the note above html.page-archive says
+     a page appears here only when it actually needs to differ, and index.html
+     had been riding the baseline since the file was written. These are the two
+     values that finally made it differ; the Copy CSS printed thirteen and the
+     other eleven were byte-identical to :root and were dropped on the way in.
+
+     THIS BLOCK MUST STAY ABOVE THE @media (max-width: 600px) BLOCK BELOW, which
+     is not a style preference. `html.page-home` is (0,2,0) and a media query
+     adds nothing to specificity, so the only thing keeping the phone values
+     winning is that the mobile block names this same class and comes later in
+     source order. That matters here concretely: the mobile block sets
+     --star-cloud-bright to 1.27, and if this block were moved below it, 2.1
+     would ride all the way down to 390px with no error and nothing in the
+     console. */
+
+  /* THE FOUR BANDS DESYNC AGAIN ON THE HOME PAGE. The baseline sits at 0 with a
+     long banner explaining that the union of the four disjoint images is
+     byte-identical to the single crushed layer, so 0 costs nothing visually —
+     and, per that same banner, 1 is a one-character change back. This is that
+     change, scoped to one page. Everything the banner says still holds: the
+     four starfield-cores-*.webp files are load-bearing at BOTH settings and
+     must not be tidied away. */
+  --star-desync: 1;
+
+  /* Nebula brightness, a hair under the 2.2 baseline. Note it is the FILTER's
+     brightness and not the opacity — the note beside the baseline explains why
+     the kick must not be moved onto it, and that reasoning is unaffected by
+     the value. */
+  --star-cloud-bright: 2.1;
 }
 
 @media (max-width: 600px) {

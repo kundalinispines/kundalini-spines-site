@@ -250,7 +250,7 @@
     return {
       intensity: d.intensity, density: d.density, spill: d.spill,
       reach: d.reach, parallax: d.parallax, drift: d.drift,
-      wisps: d.wisps, motes: d.motes,
+      wisps: d.wisps, motes: d.motes, edgeFeather: d.edgeFeather,
       edges: { top: e.top, right: e.right, bottom: e.bottom, left: e.left }
     };
   }
@@ -605,6 +605,7 @@
       ['intensity', 0, 1, 0.01, 'Master dimmer on every particle. The one to pull if it ever looks like dirt. Screen cannot subtract, so no setting of this can put grime on the footage.'],
       ['density', 0, 2, 0.05, 'Multiplies both populations. Above ~1.6 the clumps merge into a continuous band and the edge comes back as a soft border.'],
       ['spill', 0, 160, 1, 'How far material reaches OUTWARD past the boundary, in CSS px. Clamped per side at measure time so it can never push the page wider than the viewport.'],
+      ['edgeFeather', 0, 120, 1, 'How far the field dissolves at the outer border of its own canvas, in CSS px. This is what stops the layer reading as a box: a wisp is a sprite up to ~490px long placed by its centre, so without a feather the canvas cuts the tails off square. Added outside the spill, so raising it does not eat the crossing. 0 restores the square cut.'],
       ['reach', 0, 0.45, 0.01, 'How far material reaches INWARD, as a fraction of the box’s short side. The readability guard: at 0.30 the middle 40% is clear before falloff.'],
       ['parallax', 0, 0.6, 0.01, 'Lag against the scrub, as a fraction of the box height over the element’s whole pass. Above ~0.45 the field visibly slides and stops reading as atmosphere.'],
       ['drift', 0, 2, 0.05, 'Autonomous sway, running whether or not anyone scrolls. 0 freezes it, which is also what reduced motion forces. 1 is about one cycle per 30s.'],

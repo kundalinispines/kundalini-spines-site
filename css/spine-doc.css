@@ -58,6 +58,50 @@
   :root { --connector-draw-ms: 1ms; }
 }
 
+html.page-home {
+  /* index.html, tuned Aug 17 2026 at /?tune on the real page. First page block
+     this file has carried; everything absent inherits the baseline above.
+     Only the values that DIFFER are here — the Copy CSS printed seven and
+     --ring-scale was byte-identical to :root, so it was dropped on the way in.
+     Same rule the page blocks in css/spine-bg.css and css/star-bg.css follow,
+     and for the same reason: a repeated baseline is a stale number in waiting.
+
+     Scoping to html.page-home keeps the --ksd-field note above intact rather
+     than breaking it. That note's requirement is that the declaration sit on
+     <html> and reach the rail by INHERITANCE, so the panel's inline styles can
+     still win; html.page-home IS <html>, one class more specific than :root,
+     so the inheritance path and the tuner both keep working. Putting these on
+     .ksd-doc instead would kill the field slider, exactly as it warns.
+
+     This file has no max-width: 600px block and its four 900px blocks set none
+     of these six, so unlike the sky file there is no source-order trap here —
+     checked, not assumed. */
+
+  /* THE RESTING RING IS NOW BIGGER THAN THE FOCUSED ONE — 38px idle against
+     28px active, where the baseline had 26 idle / 48 active. That is an
+     INVERSION of the original port, it is the owner's tuning, and it is not a
+     transposition: focusing a node now contracts the ring instead of expanding
+     it. Leave it. If it ever gets "fixed" back to 26/48 the interaction reads
+     as a different gesture, so change it only on the owner's say-so. */
+  --node-ring:          38px;
+  --node-ring-active:   28px;
+
+  /* Slower and brighter: a full ripple cycle goes 1350ms -> 3350ms and the
+     peak sits at full alpha rather than 0.9. */
+  --node-pulse-ms:      3350ms;
+  --ring-peak-a:        1;
+
+  /* Crimson, which is one of the two options the baseline's own note offers
+     (the other being moonlight). MIND THE CRIMSON BUDGET the same note names —
+     roughly two uses per page — because this spends one of them on the home
+     page's rail. */
+  --ring-color:         161, 51, 62;
+
+  /* The vertebra falloff radius, 160px -> 400px. Ticks step ~30px, so this
+     lights ~26 of them on the smooth falloff where the baseline lit ~9. */
+  --ksd-field:          400px;
+}
+
 /* The document wrapper owns the axis geometry. Every layer reads these two. */
 .ksd-doc {
   --ksd-axis: 6vw;

@@ -72,6 +72,11 @@
      actually loaded. python -m http.server serves Last-Modified only, and a
      browser sitting on a cached copy looks identical to a change that did not
      work — this makes the difference visible instead of arguable.
+     39 = --snare-decay 410 on the home page (html.page-home), the second value
+     ever to land in that block. The Copy CSS it came from carried all 26
+     sliders and the other 24 matched :root exactly, so only this one was
+     taken; see the block itself. 38 was the merged /?tune panel and the
+     film-row atmosphere, neither of which changed a value in this file.
      37 = the mobile block re-derived against today's desktop values — the
      stale set HANDOFF 14 records (width 390 -> 73px, lit 0.3 -> 0 restoring
      the flash-out-of-black mechanism, band pair rescaled) — plus the first
@@ -91,7 +96,7 @@
      kick. 33 = the lightning layer wired in (js injection + tuner rows; the
      layer itself lives in css/star-bg.css) and the stale "loaded by
      index.html only" header line above corrected. */
-  --spine-build: 38;
+  --spine-build: 39;
 
   --charge: 0;          /* 0..1, written by js/spine-bg.js every scroll frame */
 
@@ -527,6 +532,14 @@ html.page-home {
      the column exactly as it was tuned. about.html keeps its spine: its own
      block below does not set this, so it inherits the baseline 1. */
   --spine-on: 0;
+
+  /* Snare tail, Aug 17 2026. 410ms against the baseline 260. The Copy CSS this
+     came from printed all 26 spine sliders; 24 of them were byte-identical to
+     :root and were dropped on the way in, per the rule spelled out in the
+     html.page-about block below — a page block that repeats the baseline is a
+     copy of an old number waiting to go stale. This and --spine-on are the only
+     two that actually differ. */
+  --snare-decay: 410;
 }
 
 html.page-about {

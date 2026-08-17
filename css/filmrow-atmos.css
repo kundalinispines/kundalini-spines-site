@@ -130,28 +130,38 @@
      gradients reach inside it — see the note on the box below for why that
      separation is load-bearing.
 
-     0.5 + 2.5 * grow puts scale at exactly 1.0 at the shipped 0.20, and spans
-     0.875 to 1.125 across the owner's range. */
-  --fr-glow-grow: 0.2;
+     0.5 + 2.5 * grow puts scale at exactly 1.0 at grow 0.20, and spans
+     0.875 to 1.125 across the owner's range.  Shipped at 0.16 (scale 0.90)
+     since Aug 17 2026. */
+  --fr-glow-grow: 0.16;
   --fr-glow-scale: calc(0.5 + 2.5 * var(--fr-glow-grow));
 
   /* INTENSITY, AND HOW MUCH OF IT THE SCROLL OWNS.
-     --fr-glow-base 0.5 IS THE MEASURED TUNING, not half of it: every gradient
-     below is written at twice its tuned alpha, and this halves the whole layer
-     back down.  That indirection is the entire reason the scroll response is
-     free.  Composing the response into the gradients' alpha channels — which
-     is how this was built first — means every change to --fr-focus rewrites
-     nine radial gradients across a layer 2.8x the size of the clip, on every
-     scroll frame.  Composing it into `opacity` instead is a compositor
-     operation on an already-rasterised layer.
+     --fr-glow-base IS HALF THE TUNING, not the tuning: every gradient below is
+     written at twice its tuned alpha, and this halves the whole layer back
+     down.  That indirection is the entire reason the scroll response is free.
+     Composing the response into the gradients' alpha channels — which is how
+     this was built first — means every change to --fr-focus rewrites nine
+     radial gradients across a layer 2.8x the size of the clip, on every scroll
+     frame.  Composing it into `opacity` instead is a compositor operation on an
+     already-rasterised layer.
+
+     THE GLOW IS CURRENTLY DIALLED OFF, AND THAT IS THE OWNER'S TUNING, NOT A
+     BUG — base 0 zeroes the product below, so .has-fr-glow mounts, sizes and
+     clips exactly as before and paints nothing.  Do not "restore" 0.5 because
+     the layer looks absent; it is absent on purpose.  Everything the glow owns
+     structurally still has to keep working at base 0, in particular the
+     overflow clip — the ::before is still 2.8x the clip and still contributes
+     scrollable overflow whether or not it has any colour in it.
 
      resp is a FRACTION OF the base, never the whole of it, and that is what
-     stops the layer disappearing: --fr-focus is 0 before any script has run,
-     and with resp at its 0.35 maximum the field still opens at 65%.  A glow
-     that is black until the visitor scrolls is worse than one that never
-     moves, and a no-JS page must not look broken. */
-  --fr-glow-base: 0.5;
-  --fr-glow-resp: 0.35;
+     stopped the layer disappearing at the old base: --fr-focus is 0 before any
+     script has run, so at resp 0.35 the field still opened at 65% for a no-JS
+     page.  At resp 1.00 that guard is spent — the field would open at 0% and
+     rise only with scroll — which costs nothing while base is 0, and is the
+     first thing to re-check if base is ever raised again. */
+  --fr-glow-base: 0.000;
+  --fr-glow-resp: 1.00;
   --fr-focus: 0;
 }
 

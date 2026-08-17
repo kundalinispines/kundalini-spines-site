@@ -98,6 +98,17 @@
     // The rail element itself is pulled down to railTop; its `bottom: 0` in the
     // stylesheet does the rest, so the cord ends where the document does.
     rail.style.top = railTop + 'px';
+    /* AND ONLY NOW IS IT ALLOWED TO PAINT. The stylesheet keeps .ksd-rail
+       hidden until this class arrives, because `top` is a MEASURED value and
+       everything before this line is the unmeasured 0 — which put the cord
+       down the full height of the hero video, the exact thing the Aug 15 2026
+       call removed it from. Measured Aug 17 2026 at 1440x900: 874ms, 255
+       frames, of cord across the footage before this ran. Adding it here
+       rather than at the end of the function is deliberate — `top` is the only
+       thing that has to be right for the rail to be in the correct place; the
+       vertebrae and nodes appended below are additive and can land a frame
+       later without anything being in the wrong position. */
+    rail.classList.add('is-placed');
     vertebraYs(railTop, railH).forEach(function (y) {
       let anchor = false;
       for (const sec of sections) {

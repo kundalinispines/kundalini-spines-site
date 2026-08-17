@@ -17,6 +17,16 @@
 (function () {
   'use strict';
 
+  /* ANNOUNCE FIRST, before anything below can throw. about.html's head removes
+     .no-js pre-paint (see the comment there for the 1176ms-vs-1961ms flash that
+     forced it) and arms a load handler that puts .no-js BACK unless it finds
+     this attribute — that handler is the only thing standing between a failed
+     fetch of this file and a permanently hidden page. Setting it on the first
+     line, not the last, is deliberate: it means "this file arrived and started",
+     which is the condition the fallback actually cares about.
+     The remove() below stays too, so this file is still correct on its own if
+     the head script is ever dropped. */
+  document.documentElement.setAttribute('data-about-ready', '');
   document.documentElement.classList.remove('no-js');
 
   var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;

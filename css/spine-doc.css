@@ -198,8 +198,25 @@ html.page-home {
 /* top: 0 is only the pre-script fallback — js/spine-doc.js overwrites it with
    the hero video's measured bottom edge so the rail BEGINS below the footage
    instead of crossing it (owner's call, Aug 15 2026). bottom: 0 is left to the
-   stylesheet, so the cord always ends where the document does. */
-.ksd-rail { position: absolute; left: var(--ksd-axis); top: 0; bottom: 0; width: 0; z-index: 40; pointer-events: none; }
+   stylesheet, so the cord always ends where the document does.
+
+   AND THE RAIL DOES NOT PAINT UNTIL THAT MEASUREMENT HAS HAPPENED. `top: 0` is
+   a real position, not a neutral one: it runs the cord down the full height of
+   the hero video, which is precisely what the Aug 15 call took it off. Left
+   visible, the fallback shipped as a visible artefact on every load — measured
+   Aug 17 2026 at 1440x900, 874ms and 255 frames of cord across the footage
+   before js/spine-doc.js reached its first measure() and moved it.
+
+   HIDING IT COSTS NOTHING WHEN THE SCRIPT NEVER ARRIVES, which is why this is
+   `visibility` and not a JS-only concern. The markup ships ONE child, the
+   .ksd-cord line; every vertebra and every node is appended by the script (190
+   children after measure(), 1 before). So a scriptless rail was never the
+   design in miniature — it was a bare 1px gradient crossing the hero with no
+   nodes on it. Showing nothing is the better of those two, and the rail is
+   aria-hidden decoration, so nothing is lost to a reader either way. */
+.ksd-rail { position: absolute; left: var(--ksd-axis); top: 0; bottom: 0; width: 0; z-index: 40; pointer-events: none;
+  visibility: hidden; }
+.ksd-rail.is-placed { visibility: visible; }
 .ksd-cord { position: absolute; top: 0; bottom: 0; left: 0; width: 1px; transform: translateX(-50%);
   background: linear-gradient(180deg, transparent, rgba(228,232,235,.5) 10%, rgba(228,232,235,.5) 90%, transparent);
   filter: drop-shadow(0 0 4px rgba(228,232,235,.45)); opacity: var(--cord-opacity); }

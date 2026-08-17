@@ -50,6 +50,34 @@
      able to win a tie against the shared component styles without !important. -->
 <link rel="stylesheet" href="css/about-feature.css">
 
+<!-- DROP .no-js HERE, IN THE HEAD, BEFORE THE FIRST PAINT — not at the bottom
+     of the body where js/about-feature.js also does it.
+
+     js/about-feature.js is the last of nine scripts before </body>, and the
+     class survived until it ran. Measured Aug 17 2026 at 1440x900 over
+     scripts/serve.py: first contentful paint at 1176ms, .no-js not removed
+     until 1961ms. Since every hidden starting state in css/about-feature.css
+     is written so .no-js shows the FINISHED state, that is 785ms — 298 frames
+     — of the masthead painted fully visible, which then snapped hidden and
+     only came back on scroll. The reveal was running correctly the whole time;
+     what the eye caught was the fallback being shown first.
+
+     THE FALLBACK IS NOT BEING GIVEN UP, which is the whole reason this is six
+     lines instead of one. Scripts off: this inline script does not run either,
+     .no-js stays, the finished state shows — exactly as before. Scripts on but
+     about-feature.js fails to arrive: the load handler puts .no-js back, so the
+     page still lands on the finished state instead of a permanently hidden one.
+     js/about-feature.js sets the attribute on its first line; if that file is
+     ever renamed or its head moved, this check moves with it. -->
+<script>
+  document.documentElement.classList.remove('no-js');
+  addEventListener('load', function () {
+    if (!document.documentElement.hasAttribute('data-about-ready')) {
+      document.documentElement.classList.add('no-js');
+    }
+  });
+</script>
+
 <style>
   /* The full-bleed figures escape the container with `margin-inline: calc(50% -
      50vw)`, and 100vw includes the scrollbar on desktop Chrome. This is the

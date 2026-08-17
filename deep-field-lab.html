@@ -1,0 +1,1106 @@
+<!DOCTYPE html>
+<!-- ==========================================================================
+     DEEP FIELD — MARKER LAB   (isolated; zero production files touched.
+     index.html, js/spine-doc.js and the reactive background are NOT modified
+     by this page.)
+
+     PART 1 of the scroll-driven home background build. This page exists to do
+     one thing: let the owner mark where the clip's six movements begin and end,
+     and drop cue points that later hang reveals (headings, carousel, assets)
+     off exact frames. It exports those marks as JSON; part 2 consumes them.
+
+     THE SOURCE, measured Aug 17 2026 (ffmpeg via imageio_ffmpeg, there is no
+     system ffprobe):
+         hf_20260817_134439_...mp4   11.04s   1920x1080   24fps   265 frames
+         HEVC Main 10 (yuv420p10le) at 13.8 Mbps
+     HEVC 10-bit does not decode reliably in Chrome, so the re-encode is not an
+     optimisation here, it is the only way the clip plays at all.
+
+     WHY THE TIMELINE DRAWS A LUMINANCE WAVE AND NOT A CUT LIST:
+     ffmpeg scene detection finds almost nothing in this clip — one weak cluster
+     around 9.46-9.54s and nothing else, at a threshold as low as 0.10. That is
+     not a failed measurement, it is the finding: THE MOVEMENTS ARE JOINED BY
+     FLASH DISSOLVES, NOT HARD CUTS. A whiteout ramps across many frames, so
+     consecutive-frame scoring never sees a jump. Per-frame mean luminance does
+     see it, and the flashes are unmistakable in it:
+
+         frame  20   0.833s   YAVG 310    frame 122   5.083s   YAVG 521
+         frame  94   3.917s   YAVG 428    frame 225   9.375s   YAVG 546
+
+     against a floor of ~97. So the wave under the strip IS the structure of the
+     clip. The nine ghost ticks the page derives from it, keyboard 1-9:
+
+         1  peak    f20   0.833s      6  settle  f187  7.792s
+         2  settle  f42   1.750s      7  peak    f225  9.375s
+         3  peak    f94   3.917s      8  settle  f232  9.667s
+         4  peak    f122  5.083s      9  settle  f257 10.708s
+         5  settle  f137  5.708s
+
+     They are suggestions to snap to, never marks — the owner's eye decides
+     where a movement actually turns. Confirmed against the browser rather than
+     assumed: seeking to each predicted frame and reading canvas pixels gives
+     134 at f122 and 144 at f225 against 10-15 at the settles, which is the same
+     shape ffmpeg reported once the 10-bit source is scaled to 8-bit.
+
+     Do not replace the wave with a scene-cut list. It was tried and it is blind
+     to this footage.
+     ========================================================================== -->
+<html lang="en" class="page-home">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Deep Field — Marker Lab · Kundalini Spines</title>
+<meta name="robots" content="noindex">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/base.css">
+
+<style>
+:root {
+  --hud-bg:     rgba(10, 12, 18, 0.94);
+  --hud-line:   rgba(255, 255, 255, 0.14);
+  --hud-ink:    #E4E8EB;
+  --hud-dim:    #8A94A2;
+  /* The two marker colours. Blue is the site's own cold band (see V2HANDOFF 36
+     on the 204-230 hue range); crimson is quoted from the doc rail so the two
+     systems speak the same language. */
+  --mark-bound: #7284B6;
+  --mark-cue:   #C8354B;
+  --ghost:      rgba(228, 232, 235, 0.30);
+}
+
+html, body { margin: 0; padding: 0; background: #05070B; }
+body { font-family: 'IBM Plex Mono', monospace; color: var(--hud-ink); }
+
+/* ---- the clip, exactly as it would ship: fixed, covering, behind everything */
+.df-stage {
+  position: fixed; inset: 0; z-index: 0;
+  overflow: hidden; background: #05070B;
+}
+.df-stage video {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* ---- the site's own nebula, laid over the clip so a frame can be matched to it
+   THE THREE PAINT PROPERTIES ARE COPIED FROM css/star-bg.css AND MUST STAY
+   COPIED. body::before paints the plate at `cover` / `50% 50%` on a fixed
+   inset:0 layer; anything else here would line the two up differently from the
+   way the real page does, and the frame this lab picks would be the right
+   answer to the wrong question. The plate is 3840x2144 (1.791) against the
+   clip's 1920x1080 (1.778), so the two cover-crops differ by well under a
+   percent — close enough that the comparison is honest, and worth knowing
+   about rather than discovering later.
+
+   star-bg.css also runs a black-point subtract and a brightness lift on this
+   plate. Neither is applied here ON PURPOSE: this overlay answers "which frame
+   looks like the artwork", and the grade is a separate dial the owner already
+   owns. Adding it would fold two questions into one number. */
+.df-neb {
+  position: absolute; inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background-image: url("assets/hero/starfield-deep-4k.webp");
+  background-position: 50% 50%;
+  background-size: cover;
+  background-repeat: no-repeat;
+  opacity: 0;
+  display: none;
+}
+html.neb-on .df-neb { display: block; }
+
+/* The scroll spacer only exists in scroll mode. In mark mode the page must not
+   scroll at all, or every arrow-key frame step fights the scroll handler. */
+.df-spacer { display: none; }
+html.mode-scroll .df-spacer { display: block; height: 900vh; }
+html.mode-mark  { overflow: hidden; }
+
+/* ---- a stand-in for the page content, so the clip is judged behind copy and
+   not on its own. Deliberately plain: this is not a layout proposal. */
+.df-proxy {
+  position: relative; z-index: 2;   /* above .df-neb, which is 1 */
+  pointer-events: none;
+  padding: 14vh 6vw;
+}
+html.mode-mark .df-proxy { position: fixed; inset: 0; }
+.df-proxy h1 {
+  font-family: 'Big Shoulders Display', sans-serif;
+  font-weight: 800; font-size: clamp(40px, 7vw, 104px);
+  line-height: 0.92; margin: 0 0 0.4em; letter-spacing: 0.01em;
+  text-transform: uppercase; max-width: 14ch;
+  text-shadow: 0 2px 40px rgba(0,0,0,0.6);
+}
+.df-proxy p {
+  max-width: 46ch; font-size: 15px; line-height: 1.7;
+  color: rgba(228,232,235,0.82);
+  text-shadow: 0 1px 20px rgba(0,0,0,0.7);
+}
+html.hide-proxy .df-proxy { display: none; }
+
+/* ---- HUD ------------------------------------------------------------------ */
+.hud {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 50;
+  background: var(--hud-bg);
+  border-top: 1px solid var(--hud-line);
+  backdrop-filter: blur(10px);
+  font-size: 12px;
+  max-height: 62vh; overflow-y: auto;
+}
+html.hide-hud .hud { display: none; }
+
+.hud__bar {
+  display: flex; align-items: center; gap: 14px;
+  padding: 8px 14px; flex-wrap: wrap;
+  border-bottom: 1px solid var(--hud-line);
+}
+.hud__title {
+  font-family: 'Big Shoulders Display', sans-serif;
+  font-weight: 700; font-size: 15px; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--hud-ink);
+}
+.hud__read {
+  font-variant-numeric: tabular-nums; color: var(--hud-dim);
+  letter-spacing: 0.02em;
+}
+.hud__read b { color: var(--hud-ink); font-weight: 500; }
+.hud__spacer { flex: 1 1 auto; }
+
+button, select, input[type=text] {
+  font-family: inherit; font-size: 11px;
+  background: rgba(255,255,255,0.06);
+  color: var(--hud-ink);
+  border: 1px solid var(--hud-line);
+  border-radius: 3px; padding: 5px 9px; cursor: pointer;
+  letter-spacing: 0.04em;
+}
+button:hover { background: rgba(255,255,255,0.13); }
+button.is-on { background: var(--mark-bound); border-color: var(--mark-bound); color: #05070B; }
+input[type=text] { cursor: text; min-width: 148px; }
+.btn-bound { border-color: var(--mark-bound); }
+.btn-cue   { border-color: var(--mark-cue); }
+
+/* ---- timeline ------------------------------------------------------------- */
+.tl {
+  position: relative; margin: 10px 14px 4px;
+  height: 104px;
+  border: 1px solid var(--hud-line); border-radius: 3px;
+  overflow: hidden;
+  cursor: ew-resize;
+  /* The strip is 265 frames at 6px each = 1590x40, one tile per frame, so a
+     pixel of strip maps to a frame of clip at any HUD width. */
+  background-image: url('assets/lab/deep-field-strip.jpg');
+  background-size: 100% 44px;
+  background-position: 0 0;
+  background-repeat: no-repeat;
+  user-select: none;
+}
+.tl__canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+
+/* Hover preview, fed by the 20x14 sprite grid.
+   POSITION IS FIXED AND JS PLACES IT, which is not fussiness: the timeline
+   carries overflow:hidden so the strip cannot spill, and the HUD carries
+   overflow-y:auto so it can scroll. An absolutely-positioned peek sitting above
+   the timeline is clipped by BOTH, and it is clipped silently — the element is
+   in the DOM with the right background, simply not painted. It shipped that way
+   for one build and looked like the sprite sheet had failed to load. */
+.tl__peek {
+  position: fixed; left: 0; top: 0;
+  width: 160px; height: 90px;
+  border: 1px solid var(--hud-line); border-radius: 3px;
+  background-image: url('assets/lab/deep-field-sprites.jpg');
+  background-size: 3200px 1260px;
+  pointer-events: none; opacity: 0; transition: opacity 90ms linear;
+  z-index: 60;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.7);
+}
+.tl__peek.is-on { opacity: 1; }
+.tl__peek span {
+  position: absolute; left: 0; bottom: 0; right: 0;
+  background: rgba(5,7,11,0.85); font-size: 10px;
+  padding: 2px 5px; text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- marker table --------------------------------------------------------- */
+.marks { padding: 4px 14px 12px; }
+.marks table { width: 100%; border-collapse: collapse; font-size: 11px; }
+.marks th {
+  text-align: left; color: var(--hud-dim); font-weight: 400;
+  padding: 4px 6px; border-bottom: 1px solid var(--hud-line);
+  letter-spacing: 0.06em; text-transform: uppercase; font-size: 10px;
+}
+.marks td { padding: 3px 6px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+.marks tr:hover td { background: rgba(255,255,255,0.04); }
+.marks .swatch {
+  display: inline-block; width: 9px; height: 9px; border-radius: 2px;
+  margin-right: 6px; vertical-align: -1px;
+}
+.marks .num { font-variant-numeric: tabular-nums; color: var(--hud-dim); }
+.marks input[type=text] { min-width: 0; width: 100%; padding: 2px 5px; }
+.marks .mini {
+  padding: 2px 6px; font-size: 10px;
+}
+.marks__empty { color: var(--hud-dim); padding: 10px 6px; font-size: 11px; }
+
+/* ---- nebula-match row ----------------------------------------------------- */
+.hud__bar--neb { background: rgba(255,255,255,0.025); }
+.hud__bar--neb label {
+  color: var(--hud-dim); letter-spacing: 0.06em;
+  text-transform: uppercase; font-size: 10px;
+}
+input[type=range] {
+  -webkit-appearance: none; appearance: none;
+  width: 190px; height: 3px; border-radius: 2px;
+  background: rgba(255,255,255,0.22); outline: none; cursor: pointer;
+}
+/* Styled explicitly because an unstyled range renders in default browser blue,
+   which is the one bug a whole run of measurement missed and a screenshot
+   caught immediately (see V2HANDOFF 21). */
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 13px; height: 13px; border-radius: 50%;
+  background: var(--mark-bound); border: 1px solid rgba(255,255,255,0.5);
+  cursor: pointer;
+}
+.neb-val { font-variant-numeric: tabular-nums; color: var(--hud-ink); min-width: 38px; }
+.hits { display: flex; gap: 5px; align-items: center; flex-wrap: wrap; }
+.hit {
+  font-size: 10px; padding: 3px 7px; border-radius: 3px;
+  border: 1px solid var(--mark-bound); background: rgba(114,132,182,0.16);
+  cursor: pointer; font-variant-numeric: tabular-nums;
+}
+.hit:hover { background: var(--mark-bound); color: #05070B; }
+.hit--best { background: var(--mark-bound); color: #05070B; font-weight: 500; }
+.scan-note { color: var(--hud-dim); font-size: 10.5px; }
+
+/* ---- tooltips -------------------------------------------------------------
+   A custom tip rather than the native title attribute, for two reasons that
+   both matter for a tool used cold: title waits about half a second before it
+   appears, which is long enough that nobody discovers it, and it cannot hold a
+   sentence explaining WHY a control exists. These tips are written to be read
+   once, tomorrow, by someone who has not seen this page before.
+
+   NO APOSTROPHES IN ANY TIP STRING. The /?tune panel has a hard rule about this
+   because a single quote inside a single-quoted tip kills the whole panel; that
+   panel is not this one, but the habit costs nothing and the next session is
+   likely to copy this block. */
+.tip {
+  position: fixed; z-index: 90;
+  max-width: 300px;
+  background: rgba(6, 8, 13, 0.97);
+  border: 1px solid var(--hud-line);
+  border-radius: 4px;
+  padding: 7px 10px;
+  font-size: 11px; line-height: 1.55;
+  color: var(--hud-ink);
+  box-shadow: 0 10px 34px rgba(0,0,0,0.75);
+  pointer-events: none;
+  opacity: 0; transition: opacity 90ms linear;
+}
+.tip.is-on { opacity: 1; }
+.tip b { color: var(--mark-bound); font-weight: 500; }
+
+.hud__out {
+  margin: 0 14px 12px; padding: 8px 10px;
+  background: rgba(0,0,0,0.45); border: 1px solid var(--hud-line);
+  border-radius: 3px; font-size: 10.5px; line-height: 1.5;
+  white-space: pre; overflow-x: auto; max-height: 150px; color: var(--hud-dim);
+}
+.hud__help {
+  padding: 0 14px 12px; color: var(--hud-dim); font-size: 10.5px; line-height: 1.7;
+}
+.hud__help kbd {
+  background: rgba(255,255,255,0.09); border: 1px solid var(--hud-line);
+  border-radius: 2px; padding: 1px 5px; font-family: inherit; font-size: 10px;
+}
+.hud__note { color: #C9A227; }
+</style>
+</head>
+
+<body>
+
+<!-- The clip. WEBM IS LISTED FIRST, AND THAT IS THE OPPOSITE OF WHAT
+     hero-scrub-lab.html DOES — on purpose, because it was measured on THIS pair
+     rather than inherited. That page found the hero's webm seeking at a 154ms
+     median against ~0ms for its mp4, and this file first shipped copying it.
+     Measured Aug 17 2026, Chrome, 14 seeks spread across the clip:
+
+         deep-field.webm   median 10.1ms   max 12.1ms   (VP9, crf 31, -g 4)
+         deep-field.mp4    median 25.0ms   max 34.3ms   (x264, crf 22, -g 4)
+
+     The webm is two and a half times quicker here. The hero's numbers are not
+     wrong, they are about a different encode; carrying them over would have put
+     the slow source first on a clip that gets seeked every single frame.
+     Re-measure per clip. Do not infer this ordering from the other lab. -->
+<div class="df-stage">
+  <video id="vid" muted playsinline preload="auto" aria-hidden="true"
+         poster="assets/video/deep-field-poster.jpg">
+    <source src="assets/video/deep-field.webm" type="video/webm">
+    <source src="assets/video/deep-field.mp4" type="video/mp4">
+  </video>
+  <!-- Inside the stage, not a sibling of it: mix-blend-mode composites against
+       the backdrop within its own stacking context, and `difference` against
+       anything other than the video is a meaningless picture. -->
+  <div class="df-neb" id="neb"></div>
+</div>
+
+<div class="df-proxy">
+  <h1>Knowledge hidden in plain sight</h1>
+  <p>Placeholder copy standing in for the real masthead, so the field is judged
+     behind text rather than on its own. Not a layout proposal.</p>
+</div>
+
+<div class="df-spacer"></div>
+
+<!-- Both live outside the HUD on purpose — see .tl__peek in the stylesheet. -->
+<div class="tl__peek" id="peek"><span id="peekLabel">f000</span></div>
+<div class="tip" id="tip"></div>
+
+<div class="hud">
+  <div class="hud__bar">
+    <span class="hud__title">Deep Field</span>
+    <span class="hud__read">
+      <b id="rFrame">f000</b>/265 &nbsp; <b id="rTime">0.000</b>s &nbsp;
+      <span id="rPct">0.0%</span>
+    </span>
+
+    <button id="bPlay" data-tip="<b>Space</b> — play straight through at speed. Any scrub or frame step pauses it, because a playing video fights every seek the timeline makes.">▶ play</button>
+    <button id="bPrev" data-tip="<b>Left arrow</b> — back one frame, a 24th of a second. Hold <b>Shift</b> for ten at a time.">◀ frame</button>
+    <button id="bNext" data-tip="<b>Right arrow</b> — forward one frame, a 24th of a second. Hold <b>Shift</b> for ten at a time.">frame ▶</button>
+
+    <span class="hud__spacer"></span>
+
+    <input type="text" id="mName" placeholder="marker name (optional)"
+           data-tip="Name a mark before you drop it. You can also rename it later in the table below — both write to the same place.">
+    <button id="bBound" class="btn-bound" data-tip="<b>B</b> — split the clip here. Boundaries are what define the sections, so five of them give you six parts. The section list rebuilds itself from these, so the two can never disagree.">+ boundary</button>
+    <button id="bCue" class="btn-cue" data-tip="<b>C</b> — a point to hang a reveal on: a heading, the carousel, an asset arriving. Cues do NOT split sections, so drop as many as you want inside one.">+ cue</button>
+
+    <span class="hud__spacer"></span>
+
+    <button id="bSnap" class="is-on" data-tip="New marks jump to a suggested tick if one sits within four frames. Turn it off when you want a mark exactly where the playhead is and nowhere else.">snap: on</button>
+    <button id="bMode" data-tip="<b>mark</b> locks the page still and gives the timeline the scrub. <b>scroll</b> hands the scrub to the page so you can feel the clip behaving as a background.">mode: mark</button>
+    <button id="bProxy" data-tip="Hide the placeholder headline to judge a frame on its own. It is only there so the field is not judged without text over it.">text: on</button>
+    <button id="bCopy" data-tip="Puts the whole marker set on the clipboard, ready to paste into chat.">copy</button>
+    <button id="bSave" data-tip="Downloads the marker set as <b>deep-field-marks.json</b>. This is the copy that survives a cleared cache, a closed browser, or a different machine — use this one if you are handing the marks over later.">save</button>
+    <button id="bClear" data-tip="Deletes every mark on the clip. There is no undo, so save the file first if the set is worth anything.">clear</button>
+  </div>
+
+  <div class="hud__bar hud__bar--neb">
+    <button id="bNeb" data-tip="<b>N</b> — lay the site background artwork over the clip, so you can compare the two directly and find the frame that already looks like the page.">nebula: off</button>
+
+    <label for="nebPlate">plate</label>
+    <select id="nebPlate" data-tip="Which artwork to compare against. <b>starfield-deep</b> is the sky the live site actually paints behind every page. The cores plates are the bright-star layers over it, and lightning is the bolt artwork.">
+      <option value="assets/hero/starfield-deep-4k.webp">starfield-deep (the sky)</option>
+      <option value="assets/hero/starfield-cores-1.webp">starfield-cores-1</option>
+      <option value="assets/hero/starfield-cores-2.webp">starfield-cores-2</option>
+      <option value="assets/hero/starfield-cores-3.webp">starfield-cores-3</option>
+      <option value="assets/hero/starfield-cores-4.webp">starfield-cores-4</option>
+      <option value="assets/hero/nebula-lightning-4k.webp">nebula-lightning</option>
+    </select>
+
+    <label for="nebOp">opacity</label>
+    <input type="range" id="nebOp" min="0" max="100" value="50"
+           data-tip="How strongly the artwork sits over the clip. Around 50 is best for judging alignment; push it to 100 when using the difference blend.">
+    <span class="neb-val" id="nebOpVal">50%</span>
+
+    <label for="nebBlend">blend</label>
+    <select id="nebBlend" data-tip="<b>normal</b> to eyeball the two together. <b>difference</b> paints black wherever they agree, so the darkest picture is the closest frame — that is the one to trust over your eye.">
+      <option value="normal">normal — eyeball it</option>
+      <option value="difference">difference — black means matched</option>
+      <option value="screen">screen</option>
+      <option value="overlay">overlay</option>
+    </select>
+
+    <button id="bScan" data-tip="Scores every one of the 265 frames against the plate and jumps to the winner. Takes a couple of seconds. The amber line that appears on the timeline is the score across the whole clip, so you can see where else it comes close.">find closest</button>
+    <span class="hits" id="hits"><span class="scan-note">scores all 265 frames against the plate</span></span>
+  </div>
+
+  <div class="tl" id="tl"
+       data-tip="Drag anywhere to scrub. Hover to preview a frame without moving the playhead. The strip is one slice per frame; the pale wave under it is measured brightness, and its peaks are the flash dissolves that join the movements.">
+    <canvas class="tl__canvas" id="tlc"></canvas>
+  </div>
+
+  <div class="marks" id="marks"></div>
+  <pre class="hud__out" id="out"></pre>
+
+  <div class="hud__help">
+    <kbd>Space</kbd> play/pause &nbsp;·&nbsp; <kbd>←</kbd><kbd>→</kbd> step a frame
+    (<kbd>Shift</kbd> = 10) &nbsp;·&nbsp; <kbd>B</kbd> boundary &nbsp;·&nbsp;
+    <kbd>C</kbd> cue &nbsp;·&nbsp; <kbd>Backspace</kbd> delete nearest &nbsp;·&nbsp;
+    <kbd>N</kbd> nebula overlay &nbsp;·&nbsp;
+    <kbd>H</kbd> hide HUD &nbsp;·&nbsp; <kbd>P</kbd> hide text &nbsp;·&nbsp;
+    <kbd>1</kbd>–<kbd>9</kbd> jump to that suggested tick
+    <br>
+    <span class="hud__note">Ghost ticks are measured luminance events, not marks.</span>
+    Tall ones are flash peaks (a movement handing over), short ones are the dark
+    settles between. Marks autosave to this browser, which is a working copy and
+    not a backup — <b>save</b> is the one that survives a cache clear or a
+    different machine. Every control has a tooltip; hover it.
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  var FPS = 24, FRAMES = 265, DUR = FRAMES / FPS;   // 11.041666...
+  var LS_KEY = 'ks-deep-field-marks-v1';
+
+  var vid   = document.getElementById('vid');
+  var tl    = document.getElementById('tl');
+  var tlc   = document.getElementById('tlc');
+  var ctx   = tlc.getContext('2d');
+  var peek  = document.getElementById('peek');
+  var peekL = document.getElementById('peekLabel');
+  var root  = document.documentElement;
+
+  var lum = [];          // per-frame normalised luminance, 265 entries
+  var ticks = [];        // suggested snap points, from lum
+  var marks = [];        // the owner's marks
+  var frame = 0;
+  var playing = false;
+  var snapOn = true;
+
+  root.classList.add('mode-mark');
+
+  /* ---- frame <-> time -----------------------------------------------------
+     Seek to the MIDDLE of a frame, not its leading edge. Asking for exactly
+     f/FPS lands on a boundary where the decoder is free to give either
+     neighbour, and marks made that way are off by one about half the time. */
+  function frameToTime(f) { return Math.min(DUR - 0.001, (f + 0.5) / FPS); }
+  function timeToFrame(t) { return Math.max(0, Math.min(FRAMES - 1, Math.round(t * FPS - 0.5))); }
+
+  function seek(f, quiet) {
+    frame = Math.max(0, Math.min(FRAMES - 1, f | 0));
+    if (vid.readyState >= 1) vid.currentTime = frameToTime(frame);
+    if (!quiet) render();
+  }
+
+  /* ---- suggested ticks, derived from the luminance wave --------------------
+     Peaks are the flash dissolves that join the movements; troughs are the dark
+     settles just after one. Both are computed, never hardcoded, so the list
+     stays honest if the clip is ever re-encoded. */
+  function buildTicks() {
+    var win = 7, i, j, isMax, isMin;
+    var raw = [];
+    for (i = win; i < lum.length - win; i++) {
+      isMax = true; isMin = true;
+      for (j = i - win; j <= i + win; j++) {
+        if (j === i) continue;
+        if (lum[j] >= lum[i]) isMax = false;
+        if (lum[j] <= lum[i]) isMin = false;
+      }
+      if (isMax && lum[i] > 0.32) raw.push({ f: i, kind: 'peak', v: lum[i] });
+      else if (isMin && lum[i] < 0.16) raw.push({ f: i, kind: 'settle', v: lum[i] });
+    }
+    // collapse neighbours of the same kind, keeping the strongest
+    ticks = [];
+    for (i = 0; i < raw.length; i++) {
+      var last = ticks[ticks.length - 1];
+      if (last && last.kind === raw[i].kind && raw[i].f - last.f <= 10) {
+        var better = raw[i].kind === 'peak' ? raw[i].v > last.v : raw[i].v < last.v;
+        if (better) ticks[ticks.length - 1] = raw[i];
+      } else ticks.push(raw[i]);
+    }
+  }
+
+  function nearestTick(f) {
+    var best = null, bd = 1e9;
+    for (var i = 0; i < ticks.length; i++) {
+      var d = Math.abs(ticks[i].f - f);
+      if (d < bd) { bd = d; best = ticks[i]; }
+    }
+    return bd <= 4 ? best : null;
+  }
+
+  /* ---- marks --------------------------------------------------------------- */
+  function addMark(type) {
+    var f = frame;
+    if (snapOn) { var t = nearestTick(f); if (t) f = t.f; }
+    if (marks.some(function (m) { return m.f === f && m.type === type; })) return;
+    var name = document.getElementById('mName').value.trim();
+    marks.push({ id: 'm' + Date.now().toString(36), type: type, name: name, f: f });
+    marks.sort(function (a, b) { return a.f - b.f; });
+    document.getElementById('mName').value = '';
+    save(); render();
+  }
+
+  function delNearest() {
+    if (!marks.length) return;
+    var bi = 0, bd = 1e9;
+    marks.forEach(function (m, i) {
+      var d = Math.abs(m.f - frame);
+      if (d < bd) { bd = d; bi = i; }
+    });
+    marks.splice(bi, 1); save(); render();
+  }
+
+  function save() {
+    try { localStorage.setItem(LS_KEY, JSON.stringify(marks)); } catch (e) {}
+  }
+  function load() {
+    try {
+      var raw = localStorage.getItem(LS_KEY);
+      if (raw) marks = JSON.parse(raw) || [];
+    } catch (e) { marks = []; }
+  }
+
+  /* ---- export -------------------------------------------------------------
+     Sections are DERIVED from the boundaries rather than stored, so there is
+     one source of truth and no way for the two to disagree. A boundary at
+     frame 0 is not required: the first section always starts there. */
+  function buildExport() {
+    var bounds = marks.filter(function (m) { return m.type === 'boundary'; })
+                      .map(function (m) { return m; });
+    var edges = [0];
+    bounds.forEach(function (b) { if (b.f > 0 && edges.indexOf(b.f) < 0) edges.push(b.f); });
+    edges.sort(function (a, b) { return a - b; });
+
+    var sections = edges.map(function (start, i) {
+      var end = (i + 1 < edges.length) ? edges[i + 1] : FRAMES;
+      var owner = bounds.filter(function (b) { return b.f === start; })[0];
+      return {
+        index: i,
+        name: owner && owner.name ? owner.name : ('part ' + (i + 1)),
+        startFrame: start,
+        endFrame: end,
+        startTime: +(start / FPS).toFixed(4),
+        endTime: +(end / FPS).toFixed(4),
+        startPct: +(start / FRAMES).toFixed(4),
+        endPct: +(end / FRAMES).toFixed(4)
+      };
+    });
+
+    return {
+      clip: 'deep-field',
+      source: 'hf_20260817_134439_24ec20db-eecc-4fa0-b395-32fd6db6c6ae.mp4',
+      fps: FPS, frames: FRAMES, duration: +DUR.toFixed(6),
+      marks: marks.map(function (m) {
+        return {
+          id: m.id, type: m.type, name: m.name || '',
+          frame: m.f,
+          time: +(m.f / FPS).toFixed(4),
+          pct: +(m.f / FRAMES).toFixed(4)
+        };
+      }),
+      sections: sections
+    };
+  }
+
+  /* ---- drawing ------------------------------------------------------------- */
+  function sizeCanvas() {
+    var dpr = window.devicePixelRatio || 1;
+    var r = tl.getBoundingClientRect();
+    tlc.width = Math.max(1, Math.round(r.width * dpr));
+    tlc.height = Math.max(1, Math.round(r.height * dpr));
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    return r;
+  }
+
+  function drawTimeline() {
+    var r = sizeCanvas();
+    var W = r.width, H = r.height;
+    var waveTop = 44, waveH = H - waveTop;      // the strip image owns the top 44px
+    ctx.clearRect(0, 0, W, H);
+
+    // luminance wave
+    if (lum.length) {
+      ctx.beginPath();
+      ctx.moveTo(0, H);
+      for (var i = 0; i < lum.length; i++) {
+        var x = (i / (FRAMES - 1)) * W;
+        var y = waveTop + waveH - (lum[i] * (waveH - 8)) - 4;
+        ctx.lineTo(x, y);
+      }
+      ctx.lineTo(W, H);
+      ctx.closePath();
+      ctx.fillStyle = 'rgba(114, 132, 182, 0.22)';
+      ctx.fill();
+
+      ctx.beginPath();
+      for (var k = 0; k < lum.length; k++) {
+        var x2 = (k / (FRAMES - 1)) * W;
+        var y2 = waveTop + waveH - (lum[k] * (waveH - 8)) - 4;
+        if (k === 0) ctx.moveTo(x2, y2); else ctx.lineTo(x2, y2);
+      }
+      ctx.strokeStyle = 'rgba(157, 178, 192, 0.85)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+
+    /* match curve, once a scan has run. Drawn on its own scale rather than the
+       luminance one: correlation lives roughly in -0.3..0.9 here, and plotting
+       it against a 0..1 axis would flatten the peak that is the entire point. */
+    if (scores) {
+      var mn = Infinity, mx = -Infinity, q;
+      for (q = 0; q < scores.length; q++) {
+        if (scores[q] < mn) mn = scores[q];
+        if (scores[q] > mx) mx = scores[q];
+      }
+      var span = (mx - mn) || 1;
+      ctx.beginPath();
+      for (q = 0; q < scores.length; q++) {
+        var sx = (q / (FRAMES - 1)) * W;
+        var sy = waveTop + waveH - (((scores[q] - mn) / span) * (waveH - 8)) - 4;
+        if (q === 0) ctx.moveTo(sx, sy); else ctx.lineTo(sx, sy);
+      }
+      ctx.strokeStyle = 'rgba(201, 162, 39, 0.95)';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    }
+
+    // suggested ticks
+    ticks.forEach(function (t, i) {
+      var x = (t.f / (FRAMES - 1)) * W;
+      var h = t.kind === 'peak' ? waveH : waveH * 0.42;
+      ctx.beginPath();
+      ctx.moveTo(x, H); ctx.lineTo(x, H - h);
+      ctx.strokeStyle = 'rgba(228, 232, 235, 0.34)';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([2, 3]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      if (i < 9) {
+        ctx.fillStyle = 'rgba(228, 232, 235, 0.45)';
+        ctx.font = '9px "IBM Plex Mono", monospace';
+        ctx.fillText(String(i + 1), x + 2, H - h + 9);
+      }
+    });
+
+    // marks
+    marks.forEach(function (m) {
+      var x = (m.f / (FRAMES - 1)) * W;
+      var col = m.type === 'boundary' ? '#7284B6' : '#C8354B';
+      ctx.beginPath();
+      ctx.moveTo(x, 0); ctx.lineTo(x, H);
+      ctx.strokeStyle = col; ctx.lineWidth = m.type === 'boundary' ? 2 : 1;
+      ctx.stroke();
+      ctx.fillStyle = col;
+      if (m.type === 'boundary') ctx.fillRect(x - 3, 0, 6, 7);
+      else { ctx.beginPath(); ctx.arc(x, 4, 3.4, 0, 6.284); ctx.fill(); }
+    });
+
+    // playhead
+    var px = (frame / (FRAMES - 1)) * W;
+    ctx.beginPath();
+    ctx.moveTo(px, 0); ctx.lineTo(px, H);
+    ctx.strokeStyle = '#F2F2EE'; ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.fillStyle = '#F2F2EE';
+    ctx.beginPath();
+    ctx.moveTo(px - 5, 0); ctx.lineTo(px + 5, 0); ctx.lineTo(px, 7);
+    ctx.closePath(); ctx.fill();
+  }
+
+  function drawMarks() {
+    var host = document.getElementById('marks');
+    if (!marks.length) {
+      host.innerHTML = '<div class="marks__empty">No marks yet. Scrub to a frame and press '
+        + '<b>B</b> for a section boundary or <b>C</b> for a cue point.</div>';
+      return;
+    }
+    var rows = marks.map(function (m, i) {
+      var col = m.type === 'boundary' ? 'var(--mark-bound)' : 'var(--mark-cue)';
+      return '<tr>'
+        + '<td><span class="swatch" style="background:' + col + '"></span>' + m.type + '</td>'
+        + '<td><input type="text" data-i="' + i + '" class="mname" value="'
+        + (m.name || '').replace(/"/g, '&quot;') + '" placeholder="unnamed"></td>'
+        + '<td class="num">f' + m.f + '</td>'
+        + '<td class="num">' + (m.f / FPS).toFixed(3) + 's</td>'
+        + '<td class="num">' + (100 * m.f / FRAMES).toFixed(1) + '%</td>'
+        + '<td><button class="mini mjump" data-i="' + i + '" data-tip="Jump the playhead to this mark.">go</button> '
+        + '<button class="mini mdel" data-i="' + i + '" data-tip="Delete this mark. No undo.">del</button></td>'
+        + '</tr>';
+    }).join('');
+    host.innerHTML = '<table><thead><tr><th>type</th><th>name</th><th>frame</th>'
+      + '<th>time</th><th>pct</th><th></th></tr></thead><tbody>' + rows + '</tbody></table>';
+
+    host.querySelectorAll('.mjump').forEach(function (b) {
+      b.onclick = function () { seek(marks[+b.dataset.i].f); };
+    });
+    host.querySelectorAll('.mdel').forEach(function (b) {
+      b.onclick = function () { marks.splice(+b.dataset.i, 1); save(); render(); };
+    });
+    host.querySelectorAll('.mname').forEach(function (inp) {
+      inp.onchange = function () { marks[+inp.dataset.i].name = inp.value.trim(); save(); renderOut(); };
+    });
+  }
+
+  function renderOut() {
+    document.getElementById('out').textContent = JSON.stringify(buildExport(), null, 2);
+  }
+
+  function render() {
+    document.getElementById('rFrame').textContent = 'f' + String(frame).padStart(3, '0');
+    document.getElementById('rTime').textContent = (frame / FPS).toFixed(3);
+    document.getElementById('rPct').textContent = (100 * frame / FRAMES).toFixed(1) + '%';
+    drawTimeline(); drawMarks(); renderOut();
+  }
+
+  /* ---- timeline interaction ------------------------------------------------ */
+  function xToFrame(clientX) {
+    var r = tl.getBoundingClientRect();
+    var p = (clientX - r.left) / r.width;
+    return Math.max(0, Math.min(FRAMES - 1, Math.round(p * (FRAMES - 1))));
+  }
+
+  var dragging = false;
+  tl.addEventListener('pointerdown', function (e) {
+    dragging = true; tl.setPointerCapture(e.pointerId);
+    pause(); seek(xToFrame(e.clientX));
+  });
+  tl.addEventListener('pointermove', function (e) {
+    var f = xToFrame(e.clientX);
+    if (dragging) seek(f);
+    // hover preview off the 20x14 sprite grid
+    var col = f % 20, row = Math.floor(f / 20);
+    peek.style.backgroundPosition = (-col * 160) + 'px ' + (-row * 90) + 'px';
+    var r = tl.getBoundingClientRect();
+    peek.style.left = Math.max(6, Math.min(window.innerWidth - 166, e.clientX - 80)) + 'px';
+    peek.style.top  = (r.top - 96) + 'px';
+    peek.classList.add('is-on');
+    peekL.textContent = 'f' + f + ' · ' + (f / FPS).toFixed(3) + 's';
+  });
+  tl.addEventListener('pointerup', function () { dragging = false; });
+  tl.addEventListener('pointerleave', function () { peek.classList.remove('is-on'); });
+
+  /* ---- playback ------------------------------------------------------------ */
+  function play() {
+    if (playing) return;
+    playing = true;
+    document.getElementById('bPlay').textContent = '❚❚ pause';
+    vid.play().catch(function () {});
+    (function loop() {
+      if (!playing) return;
+      frame = timeToFrame(vid.currentTime);
+      render();
+      requestAnimationFrame(loop);
+    })();
+  }
+  function pause() {
+    if (!playing) return;
+    playing = false;
+    vid.pause();
+    document.getElementById('bPlay').textContent = '▶ play';
+    frame = timeToFrame(vid.currentTime);
+    render();
+  }
+
+  /* ---- scroll mode ---------------------------------------------------------
+     The shape part 2 has to hit: whole-page scroll drives the whole clip. Kept
+     deliberately naive here (a straight linear map with a lerp) so the marking
+     is not judged through an easing curve nobody has agreed to yet. */
+  var target = 0, shown = 0, raf = 0;
+  function tick() {
+    raf = 0;
+    shown += (target - shown) * 0.3;
+    if (!vid.seeking && vid.duration && Math.abs(vid.currentTime - shown) > 1 / 48) {
+      vid.currentTime = shown;
+    }
+    frame = timeToFrame(shown);
+    render();
+    if (Math.abs(target - shown) > 0.005) raf = requestAnimationFrame(tick);
+  }
+  function onScroll() {
+    if (!root.classList.contains('mode-scroll') || !vid.duration) return;
+    var max = document.documentElement.scrollHeight - window.innerHeight;
+    var p = max > 0 ? window.scrollY / max : 0;
+    target = Math.max(0, Math.min(1, p)) * (vid.duration - 0.05);
+    if (!raf) raf = requestAnimationFrame(tick);
+  }
+  window.addEventListener('scroll', onScroll, { passive: true });
+  window.addEventListener('resize', function () { onScroll(); render(); });
+
+  /* ---- nebula overlay + frame matching -------------------------------------
+     The overlay answers the question by eye. The scan answers it by number, and
+     the two disagree often enough that both are here.
+
+     THE METRIC IS ZERO-MEAN NORMALISED CROSS-CORRELATION on downscaled luma,
+     not a pixel difference, and the choice is load-bearing. The clip swings
+     from YAVG 97 to 546 while the plate has its own fixed exposure, so a plain
+     difference just elects whichever frame happens to share the plate's average
+     brightness — it would answer "which frame is as dark as the artwork", not
+     "which frame looks like it". NCC subtracts each image's own mean and
+     divides by its own deviation, so it scores STRUCTURE: where the band runs,
+     how it is angled, where the light gathers. Brightness and contrast fall out
+     of it entirely, which is correct, because those are dials the owner already
+     controls in star-bg.css.
+
+     Scored at 96x54. Finer resolution starts scoring star positions, and the
+     stars are the one thing that genuinely cannot match — the plate's stars are
+     a different sky from the clip's. */
+  var SW = 96, SH = 54;
+  var scoreCanvas = document.createElement('canvas');
+  scoreCanvas.width = SW; scoreCanvas.height = SH;
+  var sctx = scoreCanvas.getContext('2d', { willReadFrequently: true });
+  var plateVec = null, scores = null, scanning = false;
+
+  /* Same cover crop the CSS does, so the numbers describe what is on screen. */
+  function drawCover(src, iw, ih) {
+    sctx.clearRect(0, 0, SW, SH);
+    var s = Math.max(SW / iw, SH / ih);
+    var dw = iw * s, dh = ih * s;
+    sctx.drawImage(src, (SW - dw) / 2, (SH - dh) / 2, dw, dh);
+  }
+
+  /* luma, mean-subtracted and normalised to unit length; null if flat */
+  function vecFromCanvas() {
+    var d = sctx.getImageData(0, 0, SW, SH).data;
+    var n = SW * SH, v = new Float64Array(n), sum = 0, i, j;
+    for (i = 0, j = 0; i < d.length; i += 4, j++) {
+      v[j] = d[i] * 0.299 + d[i + 1] * 0.587 + d[i + 2] * 0.114;
+      sum += v[j];
+    }
+    var mean = sum / n, ss = 0;
+    for (j = 0; j < n; j++) { v[j] -= mean; ss += v[j] * v[j]; }
+    var norm = Math.sqrt(ss);
+    if (norm < 1e-6) return null;
+    for (j = 0; j < n; j++) v[j] /= norm;
+    return v;
+  }
+
+  function loadPlateVec() {
+    return new Promise(function (resolve, reject) {
+      var img = new Image();
+      img.onload = function () {
+        drawCover(img, img.naturalWidth, img.naturalHeight);
+        plateVec = vecFromCanvas();
+        resolve(plateVec);
+      };
+      img.onerror = reject;
+      img.src = document.getElementById('nebPlate').value;
+    });
+  }
+
+  function seekAwait(f) {
+    return new Promise(function (res) {
+      var done = function () { vid.removeEventListener('seeked', done); res(); };
+      vid.addEventListener('seeked', done);
+      vid.currentTime = frameToTime(f);
+    });
+  }
+
+  function scan() {
+    if (scanning) return;
+    scanning = true;
+    pause();
+    var hits = document.getElementById('hits');
+    var wasFrame = frame;
+
+    loadPlateVec().then(function () {
+      var out = new Float64Array(FRAMES);
+      var i = 0;
+      (function step() {
+        if (i >= FRAMES) return finish(out, wasFrame);
+        hits.innerHTML = '<span class="scan-note">scanning… ' + i + '/' + FRAMES + '</span>';
+        seekAwait(i).then(function () {
+          drawCover(vid, vid.videoWidth, vid.videoHeight);
+          var v = vecFromCanvas();
+          var s = 0;
+          if (v && plateVec) for (var k = 0; k < v.length; k++) s += v[k] * plateVec[k];
+          out[i] = s;
+          i++;
+          step();
+        });
+      })();
+    }).catch(function () {
+      hits.innerHTML = '<span class="scan-note">plate failed to load</span>';
+      scanning = false;
+    });
+  }
+
+  function finish(out, wasFrame) {
+    scores = out;
+    var order = [];
+    for (var i = 0; i < FRAMES; i++) order.push(i);
+    order.sort(function (a, b) { return out[b] - out[a]; });
+
+    /* Report peaks that are genuinely separate moments, not the four frames
+       either side of the winner — adjacent frames of a slow flythrough always
+       score almost identically and a raw top-5 is the same instant five times. */
+    var picks = [];
+    for (var j = 0; j < order.length && picks.length < 5; j++) {
+      var f = order[j];
+      if (picks.every(function (p) { return Math.abs(p - f) > 12; })) picks.push(f);
+    }
+
+    var hits = document.getElementById('hits');
+    hits.innerHTML = picks.map(function (f, k) {
+      return '<span class="hit' + (k === 0 ? ' hit--best' : '') + '" data-f="' + f + '">'
+        + (k === 0 ? '★ ' : '') + 'f' + f + ' · ' + (f / FPS).toFixed(3) + 's · r='
+        + out[f].toFixed(3) + '</span>';
+    }).join('') + '<span class="scan-note">r = correlation, 1.000 is identical structure</span>';
+
+    hits.querySelectorAll('.hit').forEach(function (el) {
+      el.onclick = function () { seek(+el.dataset.f); };
+    });
+
+    scanning = false;
+    seek(picks.length ? picks[0] : wasFrame);
+  }
+
+  function applyNeb() {
+    var neb = document.getElementById('neb');
+    neb.style.opacity = (+document.getElementById('nebOp').value / 100).toString();
+    neb.style.mixBlendMode = document.getElementById('nebBlend').value;
+    neb.style.backgroundImage = 'url("' + document.getElementById('nebPlate').value + '")';
+  }
+
+  /* ---- wiring -------------------------------------------------------------- */
+  document.getElementById('bPlay').onclick = function () { playing ? pause() : play(); };
+  document.getElementById('bPrev').onclick = function (e) { pause(); seek(frame - (e.shiftKey ? 10 : 1)); };
+  document.getElementById('bNext').onclick = function (e) { pause(); seek(frame + (e.shiftKey ? 10 : 1)); };
+  document.getElementById('bBound').onclick = function () { addMark('boundary'); };
+  document.getElementById('bCue').onclick = function () { addMark('cue'); };
+
+  function toggleNeb() {
+    var on = root.classList.toggle('neb-on');
+    document.getElementById('bNeb').textContent = 'nebula: ' + (on ? 'on' : 'off');
+    document.getElementById('bNeb').classList.toggle('is-on', on);
+    if (on) applyNeb();
+  }
+  document.getElementById('bNeb').onclick = toggleNeb;
+  document.getElementById('nebOp').oninput = function () {
+    document.getElementById('nebOpVal').textContent = this.value + '%';
+    applyNeb();
+  };
+  document.getElementById('nebBlend').onchange = applyNeb;
+  document.getElementById('nebPlate').onchange = function () {
+    applyNeb();
+    scores = null;                       // the old curve belongs to the old plate
+    document.getElementById('hits').innerHTML =
+      '<span class="scan-note">plate changed — scan again</span>';
+    render();
+  };
+  document.getElementById('bScan').onclick = scan;
+
+  document.getElementById('bSnap').onclick = function () {
+    snapOn = !snapOn;
+    this.textContent = 'snap: ' + (snapOn ? 'on' : 'off');
+    this.classList.toggle('is-on', snapOn);
+  };
+  document.getElementById('bMode').onclick = function () {
+    var toScroll = !root.classList.contains('mode-scroll');
+    root.classList.toggle('mode-scroll', toScroll);
+    root.classList.toggle('mode-mark', !toScroll);
+    this.textContent = 'mode: ' + (toScroll ? 'scroll' : 'mark');
+    if (toScroll) { pause(); onScroll(); } else { window.scrollTo(0, 0); }
+  };
+  document.getElementById('bProxy').onclick = function () {
+    root.classList.toggle('hide-proxy');
+    this.textContent = 'text: ' + (root.classList.contains('hide-proxy') ? 'off' : 'on');
+  };
+  document.getElementById('bCopy').onclick = function () {
+    var txt = JSON.stringify(buildExport(), null, 2);
+    var btn = this;
+    navigator.clipboard.writeText(txt).then(function () {
+      btn.textContent = 'ok';
+      setTimeout(function () { btn.textContent = 'copy'; }, 1200);
+    }).catch(function () { btn.textContent = 'select below'; });
+  };
+  /* Downloads the set as a file. localStorage is the working copy and the
+     clipboard is the quick one; neither survives a cleared cache or moves to
+     another machine, and this page is meant to be picked up on another day. */
+  document.getElementById('bSave').onclick = function () {
+    var blob = new Blob([JSON.stringify(buildExport(), null, 2)],
+                        { type: 'application/json' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'deep-field-marks.json';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+    var btn = this;
+    btn.textContent = 'ok';
+    setTimeout(function () { btn.textContent = 'save'; }, 1200);
+  };
+
+  document.getElementById('bClear').onclick = function () {
+    if (!marks.length) return;
+    if (window.confirm('Delete all ' + marks.length + ' marks?')) { marks = []; save(); render(); }
+  };
+
+  document.addEventListener('keydown', function (e) {
+    if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
+    var step = e.shiftKey ? 10 : 1;
+    if (e.code === 'Space') { e.preventDefault(); playing ? pause() : play(); }
+    else if (e.key === 'ArrowLeft')  { e.preventDefault(); pause(); seek(frame - step); }
+    else if (e.key === 'ArrowRight') { e.preventDefault(); pause(); seek(frame + step); }
+    else if (e.key === 'Home') { pause(); seek(0); }
+    else if (e.key === 'End')  { pause(); seek(FRAMES - 1); }
+    else if (e.key === 'b' || e.key === 'B') addMark('boundary');
+    else if (e.key === 'c' || e.key === 'C') addMark('cue');
+    else if (e.key === 'Backspace' || e.key === 'Delete') { e.preventDefault(); delNearest(); }
+    else if (e.key === 'n' || e.key === 'N') toggleNeb();
+    else if (e.key === 'h' || e.key === 'H') root.classList.toggle('hide-hud');
+    else if (e.key === 'p' || e.key === 'P') {
+      root.classList.toggle('hide-proxy');
+      document.getElementById('bProxy').textContent =
+        'text: ' + (root.classList.contains('hide-proxy') ? 'off' : 'on');
+    }
+    else if (e.key >= '1' && e.key <= '9') {
+      var t = ticks[+e.key - 1];
+      if (t) { pause(); seek(t.f); }
+    }
+  });
+
+  /* ---- tooltips ------------------------------------------------------------
+     Delegated from the document rather than bound per element, because the
+     marker table is rebuilt from scratch on every render and per-element
+     handlers would be thrown away with it every time a mark is added. */
+  var tipEl = document.getElementById('tip');
+  var tipFor = null;
+
+  function placeTip(el) {
+    var r = el.getBoundingClientRect();
+    tipEl.innerHTML = el.getAttribute('data-tip');
+    tipEl.classList.add('is-on');
+    var t = tipEl.getBoundingClientRect();
+    // Above the control by default; below it if there is no room above.
+    var top = r.top - t.height - 8;
+    if (top < 6) top = r.bottom + 8;
+    tipEl.style.top = top + 'px';
+    tipEl.style.left = Math.max(6, Math.min(window.innerWidth - t.width - 6,
+                                            r.left + r.width / 2 - t.width / 2)) + 'px';
+  }
+
+  document.addEventListener('mouseover', function (e) {
+    var el = e.target.closest ? e.target.closest('[data-tip]') : null;
+    if (el === tipFor) return;
+    tipFor = el;
+    if (!el) { tipEl.classList.remove('is-on'); return; }
+    placeTip(el);
+  });
+  document.addEventListener('mouseleave', function () {
+    tipFor = null; tipEl.classList.remove('is-on');
+  }, true);
+  // The timeline tip would sit under the frame preview and fight it for the eye.
+  tl.addEventListener('pointerdown', function () { tipEl.classList.remove('is-on'); });
+
+  /* ---- boot ---------------------------------------------------------------- */
+  load();
+
+  fetch('assets/lab/deep-field-lum.json')
+    .then(function (r) { return r.json(); })
+    .then(function (d) { lum = d.lum || []; buildTicks(); render(); })
+    .catch(function () { render(); });
+
+  vid.addEventListener('loadedmetadata', function () {
+    seek(frame);
+    render();
+  });
+  vid.addEventListener('seeked', function () { if (!playing) drawTimeline(); });
+
+  render();
+})();
+</script>
+</body>
+</html>

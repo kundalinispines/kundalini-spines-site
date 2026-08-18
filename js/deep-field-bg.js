@@ -1,56 +1,56 @@
-/* deep-field-bg.js — scroll drives the deep-field clip behind the home page.
-
-   Slice one: mapping + scrub + luminance scrim.
-   Slice two: the Music sky handoff, the park and catch-up, the tail handoff,
-              the boot dissolve, the reveal stagger, and the Deep Field tuner tab.
+/* deep-field-bg.js — the deep-field clip behind the home page.
 
    NOT LOADED BY index.html. Only home-deepfield-lab.html links this.
 
    ---------------------------------------------------------------------------
-   THE MAPPING IS PIECEWISE, ANCHORED TO THE REAL SECTIONS (owner's call).
+   PLAY-AND-PARK (owner's call, Aug 18 2026). THE CLIP IS NOT SCRUBBED.
 
-   Each section's scroll span drives its own frame span. The spans come from
-   assets/lab/deep-field-marks.json, which the owner marked by eye in
-   deep-field-lab.html; nothing here can regenerate that file.
+   Landing on a section plays the clip forward at 1.0x to that section's CUE
+   FRAME, stops it there, and releases that section's reveal. It plays cue to
+   cue. The boundaries in the marks file are scroll landings and say nothing
+   about the frame. Nothing here ever changes playbackRate: one speed, the
+   whole way, which is the brief.
 
-   Boundaries are section TOPS, with two ends pinned:
-     - the first boundary is pinned to scroll 0, so the clip starts at f0.
-       A centre-line anchor was considered and is wrong here: at scroll 0 the
-       viewport centre sits halfway down the title screen, so frames 0..24
-       would never be seen — and the h1 cue the owner marked is at f2.
-     - Archive ends at #newsletter's top rather than at the document bottom,
-       and the clip HOLDS its last frame from there through Stay Connected and
-       the footer. That frame was measured as the second-best structural match
-       to the site's own sky plate (r = 0.695 against f134's 0.720), so the page
-       bottoms out on something close to the artwork.
+   THE CLIP IS deep-field-2 — 289 frames, 12.042s, from the owner's marks in
+   assets/lab/deep-field-2-marks.json. Three of the twelve marks were moved,
+   each for a measured reason, and the marks file records which and why.
+
+   THE LEGS, at 24fps:
+       Home  -> About            21f  0.875s     (behind the hero)
+       About -> Music            62f  2.583s
+       Music -> Merch            70f  2.917s     the cut at f126, parks ON the flash
+       Merch -> Transmissions    63f  2.625s     opens through f154-156, the light dying
+       Tx    -> Archive          36f  1.500s
+       Arch  -> Stay Connected   20f  0.833s
+       Stay  -> Foot             16f  0.667s     then holds f288
 
    ---------------------------------------------------------------------------
-   THE MUSIC HANDOFF
+   THE MUSIC HANDOFF, which survives the rewrite and gets better.
 
-   f134 is not an arbitrary boundary. It is the frame `find closest` elected as
-   the best structural match to starfield-deep-4k.webp (r = 0.720) — the owner
-   put the Music boundary on it deliberately. So entering Music, the clip PARKS
-   on f134 and the real sky crossfades in over it, and the two images being
-   alike is what makes that seam nearly invisible.
-
-   Leaving Music the sky swaps out immediately and the clip RACES from f134 to
-   f157 on a slackened lerp, so it reads as the background resuming rather than
-   as a jump cut. Scrolling back UP out of Music is free: About's range ends at
-   134, which is where the clip was parked, so there is nothing to catch up.
+   Music parks on f83 — the frame `find closest` elected as the best structural
+   match to starfield-deep-4k.webp, at r = 0.907. The old clip's best was f134
+   at r = 0.720, so this seam is now substantially tighter than the one it
+   replaces. The real sky crossfades in over the parked frame, and the two
+   images being alike is what makes the handover nearly invisible.
 
    THE CROSSFADE IS A TRUE ONE — the video fades out as the sky fades in. It has
    to be. Every sky layer is mix-blend-mode: screen and can only ADD light, so
    leaving the video at full opacity underneath would make Music brighter than
    either image, and brightest exactly along the diagonal band the two share.
 
+   THE RACE OUT OF MUSIC IS GONE; see the note above stepTo().
+
    ---------------------------------------------------------------------------
-   THE SCRUB LOOP IS js/spine-doc.js's, WITH ONE FIX.
+   WHAT DRIVES WHAT, because the split is the whole design:
 
-   The lerp constant, the 1/48 write threshold and the !seeking coalescing guard
-   are all carried over — they have owner decisions behind them and
-   deep-field-lab.html reused them verbatim rather than improving them.
-
-   The difference is the settle threshold; see the comment on tick(). */
+     the STEPPER  decides which section you land on. Untouched — the gesture
+                  detection, the tail-versus-new-push signals and the
+                  KSScrollWeight.cancel() call are all V2HANDOFF 39's work.
+     the CUE      decides which frame the clip stops on, and when the reveal
+                  for that section is allowed to run.
+     SCROLL POSITION decides neither. It has not chosen a frame since the
+                  rewrite, and tying the two together is what forced every
+                  section's footage to be cut to fit its scroll height. */
 
 /* ---------------------------------------------------------------------------
    PIPE PRIORITY. Runs on its own, ABOVE the mobile and reduced-motion gate
@@ -119,8 +119,28 @@
   if (reduce.matches || window.matchMedia('(max-width: 767px)').matches) return;
 
   var FPS = 24;
-  var FRAMES = 265;
+  var FRAMES = 289;
   var DUR = FRAMES / FPS;
+
+  /* PLAY-AND-PARK (owner's call, Aug 18 2026). THE CLIP IS NO LONGER SCRUBBED.
+
+     Landing on a section starts playback at 1.0x; the clip runs to that
+     section's cue frame and PAUSES there, and the reveal fires on arrival. It
+     plays CUE TO CUE — the boundaries in the marks file are scroll landings
+     only and have nothing to say about the frame. Every leg is the same speed;
+     nothing in this file changes playbackRate.
+
+     WHAT THIS DELETED, and it is most of what used to be here: the piecewise
+     scroll-to-frame map, the target/shown lerp, the catch-up rate, and the
+     three frame remaps measure() used to perform (Home, Transmissions and
+     Archive). None of them mean anything once scroll position stops choosing
+     the frame. The scroll STEPPER is untouched — it still decides which
+     section you land on, and that machinery is the part V2HANDOFF 39 spent a
+     session tuning.
+
+     THE PACING PROBLEM WENT WITH IT. V2HANDOFF 39 open item 3 was a 5.7x
+     spread in frames-per-1000px between About and Music. Frames are no longer
+     tied to scroll distance at all, so that number no longer exists. */
 
   var SEL = {
     home: '.ksd-hero',
@@ -132,38 +152,106 @@
   };
   var TAIL = '[data-ksd-section="connect"]';
 
-  var segs = [];        // {y0, y1, f0, f1, name}
+  /* ---------------------------------------------------------- cue staging
+
+     HOLD EVERY CUED SECTION DOWN NOW, at parse, because js/spine-doc.js has
+     ALREADY registered its IntersectionObserver by the time this file runs and
+     that observer will add .is-in to everything on the first landing. Adding
+     .df-cued synchronously here beats the observer's first callback, which is
+     asynchronous. See the note in css/deep-field-bg.css for why the reveal is
+     held down rather than the observer suppressed.
+
+     THE HERO IS NOT CUED, and that is not an oversight: .ksd-hero carries no
+     data-ksd-section (V2HANDOFF 39 — giving it one puts a Home node on the
+     rail and runs the cord the full document). Its <h1> reveals on the
+     observer exactly as it does today, which is right, because Home HOLDS f0
+     and there is no leg to wait for. */
+  var staged = document.querySelectorAll('[data-ksd-section]');
+  for (var ci = 0; ci < staged.length; ci++) staged[ci].classList.add('df-cued');
+
+  /* THE CONTENT MUST NEVER BE STRANDED BY THE VIDEO. Everything below is a
+     backstop, and they are the reason holding reveals down is safe at all:
+     without them a decode failure, a 404 or a route this file does not know
+     about would leave a section permanently invisible. */
+  function stripAllCues() {
+    var els = document.querySelectorAll('[data-ksd-section].df-cued');
+    for (var i = 0; i < els.length; i++) els[i].classList.remove('df-cued');
+  }
+  vid.addEventListener('error', stripAllCues);
+  /* If the clip has not produced a frame in 8s it is not going to drive
+     anything, so hand every reveal back to the observer. */
+  setTimeout(function () { if (vid.readyState < 2) stripAllCues(); }, 8000);
+
+  /* Scrolled clean past a section that never got its cue — reveal it. Covers
+     any route this file does not model, and costs one rect per cued section
+     per scroll, which drops to zero once they have all fired. */
+  function cueBackstop() {
+    var els = document.querySelectorAll('[data-ksd-section].df-cued');
+    for (var i = 0; i < els.length; i++) {
+      if (els[i].getBoundingClientRect().bottom < 0) els[i].classList.remove('df-cued');
+    }
+  }
+
+  var segs = [];        // {y0, y1, cue, name, el} - cue is the frame this section parks on
   var music = null;     // the Music segment, or null
   var musicRest = 0;    // the scroll position Music is meant to be READ from
   var tailY = Infinity; // where the clip starts holding its last frame
   var tailFrom = Infinity; // where the sky STARTS coming back up (Archive top)
   var lum = null;
+  var TAIL_CUE = FRAMES - 1;   // Stay Connected's cue, from the marks file
+  var FOOT_CUE = FRAMES - 1;   // the held last frame
 
-  var target = 0, shown = 0, raf = 0, ready = false, settleTries = 0;
+  var raf = 0, ready = false;
   var skyT = 1, skySh = 1;          // starts UP: the sky is the boot state
-  var catching = false, wasParked = false, booting = true;
+  var wasParked = false, booting = true;
+
+  /* LEAVING MUSIC, THE SKY MUST COME DOWN IMMEDIATELY AND STAY DOWN.
+
+     skyAt() answers "where is the viewport", and the viewport top is still
+     inside Music for most of the glide out of it — so without this lock the
+     scroll handler puts the sky straight back up on the very next event, and
+     it only falls once the page has ALREADY arrived at Merch.
+
+     MEASURED with the lock missing, sampling every 60ms: the clip played from
+     f84 at t=68ms exactly on time, but --df-sky held 1.000 until t=762ms, the
+     precise moment scrollY reached the Merch landing. Seventeen frames of the
+     leg played underneath a fully opaque sky, so the background appeared to
+     change only on arrival — reported as "it fires when it lands on Merch".
+
+     The old build had this guard as snap.racing, which went out with the Music
+     race. The race is gone for good; the guard is not optional. */
+  var skyLock = false;
+  /* The rate tick() eases --df-sky at, set per transition. Two speeds, because
+     they are not the same event: coming OUT from under the sky is a handover
+     the reader should barely notice, and coming IN over a settled frame is a
+     deliberate transition they are meant to watch. */
+  var skyRate = 0.18;
 
   /* Tunables live in CSS so the tuner tab and devtools turn the same knobs.
      Re-read at most 5x/sec, the same throttle js/spine-bg.js uses for its
      detector params — reading computed style every frame is the expensive way
      to do this. */
-  var T = { tail: 1, catch: 0.1, stagger: 90, snap: 1, release: 700,
-            step: 1, stepMs: 620, gap: 180 };
+  /* --df-catch and --df-release went with the scrub and the Music race
+     (Aug 18 2026). Both were removed from the tuner rather than left as dials
+     that turn nothing, which this project has been bitten by before. */
+  var T = { tail: 1, stagger: 90, snap: 1,
+            step: 1, stepMs: 620, gap: 180,
+            skyIn: 0.055, skyOut: 0.10 };
   var lastRead = 0;
   function syncTunables(now) {
     if (now - lastRead < 200) return;
     lastRead = now;
     var cs = getComputedStyle(root);
     var f = parseFloat(cs.getPropertyValue('--df-tail'));
-    var c = parseFloat(cs.getPropertyValue('--df-catch'));
     var s = parseFloat(cs.getPropertyValue('--df-stagger'));
     if (isFinite(f) && f > 0) T.tail = f;
-    if (isFinite(c)) T.catch = c;
     if (isFinite(s)) T.stagger = s;
     var sn = parseFloat(cs.getPropertyValue('--df-snap'));
-    var rl = parseFloat(cs.getPropertyValue('--df-release'));
     if (isFinite(sn)) T.snap = sn;
-    if (isFinite(rl)) T.release = rl;
+    var si = parseFloat(cs.getPropertyValue('--df-sky-in'));
+    var so = parseFloat(cs.getPropertyValue('--df-sky-out'));
+    if (isFinite(si) && si > 0) T.skyIn = si;
+    if (isFinite(so) && so > 0) T.skyOut = so;
     var st = parseFloat(cs.getPropertyValue('--df-step'));
     var sm = parseFloat(cs.getPropertyValue('--df-step-ms'));
     var gp = parseFloat(cs.getPropertyValue('--df-gap'));
@@ -177,10 +265,14 @@
      webm FIRST. That is the opposite of hero-scrub-lab.html and it is measured
      on THIS pair, not inherited: deep-field.webm seeks at a 10.1ms median
      against the mp4's 25.0ms, where the hero's webm was the slow one at 154ms.
-     There is no site-wide rule about source order. Measure per clip. */
+     There is no site-wide rule about source order. Measure per clip.
+     CARRIED TO deep-field-2 UNMEASURED, and that is a deliberately small bet:
+     under play-and-park the clip PLAYS rather than seeks, so seek latency is
+     no longer on the hot path at all. It matters only for the reverse leg and
+     for the skip-ahead, both of which seek once, not per frame. */
   function attachSources() {
-    [['assets/video/deep-field.webm', 'video/webm'],
-     ['assets/video/deep-field.mp4', 'video/mp4']].forEach(function (s) {
+    [['assets/video/deep-field-2.webm', 'video/webm'],
+     ['assets/video/deep-field-2.mp4', 'video/mp4']].forEach(function (s) {
       var el = document.createElement('source');
       el.src = s[0];
       el.type = s[1];
@@ -198,136 +290,29 @@
   function measure(marks) {
     segs = [];
     music = null;
+    if (marks.tailCue) TAIL_CUE = marks.tailCue.cueFrame;
+    if (marks.footCue) FOOT_CUE = marks.footCue.cueFrame;
     var maxY = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
     var tail = document.querySelector(TAIL);
 
     var rows = marks.sections.map(function (s) {
       var el = document.querySelector(SEL[s.name.toLowerCase()]);
-      return el ? { el: el, name: s.name, f0: s.startFrame, f1: s.endFrame } : null;
+      return el ? { el: el, name: s.name, cue: s.cueFrame } : null;
     }).filter(Boolean);
     if (!rows.length) return;
 
-    /* THE HOME REMAP (owner's call, Aug 17 2026).
+    /* THE THREE FRAME REMAPS THAT LIVED HERE ARE GONE, and they had to go.
 
-       The hero video is back and it covers the whole first screen, so the
-       clip's Home frames are behind it and nobody ever sees them. So Home does
-       not spend frames at all: it HOLDS one, and About begins on that same
-       frame, which is what keeps the Home/About boundary silent.
+       Home, Transmissions and Archive each used to have their frame RANGE
+       rewritten after the marks were read — Home collapsed to a held frame,
+       Transmissions extended to the clip's end, Archive reduced to holding it.
+       All three existed to fix where a SCROLL POSITION landed in the footage.
+       Under play-and-park scroll position does not choose a frame, so all
+       three answered a question nobody asks any more. Their reasoning is in
+       git history at 4d3fda0 if a scrubbed build is ever revived.
 
-       ABOUT STARTS AT f41 (owner's call, Aug 17 2026, revising the same day's
-       earlier f0). The first build gave About the whole 0..134 on the reasoning
-       that a covered stretch should not eat the clip's strongest opening. The
-       owner has since judged the result and asked for f41 — 1.708s, 15.5% into
-       the clip — because the About-to-Music transition "looks like a flash".
-       Two things do that, and this addresses both: it drops the bright opening
-       movement that f0 landed on, and it thins About from 134 frames to 93,
-       which is what the section is actually paced by.
-
-       BOTH ROWS MOVE, and that is the part worth not getting wrong. Setting
-       only About's start would leave Home holding f0 while About opens on f41,
-       and the boundary at the foot of the hero would become a 41-frame cut —
-       the exact flash this is meant to remove, relocated rather than fixed.
-       Home holds f41 as well, so the clip is on one frame from first paint
-       until About begins to move it.
-
-       The marks file is deliberately NOT edited to match. It is the record of
-       what the owner marked by eye in deep-field-lab.html and nothing can
-       regenerate it; this is a layout decision about where those frames are
-       spent, and it belongs in the code that spends them. (Its own About
-       boundary is f48; f41 is not a correction of that mark, it is a different
-       question — where the section's RANGE opens, not where the owner saw the
-       cut.)
-
-       WHAT IT COSTS: About carries 93 frames over its 828px, 112 per 1000px,
-       against 162 at f0 and 104 in the original f48..134 marking. That takes
-       the spread across the document from 8.2x down to about 5.7x, so this
-       also answers the pacing item the handoff left open rather than making it
-       worse. f134 is untouched and stays both the Music boundary and the sky
-       match frame. */
-    var ABOUT_START = 41;
-    var hRow = null, aRow = null;
-    for (var k = 0; k < rows.length; k++) {
-      var nm = rows[k].name.toLowerCase();
-      if (nm === 'home') hRow = rows[k];
-      if (nm === 'about') aRow = rows[k];
-    }
-    if (hRow && aRow) {
-      /* Clamped rather than trusted: a start past About's own end would invert
-         the range and frameAt() would run it backwards. */
-      var aStart = Math.max(0, Math.min(ABOUT_START, aRow.f1 - 1));
-      aRow.f0 = aStart;
-      hRow.f0 = hRow.f1 = aStart;
-    }
-
-    /* THE TRANSMISSIONS REMAP (owner's call, Aug 17 2026).
-
-       Transmissions was marked f178, and f178 is inside the star zoom — the
-       busiest, least readable stretch of the whole clip. Scanned f174-234 at
-       160x90, frame-to-frame mean delta as the motion figure:
-
-           f176-184   motion 10-14   h218-235 blue      pink 0-1%    the zoom
-           f186       motion  8.2    h255               pink 8%      settling
-           f192-200   motion 4.2-5.4 h303-311 magenta   pink 32-39%  CALM
-           f210-226   motion 10-30   brightening to l58              the flash
-           f228       motion 80                                      the cut
-
-       f196 is the pinkest calm frame: motion 4.6, 38.9% magenta pixels, and
-       lightness 11 — dark, which is what actually makes body copy readable over
-       it. The section now STARTS there.
-
-       WHY THE RANGE MOVED RATHER THAN THE LANDING. Landing on f196 by scroll
-       position instead would need scroll 4225, which is 281px into the section
-       — the film row would sit 138px above the top of the viewport and the
-       headline 30px above it. Framing the content and landing on the frame are
-       not satisfiable at once here, and the content wins.
-
-       The 18 frames this takes off the front go to Merch, which keeps its own
-       f157 landing untouched and spends the zoom in its tail, where it reads as
-       a transition out rather than as noise under a headline. Merch goes 20 to
-       37 frames per 1000px and Transmissions 64 down to 42 — both still well
-       inside the range the page already spans. */
-    var TX_START = 196;
-    var mRow = null, tRow = null;
-    for (var k2 = 0; k2 < rows.length; k2++) {
-      var nm2 = rows[k2].name.toLowerCase();
-      if (nm2 === 'merch') mRow = rows[k2];
-      if (nm2 === 'transmissions') tRow = rows[k2];
-    }
-    if (mRow && tRow && TX_START > mRow.f0 && TX_START < tRow.f1) {
-      mRow.f1 = TX_START;
-      tRow.f0 = TX_START;
-    }
-
-    /* THE ARCHIVE REMAP (owner's call, Aug 17 2026).
-
-       Archive was marked f231 and landed on it: a dark, murky frame just past
-       the cut. Stay Connected lands on f264 — the frame V2HANDOFF 37 measured
-       as the SECOND-BEST structural match to starfield-deep-4k.webp
-       (r = 0.695, against f134's 0.720) — and it reads as the site's own
-       nebula. The owner wants Archive to arrive on that image too, with Stay
-       Connected then brightening into the real reactive sky exactly as it
-       already does.
-
-       So the clip finishes BEFORE Archive rather than during it: Transmissions
-       carries f196 to the end, and Archive holds the final frame from its top
-       all the way through Stay Connected and the footer.
-
-       WHAT THIS MOVES, and it is worth knowing rather than discovering: the
-       flash sequence measured at f210-226 (motion 10-30, rising to lightness
-       58) now plays in the last third of TRANSMISSIONS instead of at the head
-       of Archive. The luminance scrim tracks it, so the copy stays readable —
-       and it lands as the transition OUT of Transmissions, which is a better
-       place for a whiteout than under a headline that has just arrived.
-       Transmissions goes 42 to 83 frames per 1000px; About is still nearly
-       twice that, so it is not the fastest stretch on the page. */
-    var arRow = null;
-    for (var k3 = 0; k3 < rows.length; k3++) {
-      if (rows[k3].name.toLowerCase() === 'archive') arRow = rows[k3];
-    }
-    if (tRow && arRow) {
-      tRow.f1 = arRow.f1;
-      arRow.f0 = arRow.f1;
-    }
+       What replaces them is one number per section, cueFrame, read straight
+       from the marks file. */
 
     /* BOUNDARIES SIT ONE MASTHEAD ABOVE THE SECTION TOP, and that is a fix,
        not an offset for taste.
@@ -372,7 +357,7 @@
       var y1 = (i < rows.length - 1) ? docY(rows[i + 1].el) - landOffset(rows[i + 1].el)
                                      : (tail ? docY(tail) - landOffset(tail) : maxY);
       if (y1 <= y0) y1 = y0 + 1;
-      var seg = { y0: y0, y1: y1, f0: rows[i].f0, f1: rows[i].f1, name: rows[i].name };
+      var seg = { y0: y0, y1: y1, cue: rows[i].cue, name: rows[i].name, el: rows[i].el };
       segs.push(seg);
       if (rows[i].name.toLowerCase() === 'music') music = seg;
     }
@@ -523,16 +508,6 @@
     sec.style.scrollMarginTop = (music.y0 - musicRest) + 'px';
   }
 
-  function frameAt(y) {
-    if (!segs.length) return 0;
-    if (y <= segs[0].y0) return segs[0].f0;
-    for (var i = 0; i < segs.length; i++) {
-      var s = segs[i];
-      if (y < s.y1) return s.f0 + ((y - s.y0) / (s.y1 - s.y0)) * (s.f1 - s.f0);
-    }
-    return segs[segs.length - 1].f1;
-  }
-
   /* Seek to the MIDDLE of a frame, not its leading edge. Asking for exactly
      f/FPS lands on a boundary where the decoder is free to hand back either
      neighbour. Carried over from deep-field-lab.html, where it was the fix
@@ -543,6 +518,233 @@
 
   function parkedAt(y) {
     return !!(music && y >= music.y0 && y < music.y1);
+  }
+
+  /* ------------------------------------------------------------- playback
+
+     THE ENGINE. play(to) runs the clip forward at 1.0x and stops it ON a frame;
+     everything else here exists because "stop on an exact frame" is harder than
+     it sounds.
+
+     WHY A rAF WATCHER AND NOT `timeupdate`. timeupdate fires about four times a
+     second, so it can overshoot the target by 250ms — six frames. The merch
+     spine loop in js/spine-doc.js hit exactly this and went to rAF for exactly
+     this reason; the note there is the precedent. We poll currentTime every
+     frame and pause the moment it reaches the cue.
+
+     WHY IT THEN SEEKS ANYWAY. pause() takes effect between frames, so the clip
+     comes to rest a fraction past the cue. One exact seek after pausing puts it
+     on the frame the owner marked. Without it, landings drift a frame or two
+     and the whole point of marking by eye is lost. */
+  var play = {
+    to: -1,            /* target frame, -1 when idle          */
+    stop: -1,          /* the stop index this leg belongs to   */
+    from: 0,           /* frame the leg started on            */
+    skyFrom: 0,        /* sky level it started at             */
+    skyTo: 0,          /* sky level it must reach on arrival  */
+    skyIn: false,      /* bring the nebula up once parked     */
+    raf: 0,
+    timer: 0,          /* the reverse pacer; see reverseTo     */
+    done: null,        /* fires once, on arrival              */
+    reversing: false
+  };
+
+  /* THE CROSSFADE HAPPENS AT THE PARK, NOT ACROSS THE LEG (owner's call,
+     Aug 18 2026, revising the same day's first answer).
+
+     The first version ramped the sky on the clip's progress, so the nebula
+     faded in across the whole About-to-Music leg and faded out across the whole
+     Music-to-Merch leg. Both were wrong for the same reason: the reader watches
+     the two images mixed for three seconds instead of watching either of them.
+     The owner reported it from both sides — "I can see the reactive nebula
+     already preloaded behind the video transition with opacity" going in, and
+     "when I land on Merch I can still see the reactive background through the
+     video roll" coming out.
+
+     So the leg is now ALWAYS clean footage, and the sky moves at the ends:
+
+       arriving under the sky   the clip plays with the sky fully off, parks on
+                                its cue, and only then does the nebula come up
+                                over the settled frame. That is the Music
+                                handoff working the way it was described in the
+                                first place — park on the frame that matches the
+                                artwork, THEN change over.
+       leaving the sky          the nebula drops as the leg begins, so the clip
+                                is in the clear for almost all of it.
+
+     Neither is a progress ramp any more, so there is nothing to drive per
+     frame — which also took the per-frame custom property write out of the
+     reverse seek loop, where it was costing three times the frame budget. */
+
+  function stopWatch() {
+    if (play.raf) { cancelAnimationFrame(play.raf); play.raf = 0; }
+    if (play.timer) { clearTimeout(play.timer); play.timer = 0; }
+  }
+
+  /* Land exactly, then tell whoever asked. */
+  function arrive(f, cb) {
+    stopWatch();
+    play.to = -1;
+    play.stop = -1;
+    play.reversing = false;
+    vid.pause();
+    var t = frameToTime(f);
+    if (Math.abs(vid.currentTime - t) > 1 / (FPS * 4)) vid.currentTime = t;
+    paintScrim(t);
+    if (play.skyIn) {
+      /* The clip has settled. NOW the nebula comes up over it. */
+      play.skyIn = false;
+      skyT = 1;
+      skyRate = T.skyIn;
+      if (!raf) raf = requestAnimationFrame(tick);
+    }
+    skyLock = false;
+    if (cb) cb();
+  }
+
+  /* Forward, at 1.0x, to `f`. Never used to go backwards — see reverseTo. */
+  function playTo(f, cb) {
+    stopWatch();
+    play.to = f;
+    play.done = cb || null;
+    var end = frameToTime(f);
+    if (!vid.duration || vid.currentTime >= end - 1 / (FPS * 2)) {
+      arrive(f, cb);
+      return;
+    }
+    vid.playbackRate = 1;          /* the brief: one speed, the whole way */
+    var p = vid.play();
+    if (p && p.catch) p.catch(function () { arrive(f, cb); });
+    (function watch() {
+      if (play.to !== f) return;                       /* superseded */
+      if (vid.currentTime >= end - 1 / (FPS * 4)) { arrive(f, play.done); return; }
+      paintScrim(vid.currentTime);
+      play.raf = requestAnimationFrame(watch);
+    })();
+  }
+
+  /* Straight there, no playback. Used by the skip-ahead and by every reverse
+     leg that the reverse-play attempt hands back. */
+  function jumpTo(f, cb) {
+    arrive(f, cb);
+  }
+
+  /* REVERSE, THE OWNER'S CALL (Aug 18 2026): try it for real, fall back if the
+     page cannot hold the frame rate.
+
+     Chrome refuses a negative playbackRate outright — setting one throws
+     NotSupportedError — so backwards can only ever be a hand-rolled seek loop.
+     MEASURED on an idle page over deep-field-2.webm, 48 frames around f144:
+     27.7ms mean, 33.2ms median, 49.5ms worst, about 36fps achievable — and that
+     range turned out to be the friendly one. THE f83-f157 RANGE IS MUCH WORSE:
+     30.1ms median but 13 of 40 frames over budget and a 449.9ms worst case,
+     because it crosses the hard cut at f126 and the bright plateau, where the
+     residuals a backward step has to rebuild are far larger. So reverse
+     playback is NOT uniformly achievable across this clip, and the honest
+     summary is that it holds on calm footage and gives up on busy footage.
+     That is what the fallback is for, and it is why the owner's answer was
+     "try it, keep the fallback" rather than "do it".
+
+     THE BUDGET IS ENFORCED AT RUNTIME, not assumed from that measurement,
+     because the real page also has the compositor, the star layers and the
+     stepper on the same thread. If frames arrive late STRIKES times in a row,
+     the leg gives up and seeks the rest of the way. Falling back mid-leg is
+     deliberate: a reverse that starts smooth and degrades is still better than
+     one that judders the whole way, and the reader is travelling backwards,
+     which is navigation rather than cinema. */
+  var REV_BUDGET = 1000 / FPS * 1.35;   /* 56.3ms — late, not merely over 41.7 */
+  var REV_STRIKES = 3;
+
+  function reverseTo(f, cb) {
+    stopWatch();
+    vid.pause();
+    play.to = f;
+    play.done = cb || null;
+    play.reversing = true;
+    var cur = Math.round(vid.currentTime * FPS - 0.5);
+    if (cur <= f) { arrive(f, cb); return; }
+
+    /* PACED TO 24fps, NOT RUN FLAT OUT. This loop steps by seeking, and a seek
+       on this encode completes in about 22ms — comfortably less than a frame.
+       MEASURED before the pacer existed: reverse legs ran at 26 to 47 effective
+       fps, so travelling back up was between 1.1x and 2x the speed of coming
+       down. The brief is one speed in both directions, so each frame is held
+       until its due time. `due` advances by exactly one frame period rather
+       than being re-based on the clock, so a single slow seek is absorbed by
+       the next fast one instead of stretching the whole leg. */
+    var SPF = 1000 / FPS;
+    var due = performance.now();
+    var strikes = 0;
+
+    (function step() {
+      if (play.to !== f) return;                        /* superseded */
+      if (cur <= f) { arrive(f, play.done); return; }
+      if (strikes >= REV_STRIKES) { arrive(f, play.done); return; }
+      cur--;
+      due += SPF;
+      var t0 = performance.now();
+      vid.currentTime = frameToTime(cur);
+      vid.addEventListener('seeked', function once() {
+        vid.removeEventListener('seeked', once);
+        if (play.to !== f) return;
+        var now = performance.now();
+        if (now - t0 > REV_BUDGET) strikes++; else strikes = 0;
+        /* THROTTLED, AND THIS IS NOT A MICRO-OPTIMISATION. Each of these
+           writes a custom property on <html>, which invalidates style for every
+           sky layer that reads it. MEASURED over f157->f83 with the page
+           otherwise idle: raw backward seeks ran a 30.1ms median, and the same
+           seeks with two custom properties written per frame ran 103.8ms — over
+           three times the cost, and past the frame budget that decides whether
+           this loop survives. Every third frame is 8 updates a second, which is
+           under the eye's threshold for a slow crossfade and a luminance scrim,
+           and it keeps the seek loop inside its budget. */
+        if ((cur % 3) === 0) paintScrim(vid.currentTime);
+        var wait = due - now;
+        if (wait > 1) play.timer = setTimeout(step, wait);
+        else play.raf = requestAnimationFrame(step);    /* already behind */
+      });
+    })();
+  }
+
+  /* THE SKY FOLLOWS THE CLIP, NOT THE SCROLL (Aug 18 2026).
+
+     skyAt() answers a SCROLL question — "how far into Music is the viewport" —
+     and that was the right question when the clip was scrubbed, because frames
+     and pixels advanced together. Under play-and-park they are independent: the
+     glide into Music takes --df-step-ms (620ms) and the leg takes 2.583s of
+     footage.
+
+     MEASURED with the sky still on scroll, About to Music sampled every 60ms:
+     the sky reached full at t=682ms, the moment the glide landed, while the
+     clip did not park on f83 until t=2585ms. Forty-six frames — f37 to f83,
+     nearly two seconds — played underneath a fully opaque nebula. Reported as
+     "it never plays the video forward, it just lands on the nebula", and it is
+     the exact mirror of the Music-to-Merch fault: the same decoupling, the
+     other way round. Coming back UP already looked right, and only because the
+     lock below happened to hold the sky down for that whole leg.
+
+     So a leg owns the sky for its duration and ramps it on the CLIP's progress,
+     which lands the crossfade exactly on the frame it is matched to. That is
+     the whole premise of the Music handoff: park on the frame that looks like
+     the artwork, and change over there rather than somewhere near there.
+
+     skyAt() is kept for everything that is not a leg — the boot, a scrollbar
+     drag, an anchor jump — where scroll position is still the only thing that
+     has an opinion. */
+  function skyRest(i) {
+    var st = stops[i];
+    if (!st) return 0;
+    if (st.seg) return (st.seg === music) ? 1 : 0;
+    return 1;                 /* Stay Connected and the Foot sit under the sky */
+  }
+
+  /* The cue a stop parks on. Stops built from segs carry their own; the two
+     synthesised ones (Stay Connected, Foot) carry theirs from the marks file. */
+  function cueOf(i) {
+    var s = stops[i];
+    if (!s) return 0;
+    if (s.seg) return s.seg.cue;
+    return s.cue;
   }
 
   /* ------------------------------------------------------------------- sky */
@@ -689,10 +891,14 @@
       stops.push({ y: y, name: segs[i].name, seg: segs[i] });
     }
     if (isFinite(tailY) && tailY > stops[stops.length - 1].y + 8 && tailY < maxY - 8) {
-      stops.push({ y: tailY, name: 'Stay Connected', seg: null });
+      stops.push({ y: tailY, name: 'Stay Connected', seg: null, cue: TAIL_CUE });
     }
     if (maxY > stops[stops.length - 1].y + 8) {
-      stops.push({ y: maxY, name: 'Foot', seg: null });
+      /* The foot holds the clip's last frame. It is the only stop whose cue is
+         the end of the file rather than a frame the owner marked — there was
+         nothing left to mark by the time the journey got here, which is the
+         same "ran out of clip" the tail rebalance answered. */
+      stops.push({ y: maxY, name: 'Foot', seg: null, cue: FOOT_CUE });
     }
   }
 
@@ -744,30 +950,75 @@
     return false;
   }
 
-  function stepTo(i, down) {
-    /* LEAVING MUSIC IS THE ONE LEG THAT DRIVES THE CLIP ITSELF, and it stays
-       special after the generalisation. The clip is PARKED on f134 all through
-       Music, so scroll position has nothing to say about the frame until the
-       viewport top crosses into Merch — which happens at the very END of the
-       movement. Measured on the first build of the stop: the glide ran its full
-       700ms with the clip still parked and the sky still up, so the race
-       happened after the page had already stopped, which is the opposite of
-       what was asked for.
+  /* THE MUSIC RACE IS GONE (owner's call, Aug 18 2026). It used to spend
+     f134..f157 across exactly the glide on a slackened lerp, so that leaving
+     the park read as the background resuming rather than as a jump cut. It
+     only ever existed to paper over a SCRUB artifact — the clip was parked, so
+     scroll position had nothing to say about the frame until the glide had
+     almost finished, and the race faked the motion that scrolling could not
+     produce. Under play-and-park the clip genuinely resumes from the frame it
+     parked on, at 1.0x, which is what the race was imitating. It is also a
+     speed change, and the brief is one speed the whole way. */
 
-       So this leg spends f134 to f157 across exactly the glide, off its OWN
-       progress, and drops the sky at once. Nothing else in the file maps scroll
-       this way and nothing should: this is the one moment the page is moving
-       itself rather than being moved. */
-    var from = window.scrollY, to = landingAt(i);
-    if (down && music && from >= music.y0 && from < music.y1 && to >= music.y1) {
-      snap.racing = true;
-      skyT = 0;
-      glide(landingAt(i), T.release,
-        function () { snap.racing = false; snap.frame = -1; },
-        function (t) { snap.frame = music.f0 + t * (music.f1 - music.f0); });
-      return;
-    }
+  function stepTo(i, down) {
+    var at = window.scrollY;
     glide(landingAt(i), T.stepMs);
+
+    /* THE CLIP FOLLOWS THE LANDING, NOT THE GLIDE. The page and the footage are
+       deliberately not tied together any more: the glide takes --df-step-ms and
+       the leg takes as long as the footage takes, and neither waits for the
+       other. Tying them was the old build's whole design and it is what forced
+       every section's footage to be cut to its scroll height. */
+    var cue = cueOf(i);
+    if (!vid.duration) return;
+
+    /* THE SAME GESTURE RE-FIRING MUST NOT RESTART THE LEG. See the skip-ahead
+       note on the wheel handler: one flick can reach here several times.
+       playTo() would stopWatch() and re-arm on every one of them, and each
+       re-arm re-reads currentTime — which is fine — but it also re-issues
+       play() and rebuilds the callback, and the first version of this stuttered
+       visibly at the head of a leg. If the clip is already on its way to this
+       stop's cue, leave it alone. */
+    if (play.stop === i && play.to === cue) return;
+    play.stop = i;
+
+    var cur = vid.currentTime * FPS - 0.5;
+
+    /* THE LEG TAKES THE SKY WITH IT. skyFrom is the level actually on screen
+       rather than the level the stop we are leaving is supposed to rest at,
+       so a leg interrupted half way through a crossfade carries on from where
+       the last one got to instead of snapping back. */
+    play.from = cur;
+    play.skyFrom = skySh;
+    play.skyTo = skyRest(i);
+    play.skyIn = false;
+
+    if (play.skyTo < 0.5 && skySh > 0.01) {
+      /* Leaving the sky: drop it now so the footage is clear for the leg. */
+      skyT = 0; skyRate = T.skyOut; skyLock = true;
+    } else if (play.skyTo > 0.5 && skySh < 0.99) {
+      /* Arriving under it: hold it OFF the whole way, raise it on arrival. */
+      skyT = 0; skyRate = T.skyOut; skyLock = true; play.skyIn = true;
+    }
+    if (!raf) raf = requestAnimationFrame(tick);
+
+    if (cue >= cur) {
+      playTo(cue, function () { fireCue(i); });
+    } else {
+      /* Going back. reverseTo tries true reverse playback and falls back to a
+         seek on its own budget; either way the reveal is already showing on a
+         section the reader has seen, so nothing waits on it. */
+      reverseTo(cue, function () { fireCue(i); });
+    }
+  }
+
+  /* Arriving at a cue: let that section's reveal go. Idempotent — a stop can be
+     landed on repeatedly and .remove() on an absent class is a no-op. */
+  function fireCue(i) {
+    var s = stops[i];
+    if (!s) return;
+    var el = s.seg ? s.seg.el : (s.name === 'Stay Connected' ? document.querySelector(TAIL) : null);
+    if (el) el.classList.remove('df-cued');
   }
 
   /* --df-step IS READ LIVE, not off the throttled T. syncTunables() only runs
@@ -846,13 +1097,36 @@
       if (snap.raf) {
         cancelAnimationFrame(snap.raf);
         snap.raf = 0;
-        snap.racing = false;      /* hand framing back to scroll position */
-        snap.frame = -1;
       }
       snap.busy = false;
     }
 
     var i = nextLanding(dir);
+
+    /* THE SKIP-AHEAD (owner's call, Aug 18 2026), AND IT MUST ASK WHERE THE
+       NEW GESTURE IS ACTUALLY GOING.
+
+       A second flick while a leg is still playing means the reader is opting
+       out of that leg, so the clip SEEKS to the pending cue rather than
+       fast-forwarding — a speed-up is the one thing the brief rules out, and
+       seeking lands frame-exact.
+
+       BUT `isNew` ABOVE IS NOT THE SAME QUESTION. A real trackpad flick
+       ACCELERATES before it decays, so the rising edge trips the PUSHED test
+       part-way through a single gesture. That is harmless for the stepper —
+       nextLanding() returns the stop it is already gliding to, so it simply
+       re-glides to the same pixel — but the first version of this skip fired
+       on `isNew` alone and cut the leg dead.
+
+       MEASURED with a ramp-then-decay burst, which is what a flick really
+       looks like: About to Music finished in 56ms against its 2.583s of
+       footage, playing exactly one frame before seeking to f83. With a
+       decay-only burst — which never trips PUSHED — the same leg measured
+       2.586s, which is why the first round of testing missed it entirely.
+
+       So the skip only fires when the new gesture resolves to a DIFFERENT stop
+       than the leg in flight. */
+    if (play.to >= 0 && i >= 0 && i !== play.stop) arrive(play.to, play.done);
 
     /* OFF EITHER END OF THE DOCUMENT — the very top going up, the foot going
        down. Nothing to step to, so hand it back and let the page do whatever
@@ -878,8 +1152,35 @@
      toes — that module emits scroll events continuously while it animates, so
      the timer cannot elapse until it has finished and re-anchored its target. */
   function settled() {
-    if (!music || !T.snap || snap.busy || snap.raf) return;
-    var y = window.scrollY;
+    if (snap.busy || snap.raf) return;
+
+    /* ARRIVING BY A ROUTE THE STEPPER NEVER SAW still has to fire the cue, or
+       that section stays held down and its headline never appears. A nav link
+       and a spine-rail node are plain anchor navigation — no handler here runs
+       for either — and the scrollbar and the keyboard are the same story.
+       So once the page is still, ask where it came to rest: if that is a
+       landing, make sure the clip is on its cue.
+
+       PLAY IF WE ARE BEHIND IT, SEEK IF WE ARE PAST IT. An anchor jump is not
+       a journey and playing forty frames to catch up would read as the page
+       lagging, but a short forward leg is exactly the cinema this is for. The
+       cut-off is one leg's worth. */
+    var y = window.scrollY, i, best = -1, bd = Infinity;
+    for (i = 0; i < stops.length; i++) {
+      var d = Math.abs(stops[i].y - y);
+      if (d < bd) { bd = d; best = i; }
+    }
+    if (best >= 0 && bd <= 8 && vid.duration && play.to < 0) {
+      var cue = cueOf(best), cur = vid.currentTime * FPS - 0.5;
+      if (Math.abs(cue - cur) > 0.75) {
+        if (cue > cur && cue - cur <= 80) playTo(cue, function () { fireCue(best); });
+        else jumpTo(cue, function () { fireCue(best); });
+      } else {
+        fireCue(best);
+      }
+    }
+
+    if (!music || !T.snap) return;
     if (y < music.y0 || y >= music.y1) return;
     if (Math.abs(y - musicRest) <= 2) return;
     var band = Math.max(160, (music.y1 - music.y0) * 0.45);
@@ -894,7 +1195,7 @@
     if (snap.raf) { cancelAnimationFrame(snap.raf); snap.raf = 0; }
     if (snap.lock) { clearTimeout(snap.lock); snap.lock = 0; }
     snap.busy = false;
-    snap.racing = false;
+    skyLock = false;
   }, { passive: true });
 
   /* --------------------------------------------------------------- reveals */
@@ -951,16 +1252,13 @@
     raf = 0;
     syncTunables(now || performance.now());
 
-    /* --- the clip ------------------------------------------------------- */
-    var lerp = catching ? T.catch : 0.3;
-    var settled = Math.abs(target - shown) <= 0.005;
-    if (settled) { shown = target; catching = false; }
-    else { shown += (target - shown) * lerp; settleTries = 0; }
-
-    var thresh = settled ? 1 / 200 : 1 / 48;
-    var off = vid.duration ? Math.abs(vid.currentTime - shown) : 0;
-    if (!vid.seeking && vid.duration && off > thresh) vid.currentTime = shown;
-    paintScrim(shown);
+    /* THE CLIP IS NOT DRIVEN FROM HERE ANY MORE. The lerp, the two write
+       thresholds and the settle retry that used to live in this function were
+       all about chasing a scroll-derived target with seeks. Playback chases
+       nothing — it plays — so the whole block went, and with it the reason
+       tick() had to keep running while the page moved. The scrim still reads
+       the clip, and the playback engine paints it per frame. */
+    paintScrim(vid.currentTime);
 
     /* --- the sky -------------------------------------------------------- */
     /* Rising follows the scroll exactly, so the handover happens under your
@@ -976,7 +1274,18 @@
        MEASURED: the opening faded at 0.18 per frame (ratio 0.82 between
        consecutive samples), not the 0.06 intended, giving a ~230ms snap where a
        dissolve was specified. boot() owns clearing the flag now. */
-    if (skyT >= skySh) {
+    /* BOTH DIRECTIONS EASE NOW. Rising used to snap — `skySh = skyT` — and that
+       was right while rising meant "follow the scroll", where easing would have
+       made the sky trail the reader's hand. Rising is no longer a scroll
+       response: it is a single event at the park, so snapping showed the nebula
+       arriving in one frame. MEASURED: --df-sky went 0.000 to 1.000 between two
+       80ms samples, which is the "should be a smooth transition" the owner
+       asked for arriving as a cut.
+
+       The equality branch still must NOT clear `booting` — see the note below,
+       which cost a build when the rising branch cleared it before the opening
+       dissolve had started. */
+    if (Math.abs(skyT - skySh) < 0.002) {
       skySh = skyT;
       skyDone = true;
     } else {
@@ -984,39 +1293,38 @@
          They are different events: the opening is a dissolve the visitor is
          meant to notice, the exit is the owner's "immediate swap" and only
          eases at all so it is not a one-frame cut. */
-      skySh += (skyT - skySh) * (booting ? 0.06 : 0.18);
+      skySh += (skyT - skySh) * (booting ? 0.06 : skyRate);
       if (Math.abs(skyT - skySh) < 0.002) { skySh = skyT; booting = false; }
       skyDone = (skySh === skyT);
     }
     root.style.setProperty('--df-sky', skySh.toFixed(4));
 
-    var landing = settled && vid.duration &&
-      Math.abs(vid.currentTime - shown) > thresh && settleTries < 6;
-    if (landing) settleTries++;
-
-    if (!settled || landing || !skyDone) raf = requestAnimationFrame(tick);
+    if (!skyDone) raf = requestAnimationFrame(tick);
   }
 
   function onScroll() {
     if (!ready) return;
     var y = window.scrollY;
 
-    var parked = parkedAt(y);
-    /* Leaving the park downward is the only case that needs the slack lerp:
-       the clip has 23 frames to cover and the owner wants to watch it happen.
-       Leaving upward costs nothing — About ends on the parked frame. */
-    if (wasParked && !parked && y >= (music ? music.y1 : 0)) catching = true;
-    wasParked = parked;
+    /* SCROLL POSITION NO LONGER CHOOSES A FRAME. It chooses a landing, and the
+       landing chooses a cue; the clip gets there by playing. All this handler
+       still owns is the sky and the reveal backstop. */
+    wasParked = parkedAt(y);
+    /* THE LOCK IS RELEASED BY arrive(), NOT BY A SCROLL POSITION.
 
-    target = frameToTime(
-      snap.racing && snap.frame >= 0 ? snap.frame
-        : parked ? music.f0
-        : frameAt(y));
-    /* The race owns the sky for its duration; skyAt() would put it back up,
-       because the viewport top is still inside Music for most of the glide.
-       Only the Music leg sets snap.racing — every other step leaves the frame
-       and the sky on scroll position, which the glide is genuinely moving. */
-    if (!booting && !snap.racing) skyT = skyAt(y);
+       It was `y >= music.y1` at first, which reads as "released once the
+       viewport has left Music" and is right for the leg it was written for and
+       wrong for every other one: on any leg BELOW Music that test is already
+       true at the first scroll event, so the lock lifted immediately and
+       skyAt() took the sky back.
+
+       MEASURED on Archive to Stay Connected, which is the leg where it shows:
+       the nebula climbed all the way through the footage — 0.171 at t=400ms,
+       0.612 at t=713ms, 0.842 by the time the clip parked — instead of staying
+       off and coming up over the settled frame. Music to Merch hid the fault
+       because there both the lock and skyAt() wanted 0. */
+    if (!booting && !skyLock) skyT = skyAt(y);
+    cueBackstop();
 
     if (snap.timer) clearTimeout(snap.timer);
     snap.timer = setTimeout(settled, 140);
@@ -1046,8 +1354,10 @@
 
       { k: '--df-tail', g: 'handoff', label: 'tail', min: 0.1, max: 1, step: 0.05,
         tip: 'How much of Archive the sky takes to come back up, as a fraction. 1 spends the whole section on the swell and reaches full exactly at Stay Connected. The Music arrival is not this - it is derived from where the card frames' },
-      { k: '--df-catch', g: 'handoff', label: 'catch', min: 0.02, max: 0.5, step: 0.01,
-        tip: 'Lerp for the race from f134 to f157 when you leave Music. Lower is slower; 0.3 is the normal scrub rate and reads as a jump cut' },
+      { k: '--df-sky-in', g: 'handoff', label: 'sky in', min: 0.02, max: 0.3, step: 0.005,
+        tip: 'How fast the nebula comes up over the settled frame at Music. Lower is slower and more deliberate; this is the transition the reader is meant to watch, so it runs slower than sky out' },
+      { k: '--df-sky-out', g: 'handoff', label: 'sky out', min: 0.02, max: 0.4, step: 0.01,
+        tip: 'How fast the nebula clears when a leg begins, handing the screen back to the clip. Faster than sky in on purpose - this one should barely be noticed' },
 
       { k: '--df-stagger', g: 'handoff', label: 'stagger', min: 0, max: 400, step: 5,
         tip: 'Milliseconds between reveals inside one section. The cue order comes from the marks file; this is only the spacing' },
@@ -1055,14 +1365,12 @@
       { k: '--df-step', g: 'step', label: 'step', min: 0, max: 1, step: 1,
         tip: 'One wheel gesture moves one section. 0 hands the page back to scroll weight entirely, which is how everything before build 4 scrolled' },
       { k: '--df-step-ms', g: 'step', label: 'glide', min: 200, max: 1600, step: 20,
-        tip: 'Milliseconds to cross from one section to the next. The leg out of Music uses release instead, because it has a clip to race' },
+        tip: 'Milliseconds to cross from one section to the next. The clip is not tied to this - a leg takes as long as its footage takes, at 1.0x' },
       { k: '--df-gap', g: 'step', label: 'gap', min: 0, max: 600, step: 10,
         tip: 'Wheel silence that ends a gesture. A trackpad throws inertia for about a second after your fingers lift; raise this if one flick still walks two sections, lower it if a deliberate second scroll feels ignored' },
 
       { k: '--df-snap', g: 'stop', label: 'snap', min: 0, max: 1, step: 1,
-        tip: 'Whether Music lands on its rest point where the card is framed. 0 lands it on its boundary like every other section, with the sky and the park unchanged' },
-      { k: '--df-release', g: 'stop', label: 'release', min: 200, max: 1600, step: 50,
-        tip: 'Milliseconds for the step out of Music to Merch. The clip races f134 to f157 underneath it, so this and catch are heard together' }
+        tip: 'Whether Music lands on its rest point where the card is framed. 0 lands it on its boundary like every other section, with the sky and the park unchanged' }
     ];
     var GROUPS = [['clip', 'The clip', true], ['handoff', 'Handoff and reveals', true],
                   ['step', 'The section stepper', true], ['stop', 'The Music stop', true]];
@@ -1119,8 +1427,8 @@
   attachSources();
 
   Promise.all([
-    fetch('assets/lab/deep-field-marks.json').then(function (r) { return r.json(); }),
-    fetch('assets/lab/deep-field-lum.json').then(function (r) { return r.json(); })
+    fetch('assets/lab/deep-field-2-marks.json').then(function (r) { return r.json(); }),
+    fetch('assets/lab/deep-field-2-lum.json').then(function (r) { return r.json(); })
   ]).then(function (res) {
     lum = res[1].lum;
     measure(res[0]);
@@ -1163,11 +1471,11 @@
     return {
       ready: ready,
       segments: segs.map(function (s) {
-        return { name: s.name, y0: s.y0, y1: s.y1, f0: s.f0, f1: s.f1 };
+        return { name: s.name, y0: s.y0, y1: s.y1, cue: s.cue };
       }),
       tailY: tailY,
       musicRest: musicRest,
-      snap: { busy: snap.busy, racing: snap.racing, gliding: !!snap.raf },
+      snap: { busy: snap.busy, gliding: !!snap.raf },
       landings: stops.map(function (s) {
         return { name: s.name, y: s.y };
       }),
@@ -1204,14 +1512,20 @@
       })(),
       frame: Math.round(vid.currentTime * FPS - 0.5),
       time: vid.currentTime,
-      target: target,
+      playingTo: play.to,
+      reversing: play.reversing,
+      paused: vid.paused,
+      rate: vid.playbackRate,
+      cues: stops.map(function (st, i) { return { name: st.name, cue: cueOf(i) }; }),
+      held: Array.prototype.map.call(
+        document.querySelectorAll('[data-ksd-section].df-cued'),
+        function (el) { return el.getAttribute('data-ksd-section'); }),
       parked: parkedAt(window.scrollY),
-      catching: catching,
       booting: booting,
       sky: +cs.getPropertyValue('--df-sky'),
       lum: +cs.getPropertyValue('--df-lum'),
       videoOpacity: +getComputedStyle(vid).opacity,
-      tunables: { tail: T.tail, catch: T.catch, stagger: T.stagger },
+      tunables: { tail: T.tail, stagger: T.stagger },
       tailFrom: tailFrom,
       src: (vid.currentSrc || '').split('/').pop()
     };

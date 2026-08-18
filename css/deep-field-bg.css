@@ -1,5 +1,5 @@
 /* deep-field-bg.css — the scroll-driven home background.
-   --df-build: 4;
+   --df-build: 5;
 
    WHAT THIS IS
    The 11s deep-field clip painted full-bleed behind the whole home document,
@@ -68,10 +68,15 @@
      Stay Connected, so the sign-up lands on the bright nebula. The Music
      arrival is NOT this one - it is derived from where the carousel frames. */
   --df-tail: 1;
-  --df-catch: 0.1;    /* lerp for the f134 -> f157 race out of Music.
-                         0.3 is the normal scrub rate and reads as a jump cut;
-                         0.1 is about half a second and reads as the clip
-                         resuming, which is what the owner asked for. */
+  /* THE TWO SIDES OF THE CROSSFADE, AND THEY ARE NOT THE SAME EVENT.
+     Per-frame lerp rates, not durations. sky-out clears the nebula as a leg
+     begins so the clip has the screen to itself (0.10 is about 500ms to 95%);
+     sky-in raises it over the frame the clip has already settled on, and runs
+     slower because it is the transition the reader is meant to notice
+     (0.055 is about 1s). Both were a single 0.18 until Aug 18 2026, when the
+     sky still followed scroll position. */
+  --df-sky-in: 0.055;
+  --df-sky-out: 0.10;
   --df-stagger: 90;   /* ms between reveals inside one section */
 
   /* THE SECTION STEPPER (owner's call, Aug 17 2026). One wheel gesture moves
@@ -101,10 +106,14 @@
      at full. --df-snap 0 gives Music its boundary back and makes it an
      ordinary stop like every other section, with the sky handoff and the park
      both unchanged, so it isolates the framing from everything else if it
-     needs judging separately. --df-release is the leg OUT of Music, which is
-     still the one step that races the parked clip underneath itself. */
+     needs judging separately.
+
+     --df-catch AND --df-release WERE REMOVED HERE ON AUG 18 2026, with the
+     scrub and the Music race that were the only things reading them. Both are
+     gone from the tuner too. Do not reintroduce either as a "speed" dial: the
+     brief for play-and-park is one speed in both directions, and a rate dial
+     is the first thing that would break it. */
   --df-snap: 1;
-  --df-release: 700;
 
   /* Extra clearance under the masthead before the Music card, on top of
      --nav-h-max. Ships at 0 and changes nothing: an escape hatch, not a dial.
@@ -252,4 +261,61 @@ body::before { opacity: var(--df-sky); }
 @media (prefers-reduced-motion: reduce), (max-width: 767px) {
   :root { --df-sky: 1; }
   .df-bg { display: none; }
+}
+
+
+/* ------------------------------------------------------- cued reveals
+
+   PLAY-AND-PARK holds a section's reveal down until the clip reaches that
+   section's cue frame. js/deep-field-bg.js adds .df-cued to every
+   [data-ksd-section] as soon as it knows it will run, and removes it one
+   section at a time as the clip parks.
+
+   WHY IT IS DONE THIS WAY ROUND, holding the reveal down rather than
+   withholding .is-in: js/spine-doc.js calls watchReveals() synchronously at
+   parse, and it is loaded BEFORE this module, so there is no flag this file
+   could set in time to stop that observer being registered. Suppressing it
+   would have meant editing spine-doc.js and duplicating this module's
+   mobile/reduced-motion gate in a second file, where the two could drift.
+
+   So the observer still runs and still adds .is-in — it remains the floor
+   exactly as it is today — and this simply out-orders it until the cue lands.
+   On a phone or under reduced motion .df-cued is never added at all, because
+   the module returns before it can add it, and the observer alone reveals
+   everything. THE CONTENT CAN NEVER BE STRANDED BY A VIDEO THAT DID NOT LOAD:
+   the module strips every .df-cued on a video error and on scrolling well past
+   a section, and those backstops are the reason this is safe to do at all.
+
+   THIS RULE MUST OUT-ORDER .ksd-reveal.is-in, NOT OUT-SPECIFY IT. Both
+   selectors score (0,2,0), so the tie is broken by source order and this file
+   is linked last — the same property the sky rules at the top of this file
+   already depend on. Moving this stylesheet earlier in the <head> silently
+   stops the cues working and reveals everything on landing. */
+/* THE CAROUSEL IS PART OF MUSIC'S REVEAL, and it is not a .ksd-reveal.
+
+   Music's section contains exactly ONE .ksd-reveal — its h2. The track cards,
+   the focus panel, the sample player and the platform buttons are all built by
+   js/track-experience.js and were never in the reveal system, so they sat fully
+   visible while the clip was still playing towards the cue that is supposed to
+   introduce them. Reported by the owner Aug 18 2026: "the track cards and
+   controls are already there".
+
+   OPACITY AND TRANSFORM ONLY — NEVER display OR visibility. js/deep-field-bg.js
+   derives the Music rest point from .track-arc-wrap's measured height and top,
+   and js/track-experience.js lays the arc out from its own geometry. Taking the
+   element out of layout would break the landing this section is built around. */
+[data-ksd-section].df-cued .track-arc-wrap,
+[data-ksd-section].df-cued .ksd-reveal {
+  /* Exactly the values css/spine-doc.css:803 gives .ksd-reveal at rest, quoted
+     rather than approximated: the cue removes .df-cued and the element must
+     start its transition from where it was already sitting, or the reveal
+     jumps a few pixels before it moves. */
+  opacity: 0;
+  transform: translateY(18px);
+}
+
+/* .ksd-reveal brings its own transition from css/spine-doc.css:803; the
+   carousel wrapper has none of its own, so it gets a matching one here. */
+.track-arc-wrap {
+  transition: opacity 640ms var(--ease-standard), transform 640ms var(--ease-standard);
 }

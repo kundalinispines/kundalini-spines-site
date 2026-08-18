@@ -1,0 +1,168 @@
+{
+  "clip": "deep-field-2",
+  "source": "hf_20260818_093844_b8528425-32da-4567-8273-690818faaf92.mp4",
+  "fps": 24,
+  "frames": 289,
+  "duration": 12.041667,
+  "_model": "play-and-park. The clip plays cue to cue at 1.0x and stops on a cue, where that section's reveal fires. BOUNDARIES DO NOT DRIVE THE VIDEO under this model - they are scroll landings only, kept here for provenance. cueFrame is the authoritative number.",
+  "_moves": [
+    "About cue 25 -> 21: flattest horizon in the clip (edge-row spread 0.8px vs 2.4px at f25, rank 1 of 289).",
+    "Music cue 82 -> 83: measured best structural match to starfield-deep-4k.webp, r=0.907 (the old clip's best was f134 at r=0.720).",
+    "Archive cue 272 -> 252: f252 is the clip's last measured structural event; f272 was unanchored.",
+    "Stay Connected cue 287 -> 272: tail rebalance, so no leg is shorter than 0.66s (was 0.083s).",
+    "Merch cue 157 -> 153: owner's call Aug 18 2026. f153 is the clip's luminance peak (84.7 against a 1.2 floor), the top of the whiteout one frame before the light dies (f154 56.3, f156 16.2). Merch now parks ON the flash rather than after it."
+  ],
+  "sections": [
+    {
+      "name": "Home",
+      "startFrame": 0,
+      "endFrame": 0,
+      "cueFrame": 0,
+      "cueTime": 0.0208
+    },
+    {
+      "name": "About",
+      "startFrame": 0,
+      "endFrame": 48,
+      "cueFrame": 21,
+      "cueTime": 0.8958
+    },
+    {
+      "name": "Music",
+      "startFrame": 48,
+      "endFrame": 126,
+      "cueFrame": 83,
+      "cueTime": 3.4792
+    },
+    {
+      "name": "Merch",
+      "startFrame": 126,
+      "endFrame": 190,
+      "cueFrame": 153,
+      "cueTime": 6.3958
+    },
+    {
+      "name": "Transmissions",
+      "startFrame": 190,
+      "endFrame": 243,
+      "cueFrame": 216,
+      "cueTime": 9.0208
+    },
+    {
+      "name": "Archive",
+      "startFrame": 243,
+      "endFrame": 278,
+      "cueFrame": 252,
+      "cueTime": 10.5208
+    }
+  ],
+  "tailCue": {
+    "name": "Stay Connected",
+    "cueFrame": 272,
+    "cueTime": 11.3542
+  },
+  "footCue": {
+    "name": "Foot",
+    "cueFrame": 288,
+    "cueTime": 12.0208,
+    "_note": "the clip's last frame; held from here through the footer."
+  },
+  "ownerMarks": [
+    {
+      "id": "mmsyi7nu9",
+      "type": "boundary",
+      "name": "About Start Boundry",
+      "frame": 0,
+      "time": 0,
+      "pct": 0
+    },
+    {
+      "id": "mmsyil0kv",
+      "type": "cue",
+      "name": "About Images and Information come into the page",
+      "frame": 25,
+      "time": 1.0417,
+      "pct": 0.0865
+    },
+    {
+      "id": "mmsyicwbd",
+      "type": "boundary",
+      "name": "Music Start Boundry",
+      "frame": 48,
+      "time": 2,
+      "pct": 0.1661
+    },
+    {
+      "id": "mmsyi8x25",
+      "type": "cue",
+      "name": "Music Background matches here, Brings cards and track info in plus controls. Pause here for playback",
+      "frame": 82,
+      "time": 3.4167,
+      "pct": 0.2837
+    },
+    {
+      "id": "mmsyifa4n",
+      "type": "boundary",
+      "name": "Merch Starts Here",
+      "frame": 126,
+      "time": 5.25,
+      "pct": 0.436
+    },
+    {
+      "id": "mmsyinw1g",
+      "type": "cue",
+      "name": "Merch Images and Information come into the page",
+      "frame": 157,
+      "time": 6.5417,
+      "pct": 0.5433
+    },
+    {
+      "id": "mmsyi9nmo",
+      "type": "boundary",
+      "name": "Transmissions page starts here",
+      "frame": 190,
+      "time": 7.9167,
+      "pct": 0.6574
+    },
+    {
+      "id": "mmsyioqi9",
+      "type": "cue",
+      "name": "Transmissions Images and Information come into the page",
+      "frame": 216,
+      "time": 9,
+      "pct": 0.7474
+    },
+    {
+      "id": "mmsyihfw0",
+      "type": "boundary",
+      "name": "Archive boundry starts here",
+      "frame": 243,
+      "time": 10.125,
+      "pct": 0.8408
+    },
+    {
+      "id": "mmsyis55z",
+      "type": "cue",
+      "name": "Archive Reveals Images Information and any images",
+      "frame": 272,
+      "time": 11.3333,
+      "pct": 0.9412
+    },
+    {
+      "id": "mmsyizjh3",
+      "type": "boundary",
+      "name": "Stay Connected Start Boundry",
+      "frame": 278,
+      "time": 11.5833,
+      "pct": 0.9619
+    },
+    {
+      "id": "mmsyj0ynm",
+      "type": "cue",
+      "name": "Stay connected Information reveals",
+      "frame": 287,
+      "time": 11.9583,
+      "pct": 0.9931
+    }
+  ]
+}

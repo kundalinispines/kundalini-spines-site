@@ -319,7 +319,7 @@
        frame — getComputedStyle 5x/sec is free, 60x/sec is not, and the only
        thing that ever changes them is a human dragging a slider. */
     var P = { gain: 1, decay: 260, sens: 1.8, freq: 90,
-              sdecay: 260, ssens: 2.2, sfreq: 2500 };
+              sdecay: 260, ssens: 2.2, sfreq: 2500, sall: 0 };
     var paramsAt = -1e9;
     function readParams(now) {
       if (now - paramsAt < 200) return;
@@ -345,6 +345,7 @@
          one master would retune the lightning every time the column is. */
       P.sdecay = Math.max(30, num('--snare-decay', 260));
       P.ssens  = Math.max(1.01, num('--snare-sens', 2.2));
+      P.sall   = Math.max(0, Math.min(1, num('--snare-all', 0)));
       var sf = Math.max(500, Math.min(8000, num('--snare-freq', 2500)));
       if (sf !== P.sfreq && hpFilters) {
         P.sfreq = sf;
@@ -423,11 +424,28 @@
              s ms 260 that read as the new strike replacing the old on real
              hardware, not as a glitch — and it is exactly how a fresh
              strike should behave. */
-          bolts[boltAt].classList.remove('is-struck');
-          var boltNext = Math.floor(Math.random() * (bolts.length - 1));
-          if (boltNext >= boltAt) boltNext++;
-          boltAt = boltNext;
-          bolts[boltAt].classList.add('is-struck');
+          /* Clear ALL of them, not just the previous index. The fork below
+             can leave every div carrying the class, and removing only
+             bolts[boltAt] would strand the other four lit until something
+             else happened to clear them. */
+          for (var bz = 0; bz < bolts.length; bz++) {
+            bolts[bz].classList.remove('is-struck');
+          }
+          if (P.sall > 0 && Math.random() < P.sall) {
+            /* THE FORK: every pattern at once. boltAt is deliberately left
+               where it was, so the next single strike still avoids the last
+               pattern that struck ALONE — after a fork, "the same one twice in
+               a row" has no meaning, and picking relative to the survivor is
+               the only reading that keeps the owner rule intact. */
+            for (var bf = 0; bf < bolts.length; bf++) {
+              bolts[bf].classList.add('is-struck');
+            }
+          } else {
+            var boltNext = Math.floor(Math.random() * (bolts.length - 1));
+            if (boltNext >= boltAt) boltNext++;
+            boltAt = boltNext;
+            bolts[boltAt].classList.add('is-struck');
+          }
           if (pendingHit > envS) envS = pendingHit;
         }
       }
@@ -831,6 +849,7 @@
     { v: '--snare-decay', label: 's ms', min: 60, max: 900, step: 10, unit: '' },
     { v: '--snare-sens', label: 's sns', min: 1.5, max: 3.5, step: 0.05, unit: '' },
     { v: '--snare-freq', label: 's hz', min: 1000, max: 5000, step: 100, unit: '' },
+    { v: '--snare-all', label: 's fork', min: 0, max: 0.5, step: 0.01, unit: '' },
     /* NOT A SPINE CONTROL. How heavy the page feels under a mouse wheel, read by
        js/scroll-weight.js. It is here because this is the only tuning panel on
        the site, but it lives in a different stylesheet — `file` below makes Copy
@@ -1010,6 +1029,7 @@
     '--snare-decay': 'Decay of the strike in ms, tail reads about 2 to 3x this. Independent of k ms — the snare is a second envelope',
     '--snare-sens': 'Snare threshold as a MULTIPLE of the 2.5kHz band average. Stricter than the kick on purpose; below about 2 it starts firing on hats',
     '--snare-freq': 'Highpass cutoff of the snare noise band in Hz. 2500 measured best over all 28 samples. The 200Hz body gate is fixed and separate',
+    '--snare-all': 'Chance a strike lights EVERY pattern at once instead of one. 0 is the shipped behaviour everywhere except the deep-field lab. Keep it low, a fork that happens often is just five bolts with no variety left to interrupt',
     /* page feel */
     '--scroll-weight': 'How heavy the page feels under a mouse wheel, 0 is genuinely native. Wheel only, and reduced motion disables it',
     /* sky */
@@ -1291,8 +1311,9 @@
      a property of the source and identical on every page; counting only the
      visible rows would print a smaller number on about.html and read as eight
      tips having gone missing, which is the one thing this check exists to
-     catch. The count stays FIELDS.length — back to 47 now the astral scrim
-     group is parked; it read 55 while that group was live — everywhere, and
+     catch. The count stays FIELDS.length — 48 now the astral scrim group is
+     parked and --snare-all has been added; it read 55 while that group was
+     live, and 47 before the fork strike — everywhere, and
      the suffix says what is hidden. */
   (function () {
     var missing = FIELDS.filter(function (f) { return !TIPS[f.v]; })
@@ -1326,7 +1347,7 @@
        Open by default for the same reason kick is — it is what is being
        tuned now. Hidden with the kick group on pages without the detector
        (the filter below catches the --snare- prefix too). */
-    { title: 'snare', open: true, vars: ['--snare-bolt', '--snare-decay',
+    { title: 'snare', open: true, vars: ['--snare-all', '--snare-bolt', '--snare-decay',
         '--snare-sens', '--snare-freq'] },
     /* Open for the same reason kick and snare are: it is what is being tuned
        now (added Aug 14 2026 with the field + ripple work). Hidden whole on

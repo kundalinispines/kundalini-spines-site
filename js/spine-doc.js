@@ -73,6 +73,24 @@
     railTop = media ? Math.max(0, Math.round(media.getBoundingClientRect().bottom - docTop)) : 0;
     const next = {};
     sections.forEach(function (sec) {
+      /* A SECTION MAY DECLARE WHERE ITS NODE BELONGS, in absolute document px,
+         and if it does that wins over the headline measurement below.
+
+         Added for the deep-field home background. Music is landed on a scroll
+         position chosen so the carousel and its controls are framed, and by
+         then "Enter the Tracks" is off the top of the screen — so a node
+         measured off that headline sits above the viewport and the section you
+         are actually looking at has no visible node at all. Music now publishes
+         the focused card's centre instead (js/deep-field-bg.js), which is on
+         screen for the whole time you are there.
+
+         Nothing on index.html sets this attribute, so every node there is
+         placed exactly as before. */
+      const declared = parseFloat(sec.el.getAttribute('data-ksd-node-y'));
+      if (isFinite(declared)) {
+        next[sec.id] = Math.round(declared - (docTop + window.pageYOffset));
+        return;
+      }
       if (!sec.head) return;
       const r = sec.head.getBoundingClientRect();
       // half a line down from the headline's top edge — the throw meets the
@@ -169,7 +187,22 @@
     if (!sec) return;
     // the LIVE bar height — this is an offset, not layout, so --nav-h is right here
     const navH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--nav-h')) || 72;
-    const y = sec.el.getBoundingClientRect().top + window.pageYOffset - navH;
+
+    /* A section may declare where it wants to be landed on, and if it does,
+       that wins. Anchor navigation (the nav links, /#tracks) already honours
+       scroll-margin-top because the browser applies it; this function did not,
+       so the two routes to the same section could arrive in different places.
+       That is exactly what happened on the deep-field home background: Music
+       sets a NEGATIVE scroll-margin-top so the carousel and its controls land
+       framed, the nav link obeyed it and the rail node did not, and clicking
+       the spine dropped you 279px short with the card half off the screen.
+
+       Falls back to --nav-h when a section declares nothing, which is every
+       section on index.html except #tracks — and #tracks there asks for
+       nav-h minus 4, so the only change to the production page is those 4px. */
+    const smt = parseFloat(getComputedStyle(sec.el).scrollMarginTop) || 0;
+    const off = smt !== 0 ? smt : navH;
+    const y = sec.el.getBoundingClientRect().top + window.pageYOffset - off;
     window.scrollTo({ top: y, behavior: 'smooth' });
   }
 
@@ -283,16 +316,39 @@
      Reduced-motion visitors keep the still first frame. Scroll-linked motion is
      exactly what that preference declines, so the caller gates on it. */
   function scrubToScroll(v) {
-    let target = 0, shown = 0, raf = 0;
+    let target = 0, shown = 0, raf = 0, settleTries = 0;
     const tick = function () {
       raf = 0;
       // 0.3, up from a first cut at 0.22 — the softer settle trailed the
       // scroll enough that the turn read as loose (owner's call).
-      shown += (target - shown) * 0.3;
-      if (!v.seeking && v.duration && Math.abs(v.currentTime - shown) > 1 / 48) {
+      const settled = Math.abs(target - shown) <= 0.005;
+      if (settled) shown = target;
+      else { shown += (target - shown) * 0.3; settleTries = 0; }
+
+      /* TWO THRESHOLDS. Half a source frame while the scroll is MOVING —
+         anything tighter queues seeks faster than the decoder retires them,
+         which is what makes naive scrubbers feel like glue. Tighter once it
+         SETTLES, because the resting frame is the one anybody actually looks
+         at.
+
+         FIXED Aug 17 2026. Before this the loop rescheduled on |target - shown|
+         alone, checked after the write attempt, so a final iteration that
+         collided with an in-flight seek dropped its write and scheduled
+         nothing — leaving the picture up to a frame short until the next
+         scroll event. Found on the deep-field background, where every movement
+         ends on a composed flash frame and one frame is visible; on these
+         column-width film rows it never was. Re-verified on all three clips
+         this drives (the merch render and both film rows) after the change.
+         Bounded at six extra frames so a decoder that will not report the time
+         it was handed cannot spin rAF forever. */
+      const thresh = settled ? 1 / 200 : 1 / 48;
+      if (!v.seeking && v.duration && Math.abs(v.currentTime - shown) > thresh) {
         v.currentTime = shown;
       }
-      if (Math.abs(target - shown) > 0.005) raf = requestAnimationFrame(tick);
+      const landing = settled && v.duration &&
+        Math.abs(v.currentTime - shown) > thresh && settleTries < 6;
+      if (landing) settleTries++;
+      if (!settled || landing) raf = requestAnimationFrame(tick);
     };
     const onScrub = function () {
       if (!v.duration) return;

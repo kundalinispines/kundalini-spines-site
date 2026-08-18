@@ -96,7 +96,7 @@
      kick. 33 = the lightning layer wired in (js injection + tuner rows; the
      layer itself lives in css/star-bg.css) and the stale "loaded by
      index.html only" header line above corrected. */
-  --spine-build: 39;
+  --spine-build: 40;
 
   --charge: 0;          /* 0..1, written by js/spine-bg.js every scroll frame */
 
@@ -407,6 +407,20 @@
   --snare-decay: 260;
   --snare-sens: 2.2;
   --snare-freq: 2500;
+
+  /* THE FORK STRIKE: chance that one strike lights EVERY pattern at once
+     instead of one. Found by accident — a cascade bug in css/deep-field-bg.css
+     lifted the idle-zero off all five bolts, so every strike fired all of them,
+     and the owner liked the look enough to keep it as a rare event.
+
+     SHIPS AT 0, so index.html and every other page keep the measured
+     one-pattern-per-strike behaviour untouched. home-deepfield-lab.html raises
+     it. Promote it here only if the owner wants it on the live site.
+
+     Keep it LOW. The whole point of the five patterns is that no two strikes
+     look alike; a fork that happens often is just the bug again, at which
+     point there is no variety to interrupt. */
+  --snare-all: 0;
 
   --spine-bloom: 0;     /* the flare riding the charge front, 0 = off */
   --spine-glow: 0;      /* 1 = the bloom as generated, 0 = crushed to hard lines */

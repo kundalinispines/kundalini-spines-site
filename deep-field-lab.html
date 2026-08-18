@@ -44,6 +44,33 @@
 
      Do not replace the wave with a scene-cut list. It was tried and it is blind
      to this footage.
+
+     ---------------------------------------------------------------------------
+     AUG 18 2026 — THE PAGE NOW MARKS MORE THAN ONE CLIP, chosen by ?clip=:
+
+         deep-field-lab.html                  deep-field    265f  11.042s
+         deep-field-lab.html?clip=deep-field-2  deep-field-2  289f  12.042s
+
+     An unknown or absent ?clip= falls back to deep-field, so every existing
+     link to this page still opens exactly what it always did. The clip table
+     is the only place a clip is named — see CLIPS in the script below.
+
+     THE SECOND CLIP IS A LAB SOURCE ONLY. Nothing links it: it is not in
+     home-deepfield-lab.html, not in index.html, and js/deep-field-bg.js still
+     loads assets/video/deep-field.*. Marking it changes no page.
+
+     ITS SOURCE IS 8-BIT h264, NOT 10-BIT HEVC like the first, so the "it is
+     the only way the clip plays at all" note above does not apply to it — the
+     re-encode is here for the -g 4 keyframe spacing that makes per-frame
+     seeking cheap, which every scrubbed clip in this project needs.
+
+     ITS LUMINANCE IS A DIFFERENT SHAPE, and this matters when reading the
+     wave: the first clip has four flash peaks spread across it, this one has a
+     single bright cluster at f146-153 and is otherwise much darker (measured
+     mean luma 1.2 to 84.7 over 8-bit frames, against the first clip's 96.7 to
+     545.7 in 10-bit units — roughly 24 to 136 rescaled). The wave is
+     normalised per clip, so it still fills the strip; do not read the two
+     clips' wave heights against each other.
      ========================================================================== -->
 <html lang="en" class="page-home">
 <head>
@@ -192,8 +219,12 @@ input[type=text] { cursor: text; min-width: 148px; }
   border: 1px solid var(--hud-line); border-radius: 3px;
   overflow: hidden;
   cursor: ew-resize;
-  /* The strip is 265 frames at 6px each = 1590x40, one tile per frame, so a
-     pixel of strip maps to a frame of clip at any HUD width. */
+  /* One tile per frame, so a pixel of strip maps to a frame of clip at any HUD
+     width. background-size stretches it to 100% regardless, which is why the
+     two clips' strips can be different pixel widths (deep-field 2120x80 for
+     265 frames, deep-field-2 2312x80 for 289) and neither needs a CSS change.
+     THE URL BELOW IS THE JS-OFF DEFAULT ONLY — the script overwrites it from
+     the CLIPS table, because a stylesheet cannot read ?clip=. */
   background-image: url('assets/lab/deep-field-strip.jpg');
   background-size: 100% 44px;
   background-position: 0 0;
@@ -366,7 +397,7 @@ input[type=range]::-webkit-slider-thumb {
   <div class="hud__bar">
     <span class="hud__title">Deep Field</span>
     <span class="hud__read">
-      <b id="rFrame">f000</b>/265 &nbsp; <b id="rTime">0.000</b>s &nbsp;
+      <b id="rFrame">f000</b>/<span id="rTotal">265</span> &nbsp; <b id="rTime">0.000</b>s &nbsp;
       <span id="rPct">0.0%</span>
     </span>
 
@@ -417,8 +448,8 @@ input[type=range]::-webkit-slider-thumb {
       <option value="overlay">overlay</option>
     </select>
 
-    <button id="bScan" data-tip="Scores every one of the 265 frames against the plate and jumps to the winner. Takes a couple of seconds. The amber line that appears on the timeline is the score across the whole clip, so you can see where else it comes close.">find closest</button>
-    <span class="hits" id="hits"><span class="scan-note">scores all 265 frames against the plate</span></span>
+    <button id="bScan" data-tip="Scores every one of the clip's frames against the plate and jumps to the winner. Takes a couple of seconds. The amber line that appears on the timeline is the score across the whole clip, so you can see where else it comes close.">find closest</button>
+    <span class="hits" id="hits"><span class="scan-note" id="scanNote">scores all 265 frames against the plate</span></span>
   </div>
 
   <div class="tl" id="tl"
@@ -449,8 +480,43 @@ input[type=range]::-webkit-slider-thumb {
 (function () {
   'use strict';
 
-  var FPS = 24, FRAMES = 265, DUR = FRAMES / FPS;   // 11.041666...
-  var LS_KEY = 'ks-deep-field-marks-v1';
+  /* THE PAGE MARKS ONE CLIP AT A TIME, chosen by ?clip= (default deep-field).
+     Everything clip-specific hangs off this one table — sources, filmstrip,
+     sprite sheet, luminance wave, frame count, and the localStorage key.
+     THE KEY IS NAMESPACED PER CLIP ON PURPOSE: both clips are marked in the
+     same browser, and a shared key would silently load one clip's marks onto
+     the other's timeline at frame numbers that mean nothing there. The old
+     un-suffixed 'ks-deep-field-marks-v1' is kept as deep-field's key rather
+     than renamed, so the marks already saved in the owner's browser survive.
+     ADDING A THIRD CLIP is this table plus scripts/build-marker-clip.py; no
+     other line of this page knows a clip's name. */
+  var CLIPS = {
+    'deep-field': {
+      label:  'deep-field',
+      source: 'hf_20260817_134439_24ec20db-eecc-4fa0-b395-32fd6db6c6ae.mp4',
+      base:   'assets/video/deep-field',
+      lab:    'assets/lab/deep-field',
+      fps: 24, frames: 265,
+      lsKey:  'ks-deep-field-marks-v1'
+    },
+    'deep-field-2': {
+      label:  'deep-field-2',
+      source: 'hf_20260818_093844_b8528425-32da-4567-8273-690818faaf92.mp4',
+      base:   'assets/video/deep-field-2',
+      lab:    'assets/lab/deep-field-2',
+      fps: 24, frames: 289,
+      lsKey:  'ks-deep-field-2-marks-v1'
+    }
+  };
+
+  var CLIP_ID = (function () {
+    var q = new URLSearchParams(location.search).get('clip');
+    return (q && CLIPS[q]) ? q : 'deep-field';
+  })();
+  var CLIP = CLIPS[CLIP_ID];
+
+  var FPS = CLIP.fps, FRAMES = CLIP.frames, DUR = FRAMES / FPS;
+  var LS_KEY = CLIP.lsKey;
 
   var vid   = document.getElementById('vid');
   var tl    = document.getElementById('tl');
@@ -460,7 +526,31 @@ input[type=range]::-webkit-slider-thumb {
   var peekL = document.getElementById('peekLabel');
   var root  = document.documentElement;
 
-  var lum = [];          // per-frame normalised luminance, 265 entries
+  /* Point the page at the chosen clip. The markup keeps deep-field's paths as
+     its written default so the file still reads correctly with JS off, and
+     these overwrite them — WEBM STAYS FIRST, which is measured for this pair
+     and explained above the <video>; do not reorder from the other lab.
+     The two backgrounds are set here rather than in the stylesheet because a
+     CSS rule cannot read a query parameter, and a per-clip class would need a
+     new rule for every clip added. */
+  (function () {
+    var srcs = vid.querySelectorAll('source');
+    srcs[0].src = CLIP.base + '.webm';
+    srcs[1].src = CLIP.base + '.mp4';
+    vid.poster   = CLIP.base + '-poster.jpg';
+    vid.load();
+    tl.style.backgroundImage   = "url('" + CLIP.lab + "-strip.jpg')";
+    peek.style.backgroundImage = "url('" + CLIP.lab + "-sprites.jpg')";
+    document.title = 'Deep Field — Marker Lab (' + CLIP.label + ') · Kundalini Spines';
+    /* The frame count appears twice in the markup as text. Both are written
+       here rather than left at deep-field's 265 — a readout of f288/265 is the
+       kind of wrong number that gets believed and marked against. */
+    document.getElementById('rTotal').textContent = FRAMES;
+    document.getElementById('scanNote').textContent =
+      'scores all ' + FRAMES + ' frames against the plate';
+  })();
+
+  var lum = [];          // per-frame normalised luminance, FRAMES entries
   var ticks = [];        // suggested snap points, from lum
   var marks = [];        // the owner's marks
   var frame = 0;
@@ -578,8 +668,8 @@ input[type=range]::-webkit-slider-thumb {
     });
 
     return {
-      clip: 'deep-field',
-      source: 'hf_20260817_134439_24ec20db-eecc-4fa0-b395-32fd6db6c6ae.mp4',
+      clip: CLIP.label,
+      source: CLIP.source,
       fps: FPS, frames: FRAMES, duration: +DUR.toFixed(6),
       marks: marks.map(function (m) {
         return {
@@ -1013,7 +1103,7 @@ input[type=range]::-webkit-slider-thumb {
     var url = URL.createObjectURL(blob);
     var a = document.createElement('a');
     a.href = url;
-    a.download = 'deep-field-marks.json';
+    a.download = CLIP.label + '-marks.json';
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -1088,7 +1178,7 @@ input[type=range]::-webkit-slider-thumb {
   /* ---- boot ---------------------------------------------------------------- */
   load();
 
-  fetch('assets/lab/deep-field-lum.json')
+  fetch(CLIP.lab + '-lum.json')
     .then(function (r) { return r.json(); })
     .then(function (d) { lum = d.lum || []; buildTicks(); render(); })
     .catch(function () { render(); });

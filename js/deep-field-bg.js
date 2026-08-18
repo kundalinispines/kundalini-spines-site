@@ -349,10 +349,28 @@
        starts when its content clears the bar, not when its box does. */
     var navMax = parseFloat(getComputedStyle(root).getPropertyValue('--nav-h-max')) || 92;
 
+    /* READ THE SECTION'S OWN scroll-margin-top, so a boundary cannot drift away
+       from where the section is actually landed. css/spine-doc.css declares it
+       once for every [data-ksd-section] and the note there explains why that
+       property is the single source: it is the only one the BROWSER consults
+       for anchor navigation, which no script controls.
+
+       POSITIVE ONLY, and that is not tidiness. Music's scroll-margin-top is
+       written back onto the element by restPoint() below, as a NEGATIVE value
+       derived from this very boundary — reading it here would feed the previous
+       run's output into this run's input and let the Music boundary walk on
+       every re-measure. Music's landing is musicRest and is computed from the
+       geometry, not from this. Falling back to --nav-h-max keeps that path
+       exactly as it was. */
+    function landOffset(el) {
+      var smt = parseFloat(getComputedStyle(el).scrollMarginTop);
+      return (isFinite(smt) && smt > 0) ? smt : navMax;
+    }
+
     for (var i = 0; i < rows.length; i++) {
-      var y0 = i === 0 ? 0 : docY(rows[i].el) - navMax;
-      var y1 = (i < rows.length - 1) ? docY(rows[i + 1].el) - navMax
-                                     : (tail ? docY(tail) - navMax : maxY);
+      var y0 = i === 0 ? 0 : docY(rows[i].el) - landOffset(rows[i].el);
+      var y1 = (i < rows.length - 1) ? docY(rows[i + 1].el) - landOffset(rows[i + 1].el)
+                                     : (tail ? docY(tail) - landOffset(tail) : maxY);
       if (y1 <= y0) y1 = y0 + 1;
       var seg = { y0: y0, y1: y1, f0: rows[i].f0, f1: rows[i].f1, name: rows[i].name };
       segs.push(seg);

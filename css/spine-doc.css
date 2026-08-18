@@ -184,6 +184,46 @@ html.page-home {
   justify-content: center;
   padding-block: clamp(64px, 10vh, 140px);
 }
+
+/* ONE LANDING POSITION PER SECTION, READ BY ALL THREE ROUTES TO IT
+   (owner's call, Aug 17 2026: "it should always land on the position where if
+   i click on the spine node or top navigation its assigned to land at").
+
+   There were THREE different answers before this line existed, measured at
+   1440x900 on the deep-field home:
+
+     route                        offset from section top      About landed
+     the section stepper          --nav-h-max          92px          808
+     a spine rail node, jump()    --nav-h  (live)      47px          853
+     a nav link / anchor          scroll-margin-top     0px          900
+
+   So stepping to About and then clicking About moved the page 45px, and the
+   nav link moved it 92px and put the headline under the masthead — which is
+   the exact fault js/spine-doc.js jump() was written to avoid, except the
+   browser never consulted jump(). Merch, Transmissions, Archive and Stay
+   Connected all did the same. Music was the ONLY section that agreed with
+   itself, and only because js/deep-field-bg.js gives it an inline
+   scroll-margin-top for the carousel rest point — which is precisely the
+   mechanism generalised here.
+
+   WHY THE BROWSER'S OWN PROPERTY RATHER THAN A SHARED CONSTANT IN JS: anchor
+   navigation is the one route no script controls. The nav links are plain
+   hrefs and the browser applies scroll-margin-top itself, so any answer that
+   lived only in code would leave that route out and the three would drift
+   again. jump() already prefers a declared scroll-margin-top over --nav-h,
+   and js/deep-field-bg.js now reads the same property for its boundaries, so
+   this declaration is the single source all three consult.
+
+   --nav-h-max AND NOT THE LIVE --nav-h, which is the other real candidate and
+   would land 45px lower. Three reasons: the live value depends on WHERE YOU
+   CLICKED FROM (92 at rest at the top, 47 once scrolled), so it cannot give a
+   stable landing at all; the deep-field frame boundaries are already built on
+   it, so the marked frame for each section keeps landing exactly (f41 About,
+   f134 Music, f157 Merch, f196 Transmissions, f265 Archive); and it clears the
+   bar in BOTH of its states rather than only the collapsed one. The cost is
+   45px of air above a headline while the bar is collapsed. If that reads as
+   too much, this one token is the place to change it — everything follows. */
+.ksd-section[data-ksd-section] { scroll-margin-top: var(--nav-h-max, 92px); }
 .ksd-head {
   font-family: var(--font-display);
   font-weight: var(--display-wght);

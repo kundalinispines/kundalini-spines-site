@@ -149,26 +149,19 @@
    The base sky has no opacity of its own, so it takes --df-sky directly. */
 body::before { opacity: var(--df-sky); }
 
-/* The four twinkle bands and the nebula are ANIMATED on opacity, so they
-   cannot simply be assigned one. They already read their amplitude through an
-   indirection built for exactly this (css/star-bg.css:392) — rebinding the
-   amplitude scales the animation without restarting it. */
-:root,
-:root.is-spine-pulsing,
-:root.is-spine-kicking {
-  --star-twinkle-amp: calc(var(--star-twinkle) * var(--df-sky));
-  --star-cloud-amp:   calc(var(--star-cloud)   * var(--df-sky));
-}
-/* THE PLAYING-STATE SELECTORS ARE LISTED ABOVE DELIBERATELY, AND THIS BLOCK
-   IS NOT REDUNDANT NOW THAT --df-sky VARIES. star-bg.css rebinds both
-   amplitudes at (0,2,0) under .is-spine-pulsing / .is-spine-kicking, which
-   out-specifies a bare :root — so without these two extra selectors the sky
-   would snap back to full strength the moment a track played, anywhere on the
-   page, regardless of where the scroll actually is.
+/* THE TWINKLE BANDS AND THE NEBULA ARE NOT SUPPRESSED FROM HERE.
 
-   With them, the multiply survives into the playing state: during Music
-   --df-sky is 1 and the amplitudes are full, which is exactly right, and a
-   track playing anywhere else cannot force the sky up behind the clip. */
+   They are animated on opacity and read their amplitude through
+   --star-twinkle-amp / --star-cloud-amp, so the obvious move is to re-declare
+   those two here. IT WAS DONE THAT WAY FOR ONE BUILD AND IT BROKE THE MUSIC
+   RESPONSE: this file loads after css/star-bg.css at the same specificity, so
+   it won the cascade and replaced the playing-state formulas wholesale —
+   taking the 1.8 swell, the --star-twinkle-hi lift and the
+   `+ var(--kick) * var(--kick-cloud)` term with it. The nebula stopped bumping
+   to the kick and the sky still looked correct in every still frame.
+
+   --df-sky is now multiplied INTO those formulas in css/star-bg.css, where it
+   defaults to 1 so no other page changes. Do not re-declare the amps here. */
 
 /* LIGHTNING: OVERRIDE THE STRUCK RULE, NEVER THE BASE ONE.
 

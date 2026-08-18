@@ -102,7 +102,7 @@
      as worth 63 -> 88 fps; that figure was taken on a software renderer and is
      corrected under html::after below). 6 was the single lockstep cores
      layer. */
-  --star-build: 28;
+  --star-build: 29;
 
   /* Brightness of the whole field. 0 is off — the layer still exists but adds
      no light, and under screen blending (see below) that is exactly the same
@@ -390,8 +390,23 @@
   /* The amplitude actually in force. Indirection rather than two copies of the
      animation: the keyframes below read this one property, so the playing state
      is a single re-binding and the animation never restarts. */
-  --star-twinkle-amp: var(--star-twinkle);
-  --star-cloud-amp: var(--star-cloud);
+  --star-twinkle-amp: calc(var(--star-twinkle) * var(--df-sky, 1));
+  --star-cloud-amp: calc(var(--star-cloud) * var(--df-sky, 1));
+
+  /* --df-sky IS THE DEEP-FIELD BACKGROUND'S SUPPRESSION MULTIPLIER, and the
+     fallback of 1 is what keeps every other page identical: css/deep-field-bg
+     .css declares it and js/deep-field-bg.js drives it, and where neither is
+     loaded var() falls back to 1 and these formulas are exactly what they were.
+
+     IT BELONGS INSIDE THESE FORMULAS, NOT OVER THE TOP OF THEM. The lab first
+     did this by re-declaring --star-*-amp in its own stylesheet, at the same
+     specificity and later in the cascade, which won — and silently threw away
+     everything the playing-state rules below put INTO those formulas: the 1.8
+     swell, the --star-twinkle-hi lift, and the `+ var(--kick) * var(--kick-cloud)`
+     term that IS the nebula answering the drum. The sky stayed suppressed
+     correctly and simply stopped responding to music, which is a hard bug to
+     see because the layer looks right in every still frame. Multiply, never
+     replace. */
 
   /* HOW HARD THE SKY ANSWERS THE KICK DRUM, per unit of envelope.
      The envelope itself (--kick) is written by js/spine-bg.js and declared in
@@ -433,18 +448,18 @@
   --kick-stars: 0;
 }
 :root.is-spine-pulsing {
-  --star-twinkle-amp: var(--star-twinkle-hi);
-  --star-cloud-amp: calc(var(--star-cloud) * 1.8);
+  --star-twinkle-amp: calc(var(--star-twinkle-hi) * var(--df-sky, 1));
+  --star-cloud-amp: calc(var(--star-cloud) * 1.8 * var(--df-sky, 1));
 }
 /* MUST STAY BELOW the pulsing rule — same specificity, and both classes sit on
    <html> at once while a sample plays, so source order is what decides. */
 :root.is-spine-kicking {
-  --star-twinkle-amp: calc(var(--star-twinkle-hi) + var(--kick) * var(--kick-stars));
+  --star-twinkle-amp: calc((var(--star-twinkle-hi) + var(--kick) * var(--kick-stars)) * var(--df-sky, 1));
   /* The clouds get half as much. They are a 22px-blurred glow with no detail in
      them, so they read as a slow swell whatever is done to them; a transient
      there mostly just lifts the page's floor, which is the thing --star-black
      exists to hold down. The star CORES are what can actually flick. */
-  --star-cloud-amp: calc(var(--star-cloud) * 1.8 + var(--kick) * var(--kick-cloud));
+  --star-cloud-amp: calc((var(--star-cloud) * 1.8 + var(--kick) * var(--kick-cloud)) * var(--df-sky, 1));
 }
 
 /* A pseudo-element, so this file is the ENTIRE feature: one <link> and a page

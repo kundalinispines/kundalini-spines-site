@@ -286,11 +286,15 @@
     els.forEach(function (el) { io.observe(el); });
   }
 
-  /* VIDEO IS SCRUBBED BY THE SCROLL, NEVER PLAYED. Two clips use this now — the
-     merch spine render (owner's call, Aug 14 2026) and the About footage
-     (Aug 15) — so it lives in one function rather than twice. It was written
-     twice first; the second copy is how the About clip nearly shipped without
-     the -g 4 re-encode the mechanism depends on.
+  /* VIDEO IS SCRUBBED BY THE SCROLL, NEVER PLAYED. ONE clip uses this now — the
+     merch spine render (owner's call, Aug 14 2026). The About footage was
+     scrubbed here too from Aug 15, and both film rows were, until the owner
+     called it on Aug 17 2026: the rows now play and loop on their own, see
+     playInView below. The function stays general and stays here because the
+     merch render still depends on every word of what follows, and because two
+     callers is what forced it into one place to begin with — it was written
+     twice first, and the second copy is how the About clip nearly shipped
+     without the -g 4 re-encode the mechanism depends on.
 
      Progress is the element's travel through the viewport: 0 as its top enters
      at the bottom edge, 1 as its bottom exits at the top, so the clip spreads
@@ -314,7 +318,22 @@
      rather than a server that cannot seek.
 
      Reduced-motion visitors keep the still first frame. Scroll-linked motion is
-     exactly what that preference declines, so the caller gates on it. */
+     exactly what that preference declines, so the caller gates on it.
+
+     ---------------------------------------------------------------------
+     NO CALLER TODAY (Aug 17 2026). Every clip this drove was unwired from the
+     scroll on the owner's call within a few hours: first the two film rows,
+     then the merch render. Nothing on any page that loads this file scrubs any
+     more, so this function is dead as it stands.
+
+     IT IS KEPT RATHER THAN DELETED, deliberately, and this note is here so the
+     next session does not read the silence as an oversight. The lerp constant,
+     the 1/48 write threshold and the !seeking coalescing guard all have owner
+     decisions and measurements behind them that are recorded nowhere else, and
+     js/deep-field-bg.js's own scrub loop was copied from this one. Deleting it
+     costs that record; leaving it costs a screenful. Delete it once the owner
+     has lived with self-playing clips long enough to be sure.
+     --------------------------------------------------------------------- */
   function scrubToScroll(v) {
     let target = 0, shown = 0, raf = 0, settleTries = 0;
     const tick = function () {
@@ -337,8 +356,9 @@
          nothing — leaving the picture up to a frame short until the next
          scroll event. Found on the deep-field background, where every movement
          ends on a composed flash frame and one frame is visible; on these
-         column-width film rows it never was. Re-verified on all three clips
-         this drives (the merch render and both film rows) after the change.
+         column-width film rows it never was. Re-verified after the change on
+         all three clips this drove that day (the merch render and both film
+         rows; the rows stopped being scrubbed later the same day).
          Bounded at six extra frames so a decoder that will not report the time
          it was handed cannot spin rAF forever. */
       const thresh = settled ? 1 / 200 : 1 / 48;
@@ -372,6 +392,132 @@
     onScrub();
   }
 
+  /* THE FILM ROWS PLAY THEMSELVES AND LOOP FOREVER (Aug 17 2026, owner's call).
+     They were scroll-scrubbed by scrubToScroll until today; they are not driven
+     by scroll position in any way any more. The merch render is untouched and
+     still scrubs.
+
+     LOOPING IS THE `loop` PROPERTY, not an `ended` handler that rewinds. The
+     handler only gets to run after the decoder has retired the final frame and
+     stopped, so the wrap costs a visible hitch at the seam; loop wraps inside
+     the media pipeline and there is no seam to see. Same reason there is no
+     timeupdate watchdog seeking back near the end — that is the same hitch with
+     extra jitter.
+
+     PLAYBACK IS GATED ON VISIBILITY, matching watchReveals' observer above.
+     Three autoplaying clips decoding off-screen buy nothing and cost CPU and
+     battery; what you SEE is identical to playing unconditionally, because the
+     only frames a paused-off-screen clip misses are frames nobody is looking
+     at. One difference from watchReveals: it unobserves on the way in, because
+     a reveal happens once. This one must keep listening in both directions
+     forever, so nothing is ever unobserved.
+
+     THE ELEMENT MAY HAVE NO DATA WHEN THIS RUNS, and asking a dry element to
+     play is how this silently does nothing. On home-deepfield-lab.html the rows
+     ship preload="none" on purpose (js/deep-field-bg.js holds 9.3MB of
+     below-the-fold video off the connection until the hero can play through, or
+     first scroll, or a 4s backstop) and are only then upgraded to preload="auto"
+     and load()ed. load() RESETS the element and pauses it, so a play() issued
+     before the release is thrown away even if it had started. So the wanted
+     state is kept in `want` and re-asserted on every arrival of data rather
+     than fired once. On index.html the same rows ship preload="auto" and the
+     first attempt usually takes; both paths land in the same place.
+
+     THE play() PROMISE IS CAUGHT, always. It rejects whenever the browser
+     declines the autoplay — and an unhandled rejection is a console error, on a
+     page whose bar is zero console errors. muted is what buys the autoplay in
+     the first place; these clips carry no audio track at all, so the attribute
+     is set here as well as in the markup — dropping it from the markup one day
+     would otherwise turn every row into a silent no-op that looks like a bug in
+     this file.
+
+     The -g 4 keyframe-dense encode these clips carry is surplus to playback
+     (it exists for seeking, and scrubToScroll's note explains why). It costs
+     file size and nothing else, so nothing here depends on it — but a future
+     re-encode is now free to drop it FOR THESE TWO, and must not for the merch
+     render. */
+  /* A LOOP OVER PART OF A CLIP, because `loop` can only wrap the whole file.
+
+     Used by the merch render, whose full revolution does not fill the encode —
+     see the measurement where it is wired. tIn/tOut are seconds; playback runs
+     [tIn, tOut) and jumps back to tIn.
+
+     WHY rAF AND NOT `timeupdate`: timeupdate fires about 4x a second, so the
+     wrap could overshoot by up to 250ms of wall time and land well past the
+     matching frame — the whole point is to hit one exact frame. rAF gives
+     ~16ms. requestVideoFrameCallback would be tighter still but stops firing
+     while paused, so it would need re-arming on every play; the pump below is
+     already gated on play/pause and costs one float compare per frame. */
+  function loopRange(v, tIn, tOut) {
+    v.loop = false;               // the native wrap would take the whole file
+    let raf = 0;
+    const pump = function () {
+      raf = 0;
+      if (!v.paused) {
+        /* Both directions. Under is not hypothetical: js/deep-field-bg.js
+           calls load() to upgrade preload, which resets currentTime to 0 —
+           below tIn — and without this the clip would play the few frames
+           that sit outside the revolution every time that happens. */
+        if (v.currentTime >= tOut - 0.001 || v.currentTime < tIn - 0.001) {
+          v.currentTime = tIn;
+        }
+        raf = requestAnimationFrame(pump);
+      }
+    };
+    const start = function () { if (!raf) raf = requestAnimationFrame(pump); };
+    v.addEventListener('play', start);
+    v.addEventListener('pause', function () {
+      if (raf) { cancelAnimationFrame(raf); raf = 0; }
+    });
+    v.addEventListener('loadeddata', function () {
+      if (v.currentTime < tIn) v.currentTime = tIn;
+    });
+    start();
+  }
+
+  function playInView(v, rate, tIn, tOut) {
+    v.loop = true;
+    v.muted = true;
+    if (tOut > tIn) loopRange(v, tIn, tOut);   // overrides v.loop itself
+
+    /* THE RATE IS RE-APPLIED RATHER THAN SET ONCE, and both properties are
+       written. load() resets playbackRate back to defaultPlaybackRate, and
+       js/deep-field-bg.js calls load() on these elements when it upgrades them
+       off preload="none" — so a rate assigned only at wiring time would quietly
+       snap back on the home page while staying correct on any page without that
+       module. Writing defaultPlaybackRate is what makes the reset land on the
+       wanted value instead of on 1x. */
+    const speed = rate > 0 ? rate : 1;
+    v.defaultPlaybackRate = speed;
+    v.playbackRate = speed;
+
+    let want = false;
+    const attempt = function () {
+      // v.paused goes false the instant play() is called, not when it resolves,
+      // so this also stops a burst of ready-state events queueing a second one.
+      if (!want || !v.paused) return;
+      if (v.playbackRate !== speed) v.playbackRate = speed;
+      const p = v.play();
+      if (p && p.catch) p.catch(function () {});
+    };
+    // loadeddata is the first point there is a frame to show; canplay covers a
+    // re-arrival after deep-field-bg.js's load(), which fires no loadeddata if
+    // the bytes are already in the cache.
+    v.addEventListener('loadeddata', attempt);
+    v.addEventListener('canplay', attempt);
+    const io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        want = e.isIntersecting;
+        if (want) attempt();
+        else if (!v.paused) v.pause();
+      });
+    }, { threshold: 0.01 });
+    // No kick-off call after this: observe() always delivers one entry for the
+    // element's CURRENT state, so a row already on screen at load starts from
+    // that first callback like any other.
+    io.observe(v);
+  }
+
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   /* The merch render's transparency is real alpha in the WebM (VP9); the mp4
@@ -382,15 +528,63 @@
   const merchVid = document.querySelector('.ksd-merch__video video');
   if (merchVid) {
     if (!merchVid.canPlayType('video/webm; codecs="vp9"')) merchVid.classList.add('is-flat');
-    if (!reducedMotion) scrubToScroll(merchVid);
+
+    /* THE RENDER TURNS ON ITS OWN NOW (owner's call, Aug 17 2026), where it
+       used to be scrubbed by scroll like the film rows were until earlier the
+       same day.
+
+       IT LOOPS OVER A MEASURED 360, NOT OVER THE WHOLE FILE. The encode is 241
+       frames but ONE REVOLUTION IS 237 OF THEM — the last four overshoot past
+       the start, so a plain `loop` wrapped from an orientation the turn had
+       already passed and jumped backwards a few degrees every 8 seconds.
+
+       MEASURED Aug 17 2026: every one of the 241 frames was decoded to a
+       downsampled luma+alpha signature, and for each candidate start frame the
+       best-matching frame at least 60% of the clip later was found by RMS
+       distance. The winner is f3 -> f240 at distance 14.6. Read it against the
+       clip's own noise floor rather than against zero: ADJACENT frames in this
+       thing score a median of 7.6 and run as high as 22.4, because it is a lit
+       metallic surface turning ~1.5 degrees a frame. So the wrap now costs
+       about what an ordinary frame step costs, and less than the clip's worst
+       one. (The runners-up agree it is a real minimum, not a fluke of the
+       metric: f2->f238 and f0->f238 both land at 15.3, and it degrades
+       smoothly from there — f4 18.2, f5 21.0.)
+
+       f3 starts at 0.1001s and f240 at 8.0086s, so the revolution is 7.9085s
+       against the file's 8.042s. Playback runs [IN, OUT) and jumps to IN.
+
+       THESE TWO NUMBERS BELONG TO THIS ENCODE and nothing else. Re-export the
+       render and they are wrong — re-run the scan rather than nudging them.
+
+       SLOW ON PURPOSE, and the rate is a token rather than a constant: the clip
+       runs 8.042s at 1x, which is a brisk turn for something meant to sit
+       behind body copy as an object rather than to be watched. --ksd-spine-rate
+       is where that judgement lives; css/spine-doc.css records what the
+       resulting seconds-per-revolution actually are at each setting.
+
+       Read off :root rather than the element so it can be turned from devtools
+       and from a page-scoped block, the same way --ksd-field already is. */
+    const SPIN_IN = 0.1001;    // f3,   the frame f240 comes back round to
+    const SPIN_OUT = 8.0086;   // f240, one full revolution later
+    const rate = parseFloat(getComputedStyle(document.documentElement)
+                              .getPropertyValue('--ksd-spine-rate')) || 0.75;
+    if (!reducedMotion) playInView(merchVid, rate, SPIN_IN, SPIN_OUT);
   }
 
   /* Every film row on the page, not a named list — the owner has more clips
      coming and each one should be markup plus an encode, never another line
-     here. Add a .ksd-filmrow__media and it scrubs. */
+     here. Add a .ksd-filmrow__media and it plays.
+
+     Reduced-motion visitors get no playback at all, and the poster attribute in
+     the markup is what they see instead — a still frame chosen for each clip,
+     which is the honest answer for a preference that declines motion. Same gate
+     the scrub used to sit behind, so nothing changed for those visitors today.
+     Note the poster survives the preload upgrade: js/deep-field-bg.js load()s
+     these elements on every device, and an element that has loaded but never
+     played still shows its poster rather than frame zero. */
   if (!reducedMotion) {
     document.querySelectorAll('.ksd-filmrow__media video').forEach(function (v) {
-      scrubToScroll(v);   // wrapped, not passed bare: forEach also hands over
+      playInView(v);      // wrapped, not passed bare: forEach also hands over
                           // the index and the list, and a second parameter here
                           // one day would silently start receiving them.
     });

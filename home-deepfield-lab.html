@@ -299,17 +299,26 @@
       </section>
 
       <section class="ksd-section" id="merch" data-ksd-section="merch" data-ksd-label="Merch">
-        <h2 class="ksd-head ksd-reveal">Objects That Carry It</h2>
+        <!-- THE HEADLINE LIVES INSIDE .ksd-merch__copy, not above .ksd-merch.
+             It was a sibling of the row until Aug 17 2026, which is why the
+             render could only ever stand beside the PARAGRAPHS — a block that
+             starts below the headline cannot reach up past it. Same move the
+             film rows already made (see the .ksd-filmrow note in
+             css/spine-doc.css): headline, prose and footage as ONE block.
+             The h2 keeps `ksd-head ksd-reveal` untouched — the rail measures
+             the node off .ksd-head, and the reveal is what the whole page
+             uses. Measured either side of the move at 1440x900: the h2's
+             document top is 2984.23px before AND after, so the Merch node did
+             not shift. That only holds because the section's own padding is
+             what puts the h2 there — do not add align-items to .ksd-section
+             to centre anything, it shrink-wraps the headline and the node
+             slides with it.
+             The FIGURE IS FIRST in source order so it lands LEFT of the copy
+             (owner's call, Aug 17 2026 — the render used to sit right). Below
+             900px css/spine-doc.css sends it back under the copy with `order`,
+             because a 620px spine ahead of the headline is a wall on a
+             phone. -->
         <div class="ksd-merch">
-          <div class="ksd-merch__copy">
-            <p class="ksd-body ksd-reveal">The Signal doesn&rsquo;t only travel as sound. Some of it ends up in things you can hold &mdash; apparel and headwear, the record as a physical object, printed work, and pieces closer to talismans than products.</p>
-            <p class="ksd-body ksd-reveal">The Messengers wear the same marks you&rsquo;ll find here. Nothing in the range is made to advertise. It&rsquo;s made to carry &mdash; the same way a transmission is received, preserved, and passed on without weakening.</p>
-            <p class="ksd-body ksd-reveal">None of it is listed yet and there is no date. Objects go out as each one is made, in the quantity it can be made in, and they are filed like everything else.</p>
-            <div style="display:flex;flex-wrap:wrap;gap:var(--space-4);margin-top:var(--space-2);">
-              <a class="btn btn--ghost" href="merch.html">View the Objects</a>
-              <a class="btn btn--ghost" href="#newsletter">Be Told First</a>
-            </div>
-          </div>
           <!-- The spine render (owner's TRUE-ALPHA re-export SpineSpin.mov,
                Aug 15 2026 — it replaced the Aug 14 footage, which shipped a
                DERIVED key because its alpha had been dropped on export).
@@ -337,7 +346,20 @@
                unsupported and the CSS screen-blends the black away instead.
                KNOWN GAP, unchanged: a Safari that claims VP9 but drops the
                alpha would show the backdrop — Safari is untested project-wide
-               (see the handoffs). -->
+               (see the handoffs).
+               THE CROP MARGIN IS THE ONE NUMBER THAT MATTERS TO THE NEW
+               LAYOUT, where the render's top edge is aligned to the cap of
+               the "O" in the headline. Measured Aug 17 2026 at 1440x900, by
+               drawing this <video> into a canvas at its native 264x1296 and
+               scanning for the first row carrying alpha: the spine's painted
+               top runs from source row 20 (t=0, its highest reach of the whole
+               241) to row 39 (t≈4.9) — 10.8px to 21.1px below the element's
+               top edge at the 702px display height. So the letterform is met
+               by the ELEMENT, and the spine paints that far under it. It is
+               not compensated because the top MOVES with the scrub; a fixed
+               nudge is only right at one scroll position. css/spine-doc.css
+               carries the number to change it with if the owner wants the
+               highest frame on the cap instead. -->
           <!-- NO autoplay and NO loop — the render is scrubbed by scroll
                (js/spine-doc.js owns the mapping). preload="auto", not
                metadata: the scrub seeks from its first wheel tick, and with
@@ -367,6 +389,19 @@
                  .ksd-merch__video-note rule was deleted with it. -->
 
           </figure>
+          <div class="ksd-merch__copy">
+            <h2 class="ksd-head ksd-reveal">Objects That Carry It</h2>
+            <p class="ksd-body ksd-reveal">The Signal doesn&rsquo;t only travel as sound. Some of it ends up in things you can hold &mdash; apparel and headwear, the record as a physical object, printed work, and pieces closer to talismans than products.</p>
+            <p class="ksd-body ksd-reveal">The Messengers wear the same marks you&rsquo;ll find here. Nothing in the range is made to advertise. It&rsquo;s made to carry &mdash; the same way a transmission is received, preserved, and passed on without weakening.</p>
+            <p class="ksd-body ksd-reveal">None of it is listed yet and there is no date. Objects go out as each one is made, in the quantity it can be made in, and they are filed like everything else.</p>
+            <!-- justify-content:center, because the copy column is now
+                 text-align:center and a FLEX row ignores that — the two
+                 buttons would have stayed hard left under centred prose. -->
+            <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:var(--space-4);margin-top:var(--space-2);">
+              <a class="btn btn--ghost" href="merch.html">View the Objects</a>
+              <a class="btn btn--ghost" href="#newsletter">Be Told First</a>
+            </div>
+          </div>
         </div>
       </section>
 

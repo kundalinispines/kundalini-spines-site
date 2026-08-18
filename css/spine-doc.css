@@ -53,6 +53,56 @@
      value and leave the panel's field slider dead. Same trap as the
      html-vs-body scoping note in js/spine-bg.js. */
   --ksd-field:          160px;
+
+  /* THE SECTION HEADLINE'S TYPE SIZE, HOISTED OUT OF .ksd-head (Aug 17 2026).
+     Same clamp it always was; nothing renders differently for this line
+     existing. It is a token now because a SECOND rule needs the number: the
+     merch render aligns its top edge to the cap of the "O" in "Objects That
+     Carry It", and that offset is a fraction of the headline's font-size. Two
+     copies of the clamp would drift the moment either is retuned, and the
+     failure is silent — the spine just stops meeting the letterform.
+     DOC-ONLY, not mirrored into css/spine-ui.css. */
+  --ksd-head-fs:        clamp(2.4rem, 6vw, 5rem);
+
+  /* HOW FAST THE MERCH SPINE TURNS (Aug 17 2026). js/spine-doc.js reads this
+     off :root and writes it to the video's playbackRate; it stopped being
+     scroll-scrubbed on the owner's call and now turns by itself and loops.
+
+     One revolution is 7.9085s of the 8.042s file — js/spine-doc.js loops the
+     measured 360 rather than the whole encode, and the note there says why.
+
+     THIS IS A JUDDER BUDGET, NOT A TASTE DIAL, and it is why the first value
+     shipped here (0.4) came back as "it looks like its hitching". The encode is
+     24fps, so slowing playback does not add intermediate poses — it just holds
+     each of the 193 frames longer, and below roughly 18 unique frames a second
+     the turn stops reading as rotation and starts reading as a slideshow.
+
+     MEASURED Aug 17 2026 via requestVideoFrameCallback at 0.4x: frames arrived
+     every 104.2ms, stdev 1.2ms, zero dropped and zero late — so the hitch was
+     never dropped frames or a decode stall. It was 9.6 unique frames a second,
+     each one held for 6.3 refreshes of a 60Hz screen, stepping the spine about
+     1.9 degrees at a time.
+
+         rate   frame hold   refreshes@60Hz   unique fps   turn
+         1.00     41.7ms          2.5            24.0      7.9s   native, smoothest possible
+         0.85     49.0ms          2.9            20.4      9.3s
+         0.75     55.6ms          3.3            18.0     10.5s   SHIPPED
+         0.60     69.4ms          4.2            14.4     13.2s   stepping becomes visible
+         0.50     83.3ms          5.0            12.0     15.8s
+         0.40    104.2ms          6.3             9.6     19.8s   the reported hitch
+
+     0.75 is the slowest setting that still holds ~18 unique fps. GOING SLOWER
+     THAN THIS NEEDS FRAMES, NOT A SMALLER NUMBER: a motion-interpolated
+     re-export from the owner's ProRes source. It cannot be done from the
+     shipped webm — ffmpeg reads that file as plain yuv420p because it does not
+     surface VP9's alpha side-track, so anything re-encoded from it loses the
+     matte. Chrome also mutes audio outside 0.5-4x, which costs nothing here:
+     the render has no audio track at all.
+
+     NOT A TUNER DIAL, deliberately, and the same call --ksd-field made: adding
+     one would mean standing up a whole KSTunePanel tab for js/spine-doc.js,
+     which registers none today. Devtools reaches it in one line. */
+  --ksd-spine-rate:     0.75;
 }
 @media (prefers-reduced-motion: reduce) {
   :root { --connector-draw-ms: 1ms; }
@@ -147,7 +197,7 @@ html.page-home {
      and a missing token silently drops the whole declaration. With no card edge
      doing the separating, this gap is the only thing holding the headline off
      the body. */
-  font-size: clamp(2.4rem, 6vw, 5rem);
+  font-size: var(--ksd-head-fs);
   margin: 0 0 var(--space-6);
   max-width: 18ch;
 }
@@ -517,13 +567,152 @@ html.page-home {
    next to "Objects That Carry It". The element is TALL on purpose: the render
    is a vertical column cropped to portrait at encode time, so its height is
    its size (the earlier 3D-model pass measured the same lesson: a short stage
-   shrinks a spine to a sliver). The video column flexes RIGHT of the copy
-   only — the music bleed's rule applies to anything wide: nothing covers the
-   axis. */
-.ksd-merch { display: flex; flex-wrap: wrap; gap: clamp(28px, 4vw, 64px); align-items: center; }
-.ksd-merch__copy { flex: 1 1 34ch; min-width: 0; }
-.ksd-merch__video { flex: 1 1 300px; min-width: 0; margin: 0; display: flex; flex-direction: column; align-items: center; }
-.ksd-merch__video video { display: block; height: clamp(540px, 78vh, 780px); width: auto; max-width: 100%; }
+   shrinks a spine to a sliver).
+
+   THE RENDER MOVED TO THE LEFT AND THE COPY CENTRED, Aug 17 2026, the owner's
+   call. The line that stood here said the video column "flexes RIGHT of the
+   copy only — nothing covers the axis". THE AXIS RULE IS NOT WHAT CHANGED and
+   it is not broken by this: the rail lives outside .ksd-doc__col, which is
+   held clear of it by margin-left: calc(--ksd-axis + --ksd-throw + 18px).
+   Measured at 1440x900 after the move — cord at x88, video's left edge at
+   x136, i.e. the render starts exactly where every other block in the column
+   starts and covers nothing. What it must never do is bleed LEFT of the
+   column, so there is deliberately no negative margin on this figure. The
+   .ksd-filmrow note still says its film never swaps sides; that is still true
+   of the film rows, whose copy is left-aligned and hangs off the axis.
+
+   THE VIDEO'S TOP EDGE MEETS THE CAP OF THE "O", NOT THE HEADLINE'S BOX.
+   .ksd-head is set at line-height 0.9 — TIGHTER than the face's own
+   ascent+descent — so the half-leading is negative and the cap sits only just
+   under the line box's top. Only just is still not zero, and align-items:
+   flex-start on its own lands the spine visibly above the letterform.
+   MEASURED in Chromium at 1440x900, Aug 17 2026, by screenshotting the
+   headline and scanning for the first painted row inside the leading glyph:
+   font-size 80px, line-height 72px, the painted apex of the "O" 6.0px below
+   the h2's border-box top => 0.075em. The face's own metrics agree and say
+   why: (0.9 - (0.875 + 0.2125)) / 2 + 0.875 - 0.70 = 0.08125em down to the
+   NOMINAL cap line, and a round O overshoots ~0.006em above it. 0.075em is
+   the number that was painted, and painted is what the owner is looking at.
+
+   IT IS A FRACTION OF --ksd-head-fs, NOT A PIXEL CONSTANT. The headline is
+   clamp(2.4rem, 6vw, 5rem), so a hard 6px would be correct at 1440 and wrong
+   everywhere else; the same fraction gives 3.4px at 760.
+   IT IS margin-top, NOT a transform. .ksd-reveal already owns this element's
+   transform and clears it to translateY(0) on reveal, which would wipe a
+   translate put here.
+
+   WHAT THIS ALIGNS IS THE ELEMENT'S TOP EDGE, AND THE SPINE PAINTS BELOW IT.
+   The encode's crop carries a margin above the union bounding box of all 241
+   frames, and the spine then turns inside that frame as the scroll scrubs it,
+   so its painted top MOVES. Measured Aug 17 2026 at 1440x900 by drawing the
+   <video> into a canvas at its native 264x1296 and scanning for the first row
+   with alpha: the spine's top sits between row 20 (t=0, its highest reach) and
+   row 39 (t≈4.9), i.e. 10.8px to 21.1px below the element's top edge at the
+   702px display height. There is no one frame to align to, so the ELEMENT is
+   the target and the residual is that 10.8–21.1px.
+   IF THE OWNER WANTS THE SPINE'S HIGHEST REACH ON THE CAP INSTEAD, it is one
+   subtraction — 20/1296 of the video's height — and it needs the height
+   hoisted to a token the same way --ksd-head-fs was, because the height is a
+   clamp() too. That parks the tallest frame exactly on the cap and every other
+   frame 0–10.3px under it, never above. It was NOT done here because the
+   instruction being built to was the element's top edge on the cap; this note
+   is the number to change it with, not a suggestion that it is wrong.
+
+   THE FIGURE IS `flex: 0 0 auto`, NOT A FLEX SHARE. It was `1 1 300px`, which
+   handed it half the row while the video inside it was 143px wide — that is
+   what used to park the render in the middle of a 556px column, and on the
+   left it would have left the spine floating in dead space instead of on the
+   column's edge. Shrink-to-fit puts the figure's box on the video, and the
+   copy takes everything else and centres inside it. */
+.ksd-merch {
+  display: flex;
+  flex-wrap: wrap;
+  gap: clamp(28px, 4vw, 64px);
+  /* flex-start, not center — centre is what held the render level with the
+     PARAGRAPHS' midpoint and made it impossible to reach the headline.
+     This is align-items on a ROW, so it is the VERTICAL alignment of the two
+     columns. It is NOT the align-items:center the do-not list forbids: that
+     one goes on .ksd-section, which is a flex COLUMN, where it shrink-wraps
+     the headline, changes its height and slides the rail node — js/spine-doc
+     .js places the node at r.top + r.height / frac off .ksd-head. */
+  align-items: flex-start;
+
+  /* THE PAIR IS CENTRED AS A GROUP (owner's call, Aug 17 2026: "move the spine
+     closer to the right, to the centred text").
+
+     MEASURED before this at 1440x900: the render's painted right edge sat at
+     x270 and the headline began at x507 — a 237px hole. It was not the flex
+     gap, which is only 57.6px. It was that .ksd-merch__copy was flex: 1 1 34ch
+     and therefore GREW to the full 1017px remaining, while the text inside it
+     kept its own 62ch max-width and centred in that column. All the slack
+     landed between the spine and the first word.
+
+     So the copy no longer grows: it takes its content width and the row
+     centres the two columns together. The text is still centred - it now
+     centres within a column that fits it, which also brings the block back
+     towards the section's own centre line (its centre was 100px right of it). */
+  justify-content: center;
+}
+/* flex-basis 62ch matches the .ksd-body max-width this column is sized by, so
+   the column is the width of the prose rather than the width of whatever is
+   left over. 0 1 not 1 1: it may shrink on a narrow window, never grow. */
+.ksd-merch__copy { flex: 0 1 62ch; min-width: 0; text-align: center; }
+/* margin-inline:auto AS WELL AS text-align, and neither is redundant: both
+   elements keep their own max-width (18ch and 62ch), and a max-width'd block
+   with margin 0 stays hard left however the text inside it is aligned. Same
+   pair .ksd-music-head uses. Scoped under .ksd-merch__copy so the film rows'
+   and the hero's headlines are untouched. */
+.ksd-merch__copy .ksd-head,
+.ksd-merch__copy .ksd-body { margin-inline: auto; }
+.ksd-merch__video {
+  flex: 0 0 auto;
+  min-width: 0;
+
+  /* THE SPINE MEETS THE CAP, NOT THE VIDEO BOX (owner's call, Aug 17 2026).
+
+     Two separate offsets are stacked in this one margin, and they pull in
+     opposite directions:
+
+     + 0.075em of --ksd-head-fs pushes DOWN from the h2's border-box top to the
+       painted apex of the "O". Measured by screenshotting the headline and
+       scanning for the first painted row inside the leading: 6.0px at a
+       font-size of 80px. Font metrics agree — (0.9 - (0.875 + 0.2125))/2 +
+       0.875 - 0.70 = 0.08125em to the nominal cap line, and a round O
+       overshoots roughly 0.006em above that.
+
+     - the clip's own transparent lead pulls back UP. The encode is a 264x1296
+       crop taken as the union bounding box of all 241 frames, so on any given
+       frame the spine starts some rows BELOW the top of the video element and
+       the element's top edge is empty pixels. Aligning the ELEMENT to the cap
+       therefore left the visible spine hanging ~20px under the O, which is the
+       thing the eye actually measures.
+
+     MEASURED Aug 17 2026, 49 frames sampled across the full 8.042s, reading
+     the first row with alpha > 12 off a canvas draw: the lead runs row 19 at
+     its tallest (t 0.17-0.67 and t 8.04) to row 39 at its shortest. So the
+     compensation is the TALLEST reach, 19/1296 = 0.0146605 of the displayed
+     height: that parks the highest frame exactly on the cap and leaves every
+     other frame between 0 and 10.8px under it. Never above — a spine that
+     rises past the headline as it turns would read as a layout bug, and
+     choosing the tallest frame is what makes that impossible.
+
+     BOTH TERMS ARE FRACTIONS, NOT PIXELS, because both things they track are
+     clamps: --ksd-head-fs is clamp(2.4rem, 6vw, 5rem) and the render height is
+     the token below. A pixel constant would be correct at exactly one viewport
+     width. Net at 1440x900: 6.0 - 10.29 = -4.29px. */
+  --ksd-merch-vid-h: clamp(540px, 78vh, 780px);
+  --ksd-merch-vid-lead: 0.0146605;   /* 19 / 1296, the tallest frame */
+  margin: calc(0.075 * var(--ksd-head-fs)
+               - var(--ksd-merch-vid-lead) * var(--ksd-merch-vid-h)) 0 0;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+/* Height comes off the token so the margin above can do arithmetic with it.
+   Changing the render's size now means changing --ksd-merch-vid-h alone, and
+   the cap alignment follows it. */
+.ksd-merch__video video { display: block; height: var(--ksd-merch-vid-h); width: auto; max-width: 100%; }
 /* is-flat = the browser refused the alpha WebM and is playing the mp4, which
    still has its black backdrop. Screen blend zeroes black against any
    background — the poor browser's transparency. Not applied to the WebM:
@@ -535,8 +724,34 @@ html.page-home {
    keeps its column flex so the video stays centred in the column on its own. */
 @media (max-width: 900px) {
   /* Stacked under the copy the render keeps portrait height for the same
-     reason as above — a squat stage on a phone is a thumbnail. */
-  .ksd-merch__video video { height: min(130vw, 620px); }
+     reason as above — a squat stage on a phone is a thumbnail.
+
+     STACKING IS NOW EXPLICIT rather than left to flex-wrap, because source
+     order changed: the figure comes FIRST in the HTML so it lands left on a
+     wide screen, and wrapping alone would therefore have put a 620px spine
+     ABOVE the headline on a phone — a wall you scroll past before you know
+     what the section is. order:1 sends it back under the copy, where it has
+     always been narrow.
+     align-items:stretch is the other half of it. The base rule's flex-start
+     is a ROW cross-axis value; the moment the direction is column it becomes
+     HORIZONTAL and pins the figure — and the render inside it — hard left
+     against the copy's centred text. Stretch gives the figure the full column
+     width and its own align-items:center puts the video back in the middle.
+     And the cap-height nudge comes off: stacked there is no "O" beside the
+     render to meet, so the compensation is just 3–6px of dead space. */
+  /* BOTH OF THE DESKTOP GROUPING RULES COME OFF HERE, and neither is cosmetic.
+     Once the direction is column, flex-basis and justify-content both swap to
+     the VERTICAL axis: flex: 0 1 62ch would set the copy's HEIGHT to 62ch, and
+     justify-content would distribute the columns down the section instead of
+     across it. */
+  .ksd-merch { flex-direction: column; align-items: stretch; justify-content: flex-start; }
+  .ksd-merch__copy { flex: 0 1 auto; }
+  /* The height moves as a TOKEN now, not as a height on the video, because the
+     base margin does arithmetic with it — overriding the video's height alone
+     would leave the cap compensation computing against the desktop figure. It
+     is zeroed here anyway, but a stale term in a calc that is only ever
+     overridden by accident is the kind of thing that comes back. */
+  .ksd-merch__video { order: 1; margin-top: 0; --ksd-merch-vid-h: min(130vw, 620px); }
 }
 
 /* ---- Headline reveal ----

@@ -63,12 +63,24 @@
   /* Handoff and reveals. All three are read by js/deep-field-bg.js at 5Hz, so
      the tuner tab and devtools turn the same knobs and neither has to tell the
      other. */
-  --df-fade: 40;      /* viewport heights the sky takes to arrive */
+  /* How much of Archive the sky takes to come back up, as a fraction of that
+     section. 1 spends the whole span on the swell and reaches full exactly at
+     Stay Connected, so the sign-up lands on the bright nebula. The Music
+     arrival is NOT this one - it is derived from where the carousel frames. */
+  --df-tail: 1;
   --df-catch: 0.1;    /* lerp for the f134 -> f157 race out of Music.
                          0.3 is the normal scrub rate and reads as a jump cut;
                          0.1 is about half a second and reads as the clip
                          resuming, which is what the owner asked for. */
   --df-stagger: 90;   /* ms between reveals inside one section */
+
+  /* THE MUSIC STOP. Scrolling into Music settles on the rest point and holds;
+     one wheel gesture releases to Merch while the clip races f134 to f157.
+     --df-snap 0 turns the hold off and leaves Music an ordinary section, with
+     the sky handoff and the park both unchanged - so it isolates the stop from
+     everything else if the feel needs judging separately. */
+  --df-snap: 1;
+  --df-release: 700;
 
   /* Extra clearance under the masthead before the Music card, on top of
      --nav-h-max. Ships at 0 and changes nothing: an escape hatch, not a dial.

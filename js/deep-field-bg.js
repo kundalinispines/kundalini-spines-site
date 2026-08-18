@@ -136,6 +136,7 @@
   var music = null;     // the Music segment, or null
   var musicRest = 0;    // the scroll position Music is meant to be READ from
   var tailY = Infinity; // where the clip starts holding its last frame
+  var tailFrom = Infinity; // where the sky STARTS coming back up (Archive top)
   var lum = null;
 
   var target = 0, shown = 0, raf = 0, ready = false, settleTries = 0;
@@ -146,18 +147,22 @@
      Re-read at most 5x/sec, the same throttle js/spine-bg.js uses for its
      detector params — reading computed style every frame is the expensive way
      to do this. */
-  var T = { fade: 40, catch: 0.1, stagger: 90 };
+  var T = { tail: 1, catch: 0.1, stagger: 90, snap: 1, release: 700 };
   var lastRead = 0;
   function syncTunables(now) {
     if (now - lastRead < 200) return;
     lastRead = now;
     var cs = getComputedStyle(root);
-    var f = parseFloat(cs.getPropertyValue('--df-fade'));
+    var f = parseFloat(cs.getPropertyValue('--df-tail'));
     var c = parseFloat(cs.getPropertyValue('--df-catch'));
     var s = parseFloat(cs.getPropertyValue('--df-stagger'));
-    if (isFinite(f)) T.fade = f;
+    if (isFinite(f) && f > 0) T.tail = f;
     if (isFinite(c)) T.catch = c;
     if (isFinite(s)) T.stagger = s;
+    var sn = parseFloat(cs.getPropertyValue('--df-snap'));
+    var rl = parseFloat(cs.getPropertyValue('--df-release'));
+    if (isFinite(sn)) T.snap = sn;
+    if (isFinite(rl)) T.release = rl;
   }
 
   /* ---------------------------------------------------------------- sources
@@ -224,15 +229,107 @@
     }
     if (hRow && aRow) { aRow.f0 = hRow.f0; hRow.f1 = hRow.f0; }
 
+    /* THE TRANSMISSIONS REMAP (owner's call, Aug 17 2026).
+
+       Transmissions was marked f178, and f178 is inside the star zoom — the
+       busiest, least readable stretch of the whole clip. Scanned f174-234 at
+       160x90, frame-to-frame mean delta as the motion figure:
+
+           f176-184   motion 10-14   h218-235 blue      pink 0-1%    the zoom
+           f186       motion  8.2    h255               pink 8%      settling
+           f192-200   motion 4.2-5.4 h303-311 magenta   pink 32-39%  CALM
+           f210-226   motion 10-30   brightening to l58              the flash
+           f228       motion 80                                      the cut
+
+       f196 is the pinkest calm frame: motion 4.6, 38.9% magenta pixels, and
+       lightness 11 — dark, which is what actually makes body copy readable over
+       it. The section now STARTS there.
+
+       WHY THE RANGE MOVED RATHER THAN THE LANDING. Landing on f196 by scroll
+       position instead would need scroll 4225, which is 281px into the section
+       — the film row would sit 138px above the top of the viewport and the
+       headline 30px above it. Framing the content and landing on the frame are
+       not satisfiable at once here, and the content wins.
+
+       The 18 frames this takes off the front go to Merch, which keeps its own
+       f157 landing untouched and spends the zoom in its tail, where it reads as
+       a transition out rather than as noise under a headline. Merch goes 20 to
+       37 frames per 1000px and Transmissions 64 down to 42 — both still well
+       inside the range the page already spans. */
+    var TX_START = 196;
+    var mRow = null, tRow = null;
+    for (var k2 = 0; k2 < rows.length; k2++) {
+      var nm2 = rows[k2].name.toLowerCase();
+      if (nm2 === 'merch') mRow = rows[k2];
+      if (nm2 === 'transmissions') tRow = rows[k2];
+    }
+    if (mRow && tRow && TX_START > mRow.f0 && TX_START < tRow.f1) {
+      mRow.f1 = TX_START;
+      tRow.f0 = TX_START;
+    }
+
+    /* THE ARCHIVE REMAP (owner's call, Aug 17 2026).
+
+       Archive was marked f231 and landed on it: a dark, murky frame just past
+       the cut. Stay Connected lands on f264 — the frame V2HANDOFF 37 measured
+       as the SECOND-BEST structural match to starfield-deep-4k.webp
+       (r = 0.695, against f134's 0.720) — and it reads as the site's own
+       nebula. The owner wants Archive to arrive on that image too, with Stay
+       Connected then brightening into the real reactive sky exactly as it
+       already does.
+
+       So the clip finishes BEFORE Archive rather than during it: Transmissions
+       carries f196 to the end, and Archive holds the final frame from its top
+       all the way through Stay Connected and the footer.
+
+       WHAT THIS MOVES, and it is worth knowing rather than discovering: the
+       flash sequence measured at f210-226 (motion 10-30, rising to lightness
+       58) now plays in the last third of TRANSMISSIONS instead of at the head
+       of Archive. The luminance scrim tracks it, so the copy stays readable —
+       and it lands as the transition OUT of Transmissions, which is a better
+       place for a whiteout than under a headline that has just arrived.
+       Transmissions goes 42 to 83 frames per 1000px; About is still nearly
+       twice that, so it is not the fastest stretch on the page. */
+    var arRow = null;
+    for (var k3 = 0; k3 < rows.length; k3++) {
+      if (rows[k3].name.toLowerCase() === 'archive') arRow = rows[k3];
+    }
+    if (tRow && arRow) {
+      tRow.f1 = arRow.f1;
+      arRow.f0 = arRow.f1;
+    }
+
+    /* BOUNDARIES SIT ONE MASTHEAD ABOVE THE SECTION TOP, and that is a fix,
+       not an offset for taste.
+
+       js/spine-doc.js jump() lands a rail click at sectionTop - --nav-h, and
+       browser anchor navigation does the same through scroll-margin-top,
+       because a section whose top edge is at the very top of the viewport has
+       its first line under the bar. Boundaries measured at the raw section top
+       therefore sat one masthead BELOW every landing.
+
+       MEASURED before this: clicking Merch landed on f134 - the Music park
+       frame, an entire section behind - and Transmissions on f193 instead of
+       f196. Every rail landing except Music showed the previous section's
+       closing frame, and Music was immune only because it declares its own
+       scroll-margin-top for the card rest point.
+
+       Shifting the boundary up by --nav-h-max makes the frame change where the
+       section visually begins, which is also what a reader sees: the section
+       starts when its content clears the bar, not when its box does. */
+    var navMax = parseFloat(getComputedStyle(root).getPropertyValue('--nav-h-max')) || 92;
+
     for (var i = 0; i < rows.length; i++) {
-      var y0 = i === 0 ? 0 : docY(rows[i].el);
-      var y1 = (i < rows.length - 1) ? docY(rows[i + 1].el) : (tail ? docY(tail) : maxY);
+      var y0 = i === 0 ? 0 : docY(rows[i].el) - navMax;
+      var y1 = (i < rows.length - 1) ? docY(rows[i + 1].el) - navMax
+                                     : (tail ? docY(tail) - navMax : maxY);
       if (y1 <= y0) y1 = y0 + 1;
       var seg = { y0: y0, y1: y1, f0: rows[i].f0, f1: rows[i].f1, name: rows[i].name };
       segs.push(seg);
       if (rows[i].name.toLowerCase() === 'music') music = seg;
     }
     tailY = segs[segs.length - 1].y1;
+    tailFrom = segs[segs.length - 1].y0;
     if (music) restPoint();
   }
 
@@ -401,11 +498,11 @@
 
   /* ------------------------------------------------------------------- sky */
 
-  /* Rises across --df-fade viewport heights from the top of Music, holds, then
-     drops the instant you leave. Rises again over the same distance from the
-     top of Stay Connected, so the page bottoms out on the sky rather than on a
-     frozen video frame. */
-  /* THE MUSIC RAMP IS GEOMETRY-DERIVED, NOT --df-fade.
+  /* Rises from the top of Music to the rest point, holds while you are there,
+     and drops the instant you leave. Rises again across the whole of Archive so
+     that Stay Connected is landed on with the sky already full. */
+  /* BOTH RAMPS ARE GEOMETRY-DERIVED. NEITHER IS A DISTANCE IN VIEWPORT
+     HEIGHTS — an earlier build used --df-fade for that and it is gone.
 
      It runs from the top of Music to the rest point and is full from there on.
      That distance came out at 279px on a 1440x900 window — about 31vh, close
@@ -415,17 +512,121 @@
      viewport height, without a magic number that only happens to be right at
      one of them.
 
-     --df-fade still owns the Stay Connected ramp, which has no geometry to hang
-     off — the clip is holding one frame there and nothing needs framing. */
+     THE TAIL RAMP IS GEOMETRY-DERIVED TOO, and for the same reason. It runs
+     across the WHOLE of Archive and reaches full exactly at Stay Connected, so
+     the sign-up lands on the bright nebula rather than on the start of a fade
+     (owner's call, Aug 17 2026 — it breathes better and it is where the page
+     wants attention). Archive is the natural place to spend it: the clip is
+     already holding its final frame there, so nothing is lost to the crossfade
+     except the brightening itself, and 828px of it is a slow swell rather than
+     a transition.
+
+     Archive keeps its own landing on the unlit frame, because the ramp STARTS
+     at Archive top. --df-tail shortens the ramp within that span if the swell
+     wants to arrive sooner. */
   function skyAt(y) {
     if (music && y >= music.y0 && y < music.y1) {
       var span = Math.max(1, musicRest - music.y0);
       return Math.min(1, Math.max(0, (y - music.y0) / span));
     }
-    var px = Math.max(1, T.fade / 100 * window.innerHeight);
-    if (y >= tailY) return Math.min(1, (y - tailY) / px);
+    if (y >= tailFrom) {
+      var span = Math.max(1, (tailY - tailFrom) * T.tail);
+      return Math.min(1, (y - tailFrom) / span);
+    }
     return 0;
   }
+
+  /* ------------------------------------------------------------------ snap */
+
+  /* MUSIC IS A STOP (owner's call). Scrolling into it settles on the rest
+     point — the position where the card and its controls are framed and the
+     sky is at full — and one wheel gesture then releases to Merch while the
+     clip races f134 to f157.
+
+     WHY THIS INTERCEPTS THE WHEEL RATHER THAN USING CSS scroll-snap:
+     js/scroll-weight.js already takes every wheel event, calls preventDefault
+     and animates window.scrollTo itself. A CSS snap target would be a second
+     authority over the same scroll position, and the two would argue every
+     frame. Instead this file's listener registers FIRST — deep-field-bg.js is
+     script 6 on the page and scroll-weight.js is script 8, and listeners on the
+     same target fire in registration order — so a stopImmediatePropagation()
+     here means scroll-weight never sees the gesture that releases the stop.
+     Everything else still reaches it untouched.
+
+     THE SNAP ONLY EVER FIRES FROM A SETTLE, never mid-scroll. Waiting for
+     140ms of quiet is also what keeps it off scroll-weight's toes: that module
+     emits scroll events continuously while it animates, so the timer cannot
+     elapse until it has finished and re-anchored its own target. */
+  var snap = { state: 'idle', raf: 0, timer: 0, frame: -1 };
+
+  function easeInOut(t) {
+    return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+  }
+
+  function glide(to, dur, done, onProg) {
+    if (snap.raf) cancelAnimationFrame(snap.raf);
+    var from = window.scrollY, t0 = performance.now();
+    var step = function (now) {
+      var t = dur > 0 ? Math.min(1, (now - t0) / dur) : 1;
+      /* Progress BEFORE the scroll, so the frame the scroll event goes on to
+         read is already the one this instant of the glide asks for. */
+      if (onProg) onProg(t);
+      window.scrollTo({ top: Math.round(from + (to - from) * easeInOut(t)),
+                        behavior: 'instant' });
+      if (t < 1) snap.raf = requestAnimationFrame(step);
+      else { snap.raf = 0; if (done) done(); }
+    };
+    snap.raf = requestAnimationFrame(step);
+  }
+
+  function settled() {
+    if (!music || !T.snap || snap.state === 'releasing') return;
+    var y = window.scrollY;
+    if (y < music.y0 || y >= music.y1) { snap.state = 'idle'; return; }
+    if (Math.abs(y - musicRest) <= 2) { snap.state = 'held'; return; }
+    /* A band, not the whole section: someone who has deliberately scrolled to
+       the far end of Music should be left there rather than yanked back. */
+    var band = Math.max(160, (music.y1 - music.y0) * 0.45);
+    if (Math.abs(y - musicRest) <= band) {
+      glide(musicRest, 520, function () { snap.state = 'held'; });
+    }
+  }
+
+  /* Registered immediately, not inside the marks fetch, so ordering against
+     scroll-weight.js does not depend on how fast a JSON file lands. */
+  window.addEventListener('wheel', function (e) {
+    if (snap.state !== 'held' || !T.snap || !music) return;
+    /* Upward hands control straight back — leaving Music the way you came is
+       ordinary scrolling, and About ends on the parked frame so there is
+       nothing to catch up. */
+    if (e.deltaY <= 0) { snap.state = 'idle'; return; }
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    snap.state = 'releasing';
+
+    /* THE SKY LEAVES AT ONCE and the clip plays UNDER the movement, rather
+       than the movement finishing and the clip then catching up. Measured on
+       the first build of this: the glide ran its full 700ms with the clip still
+       parked on f134 and the sky still up, because the viewport top had not yet
+       crossed into Merch — so the race happened after the page had already
+       stopped, which is the opposite of what was asked for.
+
+       The release therefore drives the frame off its OWN progress instead of
+       off scroll position, so f134 to f157 is spent across exactly the glide.
+       Nothing else in the file maps scroll this way, and nothing should: this
+       is the one moment the page is moving itself rather than being moved. */
+    skyT = 0;
+    glide(music.y1, T.release,
+      function () { snap.state = 'idle'; snap.frame = -1; },
+      function (t) { snap.frame = music.f0 + t * (music.f1 - music.f0); });
+  }, { passive: false });
+
+  /* Taking hold of anything cancels the glide, the same rule scroll-weight.js
+     applies to its own momentum: a page still moving under a pointer that has
+     grabbed the carousel feels broken. */
+  window.addEventListener('pointerdown', function () {
+    if (snap.raf) { cancelAnimationFrame(snap.raf); snap.raf = 0; snap.state = 'idle'; }
+  }, { passive: true });
 
   /* --------------------------------------------------------------- reveals */
 
@@ -538,8 +739,16 @@
     if (wasParked && !parked && y >= (music ? music.y1 : 0)) catching = true;
     wasParked = parked;
 
-    target = frameToTime(parked ? music.f0 : frameAt(y));
-    if (!booting) skyT = skyAt(y);
+    target = frameToTime(
+      snap.state === 'releasing' && snap.frame >= 0 ? snap.frame
+        : parked ? music.f0
+        : frameAt(y));
+    /* The release owns the sky for its duration; skyAt() would put it back up,
+       because the viewport top is still inside Music for most of the glide. */
+    if (!booting && snap.state !== 'releasing') skyT = skyAt(y);
+
+    if (snap.timer) clearTimeout(snap.timer);
+    snap.timer = setTimeout(settled, 140);
 
     if (!raf) raf = requestAnimationFrame(tick);
   }
@@ -564,15 +773,21 @@
       { k: '--df-scrim-gain', g: 'clip', label: 'flare', min: 0, max: 1, step: 0.01,
         tip: 'How hard a flash pulls the scrim up. The clip swings 5.6x in mean luminance, so this is what keeps text readable through a whiteout' },
 
-      { k: '--df-fade', g: 'handoff', label: 'fade', min: 5, max: 100, step: 1,
-        tip: 'Scroll distance in viewport heights over which the real sky arrives at Music and again at Stay Connected' },
+      { k: '--df-tail', g: 'handoff', label: 'tail', min: 0.1, max: 1, step: 0.05,
+        tip: 'How much of Archive the sky takes to come back up, as a fraction. 1 spends the whole section on the swell and reaches full exactly at Stay Connected. The Music arrival is not this - it is derived from where the card frames' },
       { k: '--df-catch', g: 'handoff', label: 'catch', min: 0.02, max: 0.5, step: 0.01,
         tip: 'Lerp for the race from f134 to f157 when you leave Music. Lower is slower; 0.3 is the normal scrub rate and reads as a jump cut' },
 
       { k: '--df-stagger', g: 'handoff', label: 'stagger', min: 0, max: 400, step: 5,
-        tip: 'Milliseconds between reveals inside one section. The cue order comes from the marks file; this is only the spacing' }
+        tip: 'Milliseconds between reveals inside one section. The cue order comes from the marks file; this is only the spacing' },
+
+      { k: '--df-snap', g: 'stop', label: 'snap', min: 0, max: 1, step: 1,
+        tip: 'Whether Music holds as a stop. 0 makes it an ordinary section you scroll through, with the sky and the park unchanged' },
+      { k: '--df-release', g: 'stop', label: 'release', min: 200, max: 1600, step: 50,
+        tip: 'Milliseconds for the glide from the Music stop to Merch. The clip races f134 to f157 underneath it, so this and catch are heard together' }
     ];
-    var GROUPS = [['clip', 'The clip', true], ['handoff', 'Handoff and reveals', true]];
+    var GROUPS = [['clip', 'The clip', true], ['handoff', 'Handoff and reveals', true],
+                  ['stop', 'The Music stop', true]];
 
     var shipped = {};
     FIELDS.forEach(function (f) {
@@ -674,6 +889,7 @@
       }),
       tailY: tailY,
       musicRest: musicRest,
+      snap: snap.state,
       /* Everything needed to diagnose the Music framing from a console paste,
          because the geometry that matters depends on the visitor's real
          viewport, their display scaling and the carousel's live state -- none
@@ -714,7 +930,8 @@
       sky: +cs.getPropertyValue('--df-sky'),
       lum: +cs.getPropertyValue('--df-lum'),
       videoOpacity: +getComputedStyle(vid).opacity,
-      tunables: { fade: T.fade, catch: T.catch, stagger: T.stagger },
+      tunables: { tail: T.tail, catch: T.catch, stagger: T.stagger },
+      tailFrom: tailFrom,
       src: (vid.currentSrc || '').split('/').pop()
     };
   };

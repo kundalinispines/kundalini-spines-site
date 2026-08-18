@@ -1,0 +1,226 @@
+/* deep-field-bg.css — the scroll-driven home background.
+   --df-build: 3;
+
+   WHAT THIS IS
+   The 11s deep-field clip painted full-bleed behind the whole home document,
+   scrubbed by scroll. js/deep-field-bg.js owns the mapping; this file owns the
+   layers, the scrim, and the switch that holds the star field down.
+
+   NOT LINKED FROM index.html. Slice one lives in home-deepfield-lab.html, a
+   full clone of the real page, so the production home page is byte-unchanged
+   while the look is judged.
+
+   THE MAPPING IS SECTION-ANCHORED, NOT LINEAR (owner's call, Aug 17 2026).
+   Each page section's scroll span drives its own frame span, taken from
+   assets/lab/deep-field-marks.json. A straight scroll-to-frame map was checked
+   against the real page and rejected: .ksd-section is min-height 92vh, so the
+   page's sections are roughly EQUAL, while the clip's movements run from 32.5%
+   (About) down to 7.9% (Merch). Linear would fire every flash dissolve in the
+   gaps between sections instead of at their turns. */
+
+:root {
+  /* 0 = sky fully suppressed and the clip is the only background.
+     1 = the real star field at its normal strength.
+     js/deep-field-bg.js writes it every frame: 0 for most of the page, rising
+     to 1 across the Music section and again from the top of Stay Connected.
+     It also STARTS at 1, before the clip has a frame to show, so the first
+     thing painted is the sky the visitor already knows.
+     IT IS AN OPACITY MULTIPLIER AND MUST STAY ONE. Do not "improve" the
+     handoff by driving --star-dim, --star-black, --star-sat or
+     --star-cloud-bright instead: all four sit inside filter: chains, and
+     html::after carries a 22px full-viewport blur, so animating any of them
+     re-runs a full-screen gaussian on every frame of the transition.
+     css/star-bg.css:328 sets this rule for the whole system.
+
+     THE INITIAL VALUE HERE IS 1, AND IT IS LOAD-BEARING TWICE OVER. It shipped
+     as 0 for one build and the boot dissolve silently did not exist: the JS
+     starts its own state at 1, but nothing writes the property until the first
+     rAF tick, so the page painted with the sky already down and simply stayed
+     there. Measured on a cold load: --df-sky read 0.000 at 900ms.
+
+     The second reason matters more. If js/deep-field-bg.js never runs at all —
+     a fetch that fails, a JS error, a browser that bails out — a 0 here leaves
+     the page on bare #03040F with no sky and no clip. At 1 the same failure
+     lands on the site exactly as it looks today. Fail towards the sky. */
+  --df-sky: 1;
+
+  /* The scrim. --df-lum is WRITTEN BY JS every frame — never set it by hand.
+     It is the clip's own measured mean luminance for the frame on screen,
+     normalised 0..1 across the clip's real range (YAVG 96.7 to 545.7,
+     measured per frame with ffmpeg signalstats, stored in
+     assets/lab/deep-field-lum.json).
+
+     The two dials below are the mapping, and they live in CSS rather than JS
+     on purpose: JS writes one measured number, CSS decides what it means, so
+     both dials can be turned without the module re-reading anything. Same
+     split as --kick / --kick-cloud in css/star-bg.css. */
+  --df-lum: 0;
+  --df-scrim-base: 0.35;
+  --df-scrim-gain: 0.5;
+
+  --df-on: 1;
+
+  /* Handoff and reveals. All three are read by js/deep-field-bg.js at 5Hz, so
+     the tuner tab and devtools turn the same knobs and neither has to tell the
+     other. */
+  --df-fade: 40;      /* viewport heights the sky takes to arrive */
+  --df-catch: 0.1;    /* lerp for the f134 -> f157 race out of Music.
+                         0.3 is the normal scrub rate and reads as a jump cut;
+                         0.1 is about half a second and reads as the clip
+                         resuming, which is what the owner asked for. */
+  --df-stagger: 90;   /* ms between reveals inside one section */
+
+  /* Extra clearance under the masthead before the Music card, on top of
+     --nav-h-max. Ships at 0 and changes nothing: an escape hatch, not a dial.
+     It exists because the card once read as clipped on the owner's machine in
+     a state that could not be reproduced here, which turned out to be a stale
+     refresh — but a viewport or a display scale this was never measured at
+     could do it for real, and this is the one-value fix if it ever does. */
+  --df-card-gap: 0;
+
+  /* The fork strike, on in the lab only. css/spine-bg.css declares it 0 so no
+     other page changes; this is where the owner asked to see it. 0.12 is about
+     one strike in eight — often enough to be a thing that happens, rare enough
+     that the five-pattern rotation is still what you mostly see. Tunable live
+     as `s fork` in the Spine tab. */
+  --snare-all: 0.12;
+}
+
+/* ---------------------------------------------------------------- the clip */
+
+/* z-index -2, NOT -1. Every sky layer is at -1, and among equal z-index the
+   paint order falls out of tree order — which spine-bg.js and clouds-sky.js
+   both already depend on (bolts inserted first, cloud sky appended last).
+   Dropping the video to -2 takes it out of that argument entirely and
+   guarantees the sky composites ABOVE the footage, which is what the Music
+   crossfade needs. The page floor still shows through: body's background
+   propagates to the root canvas, so it paints behind even this. */
+/* THE CROSSFADE LIVES HERE, ON THE WRAPPER, NOT ON THE VIDEO.
+
+   Fading the whole layer takes the scrim with it, which is the correct
+   behaviour and not merely the convenient one: the scrim exists to keep body
+   copy readable over moving footage, so once the footage is gone it has no job.
+   Left on its own it would sit as a 35% black wash over the real sky at Music —
+   the one moment the page is supposed to look like the site always has.
+
+   AND IT MUST BE A TRUE CROSSFADE, not the video staying lit underneath. Every
+   sky layer is mix-blend-mode: screen and can only ADD light, so a video held
+   at full opacity under an arriving sky makes Music brighter than either image,
+   and brightest exactly along the diagonal band the two share — which is the
+   band that made f134 the match frame in the first place. */
+.df-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  opacity: calc(var(--df-on) * (1 - var(--df-sky)));
+}
+
+.df-bg__video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  /* No object-position shift. The clip is composed full-frame and its
+     movements are centre-weighted; the hero's "center 20%" was about keeping
+     two faces out of the bottom crop and does not apply here. */
+}
+
+/* The scrim sits over the footage and under everything else, including the
+   sky. Its colour is the page floor, so at opacity 1 the background is exactly
+   what the site looks like with no clip at all — which makes it a safe
+   ceiling rather than a grey haze. */
+.df-bg__scrim {
+  position: absolute;
+  inset: 0;
+  background: var(--bg-primary, #03040F);
+  opacity: calc(var(--df-scrim-base) + var(--df-scrim-gain) * var(--df-lum));
+}
+
+/* --------------------------------------------------------- holding the sky */
+
+/* Six of the seven sky layers are pseudo-elements of html, body and main, and
+   they are all mix-blend-mode: screen at z-index -1. Under screen, opacity 0
+   is a true no-op composite — css/star-bg.css:108 records that a fully dimmed
+   layer is "exactly the same as not being there" — so this is the cheapest
+   possible off switch and it costs no repaint.
+
+   The base sky has no opacity of its own, so it takes --df-sky directly. */
+body::before { opacity: var(--df-sky); }
+
+/* The four twinkle bands and the nebula are ANIMATED on opacity, so they
+   cannot simply be assigned one. They already read their amplitude through an
+   indirection built for exactly this (css/star-bg.css:392) — rebinding the
+   amplitude scales the animation without restarting it. */
+:root,
+:root.is-spine-pulsing,
+:root.is-spine-kicking {
+  --star-twinkle-amp: calc(var(--star-twinkle) * var(--df-sky));
+  --star-cloud-amp:   calc(var(--star-cloud)   * var(--df-sky));
+}
+/* THE PLAYING-STATE SELECTORS ARE LISTED ABOVE DELIBERATELY, AND THIS BLOCK
+   IS NOT REDUNDANT NOW THAT --df-sky VARIES. star-bg.css rebinds both
+   amplitudes at (0,2,0) under .is-spine-pulsing / .is-spine-kicking, which
+   out-specifies a bare :root — so without these two extra selectors the sky
+   would snap back to full strength the moment a track played, anywhere on the
+   page, regardless of where the scroll actually is.
+
+   With them, the multiply survives into the playing state: during Music
+   --df-sky is 1 and the amplitudes are full, which is exactly right, and a
+   track playing anywhere else cannot force the sky up behind the clip. */
+
+/* LIGHTNING: OVERRIDE THE STRUCK RULE, NEVER THE BASE ONE.
+
+   This shipped for one build as a bare `.star-bolt { opacity: ... }` and it
+   destroyed the strike variety. css/star-bg.css:886 sets `.star-bolt { opacity:
+   0 }` at (0,1,0); a bare .star-bolt selector here has exactly the same
+   specificity and this file loads later, so it won the cascade and lifted the
+   idle-zero off ALL FIVE divs. Every pattern then lit on every strike instead
+   of only the one carrying .is-struck. The machine was still rotating the class
+   correctly — five superimposed patterns simply read as one flat flash, so the
+   rotation was invisible and the effect looked like a single repeating bolt.
+
+   Matching the struck rule's own (0,3,0) and relying on load order to win is
+   the correct shape: the two-and-a-half divs without .is-struck keep the base
+   rule's opacity 0, exactly as star-bg.css intends. */
+:root.is-spine-kicking .star-bolt.is-struck {
+  opacity: calc(var(--snare) * var(--snare-bolt) * var(--df-sky));
+}
+
+/* The WebGL cloud sky is the one layer with a real teardown (window.__cloudSky
+   .destroy()), and it is deliberately NOT used. The instance stays alive and
+   only its wrapper is hidden, because destroy() is not reversible without a
+   rebuild and the layer has to come back at Music. It self-throttles when its
+   canvas is not visible (js/clouds.js:536), so an opacity-0 wrapper still
+   costs a little. If the frame budget ever needs it, destroy() is the lever —
+   but then Music needs a rebuild path first. */
+.ks-cloud-sky { opacity: var(--df-sky); }
+
+/* ------------------------------------------------------------ the hero */
+
+/* NOTHING HERE ANY MORE, AND THAT IS THE POINT.
+
+   This file briefly owned a .ksd-title screen and a .ksd-title__measure shell,
+   built to stand in for the messengers hero while it was parked. The hero is
+   back (owner's call, Aug 17 2026) as the production markup it always was, so
+   css/spine-doc.css owns that section again, js/hero-video.js drives it again,
+   and js/spine-doc.js:72 finds a real .ksd-hero__media for railTop instead of
+   an empty div wearing its class.
+
+   Kept as a note rather than deleted silently: the shell existed to avoid
+   touching shared JS, and if the hero is ever parked a second time the honest
+   fix is the one that note carried — widen the railTop selector in
+   js/spine-doc.js rather than dress a div up as a video. */
+
+/* -------------------------------------------------------- reduced / narrow */
+
+/* No video on phones or under reduced motion (owner's call, Aug 17 2026): the
+   webm is 2.8MB and 265 frames of scrub is a lot of decode for a background,
+   and no mobile pass has ever been run on this clip. The sky comes back up in
+   its place, which is what the page does today. js/deep-field-bg.js checks the
+   same two conditions and never attaches, so the clip is never fetched. */
+@media (prefers-reduced-motion: reduce), (max-width: 767px) {
+  :root { --df-sky: 1; }
+  .df-bg { display: none; }
+}

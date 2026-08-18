@@ -1,0 +1,239 @@
+{
+  "clip": "deep-field",
+  "source": "hf_20260817_134439_24ec20db-eecc-4fa0-b395-32fd6db6c6ae.mp4",
+  "fps": 24,
+  "frames": 265,
+  "duration": 11.041667,
+  "marks": [
+    {
+      "id": "mmsy1logg",
+      "type": "boundary",
+      "name": "Home",
+      "frame": 0,
+      "time": 0,
+      "pct": 0
+    },
+    {
+      "id": "mmsy1x8qs",
+      "type": "cue",
+      "name": "Knowledge Hidden",
+      "frame": 2,
+      "time": 0.0833,
+      "pct": 0.0075
+    },
+    {
+      "id": "mmsy1xmeu",
+      "type": "cue",
+      "name": "Two Messengers. One Signal",
+      "frame": 12,
+      "time": 0.5,
+      "pct": 0.0453
+    },
+    {
+      "id": "mmsy1y1yc",
+      "type": "cue",
+      "name": "Messanger Video",
+      "frame": 13,
+      "time": 0.5417,
+      "pct": 0.0491
+    },
+    {
+      "id": "mmsy1mgje",
+      "type": "boundary",
+      "name": "About",
+      "frame": 48,
+      "time": 2,
+      "pct": 0.1811
+    },
+    {
+      "id": "mmsy1yomm",
+      "type": "cue",
+      "name": "Two Messengers Heading",
+      "frame": 48,
+      "time": 2,
+      "pct": 0.1811
+    },
+    {
+      "id": "mmsy1z43r",
+      "type": "cue",
+      "name": "Messengers Body Text",
+      "frame": 52,
+      "time": 2.1667,
+      "pct": 0.1962
+    },
+    {
+      "id": "mmsy1zwjr",
+      "type": "cue",
+      "name": "Possible Messenger Hero video",
+      "frame": 54,
+      "time": 2.25,
+      "pct": 0.2038
+    },
+    {
+      "id": "mmsy1mo14",
+      "type": "boundary",
+      "name": "Music",
+      "frame": 134,
+      "time": 5.5833,
+      "pct": 0.5057
+    },
+    {
+      "id": "mmsy22b09",
+      "type": "cue",
+      "name": "Rise Up (Enter The Tracks) Carousell full music section",
+      "frame": 134,
+      "time": 5.5833,
+      "pct": 0.5057
+    },
+    {
+      "id": "mmsy1nt28",
+      "type": "boundary",
+      "name": "Merch",
+      "frame": 157,
+      "time": 6.5417,
+      "pct": 0.5925
+    },
+    {
+      "id": "mmsy23x1x",
+      "type": "cue",
+      "name": "Objects That Carry Heading",
+      "frame": 157,
+      "time": 6.5417,
+      "pct": 0.5925
+    },
+    {
+      "id": "mmsy24d1x",
+      "type": "cue",
+      "name": "Merch Text Body",
+      "frame": 158,
+      "time": 6.5833,
+      "pct": 0.5962
+    },
+    {
+      "id": "mmsy255gh",
+      "type": "cue",
+      "name": "Spinning Spine",
+      "frame": 159,
+      "time": 6.625,
+      "pct": 0.6
+    },
+    {
+      "id": "mmsy1p72b",
+      "type": "boundary",
+      "name": "Transmissions",
+      "frame": 178,
+      "time": 7.4167,
+      "pct": 0.6717
+    },
+    {
+      "id": "mmsy25vdz",
+      "type": "cue",
+      "name": "Tune to a frequency",
+      "frame": 179,
+      "time": 7.4583,
+      "pct": 0.6755
+    },
+    {
+      "id": "mmsy26htx",
+      "type": "cue",
+      "name": "Transmissions Body",
+      "frame": 180,
+      "time": 7.5,
+      "pct": 0.6792
+    },
+    {
+      "id": "mmsy26x67",
+      "type": "cue",
+      "name": "Transmissions Movie",
+      "frame": 181,
+      "time": 7.5417,
+      "pct": 0.683
+    },
+    {
+      "id": "mmsy1pk8o",
+      "type": "boundary",
+      "name": "Archive",
+      "frame": 231,
+      "time": 9.625,
+      "pct": 0.8717
+    },
+    {
+      "id": "mmsy27wrh",
+      "type": "cue",
+      "name": "The Filed Material Heading",
+      "frame": 231,
+      "time": 9.625,
+      "pct": 0.8717
+    },
+    {
+      "id": "mmsy28e48",
+      "type": "cue",
+      "name": "Archive Body",
+      "frame": 232,
+      "time": 9.6667,
+      "pct": 0.8755
+    }
+  ],
+  "sections": [
+    {
+      "index": 0,
+      "name": "Home",
+      "startFrame": 0,
+      "endFrame": 48,
+      "startTime": 0,
+      "endTime": 2,
+      "startPct": 0,
+      "endPct": 0.1811
+    },
+    {
+      "index": 1,
+      "name": "About",
+      "startFrame": 48,
+      "endFrame": 134,
+      "startTime": 2,
+      "endTime": 5.5833,
+      "startPct": 0.1811,
+      "endPct": 0.5057
+    },
+    {
+      "index": 2,
+      "name": "Music",
+      "startFrame": 134,
+      "endFrame": 157,
+      "startTime": 5.5833,
+      "endTime": 6.5417,
+      "startPct": 0.5057,
+      "endPct": 0.5925
+    },
+    {
+      "index": 3,
+      "name": "Merch",
+      "startFrame": 157,
+      "endFrame": 178,
+      "startTime": 6.5417,
+      "endTime": 7.4167,
+      "startPct": 0.5925,
+      "endPct": 0.6717
+    },
+    {
+      "index": 4,
+      "name": "Transmissions",
+      "startFrame": 178,
+      "endFrame": 231,
+      "startTime": 7.4167,
+      "endTime": 9.625,
+      "startPct": 0.6717,
+      "endPct": 0.8717
+    },
+    {
+      "index": 5,
+      "name": "Archive",
+      "startFrame": 231,
+      "endFrame": 265,
+      "startTime": 9.625,
+      "endTime": 11.0417,
+      "startPct": 0.8717,
+      "endPct": 1
+    }
+  ]
+}

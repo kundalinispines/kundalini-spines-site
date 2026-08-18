@@ -224,6 +224,35 @@ html.page-home {
    45px of air above a headline while the bar is collapsed. If that reads as
    too much, this one token is the place to change it — everything follows. */
 .ksd-section[data-ksd-section] { scroll-margin-top: var(--nav-h-max, 92px); }
+
+/* ABOUT IS THE EXCEPTION, BECAUSE THE 92px ABOVE IT IS THE HERO VIDEO.
+
+   For every other section the band the offset leaves on screen is the previous
+   section's own background, so it costs nothing to look at. About is the only
+   one preceded by a different element entirely, and MEASURED at 1440x900 the
+   landing showed the hero's last 92px with the masthead collapsed to 47px — so
+   45px of hero video sat under the bar and the hero's sound toggle was fully in
+   shot at y=34-68. Reported by the owner Aug 18 2026, and it is V2HANDOFF 39's
+   open item 4 ("judge the 92px landing by eye") being judged.
+
+   Landing on About's own top instead is safe: the section carries 139px of
+   padding above its h2, which clears the masthead in BOTH of its states, so the
+   reason the 92px exists does not apply here.
+
+   WHY 0.02px AND NOT 0, WHICH IS WHAT THIS MEANS. Both readers of this property
+   treat exactly 0 as "nothing declared" and substitute a nav height —
+   js/spine-doc.js jump() does `smt !== 0 ? smt : navH` and js/deep-field-bg.js
+   landOffset() does `smt > 0 ? smt : navMax`. Neither guard can be relaxed:
+   getComputedStyle cannot tell a declared 0 from the initial 0, and on
+   index.html most sections declare nothing and depend on that fallback. The
+   browser applies this value to anchor navigation directly, so a plain 0 would
+   send the three routes back to disagreeing — which is the exact fault the
+   block above was written to fix.
+
+   Verified against Chrome: sub-pixel values round-trip through computed style
+   intact (0.02px reads back as 0.02px), so this passes both guards and lands
+   within a rounded pixel of the section top. DO NOT "TIDY" THIS TO 0. */
+.ksd-section[data-ksd-section="about"] { scroll-margin-top: 0.02px; }
 .ksd-head {
   font-family: var(--font-display);
   font-weight: var(--display-wght);

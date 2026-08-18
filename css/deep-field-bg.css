@@ -1,5 +1,5 @@
 /* deep-field-bg.css — the scroll-driven home background.
-   --df-build: 3;
+   --df-build: 4;
 
    WHAT THIS IS
    The 11s deep-field clip painted full-bleed behind the whole home document,
@@ -74,11 +74,35 @@
                          resuming, which is what the owner asked for. */
   --df-stagger: 90;   /* ms between reveals inside one section */
 
-  /* THE MUSIC STOP. Scrolling into Music settles on the rest point and holds;
-     one wheel gesture releases to Merch while the clip races f134 to f157.
-     --df-snap 0 turns the hold off and leaves Music an ordinary section, with
-     the sky handoff and the park both unchanged - so it isolates the stop from
-     everything else if the feel needs judging separately. */
+  /* THE SECTION STEPPER (owner's call, Aug 17 2026). One wheel gesture moves
+     exactly one section and lands it framed. --df-step 0 turns it off and
+     gives the page back to js/scroll-weight.js entirely, which is the state
+     everything before build 4 shipped in.
+
+     THE STOPS ARE THE WHOLE DOCUMENT: the six sections, then Stay Connected,
+     then the foot of the page. Build 4 first stepped only the sections and
+     handed everything below Archive back to scroll weight, which put a seam
+     between two scroll authorities in the middle of the page - a flick could
+     not come to rest on Archive, and escaping it downward was swallowed. The
+     seam is gone rather than patched. */
+  --df-step: 1;
+  --df-step-ms: 620;  /* the glide between two ordinary landings. Slower than
+                         the 520 the Music settle uses, because a step crosses
+                         a whole section rather than correcting inside one. */
+  --df-gap: 180;      /* ms of wheel silence that ends a gesture. A trackpad
+                         emits inertia for up to a second after the fingers
+                         lift, and every one of those events has to be
+                         swallowed by the step it belongs to or one flick walks
+                         three sections. Raise it if a flick still overshoots;
+                         lower it if a deliberate second scroll feels ignored. */
+
+  /* THE MUSIC STOP. Music lands on its rest point rather than on its boundary
+     — the position where the card and its controls are framed and the sky is
+     at full. --df-snap 0 gives Music its boundary back and makes it an
+     ordinary stop like every other section, with the sky handoff and the park
+     both unchanged, so it isolates the framing from everything else if it
+     needs judging separately. --df-release is the leg OUT of Music, which is
+     still the one step that races the parked clip underneath itself. */
   --df-snap: 1;
   --df-release: 700;
 

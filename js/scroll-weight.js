@@ -169,4 +169,26 @@
     var m = maxScroll();
     if (target > m) target = m;
   });
+
+  /* PUBLIC CANCEL — stand down while something else drives the scroll.
+
+     js/deep-field-bg.js's section stepper animates window.scrollY itself, and
+     while it does, this module must not still be running toward a target of
+     its own. The `scroll` listener above cannot prevent that on its own: it
+     re-anchors only when `running` is false, which is precisely when it is not.
+
+     MEASURED (Aug 17 2026, home-deepfield-lab.html at --scroll-weight 1, so
+     tau 280ms): flicking UP out of Stay Connected while a downward animation
+     was still in flight pulled the page to Archive — 4689 at +500ms — and then
+     dragged it straight back down, 5156 by +700ms and 5639 by +1800ms. The
+     owner reported it as the page bouncing up and then bouncing back down.
+     Two authorities over one scroll position, which is the exact failure the
+     stepper's own header warns about for CSS scroll-snap.
+
+     This is the same reset the pointerdown handler above performs, exposed so
+     the stepper can ask for it without faking a pointer event — a synthetic
+     pointerdown would also reach the carousel and the stepper's own cancel. */
+  window.KSScrollWeight = {
+    cancel: function () { running = false; lastT = 0; target = window.scrollY; }
+  };
 })();

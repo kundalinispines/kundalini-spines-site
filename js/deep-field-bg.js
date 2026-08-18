@@ -147,7 +147,8 @@
      Re-read at most 5x/sec, the same throttle js/spine-bg.js uses for its
      detector params — reading computed style every frame is the expensive way
      to do this. */
-  var T = { tail: 1, catch: 0.1, stagger: 90, snap: 1, release: 700 };
+  var T = { tail: 1, catch: 0.1, stagger: 90, snap: 1, release: 700,
+            step: 1, stepMs: 620, gap: 180 };
   var lastRead = 0;
   function syncTunables(now) {
     if (now - lastRead < 200) return;
@@ -163,6 +164,12 @@
     var rl = parseFloat(cs.getPropertyValue('--df-release'));
     if (isFinite(sn)) T.snap = sn;
     if (isFinite(rl)) T.release = rl;
+    var st = parseFloat(cs.getPropertyValue('--df-step'));
+    var sm = parseFloat(cs.getPropertyValue('--df-step-ms'));
+    var gp = parseFloat(cs.getPropertyValue('--df-gap'));
+    if (isFinite(st)) T.step = st;
+    if (isFinite(sm) && sm > 0) T.stepMs = sm;
+    if (isFinite(gp) && gp >= 0) T.gap = gp;
   }
 
   /* ---------------------------------------------------------------- sources
@@ -203,31 +210,54 @@
     /* THE HOME REMAP (owner's call, Aug 17 2026).
 
        The hero video is back and it covers the whole first screen, so the
-       clip's Home frames — f0-48 as marked — are behind it and nobody ever
-       sees them. Rather than spend the clip's strongest opening movement on a
-       stretch that is covered, ABOUT TAKES THE WHOLE 0..134 RANGE and Home
-       simply holds f0 behind the hero.
+       clip's Home frames are behind it and nobody ever sees them. So Home does
+       not spend frames at all: it HOLDS one, and About begins on that same
+       frame, which is what keeps the Home/About boundary silent.
+
+       ABOUT STARTS AT f41 (owner's call, Aug 17 2026, revising the same day's
+       earlier f0). The first build gave About the whole 0..134 on the reasoning
+       that a covered stretch should not eat the clip's strongest opening. The
+       owner has since judged the result and asked for f41 — 1.708s, 15.5% into
+       the clip — because the About-to-Music transition "looks like a flash".
+       Two things do that, and this addresses both: it drops the bright opening
+       movement that f0 landed on, and it thins About from 134 frames to 93,
+       which is what the section is actually paced by.
+
+       BOTH ROWS MOVE, and that is the part worth not getting wrong. Setting
+       only About's start would leave Home holding f0 while About opens on f41,
+       and the boundary at the foot of the hero would become a 41-frame cut —
+       the exact flash this is meant to remove, relocated rather than fixed.
+       Home holds f41 as well, so the clip is on one frame from first paint
+       until About begins to move it.
 
        The marks file is deliberately NOT edited to match. It is the record of
        what the owner marked by eye in deep-field-lab.html and nothing can
        regenerate it; this is a layout decision about where those frames are
-       spent, and it belongs in the code that spends them.
+       spent, and it belongs in the code that spends them. (Its own About
+       boundary is f48; f41 is not a correction of that mark, it is a different
+       question — where the section's RANGE opens, not where the owner saw the
+       cut.)
 
-       WHAT IT COSTS, so it is not discovered later as a surprise: About now
-       carries 134 frames over its 828px instead of 86, which is 162 frames per
-       1000px against 104 before — the fastest section on the page gets 56%
-       faster again, taking the spread across the document from 5.3x to 8.2x.
-       The two cheap levers if that reads as frantic are making About taller or
-       moving the About/Music boundary earlier in the clip. Neither is a
-       rebuild. f134 stays the Music boundary and the sky match frame either
-       way, so the handoff is untouched. */
+       WHAT IT COSTS: About carries 93 frames over its 828px, 112 per 1000px,
+       against 162 at f0 and 104 in the original f48..134 marking. That takes
+       the spread across the document from 8.2x down to about 5.7x, so this
+       also answers the pacing item the handoff left open rather than making it
+       worse. f134 is untouched and stays both the Music boundary and the sky
+       match frame. */
+    var ABOUT_START = 41;
     var hRow = null, aRow = null;
     for (var k = 0; k < rows.length; k++) {
       var nm = rows[k].name.toLowerCase();
       if (nm === 'home') hRow = rows[k];
       if (nm === 'about') aRow = rows[k];
     }
-    if (hRow && aRow) { aRow.f0 = hRow.f0; hRow.f1 = hRow.f0; }
+    if (hRow && aRow) {
+      /* Clamped rather than trusted: a start past About's own end would invert
+         the range and frameAt() would run it backwards. */
+      var aStart = Math.max(0, Math.min(ABOUT_START, aRow.f1 - 1));
+      aRow.f0 = aStart;
+      hRow.f0 = hRow.f1 = aStart;
+    }
 
     /* THE TRANSMISSIONS REMAP (owner's call, Aug 17 2026).
 
@@ -331,6 +361,7 @@
     tailY = segs[segs.length - 1].y1;
     tailFrom = segs[segs.length - 1].y0;
     if (music) restPoint();
+    buildStops(maxY);
   }
 
   /* THE MUSIC REST POINT — where the section is meant to be READ from, which is
@@ -538,10 +569,16 @@
 
   /* ------------------------------------------------------------------ snap */
 
-  /* MUSIC IS A STOP (owner's call). Scrolling into it settles on the rest
-     point — the position where the card and its controls are framed and the
-     sky is at full — and one wheel gesture then releases to Merch while the
-     clip races f134 to f157.
+  /* THE PAGE STEPS BETWEEN SECTIONS (owner's call, Aug 17 2026). One wheel
+     gesture moves exactly one section and lands it framed: About to Music,
+     Music to Merch, Merch to Transmissions, and back the same way.
+
+     THIS IS THE MUSIC STOP GENERALISED. Handoff 38 shipped this same mechanism
+     wired to one section — settle, hold, release on the next gesture — and the
+     owner asked for it everywhere, so the hold is now every landing and the
+     release is every gesture. What was special about Music is now only two
+     things: it lands on its rest point rather than its boundary, and the leg
+     OUT of it still races the parked clip (see stepTo).
 
      WHY THIS INTERCEPTS THE WHEEL RATHER THAN USING CSS scroll-snap:
      js/scroll-weight.js already takes every wheel event, calls preventDefault
@@ -550,14 +587,23 @@
      frame. Instead this file's listener registers FIRST — deep-field-bg.js is
      script 6 on the page and scroll-weight.js is script 8, and listeners on the
      same target fire in registration order — so a stopImmediatePropagation()
-     here means scroll-weight never sees the gesture that releases the stop.
-     Everything else still reaches it untouched.
+     here means scroll-weight never sees a gesture the stepper has taken.
+     Everything it does NOT take still reaches scroll-weight untouched, and
+     that is what keeps the foot of the page scrolling normally.
 
-     THE SNAP ONLY EVER FIRES FROM A SETTLE, never mid-scroll. Waiting for
-     140ms of quiet is also what keeps it off scroll-weight's toes: that module
-     emits scroll events continuously while it animates, so the timer cannot
-     elapse until it has finished and re-anchored its own target. */
-  var snap = { state: 'idle', raf: 0, timer: 0, frame: -1 };
+     THE LANDINGS ARE THE SECTION BOUNDARIES, which already sit one masthead
+     above each section top (see the boundary comment in measure()). So a
+     stepped landing, a rail click and an anchor jump all come to rest on the
+     same pixel — and therefore on the same frame — for free. Nothing here
+     needs its own idea of where a section starts.
+
+     WHAT IS DELIBERATELY NOT STEPPED: everything past the last section. Stay
+     Connected and the footer live below Archive, and a stepper that owned the
+     whole document would make them unreachable. Once the page is at or past
+     the final landing a downward gesture is handed straight back; scrolling
+     up from down there snaps onto Archive again. */
+  var snap = { raf: 0, timer: 0, frame: -1, lock: 0, busy: false, racing: false,
+               dir: 0, minMag: Infinity, lastT: 0 };
 
   function easeInOut(t) {
     return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
@@ -565,6 +611,14 @@
 
   function glide(to, dur, done, onProg) {
     if (snap.raf) cancelAnimationFrame(snap.raf);
+    /* STAND SCROLL-WEIGHT DOWN BEFORE TAKING THE PAGE. Swallowing the wheel
+       stops it receiving NEW input, but an animation it started earlier keeps
+       running toward a target of its own and wins the moment this glide ends.
+       See the note on KSScrollWeight.cancel in js/scroll-weight.js for the
+       measurement. Guarded because this file is script 6 and that one is
+       script 8 — at parse time the hook does not exist yet, only by the time a
+       wheel event can happen. */
+    if (window.KSScrollWeight) window.KSScrollWeight.cancel();
     var from = window.scrollY, t0 = performance.now();
     var step = function (now) {
       var t = dur > 0 ? Math.min(1, (now - t0) / dur) : 1;
@@ -579,53 +633,250 @@
     snap.raf = requestAnimationFrame(step);
   }
 
-  function settled() {
-    if (!music || !T.snap || snap.state === 'releasing') return;
-    var y = window.scrollY;
-    if (y < music.y0 || y >= music.y1) { snap.state = 'idle'; return; }
-    if (Math.abs(y - musicRest) <= 2) { snap.state = 'held'; return; }
-    /* A band, not the whole section: someone who has deliberately scrolled to
-       the far end of Music should be left there rather than yanked back. */
-    var band = Math.max(160, (music.y1 - music.y0) * 0.45);
-    if (Math.abs(y - musicRest) <= band) {
-      glide(musicRest, 520, function () { snap.state = 'held'; });
+  /* THE STOPS ARE THE WHOLE DOCUMENT, not just the sections.
+
+     The first build of this stepped the six sections and handed everything
+     below Archive back to scroll-weight, on the reasoning that Stay Connected
+     and the footer must stay reachable. That was the wrong shape and it caused
+     both bugs the owner reported on Aug 17 2026:
+
+       - Landing on Archive was not stable. The instant the glide finished, the
+         REMAINDER of the same flick was handed to scroll-weight, which carried
+         the page straight past — measured at 4933 and 5371 against a 4680
+         landing. A step that cannot come to rest is not a step.
+       - Escaping Archive downward was eaten. The handback sat behind the
+         gesture lock, so a follow-up flick 50ms after landing moved 0px and
+         the owner had to flick repeatedly to reach the foot of the page.
+
+     Both are the same defect: a boundary in the middle of the page where two
+     scroll authorities meet. So there is no boundary now. Stay Connected is a
+     stop in its own right — the code already knew its position as tailY, which
+     is where the sky finishes coming back up — and the document bottom is the
+     last stop, which frames the footer. --df-step 0 still hands the entire
+     page back, and that is the only way to get scroll-weight driving here.
+
+     MEASURED at 1440x900: Archive 4680, Stay Connected 5508 (its top less one
+     masthead; the block is 828 tall in a 900 viewport, so it frames), bottom
+     6191. The footer's own top-less-masthead would be 6336, past the end of
+     the document — hence the bottom rather than the footer box. */
+  var stops = [];
+
+  function buildStops(maxY) {
+    stops = [];
+    for (var i = 0; i < segs.length; i++) {
+      /* Music is READ from its rest point, not from its top edge — where the
+         card and its controls are framed and the sky is at full. --df-snap 0
+         gives Music its boundary back, like every other section. */
+      var y = (music && segs[i] === music && T.snap) ? musicRest : segs[i].y0;
+      stops.push({ y: y, name: segs[i].name, seg: segs[i] });
     }
+    if (isFinite(tailY) && tailY > stops[stops.length - 1].y + 8 && tailY < maxY - 8) {
+      stops.push({ y: tailY, name: 'Stay Connected', seg: null });
+    }
+    if (maxY > stops[stops.length - 1].y + 8) {
+      stops.push({ y: maxY, name: 'Foot', seg: null });
+    }
+  }
+
+  function landingAt(i) { return stops[i].y; }
+
+  /* The next landing in the direction of travel, or -1 for "nothing that way,
+     let the page scroll". The tolerance is not cosmetic: glide() rounds to
+     whole pixels and the browser quantises again, so the page comes to rest a
+     pixel or two off the integer it was sent to. Without it that residue reads
+     as "already past this landing" and the next gesture would skip a section. */
+  function nextLanding(dir) {
+    var y = window.scrollY, TOL = 4, i;
+    if (dir > 0) {
+      for (i = 0; i < stops.length; i++) if (stops[i].y > y + TOL) return i;
+      return -1;                    /* already at the foot */
+    }
+    for (i = stops.length - 1; i >= 0; i--) if (stops[i].y < y - TOL) return i;
+    return -1;                      /* already at the top */
+  }
+
+  /* A GESTURE IS OVER when the wheel has been quiet for --df-gap AND the glide
+     has finished. Both halves are load-bearing. A trackpad emits synthetic
+     inertia for up to a second after the fingers lift — dozens of events — and
+     without the quiet window that tail alone would step three sections from one
+     flick. Without the glide check, a fast mouse wheel could start a second
+     step into the middle of the first and land between two sections. */
+  function armGestureEnd() {
+    if (snap.lock) clearTimeout(snap.lock);
+    snap.lock = setTimeout(function () {
+      snap.lock = 0;
+      if (snap.raf) { armGestureEnd(); return; }
+      snap.busy = false;
+    }, T.gap);
+  }
+
+  /* Let a scrollable inner element keep its own wheel — the same guard
+     js/scroll-weight.js carries, for the same reason it gives: swallowing every
+     wheel unconditionally is how this kind of module breaks a modal or a long
+     code block six months later. */
+  function innerScroller(el, dy) {
+    while (el && el.nodeType === 1 && el !== document.body) {
+      var o = getComputedStyle(el).overflowY;
+      if ((o === 'auto' || o === 'scroll') && el.scrollHeight > el.clientHeight + 1) {
+        if (dy < 0 ? el.scrollTop > 0
+                   : el.scrollTop < el.scrollHeight - el.clientHeight - 1) return true;
+      }
+      el = el.parentElement;
+    }
+    return false;
+  }
+
+  function stepTo(i, down) {
+    /* LEAVING MUSIC IS THE ONE LEG THAT DRIVES THE CLIP ITSELF, and it stays
+       special after the generalisation. The clip is PARKED on f134 all through
+       Music, so scroll position has nothing to say about the frame until the
+       viewport top crosses into Merch — which happens at the very END of the
+       movement. Measured on the first build of the stop: the glide ran its full
+       700ms with the clip still parked and the sky still up, so the race
+       happened after the page had already stopped, which is the opposite of
+       what was asked for.
+
+       So this leg spends f134 to f157 across exactly the glide, off its OWN
+       progress, and drops the sky at once. Nothing else in the file maps scroll
+       this way and nothing should: this is the one moment the page is moving
+       itself rather than being moved. */
+    var from = window.scrollY, to = landingAt(i);
+    if (down && music && from >= music.y0 && from < music.y1 && to >= music.y1) {
+      snap.racing = true;
+      skyT = 0;
+      glide(landingAt(i), T.release,
+        function () { snap.racing = false; snap.frame = -1; },
+        function (t) { snap.frame = music.f0 + t * (music.f1 - music.f0); });
+      return;
+    }
+    glide(landingAt(i), T.stepMs);
+  }
+
+  /* --df-step IS READ LIVE, not off the throttled T. syncTunables() only runs
+     from tick(), and tick() only runs while the page is moving — so a page
+     sitting still on a landing never picks up a change to this one. That makes
+     the off switch SELF-LOCKING: the stepper is the reason the page is not
+     scrolling, so turning it to 0 could never take effect and the dial would
+     look broken. MEASURED: with the value read off T, --df-step 0 still
+     stepped a full section on the next wheel.
+     js/scroll-weight.js reads --scroll-weight live on every wheel for exactly
+     this reason and gives the justification — one getComputedStyle per wheel
+     event is nothing next to what the browser does to handle the scroll. */
+  function stepOn() {
+    var v = parseFloat(getComputedStyle(root).getPropertyValue('--df-step'));
+    return isFinite(v) ? v : T.step;
   }
 
   /* Registered immediately, not inside the marks fetch, so ordering against
      scroll-weight.js does not depend on how fast a JSON file lands. */
   window.addEventListener('wheel', function (e) {
-    if (snap.state !== 'held' || !T.snap || !music) return;
-    /* Upward hands control straight back — leaving Music the way you came is
-       ordinary scrolling, and About ends on the parked frame so there is
-       nothing to catch up. */
-    if (e.deltaY <= 0) { snap.state = 'idle'; return; }
+    if (!stepOn() || !stops.length) return;
+    if (e.ctrlKey || e.metaKey) return;                    /* pinch / zoom */
+    if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;   /* sideways */
+    if (!e.deltaY) return;
+    if (innerScroller(e.target, e.deltaY)) return;
+
+    var mag = Math.abs(e.deltaY);
+    var dir = e.deltaY > 0 ? 1 : -1;
+    var since = e.timeStamp - snap.lastT;   /* telemetry only, see below */
+    snap.lastT = e.timeStamp;
+
+    /* IS THIS STILL THE GESTURE THAT IS ALREADY BEING SERVED, OR A NEW ONE?
+       Everything hard about this module is in that question. A trackpad throws
+       a long decaying tail after the fingers lift, and absorbing it is what
+       stops one flick walking three stops. But absorbing too much is what the
+       owner reported on Aug 17 2026, twice over, so the tail is now told apart
+       from a new push by three signals rather than by time alone:
+
+       REVERSED — a tail decays but never turns round, so an event pointing
+       against the glide can only be the reader changing their mind. Ignoring
+       it is what made an up-flick out of Stay Connected read as the page
+       carrying on downward.
+
+       PUSHED — a tail is monotonically decreasing, so nothing in it can be
+       much larger than the smallest event seen so far. A fresh flick starts
+       hard. Without this the tail re-armed the lock on every event and a
+       follow-up flick 50ms after landing on Archive moved 0px, which is the
+       "I have to flick several times" report.
+
+       A THIRD SIGNAL, TIME SINCE THE LAST EVENT, WAS TRIED AND REMOVED. The
+       idea was to catch a mouse wheel, whose ticks are all the SAME magnitude
+       so PUSHED can never fire for one. At a 60ms threshold it wrecked the
+       thing it was meant to help: setTimeout jitter alone pushed mid-tail
+       events over the line, each one cancelling the glide and starting
+       another, and steps that had been landing exactly came to rest BETWEEN
+       stops — Music to Merch finished at 2766 against a 2802 landing, and the
+       Archive pair landed at 4158 and 4927. Do not reintroduce it without a
+       much larger threshold and a re-measure.
+
+       WHAT THAT LEAVES FOR A MOUSE: a steady spin faster than --df-gap reads
+       as one continuous gesture and advances one stop per glide. That is the
+       intended feel, and --df-gap is the dial if it is not. `since` is kept
+       below only because it is worth having in the telemetry. */
+    if (snap.busy) {
+      var isNew = (dir !== snap.dir) ||
+                  (mag > snap.minMag * 1.8 + 1);
+      if (!isNew) {
+        if (mag < snap.minMag) snap.minMag = mag;
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        armGestureEnd();
+        return;
+      }
+      /* A new gesture takes the page off the old one, mid-glide if need be. */
+      if (snap.lock) { clearTimeout(snap.lock); snap.lock = 0; }
+      if (snap.raf) {
+        cancelAnimationFrame(snap.raf);
+        snap.raf = 0;
+        snap.racing = false;      /* hand framing back to scroll position */
+        snap.frame = -1;
+      }
+      snap.busy = false;
+    }
+
+    var i = nextLanding(dir);
+
+    /* OFF EITHER END OF THE DOCUMENT — the very top going up, the foot going
+       down. Nothing to step to, so hand it back and let the page do whatever
+       it normally does at its own edge. */
+    if (i < 0) return;
+
     e.preventDefault();
     e.stopImmediatePropagation();
-    snap.state = 'releasing';
-
-    /* THE SKY LEAVES AT ONCE and the clip plays UNDER the movement, rather
-       than the movement finishing and the clip then catching up. Measured on
-       the first build of this: the glide ran its full 700ms with the clip still
-       parked on f134 and the sky still up, because the viewport top had not yet
-       crossed into Merch — so the race happened after the page had already
-       stopped, which is the opposite of what was asked for.
-
-       The release therefore drives the frame off its OWN progress instead of
-       off scroll position, so f134 to f157 is spent across exactly the glide.
-       Nothing else in the file maps scroll this way, and nothing should: this
-       is the one moment the page is moving itself rather than being moved. */
-    skyT = 0;
-    glide(music.y1, T.release,
-      function () { snap.state = 'idle'; snap.frame = -1; },
-      function (t) { snap.frame = music.f0 + t * (music.f1 - music.f0); });
+    snap.busy = true;
+    snap.dir = dir;
+    snap.minMag = mag;
+    armGestureEnd();
+    stepTo(i, dir > 0);
   }, { passive: false });
+
+  /* ARRIVING BY ANY OTHER ROUTE still settles onto Music's rest point. A
+     scrollbar drag, a keyboard key or an anchor can leave the page inside Music
+     but off the frame the card needs, and the stepper never sees any of those.
+     A band rather than the whole section: someone who has deliberately scrolled
+     to the far end of Music should be left there rather than yanked back.
+
+     Waiting for 140ms of quiet is also what keeps this off scroll-weight's
+     toes — that module emits scroll events continuously while it animates, so
+     the timer cannot elapse until it has finished and re-anchored its target. */
+  function settled() {
+    if (!music || !T.snap || snap.busy || snap.raf) return;
+    var y = window.scrollY;
+    if (y < music.y0 || y >= music.y1) return;
+    if (Math.abs(y - musicRest) <= 2) return;
+    var band = Math.max(160, (music.y1 - music.y0) * 0.45);
+    if (Math.abs(y - musicRest) <= band) glide(musicRest, 520);
+  }
 
   /* Taking hold of anything cancels the glide, the same rule scroll-weight.js
      applies to its own momentum: a page still moving under a pointer that has
-     grabbed the carousel feels broken. */
+     grabbed the carousel feels broken. The lock goes with it, or the next wheel
+     event would be swallowed by a gesture that is no longer happening. */
   window.addEventListener('pointerdown', function () {
-    if (snap.raf) { cancelAnimationFrame(snap.raf); snap.raf = 0; snap.state = 'idle'; }
+    if (snap.raf) { cancelAnimationFrame(snap.raf); snap.raf = 0; }
+    if (snap.lock) { clearTimeout(snap.lock); snap.lock = 0; }
+    snap.busy = false;
+    snap.racing = false;
   }, { passive: true });
 
   /* --------------------------------------------------------------- reveals */
@@ -740,12 +991,14 @@
     wasParked = parked;
 
     target = frameToTime(
-      snap.state === 'releasing' && snap.frame >= 0 ? snap.frame
+      snap.racing && snap.frame >= 0 ? snap.frame
         : parked ? music.f0
         : frameAt(y));
-    /* The release owns the sky for its duration; skyAt() would put it back up,
-       because the viewport top is still inside Music for most of the glide. */
-    if (!booting && snap.state !== 'releasing') skyT = skyAt(y);
+    /* The race owns the sky for its duration; skyAt() would put it back up,
+       because the viewport top is still inside Music for most of the glide.
+       Only the Music leg sets snap.racing — every other step leaves the frame
+       and the sky on scroll position, which the glide is genuinely moving. */
+    if (!booting && !snap.racing) skyT = skyAt(y);
 
     if (snap.timer) clearTimeout(snap.timer);
     snap.timer = setTimeout(settled, 140);
@@ -781,13 +1034,20 @@
       { k: '--df-stagger', g: 'handoff', label: 'stagger', min: 0, max: 400, step: 5,
         tip: 'Milliseconds between reveals inside one section. The cue order comes from the marks file; this is only the spacing' },
 
+      { k: '--df-step', g: 'step', label: 'step', min: 0, max: 1, step: 1,
+        tip: 'One wheel gesture moves one section. 0 hands the page back to scroll weight entirely, which is how everything before build 4 scrolled' },
+      { k: '--df-step-ms', g: 'step', label: 'glide', min: 200, max: 1600, step: 20,
+        tip: 'Milliseconds to cross from one section to the next. The leg out of Music uses release instead, because it has a clip to race' },
+      { k: '--df-gap', g: 'step', label: 'gap', min: 0, max: 600, step: 10,
+        tip: 'Wheel silence that ends a gesture. A trackpad throws inertia for about a second after your fingers lift; raise this if one flick still walks two sections, lower it if a deliberate second scroll feels ignored' },
+
       { k: '--df-snap', g: 'stop', label: 'snap', min: 0, max: 1, step: 1,
-        tip: 'Whether Music holds as a stop. 0 makes it an ordinary section you scroll through, with the sky and the park unchanged' },
+        tip: 'Whether Music lands on its rest point where the card is framed. 0 lands it on its boundary like every other section, with the sky and the park unchanged' },
       { k: '--df-release', g: 'stop', label: 'release', min: 200, max: 1600, step: 50,
-        tip: 'Milliseconds for the glide from the Music stop to Merch. The clip races f134 to f157 underneath it, so this and catch are heard together' }
+        tip: 'Milliseconds for the step out of Music to Merch. The clip races f134 to f157 underneath it, so this and catch are heard together' }
     ];
     var GROUPS = [['clip', 'The clip', true], ['handoff', 'Handoff and reveals', true],
-                  ['stop', 'The Music stop', true]];
+                  ['step', 'The section stepper', true], ['stop', 'The Music stop', true]];
 
     var shipped = {};
     FIELDS.forEach(function (f) {
@@ -889,7 +1149,10 @@
       }),
       tailY: tailY,
       musicRest: musicRest,
-      snap: snap.state,
+      snap: { busy: snap.busy, racing: snap.racing, gliding: !!snap.raf },
+      landings: stops.map(function (s) {
+        return { name: s.name, y: s.y };
+      }),
       /* Everything needed to diagnose the Music framing from a console paste,
          because the geometry that matters depends on the visitor's real
          viewport, their display scaling and the carousel's live state -- none

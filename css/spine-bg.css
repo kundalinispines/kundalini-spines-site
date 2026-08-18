@@ -96,7 +96,7 @@
      kick. 33 = the lightning layer wired in (js injection + tuner rows; the
      layer itself lives in css/star-bg.css) and the stale "loaded by
      index.html only" header line above corrected. */
-  --spine-build: 40;
+  --spine-build: 41;
 
   --charge: 0;          /* 0..1, written by js/spine-bg.js every scroll frame */
 
@@ -928,7 +928,17 @@ body { position: relative; }
     rgba(206, 224, 242, 0.24) 0%, rgba(120, 156, 196, 0.07) 45%, transparent 72%);
 }
 
-/* The crimson scan line — the hero video's laser, echoed.
+/* The scan line — the hero video's laser, echoed. Violet since Aug 17 2026
+   with the rest of the palette; the hardcoded core below is the one colour in
+   this gradient that does NOT follow --color-crimson-lit, so it has to be
+   swapped by hand or the line ends up violet with a red heart. It is derived,
+   not guessed: the old core sat +7 hue, +11 saturation and +7 lightness from
+   the old lit value, and #9D3CD2 is the same offset from the new one.
+
+   NOTE FOR ANYONE CHECKING THIS ON SCREEN: it renders nowhere today.
+   --spine-beam is 0 (tuned off 2026-08-04) and html.page-home sets
+   --spine-on: 0, so this gradient has no live consumer on any page. Swapped
+   for consistency, and it has never been seen in violet.
    opacity cannot exceed 1, so above 1 --spine-beam drives brightness instead;
    that way the line, its falloff and its halo all scale together. */
 .spine-bg__scan {
@@ -941,7 +951,7 @@ body { position: relative; }
   opacity: calc(min(1, var(--spine-beam)) * var(--spine-on));
   filter: brightness(max(1, var(--spine-beam)));
   background: linear-gradient(to right, transparent 0%, rgba(138, 20, 20, 0) 12%,
-    var(--color-crimson-lit) 42%, #C8302E 50%, var(--color-crimson-lit) 58%,
+    var(--color-crimson-lit) 42%, #9D3CD2 50%, var(--color-crimson-lit) 58%,
     rgba(138, 20, 20, 0) 88%, transparent 100%);
   box-shadow: 0 0 14px 2px rgba(200, 48, 46, 0.45);
 }

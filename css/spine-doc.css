@@ -37,8 +37,8 @@
   --ring-peak-a:        0.9;     /* brightness at the start of its travel */
   /* DOC-ONLY, not mirrored: the lab's rings read --node-color directly. Hoisted
      here so the ripple can take a different palette colour with a one-line
-     change (moonlight is 157, 178, 192; crimson is 161, 51, 62 — but mind the
-     ~2-uses-per-page crimson budget). Cold white was the default the owner was
+     change (moonlight is 157, 178, 192; the accent is 122, 57, 179 — but mind
+     the ~2-uses-per-page accent budget). Cold white was the default the owner was
      offered with the port. */
   --ring-color:         var(--node-color);
 
@@ -91,11 +91,19 @@ html.page-home {
   --node-pulse-ms:      3350ms;
   --ring-peak-a:        1;
 
-  /* Crimson, which is one of the two options the baseline's own note offers
-     (the other being moonlight). MIND THE CRIMSON BUDGET the same note names —
+  /* The accent, which is one of the two options the baseline's own note offers
+     (the other being moonlight). MIND THE ACCENT BUDGET the same note names —
      roughly two uses per page — because this spends one of them on the home
-     page's rail. */
-  --ring-color:         161, 51, 62;
+     page's rail.
+
+     VIOLET SINCE AUG 17 2026, with the rest of the palette. This is a raw RGB
+     TRIPLET rather than a var(), because the three rules that consume it wrap
+     it in rgba() at three different alphas — so it cannot follow
+     --color-crimson through the cascade and has to be swapped by hand. It was
+     the one live usage the first pass at this swap missed: the two hex values
+     and the tuner choices were all found by grepping for the hex, and this
+     spells the same colour in decimal. 122, 57, 179 is #7A39B3. */
+  --ring-color:         122, 57, 179;
 
   /* The vertebra falloff radius, 160px -> 400px. Ticks step ~30px, so this
      lights ~26 of them on the smooth falloff where the baseline lit ~9. */
@@ -392,10 +400,61 @@ html.page-home {
 .ksd-cols p { break-inside: avoid-column; max-width: none; }
 @media (max-width: 900px) { .ksd-cols { columns: 1; column-rule: none; } }
 
-/* The connect section hangs the newsletter form off the axis like everything
-   else — deliberately NOT the .newsletter class, whose centring belongs to
-   connect.html where the block runs as a page. */
+/* ---- CONNECT: the one section that centres ----------------------------
+   Owner's call, Aug 17 2026: Stay Connected is where the page wants attention,
+   so the sign-up sits in the middle of the column instead of hanging off the
+   axis. It also lands on the fully lit nebula now (the deep-field background
+   spends the whole of Archive bringing the sky back up), and a centred block
+   breathes in that space where a left-hung one did not.
+
+   THIS DOES NOT OVERTURN THE NOTE IT REPLACES. That note said the section
+   deliberately uses .ksd-connect and NOT the .newsletter class, "whose centring
+   belongs to connect.html where the block runs as a page" — and it is still
+   true and still enforced. The objection was CLASS REUSE and the geometric
+   coupling it creates between two pages, not the visual result. Nothing below
+   adopts .newsletter; connect.html has neither this attribute nor this
+   stylesheet, so it cannot be reached from here.
+
+   IT IS THE .ksd-music-head PATTERN, AND NOT align-items, ON PURPOSE.
+   text-align plus margin-inline: auto preserves every child's USED WIDTH.
+   `align-items: center` on the flex section would shrink-wrap the headline
+   instead, changing where it wraps and therefore its height — and
+   js/spine-doc.js:76 places the rail node at `r.top + r.height / frac`, so the
+   node would slide vertically for no visible reason. That is very likely why
+   the Music head was built this way rather than with flex alignment.
+
+   .ksd-connect needs its own margin-inline because it carries a max-width;
+   text-align alone centres its text and leaves the 520px box on the left. The
+   form inside needs nothing — it is already justify-content: center with a
+   `flex: 1 1 260px` field and no fixed widths anywhere.
+
+   The rail tick does not move and does not need to: it is 32px of fixed width
+   at the axis and never reached the headline in the first place. Music has had
+   exactly this condition since Aug 13 2026 — its node sits at x86 against a
+   headline starting at x450. */
 .ksd-connect { max-width: 520px; }
+
+/* The negative right margin is the .ksd-music-head bleed, and it is here for
+   the reason that note gives: it reclaims .ksd-doc__col's own padding-right so
+   this block centres on the SAME axis Music does, by construction rather than
+   by approximation. Measured at 1440 wide: without it the connect block centres
+   at x745 against Music at x788, and two centred blocks on one page that miss
+   each other by 43px is the kind of thing nobody can unsee once noticed.
+   KEEP IN STEP with .ksd-doc__col's padding-right if that ever changes -
+   css/astral-scrim.css mirrors the same value and carries the same warning. */
+[data-ksd-section="connect"] {
+  text-align: center;
+  margin-right: calc(-1 * clamp(24px, 6vw, 120px));
+}
+[data-ksd-section="connect"] .ksd-head,
+[data-ksd-section="connect"] .ksd-body,
+/* width: 100% is NOT redundant next to max-width here. .ksd-connect is a flex
+   item, and an auto margin on the cross axis cancels the default stretch — so
+   with margin-inline alone it fell back to shrink-to-fit and measured 428px
+   instead of its 520px cap. The form inside is `flex: 1 1 260px` plus a
+   173px button and a 12px gap, which needs 445px, so at 428 the button wrapped
+   onto its own line. Centring is not supposed to restructure the form. */
+[data-ksd-section="connect"] .ksd-connect { margin-inline: auto; width: 100%; }
 
 /* ---- FILM ROW: a section's copy and its footage, as one block ----
    Shared by About (the black tide) and Transmissions (spine frequency), and

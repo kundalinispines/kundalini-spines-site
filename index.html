@@ -472,10 +472,44 @@
         </div>
       </section>
 
+      <!-- ARCHIVE IS THE ONE ROW THAT READS RIGHT-TO-LEFT (owner's call,
+           Aug 18 2026). About and Transmissions both put their copy left and
+           their film right; this one mirrors that, film left and copy right,
+           which is what .ksd-filmrow--mirror does.
+
+           THE FIGURE IS FIRST IN SOURCE ORDER so it lands in the left column,
+           the same move .ksd-merch__video makes — and below 900px it carries
+           `order: 1` for the same reason, so the stack is copy-then-film like
+           every other row on the page rather than film-then-copy here alone.
+
+           THE HEADLINE MOVED INSIDE .ksd-filmrow__copy, which is what makes the
+           section read as one block instead of a headline with a row under it.
+           js/spine-doc.js measures the Archive rail node off .ksd-head, so that
+           move can slide the node — see the measurement in the commit; it was
+           checked either side rather than assumed. -->
       <section class="ksd-section" data-ksd-section="archive" data-ksd-label="Archive">
-        <h2 class="ksd-head ksd-reveal">The Filed Material</h2>
-        <p class="ksd-body ksd-reveal">Visual releases, documents and fragments, kept in the order they were received rather than the order they were made.</p>
-        <p class="ksd-reveal" style="margin-top:var(--space-2);"><a class="btn btn--ghost" href="archive.html">Enter the Archive</a></p>
+        <div class="ksd-filmrow ksd-filmrow--mirror">
+          <!-- NO -g 4 ON THIS ENCODE, unlike the merch render. That keyframe
+               density exists to make SEEKING cheap, and nothing seeks this: it
+               plays in view and loops, so the only seek it ever performs is the
+               loop's own return to 0, which is a keyframe on any encode. It
+               costs roughly 3x the file to carry it — see the commit for the
+               numbers on all three film rows.
+               preload="none" for the same reason as the other two rows, and
+               js/deep-field-bg.js upgrades it. -->
+          <figure class="ksd-filmrow__media ksd-reveal" data-fr-mask="2" data-fr-glow="rain-transmission-rooftop">
+            <video muted playsinline preload="none" aria-hidden="true"
+                   poster="assets/video/rain-transmission-rooftop-poster.jpg">
+              <source src="assets/video/rain-transmission-rooftop.webm" type="video/webm">
+              <source src="assets/video/rain-transmission-rooftop.mp4" type="video/mp4">
+            </video>
+          </figure>
+          <div class="ksd-filmrow__copy">
+            <h2 class="ksd-head ksd-reveal">The Filed Material</h2>
+            <p class="ksd-body ksd-reveal">Visual releases, documents and fragments, kept in the order they were received rather than the order they were made.</p>
+            <p class="ksd-reveal" style="margin-top:var(--space-2);"><a class="btn btn--ghost" href="archive.html">Enter the Archive</a></p>
+          </div>
+        </div>
       </section>
 
       <!-- Stay Connected. The canonical destination stays connect.html; this

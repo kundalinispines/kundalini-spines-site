@@ -648,6 +648,14 @@ html.page-home {
   align-items: center;
 }
 .ksd-filmrow__copy { min-width: 0; }
+
+/* THE MIRRORED ROW — film left, copy right. Archive only (Aug 18 2026).
+   The proportions are SWAPPED, not just reordered: the base row gives the copy
+   1.03 against the film's 0.97, and the mirrored figure sits in the first
+   column, so without this the film would take the wider share and the copy the
+   narrower one. Swapping the track sizes keeps every row on the page giving
+   the copy the same width, whichever side it is on. */
+.ksd-filmrow--mirror { grid-template-columns: minmax(0, 0.97fr) minmax(0, 1.03fr); }
 .ksd-filmrow__media { min-width: 0; margin: 0; aspect-ratio: 1.2; }
 .ksd-filmrow__media video { display: block; width: 100%; height: 100%; object-fit: cover; }
 @media (max-width: 900px) {
@@ -657,6 +665,12 @@ html.page-home {
   .ksd-filmrow { grid-template-columns: minmax(0, 1fr); }
   .ksd-filmrow__media { aspect-ratio: auto; }
   .ksd-filmrow__media video { height: auto; object-fit: fill; }
+
+  /* Stacked, the mirror has nothing to mirror — and its figure is FIRST in
+     source order, so without this Archive alone would read film-then-copy
+     while every other row reads copy-then-film. Same fix, and the same reason,
+     as .ksd-merch__video's `order: 1` below. */
+  .ksd-filmrow--mirror .ksd-filmrow__media { order: 1; }
 }
 
 /* ---- The merch video ----

@@ -1547,9 +1547,9 @@
       { k: '--df-tail', g: 'handoff', label: 'tail', min: 0.1, max: 1, step: 0.05,
         tip: 'How much of Archive the sky takes to come back up, as a fraction. 1 spends the whole section on the swell and reaches full exactly at Stay Connected. The Music arrival is not this - it is derived from where the card frames' },
       { k: '--df-sky-in', g: 'handoff', label: 'sky in', min: 0.02, max: 0.3, step: 0.005,
-        tip: 'How fast the nebula comes up over the settled frame at Music. Lower is slower and more deliberate; this is the transition the reader is meant to watch, so it runs slower than sky out' },
+        tip: 'How fast the nebula comes up over the settled frame at Music. Lower is slower and more deliberate. It ran slower than sky out until Aug 18 2026, when the two were levelled at 0.06' },
       { k: '--df-sky-out', g: 'handoff', label: 'sky out', min: 0.02, max: 0.4, step: 0.01,
-        tip: 'How fast the nebula clears when a leg begins, handing the screen back to the clip. Faster than sky in on purpose - this one should barely be noticed' },
+        tip: 'How fast the nebula clears when a leg begins, handing the screen back to the clip. It shipped faster than sky in and the owner levelled the two on Aug 18 2026. At 0.06 the nebula is gone 27 frames into the Music to Merch leg, so the clip owns 61 percent of it; at 0.10 it was 15 frames and 79 percent' },
 
       { k: '--df-title-ms', g: 'handoff', label: 'title hold', min: 0, max: 3000, step: 50,
         tip: 'How long Enter the Tracks holds the screen on its own before the cards replace it. Runs once, on the first arrival at Music. 0 skips the title card entirely' },

@@ -1,5 +1,5 @@
 /* deep-field-bg.css — the home page's background clip.
-   --df-build: 9;
+   --df-build: 10;
 
    WHAT THIS IS
    The 12.042s deep-field-2 clip painted full-bleed behind the whole home
@@ -78,17 +78,37 @@
   --df-tail: 1;
   /* THE TWO SIDES OF THE CROSSFADE, AND THEY ARE NOT THE SAME EVENT.
      Per-frame lerp rates, not durations. sky-out clears the nebula as a leg
-     begins so the clip has the screen to itself (0.10 is about 500ms to 95%);
-     sky-in raises it over the frame the clip has already settled on, and runs
-     slower because it is the transition the reader is meant to notice
-     (0.055 is about 1s). Both were a single 0.18 until Aug 18 2026, when the
-     sky still followed scroll position. */
-  --df-sky-in: 0.055;
-  --df-sky-out: 0.10;
+     begins; sky-in raises it over the frame the clip has already settled on.
+
+     THEY ARE EQUAL AGAIN, AT 0.06, and that is the owner's call rather than a
+     value nobody revisited (Aug 18 2026). They shipped asymmetric for half a
+     day - 0.10 out against 0.055 in - on the argument that the exit should
+     barely be noticed while the entrance is the transition the reader is meant
+     to watch. Judged on the page, the fast exit was the part that read wrong.
+
+     WHAT THE SLOWER EXIT COSTS, MEASURED on the Music -> Merch leg, which is
+     the one that leaves the sky:
+
+         sky-out 0.10   nebula clear 15 frames into the leg (604ms)   21% of it
+         sky-out 0.06   nebula clear 27 frames into the leg (1117ms)  39% of it
+
+     So the clip has the screen to itself for 61% of that leg rather than 79%.
+     That is the trade being made: less clean footage, a gentler handover. If
+     the clip ever needs that screen time back, this is the number to raise -
+     and the separate rates still exist, so it can be raised without touching
+     the entrance.
+
+     Both were a single 0.18 until Aug 18 2026, when the sky still followed
+     scroll position. */
+  --df-sky-in: 0.06;
+  --df-sky-out: 0.06;
   /* How long the Music title card holds the screen on its own before it hands
      over to the cards. The owner asked for "about a second"; it is a dial
-     because it is a piece of timing that can only be judged by watching it. */
-  --df-title-ms: 1000;
+     because it is a piece of timing that can only be judged by watching it -
+     and it was, on Aug 18 2026, which is how it came down from 1000 to 800.
+     The card's own fade is 520ms either side and is NOT part of this number,
+     so the beat the reader actually sees is longer than the value here. */
+  --df-title-ms: 800;
   --df-stagger: 90;   /* ms between reveals inside one section */
 
   /* THE SECTION STEPPER (owner's call, Aug 17 2026). One wheel gesture moves

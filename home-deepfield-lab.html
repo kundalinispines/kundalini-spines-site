@@ -139,8 +139,16 @@
      The <source> tags are attached by js/deep-field-bg.js, not written here,
      so that phones and reduced-motion never fetch the 2.8MB clip. -->
 <div class="df-bg" aria-hidden="true">
+  <!-- THE POSTER MUST BE THE FRAME THE CLIP STARTS ON, and it is the only
+       thing here that names a clip. It was still deep-field's poster after the
+       swap to deep-field-2 — a bright purple nebula — so it was painted for as
+       long as the new clip took to decode and read as the old background
+       flashing up before the real one. Reported by the owner Aug 18 2026.
+       deep-field-2-poster.jpg IS f0, which is where Home holds the clip, so
+       the poster and the first painted frame are now the same picture and the
+       handover is invisible rather than merely quicker. -->
   <video class="df-bg__video" muted playsinline preload="auto"
-         poster="assets/video/deep-field-poster.jpg"></video>
+         poster="assets/video/deep-field-2-poster.jpg"></video>
   <div class="df-bg__scrim"></div>
 </div>
 <a class="skip-link" href="#main">Skip to content</a>
@@ -217,7 +225,7 @@
             <h2 class="ksd-head ksd-reveal">Two Messengers. One Signal.</h2>
             <p class="ksd-body ksd-reveal">Kundalini Spines is a two-member creative and musical project moving between underground hip-hop, mysticism, symbolism, street experience, ancient knowledge, and speculative thought.</p>
             <p class="ksd-body ksd-reveal">The Messengers don&rsquo;t claim mastery over the Signal &mdash; they receive it, interpret it, and carry it forward. You&rsquo;re invited to decode it for yourself.</p>
-            <p style="margin-top:var(--space-2);"><a class="btn btn--ghost" href="about.html">Read the Feature</a></p>
+            <p class="ksd-reveal" style="margin-top:var(--space-2);"><a class="btn btn--ghost" href="about.html">Read the Feature</a></p>
           </div>
           <!-- SCRUBBED BY THE SCROLL, like the merch render — no autoplay and
                NO loop (owner's call, Aug 15 2026). js/spine-doc.js owns the
@@ -264,11 +272,33 @@
       <section class="ksd-section track-experience" id="tracks" data-ksd-section="music" data-ksd-label="Music" aria-label="Music and Tracks">
         <div class="ksd-music-head">
           <h2 class="ksd-head ksd-reveal">Enter the Tracks</h2>
-          <p class="ksd-body" role="status"><strong>Rise Up</strong> isn&rsquo;t on streaming platforms yet &mdash; 20-second samples are available here for every track now. Full streaming and download links go live once each platform is connected.</p>
         </div>
         <!-- Bleeds RIGHT only. Pulling it left as well ran the cards over the
              axis, and the spine is the one thing nothing is allowed to cover. -->
         <div class="ksd-bleed">
+          <!-- THE TITLE CARD (owner's call, Aug 18 2026).
+
+               MEASURED at the Music rest point, 1440x900: the real <h2> sits at
+               top -96 — entirely ABOVE the viewport — because musicRest is
+               derived from the carousel geometry and frames the cards, not the
+               heading. So "Enter the Tracks" was never actually seen. The owner
+               asked for it to hold the screen on its own for a beat and then be
+               replaced by the cards, so both get their moment and the section
+               still reads as one screen.
+
+               THIS IS A SECOND ELEMENT, NOT THE <h2> MOVED, and that is the
+               whole point. js/spine-doc.js places the Music rail node from
+               .ksd-head's box, so taking the real heading out of flow would
+               slide the node down the spine — an unrelated side effect the
+               reader would just see as the rail drifting. The <h2> therefore
+               stays exactly where it is, in flow, untouched, and keeps being
+               the accessible heading. This copy is aria-hidden so a screen
+               reader is not told the title twice.
+
+               It overlays .ksd-bleed rather than the section, so it is centred
+               on the same box the cards will occupy — the replacement lands in
+               place rather than near it. -->
+          <div class="ksd-music-title" aria-hidden="true">Enter the Tracks</div>
           <div class="track-arc-wrap">
             <div class="track-arc-viewport">
               <ul class="track-arc" role="listbox" aria-label="Available tracks"></ul>
@@ -397,7 +427,7 @@
             <!-- justify-content:center, because the copy column is now
                  text-align:center and a FLEX row ignores that — the two
                  buttons would have stayed hard left under centred prose. -->
-            <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:var(--space-4);margin-top:var(--space-2);">
+            <div class="ksd-reveal" style="display:flex;flex-wrap:wrap;justify-content:center;gap:var(--space-4);margin-top:var(--space-2);">
               <a class="btn btn--ghost" href="merch.html">View the Objects</a>
               <a class="btn btn--ghost" href="#newsletter">Be Told First</a>
             </div>
@@ -415,7 +445,7 @@
           <div class="ksd-filmrow__copy">
             <h2 class="ksd-head ksd-reveal">Tune to a Frequency</h2>
             <p class="ksd-body ksd-reveal">Every signal the Messengers put out &mdash; posts, clips, releases and filed pieces &mdash; arrives here, timestamped and numbered. Select a channel to isolate it, or take the whole band.</p>
-            <p style="margin-top:var(--space-2);"><a class="btn btn--ghost" href="transmissions.html">Open the Terminal</a></p>
+            <p class="ksd-reveal" style="margin-top:var(--space-2);"><a class="btn btn--ghost" href="transmissions.html">Open the Terminal</a></p>
           </div>
           <figure class="ksd-filmrow__media ksd-reveal" data-fr-mask="2" data-fr-glow="spine-frequency">
             <video muted playsinline preload="none" aria-hidden="true"
@@ -430,7 +460,7 @@
       <section class="ksd-section" data-ksd-section="archive" data-ksd-label="Archive">
         <h2 class="ksd-head ksd-reveal">The Filed Material</h2>
         <p class="ksd-body ksd-reveal">Visual releases, documents and fragments, kept in the order they were received rather than the order they were made.</p>
-        <p style="margin-top:var(--space-2);"><a class="btn btn--ghost" href="archive.html">Enter the Archive</a></p>
+        <p class="ksd-reveal" style="margin-top:var(--space-2);"><a class="btn btn--ghost" href="archive.html">Enter the Archive</a></p>
       </section>
 
       <!-- Stay Connected. The canonical destination stays connect.html; this
@@ -438,8 +468,8 @@
            old /#newsletter deep links. -->
       <section class="ksd-section" id="newsletter" data-ksd-section="connect" data-ksd-label="Stay Connected">
         <h2 class="ksd-head ksd-reveal">Stay Connected to the Signal</h2>
-        <p class="ksd-body">Receive new music, transmissions, visual releases, and limited announcements directly from Kundalini Spines. No constant noise. Only meaningful signals.</p>
-        <div class="ksd-connect">
+        <p class="ksd-body ksd-reveal">Receive new music, transmissions, visual releases, and limited announcements directly from Kundalini Spines. No constant noise. Only meaningful signals.</p>
+        <div class="ksd-connect ksd-reveal">
           <!-- Buttondown. MEASURED 2026-07-29: the endpoint sends no CORS headers to
                this origin, so this posts natively and the visitor lands on Buttondown's
                confirmation page. The action and method are load-bearing — the form works

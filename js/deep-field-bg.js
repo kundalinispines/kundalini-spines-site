@@ -166,6 +166,13 @@
      rail and runs the cord the full document). Its <h1> reveals on the
      observer exactly as it does today, which is right, because Home HOLDS f0
      and there is no leg to wait for. */
+  /* A MARKER FOR "THIS MODULE IS RUNNING", set past the mobile/reduced-motion
+     gate so CSS can tell the two worlds apart. The title card only exists where
+     this is present; where it is absent the real heading has to keep doing its
+     job, and css/deep-field-bg.css scopes the heading's hiding to this class for
+     exactly that reason. */
+  root.classList.add('df-live');
+
   var staged = document.querySelectorAll('[data-ksd-section]');
   for (var ci = 0; ci < staged.length; ci++) staged[ci].classList.add('df-cued');
 
@@ -236,7 +243,7 @@
      that turn nothing, which this project has been bitten by before. */
   var T = { tail: 1, stagger: 90, snap: 1,
             step: 1, stepMs: 620, gap: 180,
-            skyIn: 0.055, skyOut: 0.10 };
+            skyIn: 0.055, skyOut: 0.10, titleMs: 1000 };
   var lastRead = 0;
   function syncTunables(now) {
     if (now - lastRead < 200) return;
@@ -248,6 +255,8 @@
     if (isFinite(s)) T.stagger = s;
     var sn = parseFloat(cs.getPropertyValue('--df-snap'));
     if (isFinite(sn)) T.snap = sn;
+    var tm = parseFloat(cs.getPropertyValue('--df-title-ms'));
+    if (isFinite(tm) && tm >= 0) T.titleMs = tm;
     var si = parseFloat(cs.getPropertyValue('--df-sky-in'));
     var so = parseFloat(cs.getPropertyValue('--df-sky-out'));
     if (isFinite(si) && si > 0) T.skyIn = si;
@@ -615,11 +624,79 @@
     vid.playbackRate = 1;          /* the brief: one speed, the whole way */
     var p = vid.play();
     if (p && p.catch) p.catch(function () { arrive(f, cb); });
+
+    /* A LEG MUST ALWAYS END, even if the clip stops advancing.
+
+       readyState 2 is HAVE_CURRENT_DATA — ONE frame. It says the clip can be
+       shown, not that it can be played through, and on a slow link playback
+       immediately outruns the buffer and stalls. The watcher below waits for a
+       currentTime that then never arrives, so the leg never lands, the cue
+       never fires and the section stays held down.
+
+       MEASURED on a throttled cold load at 1.5Mbps with a 4.7MB webm: the leg
+       started, the clip reached f2 and stopped, and About was still waiting on
+       its cue thirty seconds later with playingTo stuck at 21.
+
+       Waiting for canplaythrough instead would be the tidy answer and it is the
+       wrong one: it would hold the whole journey hostage to a full download.
+       This lets the leg play as far as the buffer allows and then land exactly,
+       which is the same thing the skip-ahead does and is already the behaviour
+       everywhere else when a reader opts out. */
+    var STALL = 1200;
+    var lastT = vid.currentTime, lastMove = performance.now();
     (function watch() {
       if (play.to !== f) return;                       /* superseded */
       if (vid.currentTime >= end - 1 / (FPS * 4)) { arrive(f, play.done); return; }
+      var now = performance.now();
+      if (vid.currentTime > lastT + 1e-4) { lastT = vid.currentTime; lastMove = now; }
+      else if (now - lastMove > STALL) { arrive(f, play.done); return; }
       paintScrim(vid.currentTime);
       play.raf = requestAnimationFrame(watch);
+    })();
+  }
+
+  /* THE CLIP DOES NOT ADVANCE WHILE THE HERO IS COVERING IT (owner's call,
+     Aug 18 2026).
+
+     .ksd-hero is exactly one viewport tall and sits over the background, so
+     everything the clip plays while it is on screen is spent where nobody can
+     see it. MEASURED at 1440x900 on the Home-to-About leg: the hero did not
+     clear until t=651ms, by which point the clip was already on f15 — so 14 of
+     the leg's 21 frames played behind it, the first seven with less than half
+     the background showing. Only f15-f21 were ever fully visible.
+
+     So a forward leg waits for the hero to clear before it starts. Home holds
+     f0 the whole time the hero owns the screen, then the clip plays f0-f21 in
+     the open. That keeps BOTH numbers that were chosen for a reason: Home and
+     About still share f0, which is the rule that stops the foot of the hero
+     becoming a cut, and About still parks on f21, the flattest horizon in the
+     clip.
+
+     WHAT IT COSTS: About's reveal lands about 650ms later than it did, because
+     the leg now begins where it used to be half over. That is the trade — the
+     opening of the clip is worth more than the second it delays the first
+     headline.
+
+     Only the hero does this. No other section covers the background, so
+     heroCovering() is false everywhere below it and every other leg starts
+     immediately. The 1400ms backstop is not decoration: if a glide is ever
+     interrupted with the hero still up, the leg must still run rather than
+     wait forever. */
+  function heroCovering() {
+    var h = document.querySelector(SEL.home);
+    return !!h && h.getBoundingClientRect().bottom > 0;
+  }
+
+  function playWhenVisible(f, cb) {
+    if (!heroCovering()) { playTo(f, cb); return; }
+    stopWatch();
+    play.to = f;                 /* claim it, so a new gesture supersedes this */
+    play.done = cb || null;
+    var give = performance.now() + 1400;
+    (function wait() {
+      if (play.to !== f) return;                       /* superseded */
+      if (!heroCovering() || performance.now() > give) { playTo(f, cb); return; }
+      play.raf = requestAnimationFrame(wait);
     })();
   }
 
@@ -970,7 +1047,42 @@
        other. Tying them was the old build's whole design and it is what forced
        every section's footage to be cut to its scroll height. */
     var cue = cueOf(i);
-    if (!vid.duration) return;
+
+    /* NOTHING HAPPENS UNTIL THERE IS A FRAME TO SHOW, AND duration IS THE WRONG
+       TEST FOR THAT. duration arrives with HAVE_METADATA (readyState 1), which
+       is before a single frame can be painted — so this guard passed, the leg
+       set skyT to 0 to hand the screen to the clip, and what the clip had to
+       show was its POSTER. On a hard refresh with the clip still downloading
+       that is the whole background replaced by a still frame.
+
+       Reported by the owner Aug 18 2026: the old purple background flashing up
+       for a second when scrolling before the hero video had finished. The
+       poster was deep-field's at the time, which is what made it recognisable;
+       it is deep-field-2's f0 now, so the same slip would be invisible. Both
+       were fixed rather than either, because "the sky is up until the clip can
+       actually paint" is the rule and the poster only decided how obvious
+       breaking it looked.
+
+       readyState 2 is HAVE_CURRENT_DATA — a frame exists for the current
+       position. If we are not there yet, the page still glides; the clip and
+       the sky simply stay where they are, and settled() picks the leg up as
+       soon as the decoder has something, so nothing is stranded. */
+    if (vid.readyState < 2) {
+      /* RETRIED UNTIL THE PAGE IS QUIET, not fired once and hoped for.
+         loadeddata usually lands while the glide this gesture started is still
+         running, and settled() returns immediately if the stepper is busy — so
+         a single call did nothing and the clip sat on f0 with the section still
+         held. MEASURED: recovered to y=900 but f2, About unrevealed. */
+      vid.addEventListener('loadeddata', function () {
+        var tries = 0;
+        (function go() {
+          if (tries++ > 24) return;
+          if (snap.busy || snap.raf) { setTimeout(go, 120); return; }
+          settled();
+        })();
+      }, { once: true });
+      return;
+    }
 
     /* THE SAME GESTURE RE-FIRING MUST NOT RESTART THE LEG. See the skip-ahead
        note on the wheel handler: one flick can reach here several times.
@@ -1003,7 +1115,7 @@
     if (!raf) raf = requestAnimationFrame(tick);
 
     if (cue >= cur) {
-      playTo(cue, function () { fireCue(i); });
+      playWhenVisible(cue, function () { fireCue(i); });
     } else {
       /* Going back. reverseTo tries true reverse playback and falls back to a
          seek on its own budget; either way the reveal is already showing on a
@@ -1018,7 +1130,45 @@
     var s = stops[i];
     if (!s) return;
     var el = s.seg ? s.seg.el : (s.name === 'Stay Connected' ? document.querySelector(TAIL) : null);
-    if (el) el.classList.remove('df-cued');
+    if (!el) return;
+    if (s.seg && s.seg === music && titleCard(el)) return;
+    el.classList.remove('df-cued');
+  }
+
+  /* MUSIC REVEALS IN TWO BEATS, not one (owner's call, Aug 18 2026).
+
+     The clip parks on f83, "Enter the Tracks" takes the screen on its own for
+     --df-title-ms, and only then do the cards come up in its place. The heading
+     was previously never seen at all: musicRest frames the carousel, which puts
+     the real <h2> at top -96 — above the viewport — so the section arrived with
+     no title. This gives the title its beat and still leaves the carousel
+     centred on one screen.
+
+     RETURNS TRUE ONLY IF IT TOOK OVER. Every other path — no card in the DOM,
+     the card already spent, a phone or reduced motion where the CSS hides it —
+     returns false and fireCue() reveals the section the ordinary way. That
+     matters because this sits on the path that releases held content: if this
+     function can fail without saying so, the carousel stays hidden.
+
+     ONCE ONLY, on the first arrival. Landing on Music again is navigation, not
+     an entrance, and re-running the title over cards the reader has already
+     seen would read as a glitch. dataset survives the class being toggled. */
+  function titleCard(sec) {
+    var card = sec.querySelector('.ksd-music-title');
+    if (!card || card.dataset.spent) return false;
+    if (getComputedStyle(card).display === 'none') return false;   /* phone / reduced */
+    card.dataset.spent = '1';
+
+    card.classList.add('is-on');
+    setTimeout(function () {
+      card.classList.remove('is-on');
+      /* Hand over as it goes rather than after it has gone: the fade out and
+         the cards' own reveal overlap, which is what makes it read as a
+         replacement instead of a gap. 520ms is the card's transition; half of
+         it is where the two cross. */
+      setTimeout(function () { sec.classList.remove('df-cued'); }, 260);
+    }, T.titleMs);
+    return true;
   }
 
   /* --df-step IS READ LIVE, not off the throttled T. syncTunables() only runs
@@ -1170,10 +1320,10 @@
       var d = Math.abs(stops[i].y - y);
       if (d < bd) { bd = d; best = i; }
     }
-    if (best >= 0 && bd <= 8 && vid.duration && play.to < 0) {
+    if (best >= 0 && bd <= 8 && vid.readyState >= 2 && play.to < 0) {
       var cue = cueOf(best), cur = vid.currentTime * FPS - 0.5;
       if (Math.abs(cue - cur) > 0.75) {
-        if (cue > cur && cue - cur <= 80) playTo(cue, function () { fireCue(best); });
+        if (cue > cur && cue - cur <= 80) playWhenVisible(cue, function () { fireCue(best); });
         else jumpTo(cue, function () { fireCue(best); });
       } else {
         fireCue(best);
@@ -1358,6 +1508,9 @@
         tip: 'How fast the nebula comes up over the settled frame at Music. Lower is slower and more deliberate; this is the transition the reader is meant to watch, so it runs slower than sky out' },
       { k: '--df-sky-out', g: 'handoff', label: 'sky out', min: 0.02, max: 0.4, step: 0.01,
         tip: 'How fast the nebula clears when a leg begins, handing the screen back to the clip. Faster than sky in on purpose - this one should barely be noticed' },
+
+      { k: '--df-title-ms', g: 'handoff', label: 'title hold', min: 0, max: 3000, step: 50,
+        tip: 'How long Enter the Tracks holds the screen on its own before the cards replace it. Runs once, on the first arrival at Music. 0 skips the title card entirely' },
 
       { k: '--df-stagger', g: 'handoff', label: 'stagger', min: 0, max: 400, step: 5,
         tip: 'Milliseconds between reveals inside one section. The cue order comes from the marks file; this is only the spacing' },

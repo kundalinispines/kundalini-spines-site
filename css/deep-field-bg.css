@@ -77,6 +77,10 @@
      sky still followed scroll position. */
   --df-sky-in: 0.055;
   --df-sky-out: 0.10;
+  /* How long the Music title card holds the screen on its own before it hands
+     over to the cards. The owner asked for "about a second"; it is a dial
+     because it is a piece of timing that can only be judged by watching it. */
+  --df-title-ms: 1000;
   --df-stagger: 90;   /* ms between reveals inside one section */
 
   /* THE SECTION STEPPER (owner's call, Aug 17 2026). One wheel gesture moves
@@ -158,7 +162,24 @@
   inset: 0;
   z-index: -2;
   pointer-events: none;
-  opacity: calc(var(--df-on) * (1 - var(--df-sky)));
+  /* THE FALLBACKS ARE THE FAIL-TOWARDS-THE-SKY RULE ACTUALLY BEING KEPT.
+
+     The :root block above explains why --df-sky ships at 1: if this module
+     never runs, the page should land on the sky it already has rather than on
+     a bare floor. But a var() with no fallback does not survive the property
+     being UNRESOLVED, which is a different case from it being 0 — and it is
+     unresolved for as long as this stylesheet has not arrived. This file is
+     linked LAST by design, so on a cold cache it is the last thing to land.
+
+     MEASURED on a throttled cold load: at 133ms --df-sky read as unset, the
+     calc was invalid, and .df-bg fell back to opacity 1 — the clip and its
+     poster fully exposed over the page — and stayed there until 4164ms.
+     Reported by the owner as the old background flashing up on a hard refresh.
+
+     With the fallback the same moment resolves to opacity 0. Every --df-sky
+     read in this file now defaults to 1 for the same reason: unresolved must
+     mean sky, never clip. */
+  opacity: calc(var(--df-on, 1) * (1 - var(--df-sky, 1)));
 }
 
 .df-bg__video {
@@ -192,7 +213,7 @@
    possible off switch and it costs no repaint.
 
    The base sky has no opacity of its own, so it takes --df-sky directly. */
-body::before { opacity: var(--df-sky); }
+body::before { opacity: var(--df-sky, 1); }
 
 /* THE TWINKLE BANDS AND THE NEBULA ARE NOT SUPPRESSED FROM HERE.
 
@@ -223,7 +244,7 @@ body::before { opacity: var(--df-sky); }
    the correct shape: the two-and-a-half divs without .is-struck keep the base
    rule's opacity 0, exactly as star-bg.css intends. */
 :root.is-spine-kicking .star-bolt.is-struck {
-  opacity: calc(var(--snare) * var(--snare-bolt) * var(--df-sky));
+  opacity: calc(var(--snare) * var(--snare-bolt) * var(--df-sky, 1));
 }
 
 /* The WebGL cloud sky is the one layer with a real teardown (window.__cloudSky
@@ -233,7 +254,7 @@ body::before { opacity: var(--df-sky); }
    canvas is not visible (js/clouds.js:536), so an opacity-0 wrapper still
    costs a little. If the frame budget ever needs it, destroy() is the lever —
    but then Music needs a rebuild path first. */
-.ks-cloud-sky { opacity: var(--df-sky); }
+.ks-cloud-sky { opacity: var(--df-sky, 1); }
 
 /* ------------------------------------------------------------ the hero */
 
@@ -319,3 +340,83 @@ body::before { opacity: var(--df-sky); }
 .track-arc-wrap {
   transition: opacity 640ms var(--ease-standard), transform 640ms var(--ease-standard);
 }
+
+/* ------------------------------------------------------- the Music title card
+
+   "Enter the Tracks" holds the screen alone for --df-title-ms once the clip
+   parks on Music's cue, then fades out and the cards come up in its place.
+   js/deep-field-bg.js runs the sequence; this file only describes the states.
+
+   IT OVERLAYS .ksd-bleed, so it is centred on exactly the box the carousel is
+   about to fill. .ksd-bleed is given a positioning context here rather than in
+   css/spine-doc.css because that file is shared with index.html and this card
+   is not on the production page yet.
+
+   pointer-events: none THROUGHOUT. The card sits over the carousel's whole
+   area, and the carousel is dragged and clicked — a transparent overlay that
+   still took the pointer would make the cards feel dead for as long as it
+   lingered, which is the kind of fault that gets blamed on the carousel.
+
+   NOT display OR visibility, for the same reason the cued reveals are not:
+   js/deep-field-bg.js derives the Music rest point from .track-arc-wrap's
+   measured box, and this element shares its containing block. Opacity only. */
+.ksd-bleed { position: relative; }
+
+.ksd-music-title {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  pointer-events: none;
+
+  font-family: var(--font-display);
+  font-weight: var(--display-wght, 800);
+  font-size: clamp(38px, 6vw, 92px);
+  line-height: 0.94;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  color: var(--color-white);
+  text-shadow: 0 2px 40px rgba(0, 0, 0, 0.6);
+
+  opacity: 0;
+  transform: translateY(14px);
+  transition: opacity 520ms var(--ease-standard), transform 520ms var(--ease-standard);
+}
+.ksd-music-title.is-on {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* No card at all where the module never runs: on a phone and under reduced
+   motion nothing sequences it, so it would sit permanently on top of the
+   carousel. The real <h2> is the heading there, exactly as it is today. */
+@media (prefers-reduced-motion: reduce), (max-width: 767px) {
+  .ksd-music-title { display: none; }
+}
+
+/* THE REAL HEADING STOPS BEING THE VISIBLE ONE, but stays exactly where it is.
+
+   Removing the "Rise Up isn't on streaming platforms yet" paragraph shortened
+   the Music head by 99px and moved the <h2> from top -96 — safely above the
+   viewport — to top 3, so it sat at the top of the screen while the title card
+   animated below it and the reader saw "Enter the Tracks" twice.
+
+   IT IS NOT DELETED, AND IT MUST NOT BE. js/spine-doc.js:94 reads
+   `if (!sec.head) return;` and places the Music rail node from .ksd-head's box.
+   With no .ksd-head the section gets no entry in the node table at all, so the
+   node does not move — it disappears. The heading is also the section's only
+   real heading; the title card is aria-hidden precisely so it is not announced
+   twice, which only works while this one still exists.
+
+   OPACITY, NOT display OR visibility OR height. The box has to keep its size or
+   the node slides and every landing below Music shifts again. This costs 72px
+   of empty space at the top of the section, which musicRest absorbs because it
+   frames the carousel rather than the section top.
+
+   SCOPED TO html.df-live, which js/deep-field-bg.js sets only after its
+   mobile and reduced-motion gate. Where the module never runs there is no
+   title card, and this heading is the only one there is. */
+html.df-live [data-ksd-section="music"] .ksd-music-head .ksd-head { opacity: 0; }

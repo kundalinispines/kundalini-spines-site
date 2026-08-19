@@ -904,6 +904,18 @@ html.page-home {
      that shared centre by 12px and quietly break the thing that note is
      protecting. Dropping it from both keeps them on a common centre of 219. */
   .ksd-bleed, .ksd-music-head { margin-right: 0; }
+
+  /* Stay Connected carries the same right bleed and loses its gutter the same
+     way: the section is text-align:center inside a box reaching the viewport
+     edge, so centred copy ends up hard against it. MEASURED at 430px, the body
+     copy came within 1px of the edge; at 320 the privacy line came within 6.
+     Dropping the bleed gives it the column padding back and centres it on the
+     column instead of 12px right of it.
+     THE FORM DOES NOT RESTRUCTURE. The note on .ksd-connect warns that the row
+     needs 445px before the button wraps onto its own line - at every width in
+     this block the box is already far below that (318px at 390), so the button
+     is on its own line before and after, and this only moves it 24px. */
+  [data-ksd-section="connect"] { margin-right: 0; }
 }
 
 /* ---- Headline reveal ----

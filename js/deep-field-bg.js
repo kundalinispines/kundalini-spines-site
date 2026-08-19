@@ -1535,6 +1535,8 @@
         tip: 'Scrim opacity where the clip is darkest. This is the floor under all body copy' },
       { k: '--df-scrim-gain', g: 'clip', label: 'flare', min: 0, max: 1, step: 0.01,
         tip: 'How hard a flash pulls the scrim up. The clip swings 5.6x in mean luminance, so this is what keeps text readable through a whiteout' },
+      { k: '--df-cloud', g: 'clip', label: 'cloud', min: 0, max: 1, step: 0.05,
+        tip: 'How much cloud cover survives where the clip owns the screen. 1 keeps the cover on the whole page. 0 is the old behaviour, where the clouds lived only at Music and Stay Connected. It is a floor, so the layer still rises to full wherever the sky does' },
 
       { k: '--df-tail', g: 'handoff', label: 'tail', min: 0.1, max: 1, step: 0.05,
         tip: 'How much of Archive the sky takes to come back up, as a fraction. 1 spends the whole section on the swell and reaches full exactly at Stay Connected. The Music arrival is not this - it is derived from where the card frames' },

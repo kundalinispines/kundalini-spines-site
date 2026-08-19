@@ -1,5 +1,5 @@
 /* deep-field-bg.css — the home page's background clip.
-   --df-build: 7;
+   --df-build: 8;
 
    WHAT THIS IS
    The 12.042s deep-field-2 clip painted full-bleed behind the whole home
@@ -135,6 +135,14 @@
      could do it for real, and this is the one-value fix if it ever does. */
   --df-card-gap: 0;
 
+  /* HOW MUCH CLOUD COVER SURVIVES WHERE THE CLIP OWNS THE SCREEN.
+     1 = the cover is always there, which is what ships. 0 = the pre-Aug 18
+     behaviour, where the clouds existed only at Music and Stay Connected.
+     Anything between is a floor: the layer never drops below it and still
+     rises to full wherever the sky does. See the .ks-cloud-sky rule below for
+     the measured cost to Merch, which is the worst case on the page. */
+  --df-cloud: 1;
+
   /* The fork strike. css/spine-bg.css declares it 0, so this turns it on for
      THE HOME PAGE ONLY — every other page still links spine-bg.css without
      this file and is unchanged. It read as "the lab only" until Aug 18 2026;
@@ -266,7 +274,45 @@ body::before { opacity: var(--df-sky, 1); }
    canvas is not visible (js/clouds.js:536), so an opacity-0 wrapper still
    costs a little. If the frame budget ever needs it, destroy() is the lever —
    but then Music needs a rebuild path first. */
-.ks-cloud-sky { opacity: var(--df-sky, 1); }
+
+/* THE CLOUDS DO NOT FOLLOW THE SKY DOWN ANY MORE (owner's call, Aug 18 2026).
+
+   Tying this layer to --df-sky meant the cloud cover existed on exactly two
+   stops - Music and Stay Connected, the two places the sky comes up - and was
+   composited away on About, Merch, Transmissions and Archive, which is every
+   section the clip owns. The owner reported it as the cover having gone
+   missing from those sections, and that is exactly what it was.
+
+   --df-cloud IS A FLOOR, NOT A REPLACEMENT. max() keeps the old behaviour
+   available and keeps the Music seam intact: at 0 this rule is byte-for-byte
+   the old one, and at any value the layer still rises to 1 wherever --df-sky
+   does, so the crossfade into Music is unchanged at its destination. It ships
+   at 1, which is the owner's ask - the cover is simply always there.
+
+   WHAT IT COSTS THE COPY, MEASURED rather than assumed, because the layer
+   sits at z-index -1 while the scrim lives INSIDE the clip's -2 stacking
+   context - so cloud light lands ON TOP of the scrim rather than under it, and
+   V2HANDOFF 40 records Merch as having no scrim headroom left. Captured with
+   the text hidden so the crop is the true background, at 1440x900, each
+   section on its own cue frame:
+
+       section         background mean        WCAG ratio
+       About           84.1 -> 84.3 /255      3.57 -> 3.55 : 1
+       Merch           16.3 -> 17.5 /255      8.81 -> 8.74 : 1
+       Transmissions   37.4 -> 37.9 /255      7.16 -> 7.11 : 1
+       Archive         20.1 -> 21.3 /255      8.60 -> 8.51 : 1
+
+   The worst case is 1.3 of 255 and nine hundredths of a ratio point. The scrim
+   having no headroom turns out not to matter here: the cover is broad and low
+   in amplitude, not a flash. NOTE the About row is under AA at 3.55 and was
+   under it at 3.57 BEFORE this change - that section parks on the clip's
+   flattest horizon, which is also one of its brightest bands behind the copy.
+   Pre-existing and untouched by the clouds; recorded here because this is the
+   measurement that found it.
+
+   FAILS TOWARDS THE SKY, like every other --df-sky read in this file: with
+   neither property resolving, max() lands on 1 and the cover stays up. */
+.ks-cloud-sky { opacity: max(var(--df-cloud, 0), var(--df-sky, 1)); }
 
 /* ------------------------------------------------------------ the hero */
 

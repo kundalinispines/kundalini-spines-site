@@ -1,22 +1,30 @@
-/* deep-field-bg.css — the scroll-driven home background.
-   --df-build: 5;
+/* deep-field-bg.css — the home page's background clip.
+   --df-build: 7;
 
    WHAT THIS IS
-   The 11s deep-field clip painted full-bleed behind the whole home document,
-   scrubbed by scroll. js/deep-field-bg.js owns the mapping; this file owns the
-   layers, the scrim, and the switch that holds the star field down.
+   The 12.042s deep-field-2 clip painted full-bleed behind the whole home
+   document. js/deep-field-bg.js owns the sequence; this file owns the layers,
+   the scrim, the sky crossfade and the switch that holds the star field down.
 
-   NOT LINKED FROM index.html. Slice one lives in home-deepfield-lab.html, a
-   full clone of the real page, so the production home page is byte-unchanged
-   while the look is judged.
+   LINKED FROM index.html since Aug 18 2026, and from home-deepfield-lab.html,
+   which is where it was built and where it is still iterated. index.html is
+   the live copy — change it there.
 
-   THE MAPPING IS SECTION-ANCHORED, NOT LINEAR (owner's call, Aug 17 2026).
-   Each page section's scroll span drives its own frame span, taken from
-   assets/lab/deep-field-marks.json. A straight scroll-to-frame map was checked
-   against the real page and rejected: .ksd-section is min-height 92vh, so the
-   page's sections are roughly EQUAL, while the clip's movements run from 32.5%
-   (About) down to 7.9% (Merch). Linear would fire every flash dissolve in the
-   gaps between sections instead of at their turns. */
+   THE CLIP IS NOT SCRUBBED, AND EVERY DESCRIPTION OF A SCROLL-TO-FRAME MAP IN
+   THIS PROJECT IS HISTORICAL (rewritten Aug 18 2026). Landing on a section
+   plays the clip forward at 1.0x to that section's CUE FRAME and stops it
+   there. Sections carry a cue, not a frame span; scroll distance no longer
+   decides which frame is showing, so there is nothing here to keep linear or
+   section-anchored. The marks are assets/lab/deep-field-2-marks.json, and the
+   boundaries in that file are scroll landings that say nothing about frames.
+
+   WHAT THAT REPLACED, so the reasoning is not lost: frame spans used to be
+   anchored per section rather than run linearly across the document, because
+   .ksd-section is min-height 92vh — the page's sections are roughly EQUAL
+   while the clip's movements ran from 32.5% (About) down to 7.9% (Merch), so a
+   linear map fired every flash dissolve in the gaps between sections instead
+   of at their turns. Play-and-park makes the question moot: a movement now
+   plays where the reader is standing. */
 
 :root {
   /* 0 = sky fully suppressed and the clip is the only background.
@@ -127,11 +135,15 @@
      could do it for real, and this is the one-value fix if it ever does. */
   --df-card-gap: 0;
 
-  /* The fork strike, on in the lab only. css/spine-bg.css declares it 0 so no
-     other page changes; this is where the owner asked to see it. 0.12 is about
-     one strike in eight — often enough to be a thing that happens, rare enough
-     that the five-pattern rotation is still what you mostly see. Tunable live
-     as `s fork` in the Spine tab. */
+  /* The fork strike. css/spine-bg.css declares it 0, so this turns it on for
+     THE HOME PAGE ONLY — every other page still links spine-bg.css without
+     this file and is unchanged. It read as "the lab only" until Aug 18 2026;
+     landing the background on index.html is what put it on the live home page,
+     and it ships on deliberately because the lab the owner judged had it on.
+     Set it to 0 here to take it back off without touching any other page.
+     0.12 is about one strike in eight — often enough to be a thing that
+     happens, rare enough that the five-pattern rotation is still what you
+     mostly see. Tunable live as `s fork` in the Spine tab. */
   --snare-all: 0.12;
 }
 
@@ -348,9 +360,11 @@ body::before { opacity: var(--df-sky, 1); }
    js/deep-field-bg.js runs the sequence; this file only describes the states.
 
    IT OVERLAYS .ksd-bleed, so it is centred on exactly the box the carousel is
-   about to fill. .ksd-bleed is given a positioning context here rather than in
-   css/spine-doc.css because that file is shared with index.html and this card
-   is not on the production page yet.
+   about to fill. .ksd-bleed is given a positioning context HERE rather than in
+   css/spine-doc.css, and that is still right now the card ships on index.html:
+   spine-doc.css is shared with about.html, merch.html and the rest, and none
+   of them should pick up a positioning context they have no card for. This
+   file is only ever linked by a page that has one.
 
    pointer-events: none THROUGHOUT. The card sits over the carousel's whole
    area, and the carousel is dragged and clicked — a transparent overlay that
@@ -364,7 +378,27 @@ body::before { opacity: var(--df-sky, 1); }
 
 .ksd-music-title {
   position: absolute;
-  inset: 0;
+  left: 0;
+  right: 0;
+
+  /* ON THE RAIL NODE'S LINE, not in the middle of the bleed. --df-title-y is
+     written by js/deep-field-bg.js from the very number the Music node is
+     placed from, as an offset inside .ksd-bleed.
+
+     HEIGHT ZERO IS THE MECHANISM. A flex box of no height with align-items:
+     center puts the text's optical centre exactly on `top` and lets it
+     overflow equally either way, so the line lands ON the number rather than
+     inside a box that happens to be centred near it. .ksd-bleed clips with
+     overflow: hidden, but the node's line is ~263px into a 791px box, so
+     there is room on both sides.
+
+     THE 50% FALLBACK IS THE OLD BEHAVIOUR EXACTLY. Before the carousel has
+     been measured the variable is unset, and `top: 50%` on a zero-height box
+     centres the type in the bleed - which is what `inset: 0` did. So the card
+     is never mispositioned while it waits for a number. */
+  top: var(--df-title-y, 50%);
+  height: 0;
+
   z-index: 3;
   display: flex;
   align-items: center;
@@ -418,5 +452,21 @@ body::before { opacity: var(--df-sky, 1); }
 
    SCOPED TO html.df-live, which js/deep-field-bg.js sets only after its
    mobile and reduced-motion gate. Where the module never runs there is no
-   title card, and this heading is the only one there is. */
-html.df-live [data-ksd-section="music"] .ksd-music-head .ksd-head { opacity: 0; }
+   title card, and this heading is the only one there is.
+
+   AND SCOPED TO .df-titled, WHICH IS THE HALF THAT WAS MISSING — the class
+   js/deep-field-bg.js puts on the section at the moment the card actually
+   takes the screen. html.df-live alone means "the module is running", which is
+   NOT the same as "the card ran": a clip that errors or never decodes leaves
+   df-live set forever, the reveal backstops hand the content back, and the
+   card is never released because no cue ever fires. Hiding on df-live alone
+   therefore shipped a Music section with NO VISIBLE TITLE AT ALL on any
+   failure of the clip — measured Aug 18 2026 by aborting the clip request:
+   h2 opacity 0, card opacity 0, 28 track cards up and nothing naming them.
+   Keyed to .df-titled the fallback is automatic: no card, no hiding.
+
+   THERE IS NO FLASH IN THE GOOD PATH. The section is held by .df-cued until
+   260ms after the card's hold ends, and .df-titled goes on in the same
+   statement that turns the card on — so the heading passes straight from
+   "hidden by the reveal" to "hidden by the card" with nothing in between. */
+html.df-live [data-ksd-section="music"].df-titled .ksd-music-head .ksd-head { opacity: 0; }

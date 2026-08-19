@@ -1,6 +1,7 @@
 /* deep-field-bg.js — the deep-field clip behind the home page.
 
-   NOT LOADED BY index.html. Only home-deepfield-lab.html links this.
+   LOADED BY index.html since Aug 18 2026, and by home-deepfield-lab.html,
+   where it was built. index.html is the live copy — change it there.
 
    ---------------------------------------------------------------------------
    PLAY-AND-PARK (owner's call, Aug 18 2026). THE CLIP IS NOT SCRUBBED.
@@ -505,6 +506,32 @@
       if (String(mid) !== sec.getAttribute('data-ksd-node-y')) {
         sec.setAttribute('data-ksd-node-y', mid);
         window.dispatchEvent(new Event('resize'));
+      }
+
+      /* THE TITLE CARD SITS ON THE NODE'S LINE, and it is given the SAME
+         number the node is placed from rather than its own measurement
+         (owner's call, Aug 18 2026). The .ksd-music-head comment in
+         css/spine-doc.css makes the same argument for the headline: things
+         that are meant to share a centre should share it BY CONSTRUCTION, not
+         by two calculations that agree today.
+
+         MEASURED BEFORE THIS, at 1440x900: the node's declared position was
+         doc 2177, which at the Music rest (scrollY 1815) renders at viewport
+         362 - and the card, centred on .ksd-bleed by `inset: 0`, sat at 503.
+         141px low, and the bleed's 140px of padding-top is most of that: the
+         card was centring on a box whose top is far above the carousel it is
+         standing in for.
+
+         mid is in document px, so the offset within .ksd-bleed is mid minus
+         the bleed's own document top. window.scrollY cancels between them,
+         which is why this is safe to compute at any scroll position. The bleed
+         is not the element the entrance transforms - that is .track-arc-wrap,
+         inside it - so its top is stable while the cards are still rising, and
+         `pending` is already subtracted out of mid. */
+      var bleedEl = sec.querySelector('.ksd-bleed');
+      if (bleedEl) {
+        bleedEl.style.setProperty('--df-title-y',
+          Math.round(mid - (bleedEl.getBoundingClientRect().top + window.scrollY)) + 'px');
       }
     }
 
@@ -1159,6 +1186,13 @@
     if (getComputedStyle(card).display === 'none') return false;   /* phone / reduced */
     card.dataset.spent = '1';
 
+    /* .df-titled IS WHAT HIDES THE REAL HEADING, and it goes on here rather
+       than in the CSS's html.df-live scope so that the heading is only ever
+       hidden by a card that genuinely took over. A clip that errors or never
+       decodes leaves df-live set and fires no cue, so this line never runs and
+       css/deep-field-bg.css leaves the h2 alone — which is the only reason a
+       dead clip cannot leave Music with no title. See the note on that rule. */
+    sec.classList.add('df-titled');
     card.classList.add('is-on');
     setTimeout(function () {
       card.classList.remove('is-on');

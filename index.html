@@ -17,6 +17,28 @@
      THE TRACK CAROUSEL BLOCK IS PROTECTED — its markup moved here verbatim
      (minus the old intro div, recomposed onto the axis) and js/track-experience.js
      is untouched. -->
+<!-- ==========================================================================
+     THE DEEP-FIELD JOURNEY LANDED HERE Aug 18 2026, out of
+     home-deepfield-lab.html, which had carried it since Aug 17.
+
+     THE CLIP BEHIND THIS DOCUMENT IS NOT SCRUBBED. Landing on a section plays
+     it forward at 1.0x to that section's cue frame and stops it there, and the
+     section's held-back content is released as the clip parks. It plays cue to
+     cue and nothing ever changes playbackRate. js/deep-field-bg.js owns the
+     sequence, css/deep-field-bg.css owns the layers and the scrim, and
+     assets/lab/deep-field-2-marks.json is the source of truth for every frame.
+
+     FIVE THINGS ON THIS PAGE BELONG TO IT: the stylesheet linked last, the
+     .df-bg layer as the first body child, the .ksd-reveal classes on
+     everything held back until its cue, the .ksd-music-title card, and
+     preload="none" on the three clips below the fold. Each is commented where
+     it sits.
+
+     ALL OF IT IS GATED OFF below 768px and under prefers-reduced-motion, where
+     this page is ordinary free scroll with observer-driven reveals — which is
+     why the reveals are held DOWN by a class rather than the observer being
+     suppressed. Take the module away and the page still reads.
+     ====================================================================== -->
 <html lang="en" class="page-home">
 <head>
 <meta charset="UTF-8">
@@ -111,8 +133,32 @@
      .astral-scrim wrapper is all it takes to bring it back. The header of that
      file records why every value in it is what it is. -->
 <link rel="stylesheet" href="css/spine-bg.css">
+<!-- LAST, so it can hold the sky down without !important: its :root block
+     has to out-order star-bg.css, not out-specify it. -->
+<link rel="stylesheet" href="css/deep-field-bg.css">
 </head>
 <body>
+<!-- THE CLIP LAYER. FIRST BODY CHILD, and a plain div rather than a wrapper
+     around the page. css/star-bg.css:510 warns that giving <body> or <main> a
+     z-index, transform, filter, opacity, isolation or contain traps every
+     z-index:-1 sky layer in a new stacking context and collapses the screen
+     blends to grey rectangles. A sibling at z-index:-2 is safe by the same
+     argument the .star-bolt divs and .ks-cloud-sky already rely on.
+     The <source> tags are attached by js/deep-field-bg.js, not written here,
+     so that phones and reduced-motion never fetch the 2.8MB clip. -->
+<div class="df-bg" aria-hidden="true">
+  <!-- THE POSTER MUST BE THE FRAME THE CLIP STARTS ON, and it is the only
+       thing here that names a clip. It was still deep-field's poster after the
+       swap to deep-field-2 — a bright purple nebula — so it was painted for as
+       long as the new clip took to decode and read as the old background
+       flashing up before the real one. Reported by the owner Aug 18 2026.
+       deep-field-2-poster.jpg IS f0, which is where Home holds the clip, so
+       the poster and the first painted frame are now the same picture and the
+       handover is invisible rather than merely quicker. -->
+  <video class="df-bg__video" muted playsinline preload="auto"
+         poster="assets/video/deep-field-2-poster.jpg"></video>
+  <div class="df-bg__scrim"></div>
+</div>
 <a class="skip-link" href="#main">Skip to content</a>
 
 <header class="nav">
@@ -142,14 +188,24 @@
 
     <div class="ksd-doc__col">
 
-      <!-- NO data-ksd-section here, deliberately (Aug 15 2026, owner's call).
-           The hero used to carry data-ksd-section="home", which gave it a node
-           on the rail and made the rail run the full height of the document —
-           straight over the footage. Both went: the rail now BEGINS at this
-           video's bottom edge (js/spine-doc.js measures .ksd-hero__media and
-           sets the rail's top from it) and there is no Home node at all. Adding
-           the attribute back would restore both at once. The header's "Home"
-           link is a different thing entirely — it points at "/". -->
+      <!-- THE HERO IS THE FIRST DESTINATION (owner's call, Aug 17 2026). The
+           .ksd-hero CSS, the scrim, the sound toggle and js/hero-video.js all
+           work untouched, and js/spine-doc.js finds .ksd-hero__media for
+           railTop the way it always did.
+           Still NO data-ksd-section, for the original reason: it would give the
+           rail a Home node and run the cord the full height of the document.
+           WHAT THIS COSTS THE CLIP: this hero is exactly one viewport tall and
+           covers the background completely, so A FORWARD LEG WAITS FOR IT TO
+           CLEAR before advancing a single frame. Measured Aug 18 2026 without
+           that wait: the hero did not clear until t=651ms with the clip already
+           on f15, so 14 of the Home->About leg's 21 frames played where nobody
+           could see them and the first seven showed against less than half the
+           background. The wait costs ~675ms before About's reveal and is worth
+           it. js/deep-field-bg.js owns it, with a 1400ms backstop so an
+           interrupted glide cannot wait forever.
+           NOTHING HERE REMAPS FRAMES. Frame spans stopped being tied to scroll
+           distance on Aug 18 2026; sections carry a cue frame and the clip
+           plays to it. -->
       <section class="ksd-section ksd-hero">
         <div class="ksd-hero__media">
           <video id="hero-video" poster="assets/hero/messengers-hero-video-poster.jpg"
@@ -163,7 +219,7 @@
           <span aria-hidden="true">&#128264;</span> Sound Off
         </button>
         <h1 class="ksd-head ksd-reveal">Knowledge Hidden<br>in Plain Sight</h1>
-        <p class="ksd-body">Two Messengers. One Signal. An underground transmission built from sacred geometry, coded lyricism, and the architecture of the spine itself.</p>
+        <p class="ksd-body ksd-reveal">Two Messengers. One Signal. An underground transmission built from sacred geometry, coded lyricism, and the architecture of the spine itself.</p>
         <div style="display:flex;flex-wrap:wrap;gap:var(--space-4);margin-top:var(--space-2);">
           <a class="btn btn--primary" href="#about">Enter the World</a>
           <a class="btn btn--ghost" href="#tracks">Listen Now</a>
@@ -180,9 +236,9 @@
         <div class="ksd-filmrow">
           <div class="ksd-filmrow__copy">
             <h2 class="ksd-head ksd-reveal">Two Messengers. One Signal.</h2>
-            <p class="ksd-body">Kundalini Spines is a two-member creative and musical project moving between underground hip-hop, mysticism, symbolism, street experience, ancient knowledge, and speculative thought.</p>
-            <p class="ksd-body">The Messengers don&rsquo;t claim mastery over the Signal &mdash; they receive it, interpret it, and carry it forward. You&rsquo;re invited to decode it for yourself.</p>
-            <p style="margin-top:var(--space-2);"><a class="btn btn--ghost" href="about.html">Read the Feature</a></p>
+            <p class="ksd-body ksd-reveal">Kundalini Spines is a two-member creative and musical project moving between underground hip-hop, mysticism, symbolism, street experience, ancient knowledge, and speculative thought.</p>
+            <p class="ksd-body ksd-reveal">The Messengers don&rsquo;t claim mastery over the Signal &mdash; they receive it, interpret it, and carry it forward. You&rsquo;re invited to decode it for yourself.</p>
+            <p class="ksd-reveal" style="margin-top:var(--space-2);"><a class="btn btn--ghost" href="about.html">Read the Feature</a></p>
           </div>
           <!-- SCRUBBED BY THE SCROLL, like the merch render — no autoplay and
                NO loop (owner's call, Aug 15 2026). js/spine-doc.js owns the
@@ -194,13 +250,25 @@
                render is — sparse keyframes make every seek decode a chain.
                The source has no audio track at all, so there is nothing to
                mute beyond the attribute and no sound toggle to offer.
-               aria-hidden because it is atmosphere, not content. -->
+               aria-hidden because it is atmosphere, not content.
+               THE ATTRIBUTE SHIPS AS preload="none", and the reasoning above
+               is still correct — it is a deferral, not a reversal. js/deep-field-bg.js upgrades it back to "auto" the
+               moment the hero can play through, or on the first real scroll,
+               whichever lands first, so the clip is still fully buffered long
+               before anyone scrolls to it and the blank stage never happens.
+               MEASURED: the three clips below the fold total 9.3MB, go out at
+               430ms, and hold the connection until ~2900ms — so the video on
+               the FIRST screen queued behind them. deep-field.webm did not
+               start until 2007ms and then needed only 1195ms of that wait.
+               (Measured with the previous background clip; the swap to
+               deep-field-2 does not change the deferral it justifies.) -->
+
           <!-- data-fr-* are inert on their own: css/filmrow-atmos.css only acts
                once .has-fr-feather / .has-fr-glow are present, which
                js/filmrow-atmos.js adds. mask 1 and mask 2 are different noise
                seeds so the two rows do not wear an identical torn edge. -->
           <figure class="ksd-filmrow__media" data-fr-mask="1" data-fr-glow="black-tide">
-            <video muted playsinline preload="auto" aria-hidden="true"
+            <video muted playsinline preload="none" aria-hidden="true"
                    poster="assets/video/black-tide-poster.jpg">
               <source src="assets/video/black-tide.webm" type="video/webm">
               <source src="assets/video/black-tide.mp4" type="video/mp4">
@@ -222,6 +290,29 @@
         <!-- Bleeds RIGHT only. Pulling it left as well ran the cards over the
              axis, and the spine is the one thing nothing is allowed to cover. -->
         <div class="ksd-bleed">
+          <!-- THE TITLE CARD (owner's call, Aug 18 2026).
+
+               MEASURED at the Music rest point, 1440x900: the real <h2> sits at
+               top -96 — entirely ABOVE the viewport — because musicRest is
+               derived from the carousel geometry and frames the cards, not the
+               heading. So "Enter the Tracks" was never actually seen. The owner
+               asked for it to hold the screen on its own for a beat and then be
+               replaced by the cards, so both get their moment and the section
+               still reads as one screen.
+
+               THIS IS A SECOND ELEMENT, NOT THE <h2> MOVED, and that is the
+               whole point. js/spine-doc.js places the Music rail node from
+               .ksd-head's box, so taking the real heading out of flow would
+               slide the node down the spine — an unrelated side effect the
+               reader would just see as the rail drifting. The <h2> therefore
+               stays exactly where it is, in flow, untouched, and keeps being
+               the accessible heading. This copy is aria-hidden so a screen
+               reader is not told the title twice.
+
+               It overlays .ksd-bleed rather than the section, so it is centred
+               on the same box the cards will occupy — the replacement lands in
+               place rather than near it. -->
+          <div class="ksd-music-title" aria-hidden="true">Enter the Tracks</div>
           <div class="track-arc-wrap">
             <div class="track-arc-viewport">
               <ul class="track-arc" role="listbox" aria-label="Available tracks"></ul>
@@ -252,17 +343,26 @@
       </section>
 
       <section class="ksd-section" id="merch" data-ksd-section="merch" data-ksd-label="Merch">
-        <h2 class="ksd-head ksd-reveal">Objects That Carry It</h2>
+        <!-- THE HEADLINE LIVES INSIDE .ksd-merch__copy, not above .ksd-merch.
+             It was a sibling of the row until Aug 17 2026, which is why the
+             render could only ever stand beside the PARAGRAPHS — a block that
+             starts below the headline cannot reach up past it. Same move the
+             film rows already made (see the .ksd-filmrow note in
+             css/spine-doc.css): headline, prose and footage as ONE block.
+             The h2 keeps `ksd-head ksd-reveal` untouched — the rail measures
+             the node off .ksd-head, and the reveal is what the whole page
+             uses. Measured either side of the move at 1440x900: the h2's
+             document top is 2984.23px before AND after, so the Merch node did
+             not shift. That only holds because the section's own padding is
+             what puts the h2 there — do not add align-items to .ksd-section
+             to centre anything, it shrink-wraps the headline and the node
+             slides with it.
+             The FIGURE IS FIRST in source order so it lands LEFT of the copy
+             (owner's call, Aug 17 2026 — the render used to sit right). Below
+             900px css/spine-doc.css sends it back under the copy with `order`,
+             because a 620px spine ahead of the headline is a wall on a
+             phone. -->
         <div class="ksd-merch">
-          <div class="ksd-merch__copy">
-            <p class="ksd-body">The Signal doesn&rsquo;t only travel as sound. Some of it ends up in things you can hold &mdash; apparel and headwear, the record as a physical object, printed work, and pieces closer to talismans than products.</p>
-            <p class="ksd-body">The Messengers wear the same marks you&rsquo;ll find here. Nothing in the range is made to advertise. It&rsquo;s made to carry &mdash; the same way a transmission is received, preserved, and passed on without weakening.</p>
-            <p class="ksd-body">None of it is listed yet and there is no date. Objects go out as each one is made, in the quantity it can be made in, and they are filed like everything else.</p>
-            <div style="display:flex;flex-wrap:wrap;gap:var(--space-4);margin-top:var(--space-2);">
-              <a class="btn btn--ghost" href="merch.html">View the Objects</a>
-              <a class="btn btn--ghost" href="#newsletter">Be Told First</a>
-            </div>
-          </div>
           <!-- The spine render (owner's TRUE-ALPHA re-export SpineSpin.mov,
                Aug 15 2026 — it replaced the Aug 14 footage, which shipped a
                DERIVED key because its alpha had been dropped on export).
@@ -290,14 +390,39 @@
                unsupported and the CSS screen-blends the black away instead.
                KNOWN GAP, unchanged: a Safari that claims VP9 but drops the
                alpha would show the backdrop — Safari is untested project-wide
-               (see the handoffs). -->
+               (see the handoffs).
+               THE CROP MARGIN IS THE ONE NUMBER THAT MATTERS TO THE NEW
+               LAYOUT, where the render's top edge is aligned to the cap of
+               the "O" in the headline. Measured Aug 17 2026 at 1440x900, by
+               drawing this <video> into a canvas at its native 264x1296 and
+               scanning for the first row carrying alpha: the spine's painted
+               top runs from source row 20 (t=0, its highest reach of the whole
+               241) to row 39 (t≈4.9) — 10.8px to 21.1px below the element's
+               top edge at the 702px display height. So the letterform is met
+               by the ELEMENT, and the spine paints that far under it. It is
+               not compensated because the top MOVES with the scrub; a fixed
+               nudge is only right at one scroll position. css/spine-doc.css
+               carries the number to change it with if the owner wants the
+               highest frame on the cap instead. -->
           <!-- NO autoplay and NO loop — the render is scrubbed by scroll
                (js/spine-doc.js owns the mapping). preload="auto", not
                metadata: the scrub seeks from its first wheel tick, and with
                metadata-only there is no frame to paint until a seek's range
-               fetch lands, which reads as a blank stage. -->
-          <figure class="ksd-merch__video">
-            <video muted playsinline preload="auto" aria-hidden="true">
+               fetch lands, which reads as a blank stage.
+               THE ATTRIBUTE SHIPS AS preload="none", and the reasoning above
+               is still correct — it is a deferral, not a reversal. js/deep-field-bg.js upgrades it back to "auto" the
+               moment the hero can play through, or on the first real scroll,
+               whichever lands first, so the clip is still fully buffered long
+               before anyone scrolls to it and the blank stage never happens.
+               MEASURED: the three clips below the fold total 9.3MB, go out at
+               430ms, and hold the connection until ~2900ms — so the video on
+               the FIRST screen queued behind them. deep-field.webm did not
+               start until 2007ms and then needed only 1195ms of that wait.
+               (Measured with the previous background clip; the swap to
+               deep-field-2 does not change the deferral it justifies.) -->
+
+          <figure class="ksd-merch__video ksd-reveal">
+            <video muted playsinline preload="none" aria-hidden="true">
               <source src="assets/video/spine-render.webm" type="video/webm">
               <source src="assets/video/spine-render.mp4" type="video/mp4">
             </video>
@@ -309,6 +434,19 @@
                  .ksd-merch__video-note rule was deleted with it. -->
 
           </figure>
+          <div class="ksd-merch__copy">
+            <h2 class="ksd-head ksd-reveal">Objects That Carry It</h2>
+            <p class="ksd-body ksd-reveal">The Signal doesn&rsquo;t only travel as sound. Some of it ends up in things you can hold &mdash; apparel and headwear, the record as a physical object, printed work, and pieces closer to talismans than products.</p>
+            <p class="ksd-body ksd-reveal">The Messengers wear the same marks you&rsquo;ll find here. Nothing in the range is made to advertise. It&rsquo;s made to carry &mdash; the same way a transmission is received, preserved, and passed on without weakening.</p>
+            <p class="ksd-body ksd-reveal">None of it is listed yet and there is no date. Objects go out as each one is made, in the quantity it can be made in, and they are filed like everything else.</p>
+            <!-- justify-content:center, because the copy column is now
+                 text-align:center and a FLEX row ignores that — the two
+                 buttons would have stayed hard left under centred prose. -->
+            <div class="ksd-reveal" style="display:flex;flex-wrap:wrap;justify-content:center;gap:var(--space-4);margin-top:var(--space-2);">
+              <a class="btn btn--ghost" href="merch.html">View the Objects</a>
+              <a class="btn btn--ghost" href="#newsletter">Be Told First</a>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -321,11 +459,11 @@
         <div class="ksd-filmrow">
           <div class="ksd-filmrow__copy">
             <h2 class="ksd-head ksd-reveal">Tune to a Frequency</h2>
-            <p class="ksd-body">Every signal the Messengers put out &mdash; posts, clips, releases and filed pieces &mdash; arrives here, timestamped and numbered. Select a channel to isolate it, or take the whole band.</p>
-            <p style="margin-top:var(--space-2);"><a class="btn btn--ghost" href="transmissions.html">Open the Terminal</a></p>
+            <p class="ksd-body ksd-reveal">Every signal the Messengers put out &mdash; posts, clips, releases and filed pieces &mdash; arrives here, timestamped and numbered. Select a channel to isolate it, or take the whole band.</p>
+            <p class="ksd-reveal" style="margin-top:var(--space-2);"><a class="btn btn--ghost" href="transmissions.html">Open the Terminal</a></p>
           </div>
-          <figure class="ksd-filmrow__media" data-fr-mask="2" data-fr-glow="spine-frequency">
-            <video muted playsinline preload="auto" aria-hidden="true"
+          <figure class="ksd-filmrow__media ksd-reveal" data-fr-mask="2" data-fr-glow="spine-frequency">
+            <video muted playsinline preload="none" aria-hidden="true"
                    poster="assets/video/spine-frequency-poster.jpg">
               <source src="assets/video/spine-frequency.webm" type="video/webm">
               <source src="assets/video/spine-frequency.mp4" type="video/mp4">
@@ -336,8 +474,8 @@
 
       <section class="ksd-section" data-ksd-section="archive" data-ksd-label="Archive">
         <h2 class="ksd-head ksd-reveal">The Filed Material</h2>
-        <p class="ksd-body">Visual releases, documents and fragments, kept in the order they were received rather than the order they were made.</p>
-        <p style="margin-top:var(--space-2);"><a class="btn btn--ghost" href="archive.html">Enter the Archive</a></p>
+        <p class="ksd-body ksd-reveal">Visual releases, documents and fragments, kept in the order they were received rather than the order they were made.</p>
+        <p class="ksd-reveal" style="margin-top:var(--space-2);"><a class="btn btn--ghost" href="archive.html">Enter the Archive</a></p>
       </section>
 
       <!-- Stay Connected. The canonical destination stays connect.html; this
@@ -345,8 +483,8 @@
            old /#newsletter deep links. -->
       <section class="ksd-section" id="newsletter" data-ksd-section="connect" data-ksd-label="Stay Connected">
         <h2 class="ksd-head ksd-reveal">Stay Connected to the Signal</h2>
-        <p class="ksd-body">Receive new music, transmissions, visual releases, and limited announcements directly from Kundalini Spines. No constant noise. Only meaningful signals.</p>
-        <div class="ksd-connect">
+        <p class="ksd-body ksd-reveal">Receive new music, transmissions, visual releases, and limited announcements directly from Kundalini Spines. No constant noise. Only meaningful signals.</p>
+        <div class="ksd-connect ksd-reveal">
           <!-- Buttondown. MEASURED 2026-07-29: the endpoint sends no CORS headers to
                this origin, so this posts natively and the visitor lands on Buttondown's
                confirmation page. The action and method are load-bearing — the form works
@@ -397,6 +535,8 @@
 <script src="js/hero-video.js"></script>
 <script src="js/track-experience.js"></script>
 <script src="js/spine-doc.js"></script>
+<!-- After spine-doc.js, which owns the section geometry this reads. -->
+<script src="js/deep-field-bg.js"></script>
 <script src="js/newsletter.js"></script>
 <script src="js/scroll-weight.js"></script>
 <script src="js/spine-bg.js"></script>

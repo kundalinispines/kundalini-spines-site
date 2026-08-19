@@ -19,39 +19,47 @@
   --color-black-deep:  #080B10;  /* second ground: sections that sit off the primary */
   --color-white:       #E4E8EB;  /* Spine Glow — the light the navigator emits, and high-contrast accents */
   --color-bone:        #D6D5D0;  /* Cold Bone — long-form text; the warm bone (#D8D0BE) retired */
-  /* THE NAME SAYS CRIMSON AND THE VALUE IS VIOLET. Owner's call, Aug 17 2026:
-     Signal Red was swapped for a violet sampled from the deep-field clip, whose
-     opening is the strongest thing in it and where the accent now comes from.
-     The TOKEN NAMES were deliberately left alone — renaming them touches 15
-     files and every one of those edits is a chance to miss a usage, where the
-     value swap is two lines and reaches everything through the cascade. Same
-     tolerance the codebase already extends to --spine-lit and --spine-dim,
-     which describe the opposite of what they do and say so loudly.
+  /* SIGNAL RED, AND THE NAME MATCHES THE VALUE AGAIN. These two hex values are
+     the site's whole accent: tokens.css is loaded everywhere, so they reach
+     Transmissions, About and the shutter pages, not just the home lab. The
+     budget the header states — roughly two uses a page — is what keeps this an
+     interruption rather than a colour scheme.
 
-     HOW THESE VALUES WERE PICKED. Scanned frames 0-48 of the clip at 192x108,
-     the purple peaks at f20 and is gone by f40 where it turns blue. The
-     dominant hue cluster is h253-272. But the clip's purple is DESATURATED —
-     s21 against Signal Red's s54 — so a literal pixel sample would be mud and
-     could not do this token's job, which the old comment called a rare
-     interruption. Hue is sampled; saturation and lightness are carried over
-     from the red, then lifted to equal contrast on the page floor:
+         #7E2630  h353 s54 l32   2.15:1 on #03040F   <- --color-crimson
+         #A1333E  h354 s52 l42   2.97:1              <- --color-crimson-lit
 
-         old  #7E2630  h353 s54 l32   2.15:1 on #03040F
-         new  #5F2A8E  h272 s54 l36   2.15:1   <- parity, not coincidence
-         old  #A1333E  h354 s52 l42   2.97:1
-         new  #7A39B3  h272 s52 l46   2.98:1
+     THE VIOLET EXPERIMENT, AUG 17-18 2026, REVERTED. For one day these held a
+     violet pair — h272 s54 l36 and h272 s52 l46; the exact hexes are in commit
+     e0fa910 and are deliberately not repeated here, so that grepping this tree
+     for a violet value finds a live one or nothing. Its hue was sampled from
+     the deep-field clip (h253-272, peaking at f20) with the red's saturation
+     carried over, because the clip's own purple is s21 and a literal pixel
+     sample was mud.
+     Lightness had to RISE to hold contrast — blue-violet carries less luminance
+     than red at the same HSL lightness, so l32 would have given 1.79:1 — and
+     the pair was tuned to l36/l46 to land on 2.15:1 and 2.98:1, parity with the
+     red figures above rather than coincidence.
 
-     Lightness had to RISE to hold contrast: blue-violet carries less luminance
-     than red at the same HSL lightness, so matching l32 would have given 1.79:1
-     and a quieter accent than the one being replaced.
+     WHY IT CAME BACK. The deep-field background that shipped after it carries a
+     RED GLOW in one of its scenes, so the accent belongs in that family: an
+     accent that answers something already on screen reads as deliberate, and
+     one that answers nothing reads as a second palette. The measurement that
+     argued against the violet from the start says the same thing from the other
+     side — the site's cold band runs 204-230 (V2HANDOFF 36), Signal Red sits
+     ~123 degrees outside it and the violet only 42, so the violet was a
+     structurally QUIETER accent, closer to being part of the sky than a signal
+     against it. Do not re-run this swap on hue alone; the background is the
+     thing that decides it now.
 
-     WORTH KNOWING: the site's cold band runs 204-230 (measured, V2HANDOFF 36).
-     Signal Red sat ~123 degrees outside it, which is why it read as an
-     interruption. This sits 42 degrees outside. It is a structurally QUIETER
-     accent than the red was — closer to being part of the sky than a signal
-     against it. That is a consequence of the choice, not a defect in it. */
-  --color-crimson:     #5F2A8E;  /* Signal Violet — rare interruption/accent only */
-  --color-crimson-lit: #7A39B3;  /* hover/active/live states */
+     TOKEN NAMES: --color-crimson holds a crimson today, but the names outlive
+     the values by design. Renaming them touches 15 files and every one of those
+     edits is a chance to miss a usage, where a value swap is two lines and
+     reaches everything through the cascade — which is exactly why the violet
+     day cost two lines here and not fifteen files. Same tolerance the codebase
+     already extends to --spine-lit and --spine-dim, which describe the opposite
+     of what they do and say so loudly. */
+  --color-crimson:     #7E2630;  /* Signal Red — rare interruption/accent only */
+  --color-crimson-lit: #A1333E;  /* hover/active/live states */
   --color-moonlight:   #9DB2C0;  /* cold blue — secondary text and imagery alike */
 
   /* ---- Color: derived grayscale (cold slate, not neutral gray) ---- */

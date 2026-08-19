@@ -37,7 +37,7 @@
   --ring-peak-a:        0.9;     /* brightness at the start of its travel */
   /* DOC-ONLY, not mirrored: the lab's rings read --node-color directly. Hoisted
      here so the ripple can take a different palette colour with a one-line
-     change (moonlight is 157, 178, 192; the accent is 122, 57, 179 — but mind
+     change (moonlight is 157, 178, 192; the accent is 161, 51, 62 — but mind
      the ~2-uses-per-page accent budget). Cold white was the default the owner was
      offered with the port. */
   --ring-color:         var(--node-color);
@@ -146,14 +146,17 @@ html.page-home {
      roughly two uses per page — because this spends one of them on the home
      page's rail.
 
-     VIOLET SINCE AUG 17 2026, with the rest of the palette. This is a raw RGB
+     CRIMSON AGAIN SINCE AUG 17 2026 — the palette went violet and has been
+     reverted to Signal Red, and this line goes back with it. This is a raw RGB
      TRIPLET rather than a var(), because the three rules that consume it wrap
      it in rgba() at three different alphas — so it cannot follow
-     --color-crimson through the cascade and has to be swapped by hand. It was
-     the one live usage the first pass at this swap missed: the two hex values
-     and the tuner choices were all found by grepping for the hex, and this
-     spells the same colour in decimal. 122, 57, 179 is #7A39B3. */
-  --ring-color:         122, 57, 179;
+     --color-crimson through the cascade and has to be swapped by hand. That is
+     exactly why it was the one live usage the first pass at the violet swap
+     missed: the two hex values and the tuner choices were all found by grepping
+     for the hex, and this spells the same colour in decimal. GREP FOR THE
+     DECIMAL TOO on the next palette move. 161, 51, 62 is #A1333E; the violet it
+     replaces was #7A39B3. */
+  --ring-color:         161, 51, 62;
 
   /* The vertebra falloff radius, 160px -> 400px. Ticks step ~30px, so this
      lights ~26 of them on the smooth falloff where the baseline lit ~9. */
@@ -595,6 +598,31 @@ html.page-home {
    Grid states the proportion outright. minmax(0, …) on both tracks is what
    stops a long unbroken word from pushing a column past its share.
 
+   THE SPLIT IS 1.03 / 0.97, AND THE FILM IS THE SMALLER TRACK NOW (Aug 17
+   2026). It was 0.88 / 1.12, film larger, which measured 650 x 542 at 1440x900
+   on the deep-field home. The owner called that too big NEXT TO THE MUSIC
+   CAROUSEL — the largest track card there is 490 x 490 — and chose the film's
+   new size BY AREA rather than by matching a width or a height:
+
+     track card    490 x 490          = 240,100 px^2
+     +10% by area  (owner's basis)    = 264,110 px^2
+     at aspect 1.2                    => ~563 x 469
+
+   The arithmetic back to a track: at 1440 the row's container is 1217px
+   (1440 - .ksd-doc__col's 136px margin-left - its 86px padding-right) and the
+   gap is 56px (the clamp is capped there; 4vw would be 57.6), so 1161px of
+   free space divides by the fr shares. 563 / 1161 = 0.485, doubled to keep the
+   pair summing to 2 => 0.97fr for the film, 1.03fr for the copy. Renders
+   ~563 x 469: about 13% off the old width, ~10% more area than the card.
+
+   THE NUMBER IS A RATIO, NOT A PIXEL WIDTH, ON PURPOSE. A width or max-width
+   of 563px would hold that size while the viewport shrank and hand the whole
+   loss to the copy; the fr keeps the film at 48.5% of the row's free space at
+   every width down to the 900px stack, where grid-template-columns is
+   overridden anyway and the film goes full-bleed. Both rows share this rule
+   and neither section overrides it — checked css/filmrow-atmos.css, which
+   touches .ksd-filmrow__media but sets no sizing property at all.
+
    THE BOX HAS A FIXED ASPECT RATIO, and that is what keeps the crop honest.
    The film is 3:2 and stands beside a text column, which will always be the
    taller of the two — so filling the height means cropping the width, and the
@@ -615,7 +643,7 @@ html.page-home {
    edges is the case that would force a per-section override. */
 .ksd-filmrow {
   display: grid;
-  grid-template-columns: minmax(0, 0.88fr) minmax(0, 1.12fr);
+  grid-template-columns: minmax(0, 1.03fr) minmax(0, 0.97fr);
   gap: clamp(28px, 4vw, 56px);
   align-items: center;
 }

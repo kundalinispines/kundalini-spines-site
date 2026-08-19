@@ -72,6 +72,12 @@
      actually loaded. python -m http.server serves Last-Modified only, and a
      browser sitting on a cached copy looks identical to a change that did not
      work — this makes the difference visible instead of arguable.
+     42 = the palette reverted to Signal Red, which in this file is the one
+     hardcoded scan-line core, back to #C8302E; everything else here takes
+     the accent through var(--color-crimson-lit) and needed no edit. 41 was the
+     violet swap itself, the same single stop in the other direction.
+     40 = --snare-all, the chance one strike lights every lightning pattern at
+     once; ships at 0, so no page changed.
      39 = --snare-decay 410 on the home page (html.page-home), the second value
      ever to land in that block. The Copy CSS it came from carried all 26
      sliders and the other 24 matched :root exactly, so only this one was
@@ -96,7 +102,7 @@
      kick. 33 = the lightning layer wired in (js injection + tuner rows; the
      layer itself lives in css/star-bg.css) and the stale "loaded by
      index.html only" header line above corrected. */
-  --spine-build: 41;
+  --spine-build: 42;
 
   --charge: 0;          /* 0..1, written by js/spine-bg.js every scroll frame */
 
@@ -928,17 +934,23 @@ body { position: relative; }
     rgba(206, 224, 242, 0.24) 0%, rgba(120, 156, 196, 0.07) 45%, transparent 72%);
 }
 
-/* The scan line — the hero video's laser, echoed. Violet since Aug 17 2026
-   with the rest of the palette; the hardcoded core below is the one colour in
-   this gradient that does NOT follow --color-crimson-lit, so it has to be
-   swapped by hand or the line ends up violet with a red heart. It is derived,
-   not guessed: the old core sat +7 hue, +11 saturation and +7 lightness from
-   the old lit value, and #9D3CD2 is the same offset from the new one.
+/* The crimson scan line — the hero video's laser, echoed. Back to red Aug 18
+   2026 with the rest of the palette, after one day as violet (commit e0fa910
+   holds that value; it is kept out of this file so a grep for a violet here
+   finds a live one or nothing); the
+   hardcoded core below is the one colour in this gradient that does NOT follow
+   --color-crimson-lit, so it has to be swapped BY HAND on every palette move or
+   the line ends up one colour with another colour's heart. A gradient stop
+   cannot take a var() and still be a stop the tuner can reason about, which is
+   why it is spelled out. It is derived, not guessed: the core sits +7 hue, +11
+   saturation and +7 lightness from the lit value, and #C8302E is that offset
+   from #A1333E — the same offset that produced the violet core from the violet
+   lit value. Re-derive it, do not eyeball it.
 
    NOTE FOR ANYONE CHECKING THIS ON SCREEN: it renders nowhere today.
    --spine-beam is 0 (tuned off 2026-08-04) and html.page-home sets
    --spine-on: 0, so this gradient has no live consumer on any page. Swapped
-   for consistency, and it has never been seen in violet.
+   for consistency, and it was never once seen in violet.
    opacity cannot exceed 1, so above 1 --spine-beam drives brightness instead;
    that way the line, its falloff and its halo all scale together. */
 .spine-bg__scan {
@@ -951,7 +963,7 @@ body { position: relative; }
   opacity: calc(min(1, var(--spine-beam)) * var(--spine-on));
   filter: brightness(max(1, var(--spine-beam)));
   background: linear-gradient(to right, transparent 0%, rgba(138, 20, 20, 0) 12%,
-    var(--color-crimson-lit) 42%, #9D3CD2 50%, var(--color-crimson-lit) 58%,
+    var(--color-crimson-lit) 42%, #C8302E 50%, var(--color-crimson-lit) 58%,
     rgba(138, 20, 20, 0) 88%, transparent 100%);
   box-shadow: 0 0 14px 2px rgba(200, 48, 46, 0.45);
 }

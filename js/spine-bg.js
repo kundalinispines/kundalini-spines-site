@@ -971,8 +971,8 @@
         { name: 'white',    val: '228, 232, 235' },   /* --spine-glow, the cold default */
         { name: 'bone',     val: '214, 213, 208' },   /* #D6D5D0 */
         { name: 'moon',     val: '157, 178, 192' },   /* #9DB2C0 */
-        { name: 'violet',   val: '122, 57, 179' },    /* #7A39B3 — mind the ~2/page budget */
-        { name: 'deep vio',  val: '95, 42, 142'  }     /* #5F2A8E */
+        { name: 'crimson',  val: '161, 51, 62'  },    /* #A1333E — mind the ~2/page budget */
+        { name: 'deep red', val: '126, 38, 48'  }     /* #7E2630 */
       ] }
   ];
   var HOME = 'css/spine-bg.css';
@@ -1053,7 +1053,7 @@
     '--ring-scale': 'How far a ripple travels before dissolving, as a multiple of its size. Short stays a tight halo on the node, long reaches toward the labels',
     '--ring-peak-a': 'Ripple brightness at the start of its travel. It always fades to nothing by the end of the cycle, so this sets the peak, not a floor',
     '--node-pulse-ms': 'One full ripple cycle. The second ring rides half a cycle behind automatically, so the radar train stays even at any speed',
-    '--ring-color': 'Ripple colour, five stops from the cold palette. The node core stays white regardless; the violet accent is rationed to about two uses a page'
+    '--ring-color': 'Ripple colour, five stops from the cold palette. The node core stays white regardless; crimson is rationed to about two uses a page'
   };
 
   /* ---- WHAT IS LEFT OF THIS PANEL'S OWN STYLESHEET -----------------------

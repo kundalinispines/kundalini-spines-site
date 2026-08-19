@@ -109,22 +109,26 @@
        on it. The -1 at 1.00 is screenshot rounding, not a darkening.
 
        The table above was built when this shipped at 0.70. THE OWNER TOOK IT TO
-       0.06 on Aug 17 2026, an order of magnitude down, and that is the tuning —
-       not a stray decimal. Read it together with the two options under it: the
-       population went UP (wisps 14 -> 20, motes 90 -> 211) while density went
-       DOWN to 0.3 and every edge was switched on, which is a different layer
-       from the one the table measures — more, smaller, fainter pieces spread
-       right around the box instead of a few strong ones on three sides. The
-       readability guarantee is untouched by the change and cannot be broken by
-       it: every row of that table has a zero centre and a zero darkest pixel,
-       and 0.06 is below all of them. */
-    intensity: 0.06,
+       0.06 on Aug 17 2026, an order of magnitude down, and to 0.11 on Aug 18 —
+       still a sixth of what the table measures. Read it together with the
+       options under it, because the shape of the layer changed again in the
+       same sitting: the WISPS ALL BUT WENT (20 -> 2 raw) while the motes and
+       density both rose (211 -> 240, 0.3 -> 1.25), so the effective population
+       went from 6 wisps and 63 motes to 2 wisps and 300. That is a dust field
+       now, not a smoke field — many small points instead of a few soft forms.
+       The readability guarantee still holds by construction: every row of that
+       table has a zero centre and a zero darkest pixel, screen cannot subtract,
+       and 0.11 is below all of them. */
+    intensity: 0.11,
 
     /* Multiplies both counts below. 1 = the tuned population. Range 0..2;
        above ~1.6 the clumps merge into a continuous band and the edge comes
        back as a soft border, which is the failure this layer exists to avoid.
-       At 0.3 the raw 20/211 populations land as 6 wisps and 63 motes. */
-    density: 0.3,
+       1.25 since Aug 18 2026, up from 0.3, and it is now the multiplier doing
+       the work rather than a trim: the raw 2/240 populations land as 2 wisps
+       and 300 motes. It sits inside the 1.6 ceiling, but with far less headroom
+       than it had — raising it much further is what brings the band back. */
+    density: 1.25,
 
     /* WHICH EDGES CARRY MATERIAL. Accepts:
          'top,right'            (string, equal weight)
@@ -141,34 +145,52 @@
        real page and wanted the box ringed rather than lit from three sides. If
        intensity is ever taken back up, THIS is the option to re-examine first —
        the copy column is the one thing the layer can actually damage. */
-    edges: { top: 1, right: 0.9, bottom: 0.9, left: 1 },
+    /* right: 0 since Aug 18 2026 — the right edge carries nothing now. On the
+       page that edge is the one that runs to the bleed, so material there was
+       the most likely to read as a border rather than as atmosphere. */
+    edges: { top: 1, right: 0, bottom: 0.9, left: 1 },
 
     /* How far material reaches OUTWARD past the boundary, in CSS px. This is
        the "crossing" half of the layer. Range 0..160.
        Clamped per side at measure time so the wrapper can never extend past the
        viewport's right edge; see measure().
-       27 since Aug 17 2026, down from 56. Note what that does NOT do: it does
-       not pull the layer's outer boundary in by 29px, because edgeFeather below
-       is measured outward from the spill and is now nearly four times it. The
-       field crosses less far at full strength and then dissolves for a long way
-       after — which is the shape the owner tuned to, and the reason the two
-       numbers moved in opposite directions in the same sitting. */
-    spill: 27,
+       0 SINCE Aug 18 2026, down from 27 and 56 before it — the material no
+       longer crosses the boundary at full strength AT ALL. The layer is not
+       gone with it: edgeFeather below is measured OUTWARD FROM THE SPILL and is
+       still 100, so the field now starts dissolving at the boundary itself
+       rather than 27px past it. Everything outside the box is falloff. That is
+       the end point of a direction the owner has moved twice — 56, then 27,
+       then none — so read a future change here together with edgeFeather or the
+       outer edge will move much further than the number suggests. */
+    spill: 0,
 
     /* How far material reaches INWARD from the boundary, as a fraction of the
-       box's SHORT side. This is the guard on readability: at 0.19 the top and
-       bottom bands each claim 19% of the height and the middle 62% is clear
-       before the alpha falloff is even applied — a wider clear centre than the
-       0.30 this shipped at. Range 0..0.45. */
-    reach: 0.19,
+       box's SHORT side. This is the guard on readability, and 0.45 IS THE TOP
+       OF ITS RANGE (owner's call, Aug 18 2026, up from 0.19 and the 0.30 it
+       shipped at). At 0.45 the top and bottom bands each claim 45% of the
+       height, so the geometrically clear middle is 10% rather than 62%.
+       WHY THAT IS NOT THE READABILITY PROBLEM IT LOOKS LIKE: the bands are
+       where material MAY fall, not where it is opaque — the alpha falloff runs
+       across the whole reach, intensity is 0.11, and the layer is screen-blend
+       so it can only add light. MEASURED after the change, layer mounted
+       against layer destroyed on an identical frozen frame: the centre 45-55%
+       band moved EXACTLY 0.00 of 255, while the top edge moved 24.3, the left
+       7.1 and the bottom 2.7 — which is both the proof that the guard holds and
+       the proof the layer was really on. The edge order matches the weights
+       (top 1, left 1, bottom 0.9, right 0). But this is the option that
+       decides whether the middle of the footage stays clean, so if the rows
+       ever start reading as hazy, this is the first number to pull. Range
+       0..0.45. */
+    reach: 0.45,
 
     /* Parallax against the scrub, as a fraction of the box height travelled
        across the element's whole pass through the viewport. 0 pins the field to
        the element (no lag at all); above ~0.45 the field visibly slides and
-       stops reading as atmosphere. 0.28 since Aug 17 2026, up from 0.18 — still
-       comfortably inside that ceiling, and a fainter field can carry more lag
-       before the slide becomes the thing you notice. Range 0..0.6. */
-    parallax: 0.28,
+       stops reading as atmosphere. 0.18 since Aug 18 2026, back down from the
+       0.28 it went to on Aug 17 — the denser mote field reads its own lag more
+       clearly than the sparse wisp field did, so it carries less of it. Range
+       0..0.6. */
+    parallax: 0.18,
 
     /* Autonomous drift speed — the slow sway that runs whether or not anyone is
        scrolling. 0 freezes the field into a still (which is also what reduced
@@ -181,11 +203,14 @@
        motes = the small dust and star points; they do the "in front of a lens"
        read. Ranges 0..24 and 0..240. Both are cheap — the cost is drawImage of
        a baked sprite, so 100 particles is ~100 composited quads a frame.
-       These are BEFORE `density`, which is 0.3, so the field that actually
-       mounts is 6 wisps and 63 motes — fewer than the 14/90 this shipped at,
-       despite both raw numbers going up. Read the pair, never one alone. */
-    wisps: 20,
-    motes: 211,
+       These are BEFORE `density`, which is 1.25, so the field that actually
+       mounts is 2 wisps and 300 motes. Aug 18 2026 inverted the balance the
+       previous tuning struck: wisps 20 -> 2 and motes 211 -> 240 with density
+       up to 1.25, i.e. the big soft forms are essentially gone and the dust is
+       nearly five times what it was. Read the pair with density, never one
+       alone — the raw numbers alone say almost nothing. */
+    wisps: 2,
+    motes: 240,
 
     /* Colours, most-used first: the sampler biases toward the head of the list
        (index = floor(rng^1.7 * n)), so tint[0] carries roughly two thirds of

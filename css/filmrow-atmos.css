@@ -131,9 +131,9 @@
      separation is load-bearing.
 
      0.5 + 2.5 * grow puts scale at exactly 1.0 at grow 0.20, and spans
-     0.875 to 1.125 across the owner's range.  Shipped at 0.16 (scale 0.90)
-     since Aug 17 2026. */
-  --fr-glow-grow: 0.16;
+     0.875 to 1.125 across the owner's range.  0.17 (scale 0.925) since
+     Aug 18 2026, up one step from the 0.16 it shipped at on Aug 17. */
+  --fr-glow-grow: 0.17;
   --fr-glow-scale: calc(0.5 + 2.5 * var(--fr-glow-grow));
 
   /* INTENSITY, AND HOW MUCH OF IT THE SCROLL OWNS.
@@ -160,7 +160,12 @@
      page.  At resp 1.00 that guard is spent — the field would open at 0% and
      rise only with scroll — which costs nothing while base is 0, and is the
      first thing to re-check if base is ever raised again. */
-  --fr-glow-base: 0.000;
+  /* 0.025 since Aug 18 2026, up from 0.000 — WHICH MEANS THE GLOW LAYER WAS
+     OFF UNTIL NOW. It was tuned, mounted and composited, with its whole
+     intensity multiplied by zero; this is the value that actually lights it.
+     It is HALF the tuned 0.05 for the reason given above: the gradients are
+     authored at twice their tuned alpha so the scroll response stays free. */
+  --fr-glow-base: 0.025;
   --fr-glow-resp: 1.00;
   --fr-focus: 0;
 }

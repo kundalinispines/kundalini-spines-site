@@ -849,6 +849,61 @@ html.page-home {
      is zeroed here anyway, but a stale term in a calc that is only ever
      overridden by accident is the kind of thing that comes back. */
   .ksd-merch__video { order: 1; margin-top: 0; --ksd-merch-vid-h: min(130vw, 620px); }
+
+  /* THE MERCH COPY STOPS BEING CENTRED once the render is no longer beside it.
+     text-align: center is set at the base rule and the reason given there is
+     entirely about the horizontal relationship to the spine render - which
+     `order: 1` above has just dissolved by stacking them. Left standing, the
+     phone reads left-aligned About, then a centred column, then left-aligned
+     Transmissions, all in one narrow stack.
+     MEASURED at 390px: the copy column is 294px and the longest paragraph is
+     ~340 characters, so it wraps to ten lines ragged on BOTH edges. Centring
+     is a shape for a short block beside something; it is not a way to set ten
+     lines of body copy 294px wide. */
+  .ksd-merch__copy { text-align: left; }
+
+  /* THE RAIL LABEL COMES INBOARD, because there is no room for it outside.
+     It is positioned `right: 14px` off the axis, and the axis is 22px here
+     against 6vw on desktop - so a 21px-wide vertical label lands at x = -13
+     and MEASURED 62% of it was off the left edge of the screen. Every section
+     label on the page was a sliver.
+     Flipping it to the inboard side costs nothing: the gutter between the axis
+     and the content column is 72 - 22 = 50px, the label occupies 36-57, and
+     the vertebrae ticks stop around x=33. Clear of both.
+     THE ALTERNATIVE WAS MOVING THE AXIS, and it was measured too: --ksd-axis
+     22 -> 40 fits the label outboard and keeps the desktop handedness, but it
+     narrows the copy column from 294px to 276px on EVERY page that uses the
+     rail, which is a site-wide layout change to buy a decorative label. This
+     side of the axis is the cheaper trade. */
+  .ksd-label { right: auto; left: 14px; }
+
+  /* THE CAROUSEL'S HEADROOM IS SCALED TO THE CARD, and on a phone the card is
+     much smaller. 140px is derived from a focused card rising ~122px MEASURED
+     AT 1440x900; below 768px css/track-experience.css shrinks the card to
+     min(42vw, 190px) and the arc to 420px, so the rise scales down and the
+     padding did not. MEASURED at 390px: 341px between the heading and the
+     first card, on a screen with ~700px of usable height. 56px keeps the same
+     proportion to the smaller card and returns 84px of it. */
+  .ksd-bleed { padding-top: 56px; }
+
+  /* THE MUSIC BLOCK STOPS BLEEDING RIGHT ON A PHONE, because the thing it
+     bleeds past clips it. .ksd-section is overflow:hidden and 294px wide here
+     (72..366), while both of these reclaim the column padding to reach 390 -
+     so the last 24px of both boxes is painted into a clip.
+     MEASURED at 390px: the heading Enter the Tracks has ink from 91 to 371
+     against a clip edge at 366, so its final glyph was cut. It survives at
+     320px only because the type wraps to a narrower line first, which is why
+     this reads as a defect on the commonest phone and not on the smallest.
+     It also cost the panel its right gutter: body copy ran to within 3px of
+     the screen edge with 72px on the left. Not clipped - MEASURED per word,
+     max ink 387 against a 390 viewport - but flush, and lopsided against the
+     rail side.
+     BOTH, TOGETHER, NEVER ONE. The note above .ksd-music-head says the head
+     centres on the arch wrapper WITH THE SAME RIGHT BLEED so the two share a
+     centre by construction. Dropping the bleed from one of them would move
+     that shared centre by 12px and quietly break the thing that note is
+     protecting. Dropping it from both keeps them on a common centre of 219. */
+  .ksd-bleed, .ksd-music-head { margin-right: 0; }
 }
 
 /* ---- Headline reveal ----

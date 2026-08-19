@@ -420,8 +420,10 @@
      and load()ed. load() RESETS the element and pauses it, so a play() issued
      before the release is thrown away even if it had started. So the wanted
      state is kept in `want` and re-asserted on every arrival of data rather
-     than fired once. On index.html the same rows ship preload="auto" and the
-     first attempt usually takes; both paths land in the same place.
+     than fired once. index.html ships preload="none" on these rows too - it
+     shipped "auto" until Aug 18 2026, when the deep-field port deferred them
+     and js/deep-field-bg.js took over upgrading them - so both pages now take
+     the same path here, and both land in the same place.
 
      THE play() PROMISE IS CAUGHT, always. It rejects whenever the browser
      declines the autoplay — and an unhandled rejection is a console error, on a

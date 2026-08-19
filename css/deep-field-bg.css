@@ -1,5 +1,5 @@
 /* deep-field-bg.css — the home page's background clip.
-   --df-build: 8;
+   --df-build: 9;
 
    WHAT THIS IS
    The 12.042s deep-field-2 clip painted full-bleed behind the whole home
@@ -337,7 +337,7 @@ body::before { opacity: var(--df-sky, 1); }
    and no mobile pass has ever been run on this clip. The sky comes back up in
    its place, which is what the page does today. js/deep-field-bg.js checks the
    same two conditions and never attaches, so the clip is never fetched. */
-@media (prefers-reduced-motion: reduce), (max-width: 767px) {
+@media (prefers-reduced-motion: reduce), (max-width: 768px) {
   :root { --df-sky: 1; }
   .df-bg { display: none; }
 }
@@ -395,7 +395,13 @@ body::before { opacity: var(--df-sky, 1); }
 
 /* .ksd-reveal brings its own transition from css/spine-doc.css:803; the
    carousel wrapper has none of its own, so it gets a matching one here. */
-.track-arc-wrap {
+/* SCOPED TO html.df-live, and that scope is load-bearing. Unscoped, this is
+   (0,1,0) in a file linked last, so it beat css/track-experience.css:96's
+   `transition: none` inside ITS reduced-motion query - media queries add no
+   specificity - and quietly reinstated a transition on the one class of user
+   who asked for none. Scoping it to a class that is never set below the gate
+   means the reduced-motion rule keeps the last word where it matters. */
+html.df-live .track-arc-wrap {
   transition: opacity 640ms var(--ease-standard), transform 640ms var(--ease-standard);
 }
 
@@ -473,7 +479,7 @@ body::before { opacity: var(--df-sky, 1); }
 /* No card at all where the module never runs: on a phone and under reduced
    motion nothing sequences it, so it would sit permanently on top of the
    carousel. The real <h2> is the heading there, exactly as it is today. */
-@media (prefers-reduced-motion: reduce), (max-width: 767px) {
+@media (prefers-reduced-motion: reduce), (max-width: 768px) {
   .ksd-music-title { display: none; }
 }
 
@@ -516,3 +522,25 @@ body::before { opacity: var(--df-sky, 1); }
    statement that turns the card on — so the heading passes straight from
    "hidden by the reveal" to "hidden by the card" with nothing in between. */
 html.df-live [data-ksd-section="music"].df-titled .ksd-music-head .ksd-head { opacity: 0; }
+
+/* AND HANDED STRAIGHT BACK BELOW THE GATE, which is not belt-and-braces - it
+   closes a real hole. Both classes above are set ONCE, at init
+   (js/deep-field-bg.js:120 is evaluated a single time and there is no
+   matchMedia change listener), so they survive a resize that the card does
+   not: .ksd-music-title is display:none below 767px, but the rule above is in
+   no media query at all. Load at >=768 and narrow to <=767 and the heading is
+   hidden with nothing to replace it.
+
+   THAT IS NOT AN EXOTIC PATH. iPhone 14 Pro landscape is 852 CSS px and 15 Pro
+   Max landscape is 932, so "open in landscape, rotate to portrait" lands in it
+   exactly, and what the reader gets is the Music section with 28 track cards
+   and nothing naming them - the same failure the note above records for the
+   dead-clip path, arriving by a different route.
+
+   IT HAS TO SIT AFTER the rule it undoes. Media queries add no specificity and
+   both selectors are (0,5,1), so this wins on source order alone. Moving it
+   above, or into either earlier gate block in this file, silently stops it
+   working. */
+@media (prefers-reduced-motion: reduce), (max-width: 768px) {
+  html.df-live [data-ksd-section="music"].df-titled .ksd-music-head .ksd-head { opacity: 1; }
+}

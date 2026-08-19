@@ -117,7 +117,13 @@
      attributes in the markup and they are attached below, so returning early
      means the clip is never fetched. */
   var reduce = window.matchMedia('(prefers-reduced-motion: reduce)');
-  if (reduce.matches || window.matchMedia('(max-width: 767px)').matches) return;
+  /* 768, NOT 767, and it must keep matching css/deep-field-bg.css. It was 767
+     until Aug 18 2026, while css/track-experience.css:351 switches the
+     carousel to its phone layout at `max-width: 768px` INCLUSIVE - so at
+     exactly 768 CSS px, which is iPad portrait, the whole module ran on top
+     of the phone carousel. Nothing had ever looked at that combination. The
+     three gates now agree on the same edge. */
+  if (reduce.matches || window.matchMedia('(max-width: 768px)').matches) return;
 
   var FPS = 24;
   var FRAMES = 289;

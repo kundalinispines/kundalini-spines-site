@@ -496,42 +496,68 @@
        used to be scrubbed by scroll like the film rows were until earlier the
        same day.
 
-       IT LOOPS OVER A MEASURED 360, NOT OVER THE WHOLE FILE. The encode is 241
-       frames but ONE REVOLUTION IS 237 OF THEM — the last four overshoot past
-       the start, so a plain `loop` wrapped from an orientation the turn had
-       already passed and jumped backwards a few degrees every 8 seconds.
+       IT LOOPS OVER THE WHOLE FILE AGAIN, because the file is now exactly
+       one revolution (re-exported Aug 18 2026 from the owner's SpineSpin.mov
+       master). SPIN_IN / SPIN_OUT and the loopRange call they drove are gone.
 
-       MEASURED Aug 17 2026: every one of the 241 frames was decoded to a
-       downsampled luma+alpha signature, and for each candidate start frame the
-       best-matching frame at least 60% of the clip later was found by RMS
-       distance. The winner is f3 -> f240 at distance 14.6. Read it against the
-       clip's own noise floor rather than against zero: ADJACENT frames in this
-       thing score a median of 7.6 and run as high as 22.4, because it is a lit
-       metallic surface turning ~1.5 degrees a frame. So the wrap now costs
-       about what an ordinary frame step costs, and less than the clip's worst
-       one. (The runners-up agree it is a real minimum, not a fluke of the
-       metric: f2->f238 and f0->f238 both land at 15.3, and it degrades
-       smoothly from there — f4 18.2, f5 21.0.)
+       WHAT THE RE-EXPORT ACTUALLY FIXED, and it was not the seam. The master
+       is 241 frames at 29.97 but only 193 of them are UNIQUE — every 5th frame
+       is bit-identical, because it is a 24fps render conformed to 29.97. The
+       old encode was made by resampling that conform with `-r 24`, which
+       resolved it by timestamp instead of by dropping the duplicates, so the
+       shipped clip HELD ONE FRAME AND SKIPPED THE NEXT, six times a second.
 
-       f3 starts at 0.1001s and f240 at 8.0086s, so the revolution is 7.9085s
-       against the file's 8.042s. Playback runs [IN, OUT) and jumps to IN.
+       MEASURED on the two files, frame-to-frame RMS of composited luma, a
+       "frozen" step being under 5% of the median:
 
-       THESE TWO NUMBERS BELONG TO THIS ENCODE and nothing else. Re-export the
-       render and they are wrong — re-run the scan rather than nudging them.
+           old encode   193 frames   48 frozen steps, 41 lurches, CV 0.788
+           this encode  190 frames    0 frozen steps,  5 lurches, CV 0.273
+
+       That freeze-and-lurch was the judder. It is not a seam problem and no
+       amount of moving the loop point would have touched it.
+
+       THE OLD SEAM WAS ALREADY NEARLY OPTIMAL, which is worth recording so
+       nobody re-runs that search: the hand-picked f3 -> f240 wrap measured
+       within 2% of the best any re-cut can do. The clip holds 1.020
+       revolutions — 7.3 degrees more than one turn — so the loop start is
+       forced into the first few frames and there is no freedom to move the
+       seam somewhere kinder. There is also an irreducible floor of about 1.2
+       frame-steps: the render does not return exactly to its starting
+       orientation, and that is a property of the render, not of the encode. No
+       trim, sub-frame interpolation or gain ramp closes it.
+
+       MEASURED HERE: the wrap costs 1.35x a normal frame step, against a
+       median step of 9.03. An ordinary step is the unit to read it in — this
+       is a lit metal surface turning 1.9 degrees a frame, so a wrap of about
+       one step is as close to seamless as this source goes.
+
+       MOTION INTERPOLATION WAS BUILT AND REJECTED. A 48fps mci re-time exists
+       and measured well (median synthesis error 0.31x a real frame step, no
+       artefacts on the silhouette or the alpha edge), but it halves the
+       angular step WITHOUT moving the seam, so the wrap goes from 1.35x a step
+       to about 2.6x — the smoother the flow, the more the join stands out. It
+       is kept in the session scratch if the spin ever wants to be smoother
+       still and the seam is judged acceptable. A `blend` re-time was also
+       built and is visibly ghosted; do not ship it.
+
+       -g 4 IS NOW SURPLUS ON THIS CLIP and is kept only because it is what was
+       encoded. It bought cheap SEEKING for loopRange, and loopRange is gone —
+       the one seek left is the loop's own return to 0, which is a keyframe on
+       any encode. A future re-export is free to drop it here the way the film
+       rows already did; a -g 48 build measured 4.78MB at crf 33 against this
+       file's 4.86MB at crf 40, so it is smaller AND higher quality.
 
        SLOW ON PURPOSE, and the rate is a token rather than a constant: the clip
-       runs 8.042s at 1x, which is a brisk turn for something meant to sit
+       runs 7.917s at 1x, which is a brisk turn for something meant to sit
        behind body copy as an object rather than to be watched. --ksd-spine-rate
        is where that judgement lives; css/spine-doc.css records what the
        resulting seconds-per-revolution actually are at each setting.
 
        Read off :root rather than the element so it can be turned from devtools
        and from a page-scoped block, the same way --ksd-field already is. */
-    const SPIN_IN = 0.1001;    // f3,   the frame f240 comes back round to
-    const SPIN_OUT = 8.0086;   // f240, one full revolution later
     const rate = parseFloat(getComputedStyle(document.documentElement)
                               .getPropertyValue('--ksd-spine-rate')) || 0.75;
-    if (!reducedMotion) playInView(merchVid, rate, SPIN_IN, SPIN_OUT);
+    if (!reducedMotion) playInView(merchVid, rate);
   }
 
   /* Every film row on the page, not a named list — the owner has more clips

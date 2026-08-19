@@ -55,21 +55,22 @@
   /* Ranges here are the useful ones, not hard limits. Every one of these is a
      tuner slider — see the tab registration at the foot of this file. */
   var DEFAULTS = {
-    speed: 0.5,            /* playback speed of the artefacts; 1 is normal */
-    wave: 1,               /* slow horizontal tape wave, 0..3 */
-    jitter: 0.25,          /* fine per-line horizontal jitter, 0..3 */
-    crease: 0.1,           /* travelling tape crease band, 0..3 */
+    speed: 0.25,           /* playback speed of the artefacts; 1 is normal */
+    wave: 1.35,            /* slow horizontal tape wave, 0..3 */
+    jitter: 0.65,          /* fine per-line horizontal jitter, 0..3 */
+    crease: 0.4,           /* travelling tape crease band, 0..3 */
     switching: 0.05,       /* head-switching noise at the bottom, 0..3 */
-    switchingHeight: 0.02, /* height of that band as a fraction of the frame */
-    bloom: 0.4,            /* horizontal glow bleed, 0..1 */
-    aberration: 2,         /* RGB misalignment, CSS px */
-    acBeat: 1,             /* slow brightness beat rolling down, 0..1 */
-    grain: 0.1,            /* animated static, 0..1 */
-    scanlines: 0.1,        /* CRT line overlay, 0..1 */
-    vignette: 0,           /* corner darkening, 0..1 */
-    barrel: 0,             /* tube curvature, 0..1; 0 disables */
-    saturation: 1,         /* 1 keeps the clip's colour, 0 is greyscale */
-    exposure: 1            /* final brightness multiplier */
+    switchingHeight: 0.12, /* height of that band as a fraction of the frame */
+    bloom: 0.27,           /* horizontal glow bleed, 0..1 */
+    aberration: 2.3,       /* RGB misalignment, CSS px */
+    acBeat: 0.67,          /* slow brightness beat rolling down, 0..1 */
+    grain: 0.16,           /* animated static, 0..1 */
+    scanlines: 0.29,       /* CRT line overlay, 0..1 */
+    vignette: 0.23,        /* corner darkening, 0..1 */
+    barrel: 0.03,          /* tube curvature, 0..1; 0 disables. Above 0 the row
+                              goes opaque and the curved edge takes the bezel */
+    saturation: 1.47,      /* 1 keeps the clip's colour, 0 is greyscale */
+    exposure: 0.88         /* final brightness multiplier */
   };
 
   var VERT =
@@ -444,7 +445,7 @@
       { k: 'vignette', g: 'tube', label: 'vignette', min: 0, max: 1, step: 0.01,
         tip: 'Darkening toward the corners' },
       { k: 'barrel', g: 'tube', label: 'barrel', min: 0, max: 1, step: 0.01,
-        tip: 'Tube curvature bending the picture inward. 0 disables it entirely and is what ships - anything above 0 fills the corners with the bezel colour and makes the row opaque' },
+        tip: 'Tube curvature bending the picture inward. 0.03 ships - just enough to round the frame. MEASURED at that value against 0 on the same frozen frame: the corners darken by 3 to 5 of 255 and the centre moves 0.2, so it reads as a slight tube rather than as a vignette. Any value above 0 also forces the row opaque and fills the curved edge with the bezel, which is black here' },
 
       { k: 'saturation', g: 'grade', label: 'saturation', min: 0, max: 2, step: 0.01,
         tip: 'Colour saturation. 1 keeps the clip as it is, 0 is greyscale' },

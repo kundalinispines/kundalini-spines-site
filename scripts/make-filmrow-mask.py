@@ -139,6 +139,12 @@ NOISE_SIGMAS = 2.2
 WOBBLE = 1.35
 REACH = 1.8
 
+# How much of the vertebral rhythm replaces the noise where it applies, for
+# --vertebrae.  1.0 is a clean stack and reads as machined; 0.0 is the shipped
+# cloud.  0.55 keeps the noise breaking every segment up so it stays an EDGE
+# that happens to have a rhythm, not a row of scallops.
+VERT_MIX = 0.55
+
 
 def _hash01(ix, iy, seed):
     """Lattice value in [0,1).  ix, iy, seed are uint32 arrays/scalars.
@@ -210,7 +216,8 @@ def fbm(u, v, seed, octaves=5, base=3.0, lacunarity=2.0, gain=0.5):
 # --------------------------------------------------------------------------
 
 
-def make_mask(width, height, depth, softness, seed, wobble=WOBBLE, reach=REACH):
+def make_mask(width, height, depth, softness, seed, wobble=WOBBLE, reach=REACH,
+              vertebrae=0, vert_mix=VERT_MIX, corner=0.0):
     """Return a uint8 array, 0 = fully transparent, 255 = fully opaque video."""
     ys, xs = np.mgrid[0:height, 0:width].astype(np.float64)
 
@@ -224,7 +231,49 @@ def make_mask(width, height, depth, softness, seed, wobble=WOBBLE, reach=REACH):
     dx = np.minimum(xs + 0.5, width - 0.5 - xs)
     dy = np.minimum(ys + 0.5, height - 0.5 - ys)
     band_px = depth * height
-    e = np.minimum(dx, dy) / band_px
+
+    # CORNERS: WHY A PLAIN min() GROWS A HORN THERE.
+    # min(dx, dy) makes the distance field SQUARE -- its contours are rectangles
+    # with a diagonal crease running out of each corner, where dx == dy and
+    # neither term wins. A noise lobe that happens to sit positive on that crease
+    # is stretched along it, and because the crease is the one direction where
+    # the field is not pulling the edge back, the lobe comes out as a thin spike
+    # of video reaching into the corner. Mask 03 grew exactly that in its top
+    # right and the owner called it: "too much of a point" (Aug 19 2026).
+    #
+    # `corner` is a polynomial smooth-min radius in band units, which rounds the
+    # contours so the crease never forms and no wedge has a direction to grow
+    # along. Measured on seed 3, first 50%-alpha pixel along the top-right
+    # diagonal, then the first fully-opaque one:
+    #
+    #     corner 0.0   50% at 19px   opaque at 48px   <- the horn
+    #     corner 0.3   50% at 26px   opaque at 80px
+    #     corner 0.5   50% at 31px   opaque at 83px
+    #     corner 0.7   50% at 39px   opaque at 85px
+    #     corner 0.9   50% at 44px   opaque at 88px
+    #     corner 1.1   50% at 49px   opaque at 91px   <- shipped on 03
+    #
+    # 0.3 was enough to stop it reading as a point. The owner then asked twice
+    # for softer and chose 1.1 off the sweep, which is past where I would have
+    # stopped -- I called 0.9 the last value that still reads as a CORNER, and
+    # at 1.1 the two edges genuinely merge into one sweep. That is the look
+    # they want on this row; it is a taste call, not an oversight, so do not
+    # "restore" the corner here. The dial still defaults to 0.0 for everything
+    # else.
+    #
+    # It is CHEAP: against the
+    # same seed at corner 0.0 it moves 1.03% of pixels (max delta 67 of 255) and
+    # every one of them is within a corner, so the silhouette you already liked
+    # along the sides is the silhouette you keep.
+    #
+    # DEFAULT 0.0, so masks baked before this existed still bake byte-identical.
+    if corner > 0.0:
+        r = corner * band_px
+        hh = np.clip(0.5 + 0.5 * (dy - dx) / r, 0.0, 1.0)
+        dmin = dy * (1.0 - hh) + dx * hh - r * hh * (1.0 - hh)
+    else:
+        dmin = np.minimum(dx, dy)
+    e = dmin / band_px
 
     f = fbm(u, v, seed)
     # STANDARDISE THE NOISE OVER THE BAND, do not just use 2*f-1.  Two measured
@@ -250,6 +299,35 @@ def make_mask(width, height, depth, softness, seed, wobble=WOBBLE, reach=REACH):
     fs = float(f[band_sel].std()) or 1e-6
     n = np.clip((f - fm) / (NOISE_SIGMAS * fs), -1.0, 1.0)
 
+    # ---- THE VERTEBRAL RHYTHM (off unless --vertebrae is passed) ----------
+    # A spine reads as a REGULAR STACK, and regularity is the one thing the
+    # noise field above is built to destroy — so this is a separate term mixed
+    # into n rather than another octave, which would just be more cloud.
+    #
+    # WEIGHTED TO THE SIDES, AND THAT IS NOT COSMETIC.  The rhythm is a
+    # function of y alone, so on the top and bottom edges it is CONSTANT across
+    # x: applied everywhere it rules a straight line across both, which is
+    # exactly the rectangle this whole file exists to dissolve.  Measured at
+    # 768x640, depth 0.11, seed 1, vertebrae 7, mix 1.0, scanning the 50%-alpha
+    # contour along the middle 60% of each side:
+    #
+    #                 top          bottom       left / right
+    #   unweighted    0.82-0.82    0.92-0.92    0.27-1.11
+    #   weighted      0.30-0.85    0.40-1.07    0.27-1.11
+    #
+    # Unweighted the top and bottom spreads are 0.00 -- not "nearly straight",
+    # DEAD straight, a ruled line at 0.82 of the band all the way across.
+    # Weighting by which edge is nearest costs the sides nothing (0.27-1.11
+    # either way) and hands top and bottom their walk back.
+    if vertebrae > 0:
+        seg = np.cos(2.0 * np.pi * vertebrae * (ys / height)
+                     + (int(seed) % 16) * (np.pi / 8.0))
+        # 1 where a SIDE is the nearest edge, 0 where the top/bottom is, with
+        # half a band of crossfade so the corners do not switch abruptly.
+        w = np.clip((dy - dx) / (0.5 * band_px), 0.0, 1.0)
+        w = w * w * (3.0 - 2.0 * w)
+        n = np.clip(n * (1.0 - vert_mix * w) + seg * (vert_mix * w), -1.0, 1.0)
+
     ec = np.clip(e / reach, 0.0, 1.0)
     taper = 1.0 - (ec * ec * (3.0 - 2.0 * ec))  # 1 at the border, 0 at e = reach
     eff = e * (1.0 + wobble * n * taper)
@@ -267,6 +345,72 @@ def make_mask(width, height, depth, softness, seed, wobble=WOBBLE, reach=REACH):
     a = np.power(t, gamma)
 
     return np.clip(np.rint(a * 255.0), 0, 255).astype(np.uint8)
+
+
+def from_alpha(path, width, height, depth, seed, reach=REACH, edge_blend=True,
+               invert=False):
+    """Bake a mask from a HAND-PAINTED PNG's alpha channel.
+
+    The owner painted assets/reference/Untitled-2.png at exactly 768x640 with the
+    silhouette in ALPHA -- the right channel, which is the part most hand-rolled
+    masks get wrong.  Two things still needed doing, both measured Aug 19 2026:
+
+    1. THE ALPHA WAS COMPRESSED TO 0..130, not 0..255.  Every pixel of the crisp
+       core sat at 130, so the contract check read 0.0% opaque and the film row
+       would have rendered at 51% transparency everywhere -- a washed-out video,
+       not a feathered one, and not obviously a MASK fault when seen on the page.
+       Stretching the observed range onto 0..255 puts the core at 255 and 100%.
+
+    2. THE TOP AND BOTTOM EDGES WERE HARD.  Measured inward to full opacity:
+       left 2-79px and right 8-84px (a real feather, comfortably inside the
+       127px free zone), but top and bottom both had a MEDIAN OF 0 -- the video
+       met the border at full strength across their whole width.  That is the
+       rectangle this layer exists to dissolve, returning on two sides.
+
+    So the sides are taken exactly as painted and an ordinary cloud edge is
+    min()-ed in over the top and bottom only, crossfaded over half a band so the
+    corners do not switch abruptly -- the same side-vs-top weighting the
+    vertebral rhythm uses, and for the same reason.  After blending, top reaches
+    full opacity at 40-202px (median 64) and the sides are untouched.
+
+    Pass edge_blend=False to bake the painted alpha as-is, stretch only.
+
+    INVERT EXISTS BECAUSE THE POLARITY IS NOT GUESSABLE FROM THE NUMBERS, and
+    both polarities have now arrived from the same tool on the same shape.  The
+    first painting had the silhouette the right way round with alpha capped at
+    130; its re-export reaches a full 0..255 and is INVERTED -- opaque only in
+    the edge strips, transparent through the middle, so as-is it keeps the teeth
+    and throws the footage away.  Nothing in the range, the level count or the
+    core check distinguishes the two: the second file scores a perfectly
+    respectable 0..255 with 34 levels either way round.  Only looking does.
+    Convention here: alpha 255 = KEEP THE VIDEO.
+    """
+    src = Image.open(path).convert("RGBA")
+    if src.size != (width, height):
+        raise SystemExit("--from-alpha %s is %dx%d, need %dx%d"
+                         % (path, src.size[0], src.size[1], width, height))
+    a = np.asarray(src)[..., 3].astype(np.float64)
+    lo, hi = a.min(), a.max()
+    if hi - lo < 1.0:
+        raise SystemExit(
+            "--from-alpha %s has a FLAT alpha channel (%d..%d). The silhouette "
+            "must be in ALPHA, not luminance -- an opaque greyscale PNG masks "
+            "nothing and looks exactly like the CSS failed to load." % (path, lo, hi))
+    arr = np.clip((a - lo) * (255.0 / (hi - lo)), 0, 255)
+    if invert:
+        arr = 255.0 - arr
+
+    if edge_blend:
+        ys, xs = np.mgrid[0:height, 0:width].astype(np.float64)
+        dx = np.minimum(xs + 0.5, width - 0.5 - xs)
+        dy = np.minimum(ys + 0.5, height - 0.5 - ys)
+        band_px = depth * height
+        w = np.clip((dy - dx) / (0.5 * band_px), 0.0, 1.0)
+        w = w * w * (3.0 - 2.0 * w)          # 1 where a SIDE is the nearest edge
+        cloud = make_mask(width, height, depth, DEFAULT_SOFTNESS, seed).astype(np.float64)
+        arr = arr * w + np.minimum(arr, cloud) * (1.0 - w)
+
+    return np.clip(np.rint(arr), 0, 255).astype(np.uint8)
 
 
 def write_mask(path, arr):
@@ -313,13 +457,28 @@ def contour_spread(arr, band_px):
 
 
 # The shipped defaults.  depth 0.11 and softness 0.50 are the lab's start
-# position; three seeds so the two rows on the page are not the same silhouette
-# (index.html would take 01 and 02, leaving 03 for the next clip).
+# position.  Five plain seeds, for CHOICE of silhouette rather than out of
+# necessity: at three film rows the tuner's rotation already gives three
+# distinct masks at every setting with only three baked, so nothing was
+# repeating.  Checked against maskFor() Aug 19 2026, because the opposite claim
+# was written here first and was wrong.  A repeat needs a FOURTH row.
+#
+# THREE OF THE SHIPPED MASKS ARE NOT REPRODUCED BY THIS LIST, because they are
+# not plain seeds.  Running with no arguments re-bakes 01-05 and would QUIETLY
+# FLATTEN 03 back to a square-cornered bake, so use its line, not the bare
+# command:
+#
+#     03  python scripts/make-filmrow-mask.py --seed 3 --corner 1.1
+#     06  python scripts/make-filmrow-mask.py --seed 6 --vertebrae 9 --vertebrae-mix 0.35
+#     07  python scripts/make-filmrow-mask.py --seed 7 #             --from-alpha assets/reference/Untitled-2fix.png --invert
+#
+# These lines are the only record of how those three were made, exactly as the
+# header's bake line is for the rest.  Keep them in step with the files.
 DEFAULT_DEPTH = 0.11
 DEFAULT_SOFTNESS = 0.50
 DEFAULT_W = 768
 DEFAULT_H = 640
-SHIPPED_SEEDS = [1, 2, 3]
+SHIPPED_SEEDS = [1, 2, 3, 4, 5]
 
 
 def main(argv=None):
@@ -335,10 +494,33 @@ def main(argv=None):
                    help="how far out the erosion may walk, in band widths. "
                         "The dial between rounded rectangle and cloud; see the "
                         "table in the module header (default %(default)s)")
+    p.add_argument("--corner", type=float, default=0.0,
+                   help="smooth-min radius in band widths, which stops a noise "
+                        "lobe growing into a spike at a corner. 0 = the plain "
+                        "square distance field (default %(default)s)")
+    p.add_argument("--vertebrae", type=int, default=0,
+                   help="segments down each SIDE edge, spine-fashion. "
+                        "0 = off, the shipped cloud (default %(default)s)")
+    p.add_argument("--vertebrae-mix", type=float, default=VERT_MIX,
+                   dest="vert_mix",
+                   help="how much of the rhythm replaces the noise on the "
+                        "sides, 0-1 (default %(default)s)")
     p.add_argument("--seed", type=int, default=None,
                    help="one seed. Omit to bake the shipped set %s" % SHIPPED_SEEDS)
     p.add_argument("--width", type=int, default=DEFAULT_W)
     p.add_argument("--height", type=int, default=DEFAULT_H)
+    p.add_argument("--from-alpha", default=None, dest="from_alpha",
+                   help="bake from a hand-painted PNG's ALPHA channel instead "
+                        "of the noise field. Stretches the alpha to 0-255 and "
+                        "blends a cloud edge over the top and bottom; see "
+                        "from_alpha() for the measurements behind both")
+    p.add_argument("--no-edge-blend", action="store_false", dest="edge_blend",
+                   default=True,
+                   help="with --from-alpha, bake the painted alpha as-is")
+    p.add_argument("--invert", action="store_true", default=False,
+                   help="with --from-alpha, flip the painted alpha. The "
+                        "convention is alpha 255 = KEEP THE VIDEO; a mask that "
+                        "is opaque only around its edges needs this")
     p.add_argument("--out", default=None,
                    help="output path for a single --seed bake")
     args = p.parse_args(argv)
@@ -360,8 +542,14 @@ def main(argv=None):
     # side, see the header).
     ring = int(round(args.reach * args.depth * args.height))
     for seed, path in jobs:
-        arr = make_mask(args.width, args.height, args.depth, args.softness,
-                        seed, args.wobble, args.reach)
+        if args.from_alpha:
+            arr = from_alpha(args.from_alpha, args.width, args.height,
+                             args.depth, seed, args.reach, args.edge_blend,
+                             args.invert)
+        else:
+            arr = make_mask(args.width, args.height, args.depth, args.softness,
+                            seed, args.wobble, args.reach,
+                            args.vertebrae, args.vert_mix, args.corner)
 
         # The contract the CSS depends on: the middle of the frame is untouched
         # video.  Assert it rather than trust it — this is a generator whose
@@ -375,11 +563,13 @@ def main(argv=None):
         size = write_mask(path, arr)
         lo, hi, med = contour_spread(arr, args.depth * args.height)
         print("%s  %dx%d  depth %.3f (%dpx band, %dpx ring)  softness %.2f  "
-              "wobble %.2f  reach %.2f  seed %d  %.1f KB  crisp core %.0f%%x%.0f%%  "
+              "wobble %.2f  reach %.2f  seed %d  vertebrae %d/%.2f  %.1f KB  "
+              "crisp core %.0f%%x%.0f%%  "
               "50%%-alpha contour %.2f-%.2f (median %.2f) x band"
               % (os.path.relpath(path, repo), arr.shape[1], arr.shape[0],
                  args.depth, round(args.depth * args.height), ring,
-                 args.softness, args.wobble, args.reach, seed, size / 1024.0,
+                 args.softness, args.wobble, args.reach, seed,
+                 args.vertebrae, args.vert_mix, size / 1024.0,
                  100.0 * (args.width - 2 * ring) / args.width,
                  100.0 * (args.height - 2 * ring) / args.height, lo, hi, med))
     return 0

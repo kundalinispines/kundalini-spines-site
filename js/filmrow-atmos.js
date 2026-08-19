@@ -370,7 +370,15 @@
 
   /* Row 1 takes the variant, row 2 the next one, wrapping at 3 — the three
      baked masks come from three seeds precisely so the rows differ. */
-  function maskFor(i) { return ((state.maskVariant - 1 + i) % 3 + 3) % 3 + 1; }
+  /* How many baked masks exist. MUST match the data-fr-mask rules in
+     css/filmrow-atmos.css -- a count higher than the rules hands out an
+     attribute with no rule behind it, which falls back to mask-01 silently
+     and makes this panel report a silhouette the page is not wearing. */
+  var MASK_COUNT = 7;
+
+  function maskFor(i) {
+    return ((state.maskVariant - 1 + i) % MASK_COUNT + MASK_COUNT) % MASK_COUNT + 1;
+  }
 
   function applyMask() {
     rows.forEach(function (el, i) {
@@ -539,11 +547,13 @@
     function () { return state.feather; },
     function (v) { state.feather = v; applyToggles(); sync(); }));
   paints.push(Panel.slider(fSec, {
-    label: 'mask pair', min: 1, max: 3, step: 1,
+    label: 'mask pair', min: 1, max: MASK_COUNT, step: 1,
     fmt: function (v) { return maskFor(0) + ' / ' + maskFor(1); },
-    tip: 'Which baked mask each row wears. Three variants are baked from three ' +
-         'seeds; row 1 takes this one and row 2 the next, so the two silhouettes ' +
-         'are never the same. Writes data-fr-mask on the figures.'
+    tip: 'Which baked mask each row wears. Seven variants are baked; row 1 ' +
+         'takes this one and row 2 the next, so the two silhouettes are never ' +
+         'the same. 1-5 are plain cloud from five seeds; 6 carries the ' +
+         'vertebral rhythm; 7 is the hand-painted one. Writes data-fr-mask on ' +
+         'the figures.'
   }, function () { return state.maskVariant; },
      function (v) { state.maskVariant = v; applyMask(); sync(); }));
   Panel.note(fSec, 'depth and softness are baked into the PNG by ' +

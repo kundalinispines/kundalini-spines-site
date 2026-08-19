@@ -173,6 +173,36 @@
 .ksd-filmrow__media[data-fr-mask="2"] { --fr-mask: url("../assets/atmos/filmrow-mask-02.png"); }
 .ksd-filmrow__media[data-fr-mask="3"] { --fr-mask: url("../assets/atmos/filmrow-mask-03.png"); }
 
+/* 04-07 added Aug 18-19 2026, to widen the CHOICE of silhouette. They were
+   first justified here as stopping a repeat on the third row and THAT WAS
+   WRONG, checked before it was committed: maskFor() walks the variants by one
+   per row, so at three rows the rotation gives three distinct masks at every
+   setting whether there are three variants or seven. A repeat only becomes
+   possible at a FOURTH film row, and then only when MASK_COUNT is 3.
+
+   06 IS NOT ANOTHER SEED, IT IS A DIFFERENT FIELD. It carries the vertebral
+   rhythm: --vertebrae 9 --vertebrae-mix 0.35, a regular stack of nine bites
+   down the LEFT and RIGHT edges only, with the top and bottom left as ordinary
+   cloud. The generator's header carries the measurement for why the rhythm is
+   weighted to the sides -- unweighted it rules a DEAD straight line across the
+   top (50%-alpha contour spread 0.00), which is the rectangle this layer
+   exists to dissolve.
+
+   ANY NEW MASK NEEDS A LINE HERE *AND* MASK_COUNT IN js/filmrow-atmos.js.
+   Without the rule the attribute silently falls back to mask-01 and the tuner
+   reports a variant the page is not wearing. */
+.ksd-filmrow__media[data-fr-mask="4"] { --fr-mask: url("../assets/atmos/filmrow-mask-04.png"); }
+.ksd-filmrow__media[data-fr-mask="5"] { --fr-mask: url("../assets/atmos/filmrow-mask-05.png"); }
+.ksd-filmrow__media[data-fr-mask="6"] { --fr-mask: url("../assets/atmos/filmrow-mask-06.png"); }
+
+/* 07 is the OWNER'S OWN mask, hand-painted at 768x640 and baked from its ALPHA
+   by --from-alpha (see scripts/make-filmrow-mask.py). Serrated vertebral teeth
+   down the sides; the top and bottom are an ordinary cloud blended in, because
+   as painted they met the border at full strength (median 0px to full opacity)
+   and brought the rectangle back on two edges. Source kept at
+   assets/reference/Untitled-2.png. */
+.ksd-filmrow__media[data-fr-mask="7"] { --fr-mask: url("../assets/atmos/filmrow-mask-07.png"); }
+
 /* ==========================================================================
    LAYER 1 — THE EDGE FEATHER
    ==========================================================================

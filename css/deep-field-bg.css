@@ -1,5 +1,5 @@
 /* deep-field-bg.css — the home page's background clip.
-   --df-build: 10;
+   --df-build: 11;
 
    WHAT THIS IS
    The 12.042s deep-field-2 clip painted full-bleed behind the whole home
@@ -64,7 +64,39 @@
      split as --kick / --kick-cloud in css/star-bg.css. */
   --df-lum: 0;
   --df-scrim-base: 0.35;
-  --df-scrim-gain: 0.5;
+
+  /* 0.30 SINCE Aug 18 2026, DOWN FROM 0.5, because Merch read as dark to the
+     owner and the reason was this dial doing its job too well. The scrim is
+     base + gain * lum, so it darkens IN PROPORTION to the clip, and Merch is
+     parked on --df-lum 1.000 - the clip is luminance peak. Picking the
+     brightest frame was therefore what drove the scrim to its ceiling: the
+     brightest frame and the brightest thing on screen were opposites.
+
+     MEASURED at every stop, the painted background as it ships against the
+     same frozen frame with the scrim hidden. It only ever bit in two places -
+     everywhere else the clip is near black and the scrim has nothing to take:
+
+         Merch (lum 1.000)   19.0 against 98.0    80.6% taken
+         Archive (0.512)     49.0 against 118.5   58.6% taken
+         every other stop                         0 to 4%
+
+     THE GAIN IS THE RIGHT DIAL FOR THIS and --df-scrim-base is not: base lifts
+     every stop uniformly, including the dark ones that do not need it, while
+     the gain only gives back what it took from the bright frames.
+
+     V2HANDOFF 40 RECORDS MERCH AS HAVING NO SCRIM HEADROOM LEFT. THAT IS
+     WRONG, and it was wrong when it was written - it was asserted rather than
+     measured. Sweeping the gain at Merch against the copy real colour:
+
+         gain 0.50 (was)  background 14.1   contrast 8.94:1
+         gain 0.30 (now)  background 21.9   contrast 8.40:1
+         gain 0.00        background 33.2   contrast 7.49:1
+
+     Even with the gain at ZERO the copy clears WCAG AAA (7:1), let alone AA
+     4.5. So there was never a readability wall anywhere near where this sat;
+     0.30 is the owner asking for a little rather than all of it, and there is
+     room to go further if it still reads dark. */
+  --df-scrim-gain: 0.30;
 
   --df-on: 1;
 
@@ -312,7 +344,9 @@ body::before { opacity: var(--df-sky, 1); }
    WHAT IT COSTS THE COPY, MEASURED rather than assumed, because the layer
    sits at z-index -1 while the scrim lives INSIDE the clip's -2 stacking
    context - so cloud light lands ON TOP of the scrim rather than under it, and
-   V2HANDOFF 40 records Merch as having no scrim headroom left. Captured with
+   V2HANDOFF 40 records Merch as having no scrim headroom left - which was
+   measured on Aug 18 2026 and is NOT true; see the note on --df-scrim-gain,
+   where the sweep is. Captured with
    the text hidden so the crop is the true background, at 1440x900, each
    section on its own cue frame:
 

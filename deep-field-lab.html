@@ -220,12 +220,13 @@ input[type=text] { cursor: text; min-width: 148px; }
   overflow: hidden;
   cursor: ew-resize;
   /* One tile per frame, so a pixel of strip maps to a frame of clip at any HUD
-     width. background-size stretches it to 100% regardless, which is why the
-     two clips' strips can be different pixel widths (deep-field 2120x80 for
-     265 frames, deep-field-2 2312x80 for 289) and neither needs a CSS change.
+     width. background-size stretches it to 100% regardless, which is why two
+     clips' strips can be different pixel widths (deep-field-2 is 2312x80 for
+     289 frames; the retired deep-field was 2120x80 for 265) without either
+     needing a CSS change.
      THE URL BELOW IS THE JS-OFF DEFAULT ONLY — the script overwrites it from
      the CLIPS table, because a stylesheet cannot read ?clip=. */
-  background-image: url('assets/lab/deep-field-strip.jpg');
+  background-image: url('assets/lab/deep-field-2-strip.jpg');
   background-size: 100% 44px;
   background-position: 0 0;
   background-repeat: no-repeat;
@@ -244,7 +245,7 @@ input[type=text] { cursor: text; min-width: 148px; }
   position: fixed; left: 0; top: 0;
   width: 160px; height: 90px;
   border: 1px solid var(--hud-line); border-radius: 3px;
-  background-image: url('assets/lab/deep-field-sprites.jpg');
+  background-image: url('assets/lab/deep-field-2-sprites.jpg');
   background-size: 3200px 1260px;
   pointer-events: none; opacity: 0; transition: opacity 90ms linear;
   z-index: 60;
@@ -365,15 +366,19 @@ input[type=range]::-webkit-slider-thumb {
          deep-field.webm   median 10.1ms   max 12.1ms   (VP9, crf 31, -g 4)
          deep-field.mp4    median 25.0ms   max 34.3ms   (x264, crf 22, -g 4)
 
+     (That pair is the retired deep-field clip, kept because it is the
+     measurement the webm-first ordering was decided on; deep-field-2 is
+     encoded the same way with the same -g 4.)
+
      The webm is two and a half times quicker here. The hero's numbers are not
      wrong, they are about a different encode; carrying them over would have put
      the slow source first on a clip that gets seeked every single frame.
      Re-measure per clip. Do not infer this ordering from the other lab. -->
 <div class="df-stage">
   <video id="vid" muted playsinline preload="auto" aria-hidden="true"
-         poster="assets/video/deep-field-poster.jpg">
-    <source src="assets/video/deep-field.webm" type="video/webm">
-    <source src="assets/video/deep-field.mp4" type="video/mp4">
+         poster="assets/video/deep-field-2-poster.jpg">
+    <source src="assets/video/deep-field-2.webm" type="video/webm">
+    <source src="assets/video/deep-field-2.mp4" type="video/mp4">
   </video>
   <!-- Inside the stage, not a sibling of it: mix-blend-mode composites against
        the backdrop within its own stacking context, and `difference` against
@@ -480,25 +485,22 @@ input[type=range]::-webkit-slider-thumb {
 (function () {
   'use strict';
 
-  /* THE PAGE MARKS ONE CLIP AT A TIME, chosen by ?clip= (default deep-field).
-     Everything clip-specific hangs off this one table — sources, filmstrip,
-     sprite sheet, luminance wave, frame count, and the localStorage key.
-     THE KEY IS NAMESPACED PER CLIP ON PURPOSE: both clips are marked in the
-     same browser, and a shared key would silently load one clip's marks onto
-     the other's timeline at frame numbers that mean nothing there. The old
-     un-suffixed 'ks-deep-field-marks-v1' is kept as deep-field's key rather
-     than renamed, so the marks already saved in the owner's browser survive.
-     ADDING A THIRD CLIP is this table plus scripts/build-marker-clip.py; no
-     other line of this page knows a clip's name. */
+  /* THE PAGE MARKS ONE CLIP AT A TIME, chosen by ?clip= (default
+     deep-field-2). Everything clip-specific hangs off this one table —
+     sources, filmstrip, sprite sheet, luminance wave, frame count, and the
+     localStorage key.
+     THE KEY IS NAMESPACED PER CLIP ON PURPOSE: more than one clip gets marked
+     in the same browser, and a shared key would silently load one clip's marks
+     onto another's timeline at frame numbers that mean nothing there.
+     THE ORIGINAL deep-field CLIP WAS RETIRED Aug 18 2026 (owner's call) once
+     the home page had moved to deep-field-2 and nothing else fetched it. Its
+     8.8MB of video, its lab assets and its marks went with it — they are in
+     git history if that ever needs reversing, and its key was the un-suffixed
+     'ks-deep-field-marks-v1', which is now orphaned in any browser that marked
+     it. An unknown ?clip= falls back to the default, so old links still open.
+     ADDING A CLIP is this table plus scripts/build-marker-clip.py; no other
+     line of this page knows a clip's name. */
   var CLIPS = {
-    'deep-field': {
-      label:  'deep-field',
-      source: 'hf_20260817_134439_24ec20db-eecc-4fa0-b395-32fd6db6c6ae.mp4',
-      base:   'assets/video/deep-field',
-      lab:    'assets/lab/deep-field',
-      fps: 24, frames: 265,
-      lsKey:  'ks-deep-field-marks-v1'
-    },
     'deep-field-2': {
       label:  'deep-field-2',
       source: 'hf_20260818_093844_b8528425-32da-4567-8273-690818faaf92.mp4',
@@ -511,7 +513,7 @@ input[type=range]::-webkit-slider-thumb {
 
   var CLIP_ID = (function () {
     var q = new URLSearchParams(location.search).get('clip');
-    return (q && CLIPS[q]) ? q : 'deep-field';
+    return (q && CLIPS[q]) ? q : 'deep-field-2';
   })();
   var CLIP = CLIPS[CLIP_ID];
 

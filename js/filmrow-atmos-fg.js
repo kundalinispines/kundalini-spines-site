@@ -628,9 +628,10 @@
 
     /* The scrub's own mapping, recomputed off the media rect rather than the
        video's. Same numbers, same rect, no listener on the video. Kept in step
-       with js/spine-doc.js scrubToScroll — if the 0.10/0.70 window is ever
-       retuned there, retune it here or the atmosphere lags a clock that has
-       moved. */
+       with the scrub in filmrow-atmos-lab.html — if the 0.10/0.70 window is
+       ever retuned there, retune it here or the atmosphere lags a clock that
+       has moved. (It used to say js/spine-doc.js scrubToScroll; that function
+       was deleted Aug 18 2026 and the labs now carry the only copies.) */
     function readProgress() {
       var r = mediaEl.getBoundingClientRect();
       var vh = global.innerHeight || document.documentElement.clientHeight;

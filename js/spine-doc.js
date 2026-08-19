@@ -321,76 +321,37 @@
      exactly what that preference declines, so the caller gates on it.
 
      ---------------------------------------------------------------------
-     NO CALLER TODAY (Aug 17 2026). Every clip this drove was unwired from the
-     scroll on the owner's call within a few hours: first the two film rows,
-     then the merch render. Nothing on any page that loads this file scrubs any
-     more, so this function is dead as it stands.
+     DELETED Aug 18 2026 (owner's call). Everything above describes
+     scrubToScroll, which drove the two film rows and the merch render until
+     Aug 17, when all three were unwired from the scroll within a few hours.
+     V2HANDOFF 40 kept it one more session on the argument that its constants
+     were recorded nowhere else. They are recorded here now, so the code could
+     go:
 
-     IT IS KEPT RATHER THAN DELETED, deliberately, and this note is here so the
-     next session does not read the silence as an oversight. The lerp constant,
-     the 1/48 write threshold and the !seeking coalescing guard all have owner
-     decisions and measurements behind them that are recorded nowhere else, and
-     js/deep-field-bg.js's own scrub loop was copied from this one. Deleting it
-     costs that record; leaving it costs a screenful. Delete it once the owner
-     has lived with self-playing clips long enough to be sure.
+         lerp 0.3 per frame toward the target, up from a first cut at 0.22 —
+           the softer settle trailed the scroll visibly;
+         settled when |target - shown| <= 0.005, then stop the rAF;
+         write threshold 1/48s — half a frame at 24fps, below which a seek is
+           not worth the decode;
+         the write is guarded on !v.seeking, which coalesces a burst of scroll
+           events into one seek and is the difference between smooth and
+           stuttering on a keyframe-sparse encode;
+         progress is re-normalised to the 0.10..0.80 slice of enter-to-exit, so
+           the clip finishes while the element is still comfortably on screen
+           rather than parking its last frame at the moment it leaves;
+         the target is clamped to duration - 0.05, because seeking to the exact
+           final timestamp lands past the last frame in some decoders.
+
+     WHY -g 4 STILL MATTERS, since the note below points here for it: those
+     keyframe-dense encodes were cut for SEEKING, not playback. Nothing scrubs
+     today, so the density is surplus for the film rows — but the merch render
+     is the one clip that may be scrubbed again, and js/deep-field-bg.js reverse
+     travel is a seek loop that depends on it.
+
+     TWO VERBATIM COPIES SURVIVE and are now the only running ones:
+     filmrow-atmos-lab.html and filmrow-fg-lab.html, both tuning labs. Whether
+     they should stop scrubbing to match the real page is still open.
      --------------------------------------------------------------------- */
-  function scrubToScroll(v) {
-    let target = 0, shown = 0, raf = 0, settleTries = 0;
-    const tick = function () {
-      raf = 0;
-      // 0.3, up from a first cut at 0.22 — the softer settle trailed the
-      // scroll enough that the turn read as loose (owner's call).
-      const settled = Math.abs(target - shown) <= 0.005;
-      if (settled) shown = target;
-      else { shown += (target - shown) * 0.3; settleTries = 0; }
-
-      /* TWO THRESHOLDS. Half a source frame while the scroll is MOVING —
-         anything tighter queues seeks faster than the decoder retires them,
-         which is what makes naive scrubbers feel like glue. Tighter once it
-         SETTLES, because the resting frame is the one anybody actually looks
-         at.
-
-         FIXED Aug 17 2026. Before this the loop rescheduled on |target - shown|
-         alone, checked after the write attempt, so a final iteration that
-         collided with an in-flight seek dropped its write and scheduled
-         nothing — leaving the picture up to a frame short until the next
-         scroll event. Found on the deep-field background, where every movement
-         ends on a composed flash frame and one frame is visible; on these
-         column-width film rows it never was. Re-verified after the change on
-         all three clips this drove that day (the merch render and both film
-         rows; the rows stopped being scrubbed later the same day).
-         Bounded at six extra frames so a decoder that will not report the time
-         it was handed cannot spin rAF forever. */
-      const thresh = settled ? 1 / 200 : 1 / 48;
-      if (!v.seeking && v.duration && Math.abs(v.currentTime - shown) > thresh) {
-        v.currentTime = shown;
-      }
-      const landing = settled && v.duration &&
-        Math.abs(v.currentTime - shown) > thresh && settleTries < 6;
-      if (landing) settleTries++;
-      if (!settled || landing) raf = requestAnimationFrame(tick);
-    };
-    const onScrub = function () {
-      if (!v.duration) return;
-      const r = v.getBoundingClientRect();
-      const p = Math.min(1, Math.max(0,
-        (window.innerHeight - r.top) / (window.innerHeight + r.height)));
-      // The raw pass maps 0..1 over enter-to-exit, which parks the END of the
-      // clip past the point anyone is still looking — the first cut used it
-      // directly and the spine never visibly closed its turn (owner's call).
-      // Re-normalising to the 0.10..0.80 slice finishes while the element is
-      // still well inside the viewport, with a still hold either side.
-      const p2 = Math.min(1, Math.max(0, (p - 0.10) / 0.70));
-      // −0.05: never ask for the exact last timestamp — seeking to duration
-      // lands past the final frame in some decoders.
-      target = p2 * (v.duration - 0.05);
-      if (!raf) raf = requestAnimationFrame(tick);
-    };
-    v.addEventListener('loadedmetadata', onScrub);
-    window.addEventListener('scroll', onScrub, { passive: true });
-    window.addEventListener('resize', onScrub);
-    onScrub();
-  }
 
   /* THE FILM ROWS PLAY THEMSELVES AND LOOP FOREVER (Aug 17 2026, owner's call).
      They were scroll-scrubbed by scrubToScroll until today; they are not driven

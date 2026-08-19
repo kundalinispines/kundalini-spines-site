@@ -74,6 +74,9 @@
      until the look is approved. See the LIVE flag at the top of that file. -->
 <link rel="stylesheet" href="css/filmrow-atmos.css">
 <link rel="stylesheet" href="css/filmrow-atmos-fg.css">
+<!-- The tape treatment over the same three rows. AFTER filmrow-atmos.css,
+     which owns the feather mask this file hands over to the canvas. -->
+<link rel="stylesheet" href="css/filmrow-vhs.css">
 <style>
   /* The glow field's ::before is `inset: -90%` -- 2.8x the clip on both axes.
      That size is deliberate and documented in css/filmrow-atmos.css: a gradient
@@ -579,5 +582,9 @@
      focus pass, attaches the foreground, and registers the Film tab. -->
 <script src="js/filmrow-atmos-fg.js"></script>
 <script src="js/filmrow-atmos.js"></script>
+<!-- The VHS tape treatment on the film rows. Mounts its own canvas per row and
+     registers the VHS tuner tab; falls back to the plain video if WebGL2 is
+     missing or the 768px gate says no. -->
+<script src="js/filmrow-vhs.js"></script>
 </body>
 </html>

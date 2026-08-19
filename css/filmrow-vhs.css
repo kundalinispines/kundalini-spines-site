@@ -1,0 +1,56 @@
+/* filmrow-vhs.css — the canvas that carries the tape treatment.
+   Pairs with js/filmrow-vhs.js, which owns the shader and adds .has-fr-vhs.
+   Loaded AFTER css/filmrow-atmos.css, which owns the feather mask this file
+   has to hand over. */
+
+/* THE FIGURE HAS TO BE A POSITIONING CONTEXT, and it cannot rely on the glow
+   layer's `.has-fr-vhs.has-fr-glow { position: relative }` to supply one: the
+   glow is behind js/filmrow-atmos.js's LIVE flag and the tape is not, so on a
+   normal visit the glow class is absent and the canvas would otherwise position
+   itself against .ksd-doc and land somewhere else on the page entirely. */
+.ksd-filmrow__media.has-fr-vhs { position: relative; }
+
+/* THE VIDEO GOES TO OPACITY 0, NEVER display OR visibility. It is still the
+   texture the shader samples every frame, and a display:none or
+   visibility:hidden media element stops producing frames — the tape would
+   freeze on whatever it last uploaded and look like a still. */
+.ksd-filmrow__media.has-fr-vhs video { opacity: 0; }
+
+.fr-vhs {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  /* Above the video it replaces, and clear of the glow, which is a ::before at
+     z-index -1 BEHIND the footage. */
+  z-index: 1;
+  /* The row is atmosphere, not a control. The carousel taught this file's
+     neighbours the same lesson: a transparent overlay that still takes the
+     pointer makes what is under it feel dead. */
+  pointer-events: none;
+}
+
+/* THE FEATHER MASK FOLLOWS THE PICTURE ONTO THE CANVAS.
+
+   css/filmrow-atmos.css masks the <video>, which is exactly right until the
+   video stops being the thing you see. With the tape on, the canvas is the
+   picture — so an unmasked canvas would paint the hard rectangle the mask
+   exists to dissolve, and the feather would appear to have been deleted while
+   its stylesheet still said it was there.
+
+   The declarations are duplicated rather than shared because the two selectors
+   cannot be merged: this one must also require .has-fr-vhs, or a row with the
+   feather but no tape would mask a canvas that is not there. --fr-mask is set
+   per data-fr-mask on the figure, so both readers resolve the same PNG. */
+.ksd-filmrow__media.has-fr-feather.has-fr-vhs .fr-vhs {
+  -webkit-mask-image: var(--fr-mask);
+          mask-image: var(--fr-mask);
+  -webkit-mask-size: 100% 100%;
+          mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+          mask-repeat: no-repeat;
+  -webkit-mask-position: 50% 50%;
+          mask-position: 50% 50%;
+          mask-mode: alpha;
+}

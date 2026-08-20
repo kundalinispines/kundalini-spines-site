@@ -424,6 +424,43 @@
 }
 .newsletter__inner { max-width: 56ch; margin-inline: auto; }
 .newsletter h1, .newsletter h2 { font-family: var(--font-display-stencil); } /* h1: connect.html runs this block as a page (Aug 12 2026) */
+
+/* THE HEADING IS CAPPED SO ITS LONGEST WORD FITS THE MEASURE (Aug 20 2026).
+
+   Reported as "Connected is not centered" on connect.html, and it was: three of
+   the four lines were centred to the pixel and one was not. MEASURED at 1440,
+   "Stay Connected to the Signal" wrapped to four lines inside the 523px column
+   (.newsletter__inner is 56ch):
+
+     line        width    centre      page centre 720
+     Stay        241px    720         centred
+     Connected   609px    762         85px PAST the right edge
+     to the      341px    720         centred
+     Signal      360px    720         centred
+
+   The cause is not a centring bug and there is nothing wrong with
+   `text-align: center`. --fs-hero is clamp(2.75rem, 9vw, 8.25rem), so at 1440
+   the h1 renders at 129.6px, and at that size the single word "Connected"
+   measures 609px. A word that cannot break and is wider than its line box
+   overflows to the right in LTR, and centring has nothing left to do — the box
+   is 523px and the word simply does not fit in it.
+
+   It only breaks WIDE. The column stops growing at 56ch while 9vw does not, so
+   the two cross somewhere past ~1160px; at 900 the word measures 447px and at
+   390 it is 293px, both comfortably inside, and both were centred correctly.
+   That is why this reads as a desktop-only fault.
+
+   6.75rem = 108px is the cap. "Connected" scales at 4.699px of width per 1px of
+   font-size (609 / 129.6, letter-spacing is em-based so it scales too), which
+   puts the word at 507px — inside the 523px column with 16px to spare. The
+   largest size that would still fit is 111.3px; 108 is that number with the
+   rounding headroom taken off rather than sat on.
+
+   NOT FIXED BY `overflow-wrap: break-word` — that would hyphenlessly snap the
+   word to "Connec / ted", which is worse than the fault. NOT fixed by widening
+   .newsletter__inner either: that element also sets the measure for the form
+   and the privacy copy below it, and they are the right width already. */
+.newsletter h1 { font-size: min(var(--fs-hero), 6.75rem); }
 .newsletter p { color: var(--text-secondary); }
 .newsletter-form {
   display: flex;

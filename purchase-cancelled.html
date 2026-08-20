@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<!-- ==========================================================================
+     PURCHASE — RETURN PAGE (CANCELLED). Aug 20 2026.
+
+     The address a payment provider returns a visitor to when they back out of
+     the hosted checkout. Sibling of purchase-success.html; the same skeleton,
+     the same five stylesheets, the same nav and footer. Read that file's banner
+     for the two decisions both pages share — why the file is flat at the repo
+     root rather than /purchase/cancelled, and why there is no page class on
+     <html>. Both apply here unchanged, and both are recorded in STRIPE-SETUP.md.
+
+     NOTHING BEHIND THIS IS CONNECTED. No payment processor is configured, so
+     nobody can currently abandon a checkout, because there is no checkout to
+     abandon. The copy is written to be true anyway.
+
+     THE TONE IS THE POINT ON THIS ONE. No guilt, no urgency, no discount
+     rescue, no "are you sure?", no countdown. A cancelled checkout is a
+     decision, and the site's register — restraint over noise — makes the
+     hard-sell version unusable here even if it converted. One short
+     acknowledgement, one plain statement that nothing was charged, and clear
+     routes back. That is the whole page, and it is short on purpose: a long
+     apology reads as a plea.
+     ========================================================================== -->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Checkout Cancelled — Kundalini Spines</title>
+<meta name="description" content="The Rise Up checkout was cancelled. Nothing was charged.">
+<link rel="canonical" href="/purchase-cancelled.html">
+<meta name="robots" content="noindex, nofollow">
+
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" href="assets/marks/spine-mark-solid-cut.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="assets/marks/apple-touch-icon.png">
+
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Kundalini Spines">
+<meta property="og:title" content="Checkout Cancelled — Kundalini Spines">
+<meta property="og:description" content="The Rise Up checkout was cancelled. Nothing was charged.">
+<meta property="og:image" content="/assets/hero/messengers-hero-duo.jpg">
+<meta name="twitter:card" content="summary_large_image">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@400;500&family=Rajdhani:wght@500;600;700&family=Anton&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/star-bg.css">
+<link rel="stylesheet" href="css/components.css">
+<link rel="stylesheet" href="css/site-footer.css">
+
+<!-- SAME SCOPED BLOCK AS purchase-success.html, MINUS THE RULES THIS PAGE DOES
+     NOT USE. Duplicated rather than lifted into css/components.css or a new
+     css/purchase-result.css, and the duplication is the cheaper mistake: five
+     pages share components.css and would all pay for four rules that two pages
+     use, while a sixth stylesheet is a sixth request and a file that would be
+     one <link> away from the pure-black failure merch.html's banner describes.
+     If a THIRD result page ever appears, that is the moment to extract it.
+     .ks-result__ref is absent here — there is no order reference on a checkout
+     that did not complete. -->
+<style>
+  .ks-result__headline {
+    font-family: var(--font-mag);
+    font-size: var(--fs-hero);
+    line-height: 0.92;
+    letter-spacing: -0.01em;
+    text-transform: uppercase;
+    margin: 0 0 var(--space-6);
+    color: var(--text-primary);
+  }
+  .ks-result__lede {
+    font-size: var(--fs-body-lg);
+    color: var(--text-primary);
+    max-width: 48ch;
+  }
+  .ks-result p { max-width: 68ch; color: var(--text-secondary); }
+  .ks-result__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-4);
+    margin-top: var(--space-8);
+  }
+
+  /* MEASURED AT 390x844, CHROMIUM VIA PLAYWRIGHT, Aug 20 2026. These three
+     buttons wrap to 214px, 127px and 169px in a 342px content column — a ragged
+     three-step stack that reads as three unrelated controls. Full width makes
+     them one block, matching .ks-edition__cta on purchase.html. The full note,
+     including why the 44px floor is a pin rather than a measured height, is in
+     purchase-success.html's block; this is the same rule and the two must be
+     changed together. */
+  @media (max-width: 600px) {
+    .ks-result__actions { flex-direction: column; align-items: stretch; }
+    .ks-result__actions .btn {
+      width: 100%;
+      min-height: 44px;
+      justify-content: center;
+      text-align: center;
+    }
+  }
+</style>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="nav is-scrolled">
+  <div class="container nav__inner">
+    <a class="nav__mark" href="/"><img src="assets/marks/spine-mark-solid-cut.svg" alt="" width="18" height="18" style="vertical-align:-3px;margin-right:8px;">KUNDALINI SPINES</a>
+    <button class="nav__toggle" aria-expanded="false" aria-controls="primary-nav">Menu</button>
+    <nav id="primary-nav" aria-label="Primary">
+      <ul class="nav__links">
+        <li><a href="/">Home</a></li>
+        <li><a href="/#about">About</a></li>
+        <li><a href="/#tracks">Music</a></li>
+        <li><a href="/#merch">Merch</a></li>
+        <li><a href="transmissions.html">Transmissions</a></li>
+        <li><a href="archive.html">Archive</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+
+  <!-- "NOTHING WAS CHARGED" IS THE FIRST LINE AFTER THE HEADLINE AND IT STAYS
+       THERE. It is the only question anybody has on this page, and burying it
+       under a paragraph of copy is how a cancellation page generates a support
+       email. Everything else is optional reading.
+
+       THE PRIMARY BUTTON GOES BACK TO purchase.html, not to the checkout: the
+       visitor just left the checkout, and dropping them straight back into it
+       is the pushy move this page is explicitly not making. Back to the
+       editions, where they can choose again or leave. -->
+  <section class="section container ks-result" style="padding-top: calc(var(--space-24) + 3rem);">
+    <div class="section-header" style="max-width: 68ch;">
+      <span class="label">Checkout</span>
+      <h1 class="ks-result__headline">Signal<br>Broken</h1>
+      <p class="ks-result__lede">Nothing was charged.</p>
+    </div>
+
+    <p>
+      The checkout was cancelled before it completed, and no payment was taken. Nothing is held, nothing is pending, and there is nothing you need to do.
+    </p>
+    <p>
+      The editions are where you left them. Rise Up is not going anywhere, and neither is the archive around it.
+    </p>
+
+    <div class="empty-state" style="margin-top: var(--space-8); max-width: 68ch;">
+      <span class="label">Status</span>
+      <p style="margin: 0;">
+        STANDBY. Purchasing is not open on this site yet &mdash; no payment processor is connected, so no checkout could have been started or cancelled. This page is the address an abandoned checkout will return to once the checkout is built.
+      </p>
+    </div>
+
+    <div class="ks-result__actions">
+      <a class="btn btn--primary" href="purchase.html">Back to the Editions</a>
+      <a class="btn btn--ghost" href="/#tracks">The Music</a>
+      <a class="btn btn--ghost" href="mailto:kundalinispines@gmail.com">Ask a Question</a>
+    </div>
+  </section>
+
+</main>
+
+<footer class="footer container">
+  <div class="footer__inner">
+    <ul class="footer__nav">
+      <li><a href="/#tracks">Music</a></li>
+      <li><a href="merch.html">Merchandise</a></li>
+      <li><a href="transmissions.html">Transmissions</a></li>
+      <li><a href="archive.html">Archive</a></li>
+      <li><a href="about.html">About</a></li>
+    </ul>
+    <ul class="footer__social">
+      <li><a href="https://www.instagram.com/kundalinispines/" data-social="instagram" rel="me noopener" target="_blank">Instagram</a></li>
+      <li><a href="#" data-social="tiktok">TikTok</a></li>
+      <li><a href="https://x.com/KundaliniSpines" data-social="x" rel="me noopener" target="_blank">X</a></li>
+      <li><a href="https://www.youtube.com/@KundaliniSpines" data-social="youtube" rel="me noopener" target="_blank">YouTube</a></li>
+      <li><a href="#" data-social="spotify">Spotify</a></li>
+    </ul>
+    <p class="footer__copyright">&copy; <span id="year">2026</span> Kundalini Spines. All rights reserved.</p>
+  </div>
+</footer>
+
+<!-- ks-chakras.js MUST precede site-footer.js: the footer reads KS.CHAKRAS and
+     KS.RECORD and bails with a console warning if that file has not run. -->
+<!-- FIRST: defines window.KSTunePanel, the shared /?tune shell every tuner on
+     the page registers a tab into. Loaded before any of them, or they find no
+     shell and silently render no controls. -->
+<script src="js/tune-panel.js"></script>
+<script src="js/nav.js"></script>
+<script>document.getElementById('year').textContent = new Date().getFullYear();</script>
+<script src="js/ks-chakras.js"></script>
+<script src="js/site-footer.js"></script>
+
+<!-- NO js/purchase-checkout.js HERE, AND THAT IS THE DIFFERENCE FROM
+     purchase-success.html. That page loads it to reach track() for the
+     purchase_completed event. There is no event for a cancellation in the four
+     the owner named, and inventing a fifth to justify a script tag would be
+     backwards. If a checkout_abandoned event is ever wanted, add it to the
+     event list in js/purchase-checkout.js §3 first, then add the tag here. -->
+</body>
+</html>

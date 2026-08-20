@@ -826,10 +826,24 @@
         : `<span class="btn btn--ghost is-placeholder" aria-disabled="true">${label}</span>`;
     }).join('');
 
-    const downloadHref = track.links && track.links.download;
-    const downloadButton = downloadHref
-      ? `<a class="btn btn--primary" href="${downloadHref}">Download — $1</a>`
-      : `<span class="btn btn--primary is-placeholder" aria-disabled="true">Download — $1</span>`;
+    // ---- "Purchase Rise Up", which replaced "Download — $1" (Aug 20 2026) ----
+    // The old button was a per-track dollar download and it was NEVER once a
+    // real link: `track.links.download` is null on all 28 tracks, so every
+    // visitor got the disabled `is-placeholder` span. The owner replaced the
+    // whole idea with an album purchase routed to purchase.html, which carries
+    // the three editions.
+    //
+    // THE PLACEHOLDER BRANCH IS GONE ON PURPOSE. It existed because the href
+    // was per-track and might be missing; this destination is a page in the
+    // repo, so it is always present and the button is always a real <a>. Do not
+    // reintroduce a disabled state here to mirror the streaming buttons above —
+    // those still branch because their hrefs genuinely are still null.
+    //
+    // NOTE: purchase.html is a ROUGH-IN and nothing behind it is wired to a
+    // payment provider yet (owner: "the site is not live"). The page itself
+    // says so; this button is not claiming a working checkout.
+    const downloadButton =
+      `<a class="btn btn--primary" href="purchase.html">Purchase Rise Up</a>`;
 
     let actions = focusPanel.querySelector('.track-focus-panel__actions');
     if (!actions) {
@@ -837,7 +851,11 @@
       actions.className = 'track-focus-panel__actions';
       const note = document.createElement('p');
       note.className = 'track-focus-panel__actions-note';
-      note.textContent = 'Streaming links go live once each platform is connected. Downloads open once payment is set up.';
+      // Second sentence rewritten with the button above it (Aug 20 2026): it
+      // used to say "Downloads open once payment is set up", which described
+      // the per-track dollar download that no longer exists. It must not imply
+      // the editions page can take money yet — it cannot.
+      note.textContent = 'Streaming links go live once each platform is connected. The album editions are a preview; purchasing is not open yet.';
       const anchor = focusPanel.querySelector('.track-focus-panel__close');
       focusPanel.insertBefore(actions, anchor);
       focusPanel.insertBefore(note, anchor);

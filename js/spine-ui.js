@@ -71,11 +71,18 @@
 
        kind: 'card', NOT 'immersive'. Immersive nodes (Music, Archive) take over
        the viewport and collapse the spine beside them, which is a promise about
-       how much is behind the click. There is no store yet — links.download is
-       null on all 28 tracks and the "$1" at track-experience.js:804 is still
-       hardcoded, which V2HANDOFF 26 lists as an open decision. A card states
-       what this is without pretending a shop exists. Promote it to 'immersive'
-       when there is a real storefront to expand into. */
+       how much is behind the click. There is still no STORE — but the reason
+       given here has changed (Aug 20 2026). It used to be that links.download
+       was null on all 28 tracks and the "$1" in track-experience.js was
+       hardcoded, with V2HANDOFF 26 listing "how anything is bought" as an open
+       decision. The owner has since made that decision: purchase.html carries
+       three album editions, and the track panel's button now points at it.
+
+       This node STAYS 'card' anyway, and that is deliberate rather than
+       leftover. purchase.html is a rough-in with nothing wired to a payment
+       provider, and merch.html is still objects-with-no-prices; an immersive
+       node promises a storefront to expand into, and there is not one yet.
+       Promote it when the editions can actually take money. */
     { id: 'merch', title: 'Merchandise', kind: 'card',
       eyebrow: 'The Objects',
       body: '<p>A lyric can become an artifact. An album image can become a symbol. A symbol can become an object you carry.</p><p>Garments, prints and pressings built to the same standard as everything else here — black, restrained, and marked only where a mark carries weight. Nothing decorative, nothing that would not survive the archive.</p>',

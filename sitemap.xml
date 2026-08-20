@@ -37,6 +37,26 @@
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
+  <!--
+    /purchase.html added 2026-08-20: the three Rise Up editions. Priority 0.7,
+    a notch ABOVE merch.html's 0.6, because the comment above explains that 0.6
+    is "below About and Archive at 0.7 because there is no store behind it yet"
+    — and this is the page that finally has one described.
+
+    IT IS STILL A ROUGH-IN and no payment provider is wired, so it is not 0.8.
+    Raise it when the editions can actually take money.
+
+    purchase-success.html and purchase-cancelled.html are DELIBERATELY ABSENT.
+    They are transactional endpoints reached only after a checkout round trip;
+    indexing them would put "TRANSMISSION RECEIVED" in search results for
+    people who never bought anything.
+  -->
+  <url>
+    <loc>https://kundalinispines.com/purchase.html</loc>
+    <lastmod>2026-08-20</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
   <url>
     <loc>https://kundalinispines.com/connect.html</loc>
     <lastmod>2026-08-12</lastmod>

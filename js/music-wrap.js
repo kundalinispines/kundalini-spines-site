@@ -633,13 +633,23 @@
   }
 
   /* 02 PURCHASE RISE UP
-     There is nothing to buy against yet: data/tracks.json's links.download is
-     null on all 28 tracks, and the "Download — $1" price in
-     track-experience.js:804 is hardcoded into a template string rather than
-     coming from the data. So this reports the same thing the hidden actions
-     note says, in the same words, rather than pretending at a checkout. */
+     THIS NOW GOES SOMEWHERE (Aug 20 2026). It used to raise a toast saying
+     "purchase opens once payment is set up", because there was genuinely no
+     destination: links.download was null on all 28 tracks and the "Download —
+     $1" in track-experience.js was hardcoded into a template string. Both of
+     those are gone — that button is now "Purchase Rise Up" and points at
+     purchase.html, which carries the three editions, so this node points at
+     the same place rather than reporting a dead end.
+
+     The toast is NOT kept as a fallback. purchase.html is a file in the repo,
+     so the navigation cannot fail the way a null data field could; a fallback
+     here would only ever fire if the page were deleted, and then the toast
+     would be lying about the reason.
+
+     Still a ROUGH-IN: nothing behind that page is wired to a payment provider
+     (owner: "the site is not live"). The page says so itself. */
   function purchase() {
-    toast('Rise Up — purchase opens once payment is set up');
+    window.location.href = 'purchase.html';
   }
 
   /* 05 SHUFFLE — shuffle PLAY, not a one-shot jump.

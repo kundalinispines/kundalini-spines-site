@@ -37,14 +37,30 @@
      components, site-footer — the same five in the same order every other root
      page uses. Omitting star-bg.css is the single most common defect in this
      repo: the page renders pure black, with no error and nothing in the console
-     to say why. There is deliberately NO sixth stylesheet here. This page adds
-     no new CSS file and no inline <style> — see the note above the first
-     section for why it can afford not to. -->
+     to say why.
+
+     THERE IS NOW A SIXTH STYLESHEET, AND THE RULE IT BREAKS IS RECORDED RATHER
+     THAN DELETED (Aug 20 2026). This comment used to end: "There is
+     deliberately NO sixth stylesheet here. This page adds no new CSS file and
+     no inline <style>." That held while the page was objects-with-no-prices.
+     The owner then asked for the album to be purchasable from the merch section
+     too, so this page now shows the three editions — and css/purchase.css is
+     where those cards are defined, for purchase.html.
+
+     SHARING IT IS THE POINT. The alternative was an inline <style> block
+     duplicating .ks-edition here, which is what the old note pointed at for
+     "real furniture" — but that was written for a ONE-OFF, and this is the
+     opposite: the same component on two pages. A second copy would let the two
+     shopfronts drift, which is the exact failure the no-duplicate-styles rule
+     exists to prevent. css/components.css is already shared by five pages for
+     the same reason. Still NO inline <style> here: the cards below use
+     css/purchase.css as-is and add not one new declaration. -->
 <link rel="stylesheet" href="css/tokens.css">
 <link rel="stylesheet" href="css/base.css">
 <link rel="stylesheet" href="css/star-bg.css">
 <link rel="stylesheet" href="css/components.css">
 <link rel="stylesheet" href="css/site-footer.css">
+<link rel="stylesheet" href="css/purchase.css">
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to content</a>
@@ -87,13 +103,23 @@
   <!-- ==========================================================================
        WHAT THIS PAGE IS, AND WHAT IT DELIBERATELY IS NOT.
 
-       It is NOT a shop, and nothing on it may imply one. V2HANDOFF 26's "Still
-       open" item 4 is the reason: `links.download` is null on all 28 tracks and
-       the "$1" at track-experience.js:804 is hardcoded. How anything on this
-       site is bought — Bandcamp, Gumroad, Stripe, email capture — is an OPEN
-       DECISION the owner has not made. A page that shows a price or a buy
-       button before that decision exists is inventing the answer, and would
-       have to be un-invented later.
+       THE OBJECTS are not a shop, and nothing about them may imply one.
+
+       THIS PARAGRAPH USED TO SAY THAT ABOUT THE WHOLE PAGE, AND ITS REASON HAS
+       SINCE BEEN ANSWERED (Aug 20 2026). It read: "It is NOT a shop... How
+       anything on this site is bought — Bandcamp, Gumroad, Stripe, email
+       capture — is an OPEN DECISION the owner has not made. A page that shows a
+       price or a buy button before that decision exists is inventing the
+       answer." That was correct, and the condition it named is now gone: the
+       owner chose direct purchase, purchase.html carries three album editions,
+       and the track panel's old "Download — $1" is now "Purchase Rise Up".
+
+       So the page is split. The ALBUM has prices and a route to buy — see the
+       Own the Album section below, which links out to purchase.html and holds
+       no buy control of its own. THE GARMENTS AND PRINTS STILL DO NOT: no
+       price, no buy control, no implied stock. Nothing about how physical
+       merchandise is sold has been decided, and inventing it here would be the
+       same mistake the old note was written to prevent.
 
        So every object below is a placeholder with NO price and NO buy control.
        The one live route off this page is the mailto, which is the same address
@@ -181,6 +207,99 @@
        This section is the answer to the obvious question a catalogue with no
        prices provokes — "why bother filing it at all" — and it answers in the
        project's own terms rather than with a waiting-list pitch. -->
+  <!-- ==========================================================================
+       OWN THE ALBUM — the one thing on this page that leads somewhere you can
+       spend money, and the reason the "NOT A SHOP" note above had to be
+       rewritten rather than worked around (Aug 20 2026, owner asked for the
+       album to be purchasable "from the merch section as well").
+
+       NO BUY CONTROL LIVES HERE. The three cards below are a shopfront, and
+       every CTA is an <a> to purchase.html — checkout stays on exactly ONE
+       surface. That is deliberate: when a payment provider is finally wired,
+       there is one place to wire it, not two that will drift. The buttons on
+       purchase.html are real <button data-ks-purchase> elements bound by
+       js/purchase-checkout.js; nothing on this page is bound to that module and
+       this page does not load it.
+
+       THE CONTENTS LISTS ARE TRIMMED TO THREE LINES EACH. purchase.html carries
+       the full lists; repeating them here would make this page the second place
+       the offer is defined, and the two would drift. Three lines is enough to
+       tell the editions apart, and the card links to the authority.
+
+       PRICES APPEAR ON THIS PAGE, WHICH THE OLD NOTE FORBADE. That prohibition
+       was conditional -- it existed because "how anything on this site is
+       bought" was an open decision, so a price would have been inventing the
+       answer. The owner has since made the decision. The prices here are the
+       same placeholders purchase.html prints, and they are now a THIRD copy of
+       those numbers (markup here, markup there, and EDITIONS in
+       js/purchase-checkout.js). Change one, change all three. -->
+  <section class="section container" aria-labelledby="album-heading">
+    <div class="section-header">
+      <p class="label">Direct purchase</p>
+      <h2 id="album-heading">Own the Album</h2>
+    </div>
+
+    <p>An object you can hold is one way to carry this. The record itself is another. <strong>Rise Up</strong> is available directly from Kundalini Spines in three editions &mdash; the full contents, and the purchase, are on the editions page.</p>
+
+    <div class="ks-editions">
+      <article class="ks-edition" aria-labelledby="merch-edition-digital">
+        <p class="ks-edition__cat readout">01 / Digital</p>
+        <h3 class="ks-edition__title" id="merch-edition-digital">Rise Up &mdash; Digital Album</h3>
+        <p class="ks-edition__price"><span>$12</span></p>
+        <span class="label ks-edition__contents-label">Contents</span>
+        <ul class="ks-edition__contents">
+          <li>Complete Rise Up album</li>
+          <li>Lossless FLAC or WAV files</li>
+          <li>Immediate download after purchase</li>
+        </ul>
+        <div class="ks-edition__foot">
+          <a class="btn btn--ghost ks-edition__cta" href="purchase.html#edition-digital-title">Own the Digital Album</a>
+          <p class="ks-edition__note">Direct download &middot; Yours permanently</p>
+        </div>
+      </article>
+
+      <article class="ks-edition ks-edition--deluxe" aria-labelledby="merch-edition-deluxe">
+        <p class="ks-edition__cat readout">02 / Deluxe</p>
+        <p class="ks-edition__flag readout">Recommended</p>
+        <h3 class="ks-edition__title" id="merch-edition-deluxe">Rise Up &mdash; Deluxe Transmission</h3>
+        <p class="ks-edition__price"><span>$25</span></p>
+        <span class="label ks-edition__contents-label">Contents</span>
+        <ul class="ks-edition__contents">
+          <li>Everything in the Digital Album</li>
+          <li>Deluxe booklet, lyric archive and expanded artwork</li>
+          <li>Exclusive material not on streaming platforms</li>
+        </ul>
+        <div class="ks-edition__foot">
+          <a class="btn btn--primary ks-edition__cta" href="purchase.html#edition-deluxe-title">Unlock the Deluxe Edition</a>
+          <p class="ks-edition__note">Expanded archive &middot; Exclusive material</p>
+        </div>
+      </article>
+
+      <article class="ks-edition" aria-labelledby="merch-edition-artifact">
+        <p class="ks-edition__cat readout">03 / Artifact</p>
+        <h3 class="ks-edition__title" id="merch-edition-artifact">Rise Up &mdash; Artifact Edition</h3>
+        <p class="ks-edition__price"><span class="ks-edition__from">From</span> <span>$45</span></p>
+        <span class="label ks-edition__contents-label">Contents</span>
+        <ul class="ks-edition__contents">
+          <li>Everything in the Deluxe Digital Edition</li>
+          <li>Physical Kundalini Spines merchandise</li>
+          <li>Digital album immediately, even if the physical ships later</li>
+        </ul>
+        <div class="ks-edition__foot">
+          <!-- Same COMING SOON state purchase.html renders, and for the same
+               reason: physical inventory is not configured and this page must
+               not imply it is. STANDBY is the word this site already uses for a
+               channel that is not open (js/site-footer.js); the editions page
+               says "inventory not yet configured" in full, so this echoes it
+               rather than inventing a third phrasing. -->
+          <p class="ks-edition__status-line readout">Coming soon &mdash; inventory not yet configured</p>
+          <a class="btn btn--ghost ks-edition__cta" href="purchase.html#edition-artifact-title">Join the Release List</a>
+          <p class="ks-edition__note">Physical + Digital &middot; Limited quantity</p>
+        </div>
+      </article>
+    </div>
+  </section>
+
   <section class="section container" aria-labelledby="standard-heading">
     <div class="section-header">
       <span class="label">The Standard</span>

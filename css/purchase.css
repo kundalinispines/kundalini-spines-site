@@ -1,0 +1,544 @@
+/* ==========================================================================
+   PURCHASE — OWN THE ALBUM
+   Aug 20 2026. Owns the three edition cards on purchase.html and nothing else.
+   Roughing-in pass: real and working, not final.
+
+   WHY A FILE AND NOT AN INLINE <style>. Same call css/about-feature.css made and
+   for the same reason: this block has a JS partner (js/purchase-checkout.js), and
+   a feature's stylesheet and its script should be findable in the same two places
+   every other feature on this site is. Everything below is `ks-` prefixed and
+   used on exactly one page. If a second page ever needs one of these, extract it
+   then — do NOT push it into components.css, which six pages load.
+
+   IT LOADS LAST, after components.css. .ks-edition__cta is a .btn and overrides
+   .btn's padding-derived height with an explicit min-height; that is a
+   same-specificity fight won by source order alone. purchase.html's <head>
+   carries the same warning.
+
+   NO OPAQUE SURFACE ANYWHERE IN THIS FILE. The nebula and two of the four star
+   bands are pseudo-elements of <html> and <main> (css/star-bg.css). A solid panel
+   behind the cards would delete the sky for the entire height of the page, which
+   on this page is the entire page. The cards are translucent scrims — the
+   measured numbers are at .ks-edition below.
+   ========================================================================== */
+
+/* ---- Section head --------------------------------------------------------
+   .section already gives --space-24 top padding from base.css. The extra 3rem is
+   the same one-off merch.html applies inline, for the same reason: the fixed nav
+   is 92px expanded (--nav-h-max) and .section's padding alone puts an h1 under
+   it on first paint, before js/nav.js has collapsed the bar. */
+.ks-own { padding-top: calc(var(--space-24) + 3rem); }
+
+.ks-own__head { max-width: 72ch; margin-bottom: clamp(40px, 6vh, 72px); }
+.ks-own__head .label { display: block; margin-bottom: var(--space-3); }
+
+/* The lede is the line that has to land. Set in the DISPLAY face rather than
+   body — this is the one sentence on the page doing the album's argument, and
+   at 65ch of Plex Sans it reads as a subtitle instead.
+
+   30ch IS A LINE-BREAK DECISION, NOT A MEASURE. The sentence is a parallel
+   pair — "Streaming gives you access. Ownership gives you the transmission." —
+   and the break wants to fall between the clauses. Measured at 1440x900, line
+   widths in px:
+       30ch (474px cap):  420 / 359 / 210   <- clause 1 gets its own line
+       38ch (600px cap):  583 / 410         <- breaks after "OWNERSHIP"
+       no cap (734px):    same two lines as 38ch
+   So the wider settings are FEWER lines and a worse read: they hyphenate the
+   second clause's subject onto the first line and the pairing disappears.
+   Three lines is the right answer here. If the copy ever changes, re-measure —
+   this number means nothing on a different sentence. */
+.ks-own__lede {
+  margin: var(--space-6) 0 var(--space-4);
+  max-width: 30ch;
+  font-family: var(--font-display);
+  font-weight: var(--display-wght);
+  font-stretch: var(--display-stretch);
+  font-variation-settings: "wdth" var(--display-wdth), "wght" var(--display-wght);
+  text-transform: uppercase;
+  font-size: clamp(1.35rem, 2.6vw, 2.1rem);
+  line-height: 1.06;
+  letter-spacing: var(--tracking-heading);
+  color: var(--text-primary);
+}
+.ks-own__sub { max-width: 68ch; color: var(--text-secondary); }
+
+/* ---- The grid ------------------------------------------------------------
+   THREE UP, THEN STRAIGHT TO ONE. There is no two-column step, deliberately:
+   three cards in a two-column grid leave an orphan, and the orphan is Artifact —
+   the one tier that is not even purchasable yet. It would read as the odd one
+   out for a reason that has nothing to do with its state.
+
+   1024px IS THE SITE'S OWN NUMBER, not a new one: base.css collapses .grid--3 at
+   exactly 1024px. The 880px boundary css/about-feature.css uses is for floated
+   figures beside prose and does not transfer. Measured at 900px wide with the
+   3-up forced back on: each card is 258px border-box with a 208px contents
+   column, the Deluxe title breaks onto two lines, and "Exclusive bonus material
+   not available on streaming platforms" takes two lines where the stacked 640px
+   card sets it in one. Not catastrophic — but 208px is a 30-character column,
+   and three of them side by side is a worse read than one card at a time.
+
+   THE DELUXE COLUMN IS WIDER BY 12%, the smallest step that is visible without
+   reading as a different component. Measured at 1440x900 inside the 1232px
+   container: 379 / 425 / 380 border-box, against a flat 395 each if the columns
+   were 1fr. All three cards are 706px tall — they stretch, so the CTAs line up
+   across a 6-item, an 8-item and a 5-item contents list. */
+.ks-editions {
+  display: grid;
+  grid-template-columns: 1fr 1.12fr 1fr;
+  gap: var(--grid-gap);
+  align-items: stretch;
+}
+@media (max-width: 1024px) {
+  .ks-editions { grid-template-columns: 1fr; max-width: 640px; }
+}
+
+/* ---- An edition card -----------------------------------------------------
+   THE SCRIM IS 0.42 → 0.66 TOP TO BOTTOM, AND IT IS EARNING ITS KEEP. Measured
+   2026-08-20 with the twinkle and cloud-glow animations pinned to their 46%
+   keyframe (the peak), backdrop captured with the contents list set to
+   `color: transparent`, contrast computed against --text-secondary #9DB2C0
+   across every pixel of the list's box. Deluxe card, 1440x900:
+
+                       worst 1%    worst 5%    median
+       scrim on          5.21        7.06       8.90
+       scrim removed     1.49        3.11       7.94
+
+   and the same card at 390x844, where the phone crop puts the densest part of
+   the nebula band directly behind it: 3.01 → 7.05 at the worst 1%, 5.65 → 8.22
+   at the worst 5%. The Artifact card, whose list sits lower, runs 4.48 → 7.19
+   (worst 1%) at 1440. So without the scrim the bottom of the range is well
+   under AA's 4.5:1 and with it nothing in the card's own box is.
+
+   HOW TO RE-RUN THIS, because the obvious way is wrong. A full-page screenshot
+   paints position:fixed layers ONCE, at the top of the capture — clip a region
+   below the fold out of one and you sample flat page background and conclude the
+   sky is not there. Scroll the element into view and take a VIEWPORT screenshot
+   clipped to its rect. That mistake cost two measurement passes here, and it is
+   the same family of trap as the one css/about-feature.css records for shadows.
+
+   Going to a flat opaque --bg-surface would also have fixed contrast, and cost
+   the whole background — the one thing this page may not do. At 0.42 the star
+   field is still plainly visible through the card; the sky is dimmed, not
+   deleted.
+
+   The gradient runs DARKER DOWNWARD because that is where the list is longest
+   and the CTA sits; the head end stays lighter so the catalogue number and the
+   rule above it still sit over visible sky.
+
+   BORDER, NOT SHADOW, AND radius 0. --radius-sharp is the site default and the
+   reason is in tokens.css: severe/institutional, not soft. A rounded card with a
+   drop shadow is the exact SaaS pricing-table shape this page was told not to
+   be. */
+.ks-edition {
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-6) var(--space-6) var(--space-8);
+  border: 1px solid rgba(214, 213, 208, 0.14);
+  border-radius: var(--radius-sharp);
+  background: linear-gradient(180deg, rgba(3, 4, 15, 0.42) 0%, rgba(3, 4, 15, 0.66) 100%);
+  transition: border-color var(--motion-base) var(--ease-standard),
+              transform var(--motion-base) var(--ease-standard),
+              box-shadow var(--motion-base) var(--ease-standard);
+}
+
+/* The rule above the catalogue number. A ::before on the card rather than a
+   border-top on the number, so it can be inset from the padding and read as a
+   filing mark rather than as a second frame inside the first. */
+.ks-edition::before {
+  content: '';
+  display: block;
+  height: 1px;
+  margin-bottom: var(--space-4);
+  background: rgba(214, 213, 208, 0.22);
+}
+
+/* HOVER IS FOUR SMALL THINGS, NONE OF THEM A ZOOM. The border comes up, the card
+   lifts 2px, a very low atmospheric glow appears under it, and the catalogue
+   number slides 3px right (see .ks-edition__cat). 2px is deliberate — at 4px the
+   three cards visibly disagree about their baseline when the pointer crosses
+   between them, because the gap is only 24px.
+   :focus-within carries the same treatment so a keyboard reader gets the same
+   card response a mouse reader does; the button's own --focus-ring outline comes
+   from base.css on top of it. */
+.ks-edition:hover,
+.ks-edition:focus-within {
+  border-color: rgba(214, 213, 208, 0.34);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 34px rgba(3, 4, 15, 0.55);
+}
+
+/* THE CENTREPIECE, BY ACCUMULATION. A wider column (above), a lit hairline, a
+   marginally deeper scrim, and the word RECOMMENDED. No fill, no ribbon, no
+   glow: four quiet differences read as emphasis, one loud one reads as an ad. */
+.ks-edition--deluxe {
+  border-color: rgba(214, 213, 208, 0.30);
+  background: linear-gradient(180deg, rgba(3, 4, 15, 0.52) 0%, rgba(3, 4, 15, 0.74) 100%);
+}
+.ks-edition--deluxe::before { background: rgba(214, 213, 208, 0.40); }
+.ks-edition--deluxe:hover,
+.ks-edition--deluxe:focus-within { border-color: rgba(214, 213, 208, 0.50); }
+
+/* ---- Card head ----------------------------------------------------------- */
+/* .readout already sets Plex Mono / 12px / 0.08em / uppercase in base.css. Only
+   the colour, the spacing and the hover shift belong here. */
+.ks-edition__cat {
+  margin: 0 0 var(--space-4);
+  color: var(--text-secondary);
+  transition: transform var(--motion-base) var(--ease-standard),
+              color var(--motion-base) var(--ease-standard);
+}
+.ks-edition:hover .ks-edition__cat,
+.ks-edition:focus-within .ks-edition__cat {
+  transform: translateX(3px);
+  color: var(--text-primary);
+}
+.ks-edition--deluxe .ks-edition__cat { color: var(--color-crimson-lit); }
+
+/* RECOMMENDED. One of the page's two crimson uses (tokens.css budgets roughly
+   two a page); the other is the 02 catalogue number directly above it. It is
+   real text in the flow — nothing here is carried by colour alone, so it
+   survives a monochrome display and a screen reader reads it in document order,
+   immediately before the tier's own <h2>. */
+.ks-edition__flag {
+  margin: calc(var(--space-4) * -1) 0 var(--space-4);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid rgba(161, 51, 62, 0.45);
+  color: var(--color-crimson-lit);
+}
+
+/* The h2 would otherwise inherit --fs-h1 from base.css (up to 4rem), which at
+   card width sets "RISE UP — DELUXE TRANSMISSION" over four lines. --fs-h3 with
+   the heading tracking is the size the rest of the site uses for card titles. */
+.ks-edition__title {
+  margin: 0 0 var(--space-4);
+  font-size: var(--fs-h3);
+  letter-spacing: var(--tracking-heading);
+  line-height: var(--lh-heading);
+  color: var(--text-primary);
+}
+
+.ks-edition__price {
+  margin: 0 0 var(--space-6);
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid rgba(214, 213, 208, 0.14);
+  font-family: var(--font-display);
+  font-weight: var(--display-wght);
+  font-stretch: var(--display-stretch);
+  font-variation-settings: "wdth" var(--display-wdth), "wght" var(--display-wght);
+  font-size: 2.25rem;
+  line-height: 1;
+  letter-spacing: var(--tracking-display);
+  color: var(--text-primary);
+}
+/* "FROM" is a qualifier, not part of the number — mono and small so the eye
+   still lands on $45 first. Baseline-aligned by hand: the display face's cap
+   height at 2.25rem sits well above the mono's, so vertical-align does the work
+   that a flex row would have done less predictably at three different sizes. */
+.ks-edition__from {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-size: var(--fs-mono);
+  font-stretch: normal;
+  font-variation-settings: normal;
+  letter-spacing: var(--tracking-mono);
+  text-transform: uppercase;
+  color: var(--text-muted);
+  vertical-align: 0.55em;
+  margin-right: var(--space-1);
+}
+
+/* ---- Contents ------------------------------------------------------------ */
+.ks-edition__contents-label { display: block; margin-bottom: var(--space-3); }
+
+/* NO BULLET GLYPHS AND NO CHECK MARKS. A tick per line is the ecommerce tell
+   this page was told to avoid; a disc bullet is a blog. Each row gets a 10px
+   hairline instead — the same mark the rest of the site uses to separate
+   technical rows, at the same weight as the card's own rules. */
+.ks-edition__contents {
+  list-style: none;
+  margin: 0 0 var(--space-8);
+  padding: 0;
+  color: var(--text-secondary);
+  font-size: var(--fs-caption);
+  line-height: 1.55;
+}
+.ks-edition__contents li {
+  position: relative;
+  padding-left: var(--space-6);
+  margin-bottom: var(--space-3);
+}
+.ks-edition__contents li:last-child { margin-bottom: 0; }
+.ks-edition__contents li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  /* 0.775em ≈ the optical centre of a 1.55 line box at this size — a 1px rule
+     set on the text baseline reads as an underscore, not as a marker. */
+  top: 0.775em;
+  width: 10px;
+  height: 1px;
+  background: rgba(157, 178, 192, 0.55);
+}
+
+/* ---- Foot ---------------------------------------------------------------- */
+/* margin-top:auto is what keeps the three CTAs on one line across cards of very
+   different list lengths (Digital has 6 rows, Deluxe 8, Artifact 5). Without it
+   each button sits under its own list and the row reads as three unrelated
+   blocks. The card is the flex column that makes this work — see .ks-edition. */
+.ks-edition__foot { margin-top: auto; }
+
+/* THE min-height IS NOT BELT-AND-BRACES, IT IS THE FIX. A bare .btn from
+   components.css was measured at 1440 with this page's own label text in it:
+   42px. That is under the 44px touch target, and it is under it on every page
+   of this site that uses .btn — components.css gives it --space-3 (12px) of
+   block padding against a 13px Rajdhani label at 1.65, and 12+18+12 lands short.
+   Pinned here for the three CTAs; the site-wide version of this fix belongs in
+   components.css and is NOT made from a file one page loads. Flagged to the
+   lead. */
+.ks-edition__cta {
+  display: flex;
+  width: 100%;
+  min-height: 44px;
+  justify-content: center;
+  text-align: center;
+}
+.ks-edition__note {
+  margin: var(--space-3) 0 0;
+  font-family: var(--font-mono);
+  font-size: var(--fs-mono);
+  letter-spacing: var(--tracking-mono);
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* ---- The artifact tier's two states --------------------------------------
+   ONE LEVER, BECAUSE THE MODULE ONLY PULLS ONE. js/purchase-checkout.js's
+   syncStatus() does precisely this and nothing else:
+
+       el.hidden = (edition.status !== 'coming-soon')   // el = [data-ks-edition-status]
+
+   It never touches the button. So the button hangs off the same attribute:
+   while the status block is showing, the CTA is not rendered; the instant the
+   module hides the status block the CTA appears. The static default is the
+   status block VISIBLE, so the page is honest with JS switched off and no
+   inventory is implied — merch.html's STANDBY precedent.
+
+   :has() IS DOING REAL WORK HERE and there is no non-:has() version of this
+   that keeps the no-JS default correct. Chromium/Safari/Firefox have all
+   shipped it; the site already assumes a modern engine (container-relative
+   clamp(), :focus-within, aspect-ratio are all in use).
+
+   THE CTA IS HIDDEN, NOT DISABLED. `disabled` removes the button from the tab
+   order, which would leave a keyboard reader on a card with no reachable
+   control at all. The JOIN THE RELEASE LIST anchor is a real focusable link and
+   is the honest route out of this state.
+
+   LAYOUT DOES NOT JUMP BETWEEN THE STATES. Measured at 1440x900 by toggling
+   [data-ks-edition-status].hidden in the console — the numbers are in the
+   verification note at the foot of this file. */
+.ks-edition__foot:has(> .ks-edition__status:not([hidden])) .ks-edition__cta[data-ks-purchase] { display: none; }
+.ks-edition__status:empty { display: none; }
+
+.ks-edition__status-line {
+  margin: 0 0 var(--space-3);
+  color: var(--text-secondary);
+  /* Not crimson. The page's crimson budget is already spent on RECOMMENDED and
+     the 02 catalogue number, and --color-crimson-lit tops out at 2.97:1 on flat
+     #03040F — a waiting notice is real content and cannot be set in a colour
+     that fails AA before the sky is even involved. css/about-feature.css records
+     the same finding at length. */
+}
+
+/* ---- The refusal message -------------------------------------------------
+   purchase.html supplies one of these per card, shipped `hidden`. It exists
+   ONLY so js/purchase-checkout.js's message() finds a container: without it
+   that function BUILDS one, gives it .empty-state, and inserts it after the
+   button — a dashed box appearing inside a card, at a width and a rhythm nobody
+   designed. Supplying the node costs four lines of CSS and takes the decision
+   back.
+   Left-bordered rather than boxed: this is a response to something the reader
+   just pressed, and a second framed rectangle inside the card frame reads as a
+   nested panel. */
+.ks-edition__message {
+  margin: var(--space-3) 0 0;
+  padding-left: var(--space-3);
+  border-left: 1px solid rgba(161, 51, 62, 0.55);
+  font-size: var(--fs-caption);
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+/* ---- Section foot --------------------------------------------------------
+   THIS BLOCK CARRIES A SCRIM AND THE FIRST DRAFT DID NOT. It sits directly over
+   the brightest part of the nebula — at 1440x900 the band's core lands between
+   the bottom of the cards and the site footer, which is exactly where these two
+   paragraphs are. Measured there with the animations pinned to their 46% peak
+   and the text set to `color: transparent`, contrast against the paragraph's own
+   colour, no scrim:
+
+       support paragraph, --text-secondary   worst 5%: 2.64   median 7.92
+       streaming line,    --text-muted       worst 5%: 1.41   median 4.49
+
+   Both fail, and the two-pass text-shadow does NOT rescue them: with the shadow
+   removed as a control the same figures are 2.20 and 1.40 — the shadow is worth
+   about 0.4 of a ratio point here, not the four points needed. Nor can colour
+   fix it. The brightest backdrop pixels in the streaming line's box sit at the
+   same luminance as --text-muted itself (ratio 1.0); --color-bone against those
+   same pixels computes to 2.37:1, still under AA. The nebula core is genuinely
+   as bright as the type.
+
+   So the foot gets the same treatment the cards get: a translucent wash, bled to
+   the section's padding so the text stays aligned to everything above it. The
+   sky reads through it. After: 7.40 and 4.58 at the same worst-5% measure. Full
+   before/after table is in the verification note at the foot of this file. */
+.ks-own__foot {
+  margin-top: clamp(40px, 6vh, 72px);
+  /* NO HORIZONTAL BLEED. An earlier version pulled this block out to the
+     container's padding edge, and the wash then ended 24px outside the card row
+     on each side — a translucent band with hard vertical edges that lined up
+     with nothing. Left as the plain content box, the wash starts and ends on
+     exactly the same x as the cards above it (104 and 1336 at 1440x900), so it
+     reads as the last row of the same table rather than as a panel. */
+  padding-block: var(--space-8);
+  border-top: 1px solid rgba(214, 213, 208, 0.14);
+  /* 0.62 → 0.88, and the bottom stop is the one that was tuned. At 0.78 the
+     support paragraph was fixed (worst 5% 2.64 → 7.08) but the STREAMING LINE,
+     which is the last thing in the block and therefore sits at the deepest stop,
+     still measured 4.17 at the worst 5% — just under AA, and only at 1440 where
+     the nebula core lands there. 0.88 clears it. The head stop stays at 0.62:
+     nothing at the top of this block is small enough to need more, and every
+     point of alpha spent is sky removed. */
+  background: linear-gradient(180deg, rgba(3, 4, 15, 0.62) 0%, rgba(3, 4, 15, 0.88) 100%);
+}
+.ks-own__support {
+  max-width: 68ch;
+  font-size: var(--fs-caption);
+  color: var(--text-secondary);
+}
+/* THE STREAMING LINE IS THE QUIETEST THING ON THE PAGE, on instruction, and it
+   stays a plain link rather than a .btn: a second button at the bottom competes
+   with the three above it and turns the exit into a fourth offer. --text-muted
+   (#78888F) is 5.56:1 on flat #03040F — comfortably AA at 14px, which is what
+   lets it be this quiet. The anchor inside it is pulled UP to --text-secondary
+   (9.30:1) rather than pushed down, so the one clickable word in the sentence is
+   the brightest thing in it. */
+.ks-own__stream {
+  margin-top: var(--space-4);
+  font-size: var(--fs-caption);
+  color: var(--text-muted);
+}
+.ks-own__stream a { color: var(--text-secondary); text-decoration-color: rgba(157, 178, 192, 0.5); }
+.ks-own__stream a:hover { color: var(--text-primary); }
+
+/* ---- Legibility over the sky ---------------------------------------------
+   The section HEAD sits on bare sky — no scrim under it, unlike the cards and
+   (as of the block above) the foot. Same two-pass shadow css/about-feature.css
+   and css/spine-bg.css use for small text over the lit nebula: the 1px pass
+   gives the glyph a hard edge, the 3px pass kills the halo, and rgba(3,4,15)
+   rather than #000 so it can never paint below the page.
+
+   WHAT THE SHADOW IS ACTUALLY WORTH HERE, since this file now has the control
+   measurement that most files quoting this pattern do not. Shadow on vs shadow
+   off, same region, same pinned frame, worst-5% of the backdrop:
+       support paragraph @1440   2.64  vs  2.20
+       streaming line    @1440   1.41  vs  1.40
+       support paragraph @390    4.86  vs  4.31
+   That is roughly half a ratio point. It is worth keeping — it is free, and at
+   the head, where the sky is dark, it is what stops a stray star sitting inside
+   a letterform. It is NOT a substitute for a scrim where the nebula is bright,
+   which is why the foot got one and this list did not grow to cover it.
+
+   The card interiors are NOT in this list — they have the scrim instead, and
+   doubling the two would thicken the contents list visibly at 14px. */
+.ks-own__head h1, .ks-own__lede, .ks-own__sub, .ks-own__head .label,
+.ks-own__support, .ks-own__stream {
+  text-shadow: 0 0 3px rgba(3, 4, 15, 0.98), 0 1px 2px rgba(3, 4, 15, 0.92);
+}
+
+/* ---- Narrow --------------------------------------------------------------
+   600px is the site's phone boundary — css/star-bg.css keys its whole phone
+   block to it, so this file uses the same line rather than inventing a third.
+
+   THE TYPE IS LEFT ALONE ON PURPOSE. Every heading and the lede are already on
+   clamp()s from tokens.css and they land correctly at 390x844 with nothing added
+   here: measured, the h1 sits at --fs-hero's 44px floor and sets "OWN THE ALBUM"
+   on ONE line at 342px of card width, and the lede keeps its three-line break
+   with the first clause on its own line. The only reason .ks-own__lede drops its
+   30ch cap is that 30ch is WIDER than the phone viewport, so the cap is inert
+   there and leaving it in would imply it was doing something.
+
+   What does change is space, not size: --space-24 of section padding and
+   --space-6 of card padding are desktop numbers, and at 390 they cost a screen
+   and a half of scrolling before the first price. */
+@media (max-width: 600px) {
+  .ks-own { padding-top: calc(var(--space-16) + 2rem); }
+  .ks-edition { padding: var(--space-4) var(--space-4) var(--space-6); }
+  .ks-editions { gap: var(--space-4); }
+  .ks-own__lede { max-width: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* --motion-* already collapse to 0ms in tokens.css under this query, so the
+     transitions are gone by the time this block runs. What is left is the
+     TRANSFORMS themselves, which are instantaneous jumps rather than motion at
+     0ms — a card that teleports 2px on hover is worse than one that does not
+     move. The border and the glow are not motion and are kept: they are the
+     hover affordance these users still need. */
+  .ks-edition:hover, .ks-edition:focus-within { transform: none; }
+  .ks-edition:hover .ks-edition__cat,
+  .ks-edition:focus-within .ks-edition__cat { transform: none; }
+}
+
+/* ==========================================================================
+   VERIFICATION NOTE — 2026-08-20, roughing-in pass.
+   Chromium via Playwright against `python scripts/serve.py`, three viewports:
+   1440x900, 900x900, 390x844. Everything below was observed, not expected.
+
+   CLEAN: zero console errors, zero page errors, zero 4xx.
+   NO HORIZONTAL OVERFLOW: documentElement.scrollWidth === window.innerWidth at
+   all three widths (1440/1440, 900/900, 390/390).
+
+   TAB ORDER reaches every control and every one shows the site focus ring
+   (2px solid rgb(228,232,235), i.e. --focus-ring, from base.css):
+     skip link (44px) → nav → OWN THE DIGITAL ALBUM (44px) → UNLOCK THE DELUXE
+     EDITION (44px) → JOIN THE RELEASE LIST (47px) → Stream Rise Up → footer.
+   CLAIM THE ARTIFACT is absent from that list and that is the design — see the
+   artifact-state note above. The 44px figures are the pinned min-height doing
+   its job; a bare .btn measured 42px.
+
+   THE ARTIFACT STATE SWITCH MOVES NO LAYOUT. Toggling
+   [data-ks-edition-status].hidden in the console at 1440x900:
+       coming-soon   digital 706  deluxe 706  artifact 706  doc 2309
+       available     digital 706  deluxe 706  artifact 706  doc 2309
+   digital's top stays at y=673 in both, and getComputedStyle on the CLAIM THE
+   ARTIFACT button flips display none/flex with it. The card is stretched by the
+   grid row, which Deluxe sets, so swapping a two-element status block for a
+   one-element button consumes slack INSIDE the card and nothing outside moves.
+
+   CONTRAST, animations pinned to the 46% twinkle keyframe, backdrop captured
+   with the text set to `color: transparent`, every pixel of each box measured,
+   worst 5% of the box:
+                                        1440x900        390x844
+       card contents, scrim on            7.06            8.22
+       card contents, scrim removed       3.11            5.65
+       support paragraph, foot scrim on   7.40            8.29
+       support paragraph, no foot scrim   2.64            4.86
+       streaming line,    foot scrim on   4.58            5.08
+       streaming line,    no foot scrim   1.41            2.37
+   Every shipped figure clears AA's 4.5:1; both "no scrim" rows are the first
+   draft and are why both scrims exist.
+   Reference values on flat #03040F, computed not guessed: --text-secondary
+   #9DB2C0 = 9.30:1, --text-muted #78888F = 5.56:1, --color-bone = 13.90:1,
+   --color-crimson-lit #A1333E = 2.97:1.
+
+   THE MEASUREMENT IS DELIBERATELY PESSIMISTIC: it scores every pixel of the
+   element's box, including the gaps between lines and after the last word,
+   where no glyph will ever sit. A worst-5% figure is therefore a floor on the
+   real reading experience, not an estimate of it.
+
+   STILL UNMEASURED, deliberately, and the next session should not assume
+   otherwise: nothing here has been seen on the owner's actual phone, only at a
+   390x844 emulated viewport. And the 46% keyframe is the twinkle's peak, not
+   necessarily the worst frame for any given pixel — the cloud layer breathes on
+   its own cycle and the two are not phase-locked.
+   ========================================================================== */

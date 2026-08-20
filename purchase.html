@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<!-- page-purchase selects a per-page override block in css/star-bg.css. THAT
+     BLOCK DOES NOT EXIST YET and the class is still correct to carry: index.html
+     rode the baseline with no block in that file at all for weeks (see the note
+     above html.page-home there), so an absent block changes nothing — the sky
+     renders from :root. The class is the hook that lets this page's sky be tuned
+     later without retuning merch.html or connect.html.
+     WHOEVER ADDS THAT BLOCK: it goes ABOVE the @media (max-width: 600px) block
+     in star-bg.css, and `html.page-purchase` must be added to that media block's
+     selector list in the SAME commit. html.page-purchase is (0,2,0) and a media
+     query adds nothing to specificity, so the first star variable put in a page
+     block would silently outrank its phone value. That trap is documented at
+     length beside the media block; this comment exists so the next session does
+     not have to rediscover it.
+     IT BELONGS ON <html>, NOT ON <body> — the nebula and one of the star bands
+     are pseudo-elements of html, and a pseudo-element of html resolves its
+     variables from html. It can never see a value set on body. -->
+<html lang="en" class="page-purchase">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Own the Album — Kundalini Spines</title>
+<meta name="description" content="Purchase Rise Up directly from Kundalini Spines. High-resolution audio, artwork, exclusive material, and physical editions.">
+<link rel="canonical" href="/purchase.html">
+
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" href="assets/marks/spine-mark-solid-cut.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="assets/marks/apple-touch-icon.png">
+
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Kundalini Spines">
+<meta property="og:title" content="Own the Album — Kundalini Spines">
+<meta property="og:description" content="Purchase Rise Up directly from Kundalini Spines. High-resolution audio, artwork, exclusive material, and physical editions.">
+<meta property="og:image" content="/assets/hero/messengers-hero-duo.jpg">
+<meta name="twitter:card" content="summary_large_image">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@400;500&family=Rajdhani:wght@500;600;700&family=Anton&display=swap" rel="stylesheet">
+
+<!-- THE ORDINAL SLOT OF star-bg.css IS LOAD-BEARING. tokens, base, star-bg,
+     components, site-footer — the same five in the same order every other root
+     page uses. Omitting star-bg.css is the single most common defect in this
+     repo: the page renders pure black, with no error and nothing in the console
+     to say why.
+     css/purchase.css is the SIXTH and it goes last, after components.css, for
+     one concrete reason: it restyles .btn on the edition cards (min-height, full
+     width) and a same-specificity rule only wins by source order. Move it above
+     components.css and the CTAs silently lose their 44px touch target. -->
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/star-bg.css">
+<link rel="stylesheet" href="css/components.css">
+<link rel="stylesheet" href="css/site-footer.css">
+<link rel="stylesheet" href="css/purchase.css">
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<!-- The same six-item header every root page carries, verbatim. NOTHING is
+     marked aria-current, because none of the six items IS this page — same
+     call connect.html made. There is no "Purchase" entry on purpose: adding a
+     seventh item here alone would give the site a navigation that changes shape
+     depending on which page you are standing on, and merch.html's header note
+     records why that is worse than a page simply not being in the bar yet. When
+     the owner wants it, it is one <li> added to the same list in index /
+     about / archive / merch / connect / transmissions / transmissions/001. -->
+<header class="nav is-scrolled">
+  <div class="container nav__inner">
+    <a class="nav__mark" href="/"><img src="assets/marks/spine-mark-solid-cut.svg" alt="" width="18" height="18" style="vertical-align:-3px;margin-right:8px;">KUNDALINI SPINES</a>
+    <button class="nav__toggle" aria-expanded="false" aria-controls="primary-nav">Menu</button>
+    <nav id="primary-nav" aria-label="Primary">
+      <ul class="nav__links">
+        <li><a href="/">Home</a></li>
+        <li><a href="/#about">About</a></li>
+        <li><a href="/#tracks">Music</a></li>
+        <li><a href="/#merch">Merch</a></li>
+        <li><a href="transmissions.html">Transmissions</a></li>
+        <li><a href="archive.html">Archive</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+
+  <!-- ==========================================================================
+       OWN THE ALBUM. Aug 20 2026, roughing-in pass.
+
+       WHAT THIS IS NOT: a pricing table. Three tiers side by side is the shape
+       a SaaS page uses, and every default that comes with that shape — a filled
+       "most popular" card, a coloured ribbon, rounded corners, a check-mark icon
+       per feature — was rejected. The tiers are filed here as ARCHIVAL EDITIONS:
+       a catalogue number, a hairline rule, a contents list, a price. The nearest
+       relative in this repo is merch.html's catalogue, not anything with a cart.
+
+       WHY THE CARDS ARE NOT OPAQUE. The nebula and four star bands are
+       pseudo-elements of <html> and <main> (css/star-bg.css); a solid panel here
+       would delete the sky for the full height of the section, which is the
+       whole page. The cards carry a translucent scrim instead — measured values
+       and the legibility argument are in css/purchase.css.
+
+       MARKUP CONTRACT WITH js/purchase-checkout.js (window.KSPurchase). Every
+       attribute below was read back out of that file, not assumed — two of them
+       are not the shape they were first written as:
+         [data-ks-edition="digital|deluxe|artifact"]   on each <article>. This
+             one is the LEAD'S hook, not the module's; the module never reads it.
+         [data-ks-purchase="digital|deluxe|artifact"]  on each real <button>.
+             bindButtons() attaches the click; this file binds nothing.
+         [data-ks-price="12|25|45"]                    on the DISPLAYED price.
+             Deliberately not also on the buttons — see the price note below.
+         [data-ks-edition-status="artifact"]           TAKES THE EDITION ID AS
+             ITS VALUE. syncStatus() does find(el.getAttribute(...)), so a bare
+             valueless attribute resolves to no edition and the element is
+             skipped in silence. That is exactly how this shipped for an hour.
+         [data-ks-purchase-message="<id>"]             optional, and supplied
+             here on purpose: message() otherwise INJECTS a .empty-state <p>
+             after the button, and a dashed box appearing inside a card is a
+             layout the page never got to look at. Ours ships `hidden`.
+         [data-ks-purchase-section]                    optional; the element
+             whose visibility fires album_package_view.
+
+       THE PRICES IN THIS FILE AND IN THE MODULE DISAGREE, AND A HUMAN HAS TO
+       SETTLE IT. The copy this page was given says Deluxe $25 and Artifact from
+       $45; js/purchase-checkout.js's EDITIONS config says 35 and 150. Digital
+       agrees at 12. The module has a drift guard that warns when a BUTTON
+       carries data-ks-price, so data-ks-price is on the price text only — the
+       lead's contract asked for it there, and putting it on the buttons as well
+       would print two console warnings on every load for a disagreement neither
+       file is allowed to settle on its own. Do not "fix" this by editing one
+       side; they change together or not at all.
+       ========================================================================== -->
+  <section class="section container ks-own" aria-labelledby="own-heading" data-ks-purchase-section>
+
+    <div class="ks-own__head">
+      <span class="label">Direct Purchase</span>
+      <h1 id="own-heading">Own the Album</h1>
+      <p class="ks-own__lede">Streaming gives you access. Ownership gives you the transmission.</p>
+      <p class="ks-own__sub">Purchase Rise Up directly from Kundalini Spines. High-resolution audio, artwork, exclusive material, and physical editions are available depending on the package.</p>
+    </div>
+
+    <!-- Three <article>s, each an h2. The tier titles are the only h2s on the
+         page and they are siblings, so the outline is h1 → h2 ×3 with nothing
+         skipped. The "Contents" markers are <span class="label">, NOT headings:
+         making them h3 would put three near-identical entries in a screen
+         reader's heading list for no navigational gain. -->
+    <div class="ks-editions">
+
+      <!-- TIER 01 — the cleanest of the three. No flag, no status slot, the
+           lightest border. It is the baseline the other two are read against;
+           if this one starts acquiring furniture, the contrast that makes
+           Deluxe read as the centrepiece is what gets spent. -->
+      <article class="ks-edition" data-ks-edition="digital" aria-labelledby="edition-digital-title">
+        <p class="ks-edition__cat readout">01 / Digital</p>
+
+        <h2 class="ks-edition__title" id="edition-digital-title">Rise Up &mdash; Digital Album</h2>
+
+        <p class="ks-edition__price"><span data-ks-price="12">$12</span></p>
+
+        <span class="label ks-edition__contents-label">Contents</span>
+        <ul class="ks-edition__contents">
+          <li>Complete Rise Up album</li>
+          <li>High-quality MP3 files</li>
+          <li>Lossless FLAC or WAV files</li>
+          <li>Full-resolution album cover</li>
+          <li>Digital credits</li>
+          <li>Immediate download after purchase</li>
+        </ul>
+
+        <div class="ks-edition__foot">
+          <button type="button" class="btn btn--ghost ks-edition__cta" data-ks-purchase="digital">Own the Digital Album</button>
+          <p class="ks-edition__message" data-ks-purchase-message="digital" role="status" hidden></p>
+          <p class="ks-edition__note">Direct download &middot; Yours permanently</p>
+        </div>
+      </article>
+
+      <!-- TIER 02 — the centrepiece. Its prominence is carried by FOUR small
+           things stacked, not one loud one: a slightly wider grid column, a lit
+           hairline instead of the dim one, a marginally darker scrim so the
+           contents list reads first, and the word RECOMMENDED.
+
+           RECOMMENDED IS TEXT, NOT A COLOUR. It is a real <p> in the flow, so it
+           survives a screen reader, a print stylesheet and a monochrome display.
+           The site's two-uses-a-page crimson budget (see tokens.css) is spent
+           here and on the 02 catalogue number — nowhere else on this page. -->
+      <article class="ks-edition ks-edition--deluxe" data-ks-edition="deluxe" aria-labelledby="edition-deluxe-title">
+        <p class="ks-edition__cat readout">02 / Deluxe</p>
+
+        <p class="ks-edition__flag readout">Recommended</p>
+
+        <h2 class="ks-edition__title" id="edition-deluxe-title">Rise Up &mdash; Deluxe Transmission</h2>
+
+        <p class="ks-edition__price"><span data-ks-price="25">$25</span></p>
+
+        <span class="label ks-edition__contents-label">Contents</span>
+        <ul class="ks-edition__contents">
+          <li>Everything in the Digital Album</li>
+          <li>Deluxe digital booklet</li>
+          <li>Full lyric archive</li>
+          <li>Expanded album artwork</li>
+          <li>Alternate artwork / visual assets</li>
+          <li>Instrumentals or selected alternate mixes</li>
+          <li>Exclusive bonus material not available on streaming platforms</li>
+          <li>Future access to additional digital material associated with this edition</li>
+        </ul>
+
+        <div class="ks-edition__foot">
+          <button type="button" class="btn btn--primary ks-edition__cta" data-ks-purchase="deluxe">Unlock the Deluxe Edition</button>
+          <p class="ks-edition__message" data-ks-purchase-message="deluxe" role="status" hidden></p>
+          <p class="ks-edition__note">Expanded archive &middot; Exclusive material</p>
+        </div>
+      </article>
+
+      <!-- TIER 03 — SHIPS IN THE COMING-SOON STATE, AND THAT IS THE DEFAULT ON
+           PURPOSE. There is no inventory configured and none may be implied:
+           merch.html's header note is the precedent — a page that shows a buy
+           control before the decision behind it exists is inventing the answer,
+           and it would have to be un-invented later.
+
+           HOW THE TWO STATES SWITCH, AND THERE IS ONLY ONE SWITCH. The module's
+           syncStatus() does exactly one thing to this card: it sets
+           [data-ks-edition-status].hidden = (status !== 'coming-soon'). It does
+           not touch the button. So css/purchase.css hangs the CTA off that same
+           attribute with :has() — while the status block is visible the CTA is
+           not rendered, and the moment the module hides the status block the CTA
+           appears. One state, one lever, nothing that can disagree with itself.
+
+           AN EARLIER DRAFT PUT data-ks-edition-state="coming-soon" ON THIS
+           ARTICLE and keyed the CSS off that instead. It was wrong: the module
+           never writes that attribute, so flipping the config to 'available'
+           would have hidden the notice and left the card with NO control at all.
+           Do not reintroduce a second state flag here.
+
+           THE CTA IS NOT RENDERED `disabled`. A disabled button is skipped by
+           Tab, so a keyboard reader would meet a card with no reachable control;
+           the JOIN THE RELEASE LIST link is the real, focusable route out of
+           this state and the buy button is simply not offered yet.
+
+           LAYOUT DOES NOT MOVE BETWEEN THE TWO STATES: measured, see the note
+           beside .ks-edition__status in css/purchase.css. -->
+      <article class="ks-edition" data-ks-edition="artifact" aria-labelledby="edition-artifact-title">
+        <p class="ks-edition__cat readout">03 / Artifact</p>
+
+        <h2 class="ks-edition__title" id="edition-artifact-title">Rise Up &mdash; Artifact Edition</h2>
+
+        <p class="ks-edition__price"><span class="ks-edition__from">From</span> <span data-ks-price="45">$45</span></p>
+
+        <span class="label ks-edition__contents-label">Contents</span>
+        <ul class="ks-edition__contents">
+          <li>Everything in the Deluxe Digital Edition</li>
+          <li>Physical Kundalini Spines merchandise</li>
+          <li>A configured bundle, which may include a limited shirt, hat, printed booklet, poster or art print, and the physical album edition when available</li>
+          <li>Numbered or limited-edition packaging where applicable</li>
+          <li>Digital album available immediately even if physical merchandise ships later</li>
+        </ul>
+
+        <div class="ks-edition__foot">
+          <button type="button" class="btn btn--ghost ks-edition__cta" data-ks-purchase="artifact">Claim the Artifact</button>
+
+          <div class="ks-edition__status" data-ks-edition-status="artifact">
+            <p class="ks-edition__status-line readout">Coming soon &mdash; inventory not yet configured</p>
+            <a class="btn btn--ghost ks-edition__cta" href="connect.html">Join the Release List</a>
+          </div>
+
+          <p class="ks-edition__message" data-ks-purchase-message="artifact" role="status" hidden></p>
+          <p class="ks-edition__note">Physical + Digital &middot; Limited quantity</p>
+        </div>
+      </article>
+
+    </div>
+
+    <!-- The close. Restrained by instruction, and the streaming line is
+         deliberately the quietest thing on the page: it is the exit, not the
+         offer. It stays a plain link rather than a .btn for that reason. -->
+    <div class="ks-own__foot">
+      <p class="ks-own__support">Direct purchases support Kundalini Spines and the continued creation of independent music, visuals, physical releases, and archival material.</p>
+      <p class="ks-own__stream">Not ready to own it? <a href="music.html">Stream Rise Up &rarr;</a></p>
+    </div>
+
+  </section>
+
+</main>
+
+<footer class="footer container">
+  <div class="footer__inner">
+    <ul class="footer__nav">
+      <li><a href="/#tracks">Music</a></li>
+      <li><a href="merch.html">Merchandise</a></li>
+      <li><a href="transmissions.html">Transmissions</a></li>
+      <li><a href="archive.html">Archive</a></li>
+      <li><a href="about.html">About</a></li>
+    </ul>
+    <ul class="footer__social">
+      <li><a href="https://www.instagram.com/kundalinispines/" data-social="instagram" rel="me noopener" target="_blank">Instagram</a></li>
+      <li><a href="#" data-social="tiktok">TikTok</a></li>
+      <li><a href="https://x.com/KundaliniSpines" data-social="x" rel="me noopener" target="_blank">X</a></li>
+      <li><a href="https://www.youtube.com/@KundaliniSpines" data-social="youtube" rel="me noopener" target="_blank">YouTube</a></li>
+      <li><a href="#" data-social="spotify">Spotify</a></li>
+    </ul>
+    <p class="footer__copyright">&copy; <span id="year">2026</span> Kundalini Spines. All rights reserved.</p>
+  </div>
+</footer>
+
+<!-- The root-page script set, plus js/purchase-checkout.js. That file is owned
+     by another agent and is NOT in this repo at the time this page was written —
+     the tag is the agreed contract and will 404 until the module lands. Nothing
+     on this page depends on it: the three cards render, the artifact tier sits
+     in its coming-soon state, and the release-list link works with JS disabled.
+     ks-chakras.js MUST precede site-footer.js: the footer reads KS.CHAKRAS and
+     KS.RECORD and bails with a console warning if that file has not run.
+     purchase-checkout.js goes LAST, after the site scripts, so window.KS exists
+     if it ever wants it. -->
+<!-- FIRST: defines window.KSTunePanel, the shared /?tune shell every tuner on
+     the page registers a tab into. Loaded before any of them, or they find no
+     shell and silently render no controls. -->
+<script src="js/tune-panel.js"></script>
+<script src="js/nav.js"></script>
+<script>document.getElementById('year').textContent = new Date().getFullYear();</script>
+<script src="js/ks-chakras.js"></script>
+<script src="js/site-footer.js"></script>
+<script src="js/purchase-checkout.js"></script>
+</body>
+</html>

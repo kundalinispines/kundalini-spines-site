@@ -73,8 +73,12 @@
      and the foreground smoke/dust layer (css/filmrow-atmos-fg.css). Both must
      come AFTER spine-doc.css, which owns .ksd-filmrow__media itself.
      Loading these does NOT switch the effect on: the layers only apply once
-     js/filmrow-atmos.js adds .has-fr-feather / .has-fr-glow, and that is gated
-     until the look is approved. See the LIVE flag at the top of that file. -->
+     js/filmrow-atmos.js adds .has-fr-feather / .has-fr-glow.
+     THE FEATHER IS NOW LIVE FOR EVERY VISITOR (Aug 20 2026) -- the owner
+     approved the mask on its own. The GLOW and the foreground canvas are still
+     gated and apply only at /?tune, so filmrow-atmos-fg.css below is loaded for
+     the tuner's benefit and paints nothing on a normal visit. Which layers ship
+     is LAYERS in js/filmrow-atmos.js, and it is NOT the same switch as LIVE. -->
 <link rel="stylesheet" href="css/filmrow-atmos.css">
 <link rel="stylesheet" href="css/filmrow-atmos-fg.css">
 <!-- The tape treatment over the same three rows. AFTER filmrow-atmos.css,
@@ -270,7 +274,16 @@
                once .has-fr-feather / .has-fr-glow are present, which
                js/filmrow-atmos.js adds. mask 1 and mask 2 are different noise
                seeds so the two rows do not wear an identical torn edge. -->
-          <figure class="ksd-filmrow__media" data-fr-mask="3" data-fr-glow="black-tide">
+          <!-- REVEALS WITH THE FIRST PARAGRAPH, not after the button (Aug 20
+               2026, owner's call). .ksd-reveal puts the footage in the reveal
+               system at all -- it was the only film-row figure not in it, so it
+               sat fully visible while the copy beside it faded in. The step is
+               what makes it land WITH the paragraph: this figure is last in the
+               markup because the copy is a separate column, so document order
+               would have given it slot 4 (360ms) instead of the paragraph's 1
+               (90ms). See stageReveals() in js/deep-field-bg.js. -->
+          <figure class="ksd-filmrow__media ksd-reveal" data-reveal-step="1"
+                  data-fr-mask="3" data-fr-glow="black-tide">
             <video muted playsinline preload="none" aria-hidden="true"
                    poster="assets/video/black-tide-poster.jpg">
               <source src="assets/video/black-tide.webm" type="video/webm">

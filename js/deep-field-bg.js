@@ -1401,12 +1401,36 @@
      the owner's cue order (heading, body, media), which is why no name-matching
      against the marks file is needed — and name-matching would be fragile
      anyway, since the cue names are prose. */
+  /* data-reveal-step OVERRIDES THE DOCUMENT-ORDER SLOT (Aug 20 2026).
+
+     Document order reproduces the cue order in every section but one: About
+     puts its footage in a SECOND COLUMN, so the figure is last in the markup
+     while sitting beside the copy on screen.  Ordered by position it took slot
+     4 and arrived 360ms after the headline, long after the paragraph it stands
+     next to.  The owner asked for the video to come in WITH the paragraph, so
+     the figure carries data-reveal-step="1" and shares the first body
+     paragraph's slot exactly.
+
+     It is a slot INDEX, not a delay in ms, and that is deliberate: the delay is
+     still index * T.stagger, so the override keeps tracking --df-stagger from
+     the tuner.  Writing "90ms" here instead would have frozen this one element
+     while every other reveal moved with the slider.
+
+     Nothing shifts when a step is overridden: the loop still counts document
+     order for everything else, so an element taking an earlier slot DOUBLES UP
+     on it rather than pushing anyone along.  That is the intent -- two things
+     arriving together -- and it only works because the figure is last, so no
+     later sibling is depending on the count.  Give an element in the MIDDLE of
+     a section a step and you get a duplicate slot plus a gap, which is
+     probably not what you wanted. */
   function stageReveals() {
     var secs = document.querySelectorAll('.ksd-section, .ksd-title');
     for (var s = 0; s < secs.length; s++) {
       var items = secs[s].querySelectorAll('.ksd-reveal');
       for (var i = 0; i < items.length; i++) {
-        items[i].style.transitionDelay = (i * T.stagger) + 'ms';
+        var step = parseInt(items[i].getAttribute('data-reveal-step'), 10);
+        if (!isFinite(step) || step < 0) step = i;
+        items[i].style.transitionDelay = (step * T.stagger) + 'ms';
       }
     }
   }

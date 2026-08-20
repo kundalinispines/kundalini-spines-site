@@ -17,13 +17,51 @@
    -------------------------------------------------------------------------
    THE SHIP FLAG
    -------------------------------------------------------------------------
-   LIVE is false on purpose.  The owner has not approved the look for the
-   public site (Aug 16 2026), so a visitor gets the page exactly as it was:
-   no classes added, no listeners bound, no canvas mounted, nothing measured.
-   At /?tune the layers apply regardless, so they can be judged on the real
-   page against the real nebula rather than in a lab.
+   LIVE went TRUE on Aug 20 2026, and LAYERS went feather-only in the same
+   breath.  The owner asked for "the feathers on the videos" having looked at
+   a four-way capture of row 1 -- off, feather, feather+glow, all three -- and
+   chose the feather ALONE.  So a visitor now gets the mask and nothing else:
+   .has-fr-feather on all three rows, no glow, no canvas in front of the
+   footage.  The other two layers are not deleted and not broken; they are
+   unapproved.
 
-   Turning it on later is the one line below.  Nothing else needs editing.
+   CAREFUL, AND I GOT THIS WRONG FIRST TIME: with LAYERS.glow false the glow no
+   longer applies AT /?tune EITHER.  The tab's state is seeded from LAYERS
+   through readShipped(), so /?tune now opens showing what actually ships and
+   the glow is a toggle you switch ON to judge it, not something already on.
+   That is the correct behaviour -- Reset is documented to restore what the
+   files say NOW -- but it is a real change from when all three were true, and
+   the old header claimed the opposite.  Measured Aug 20 2026: at /?tune the
+   rows carry has-fr-feather and NOT has-fr-glow.
+
+   Read LAYERS below before assuming "LIVE is true" means the whole
+   atmosphere ships.  It does not, and that separation is the whole point of
+   the two flags being separate.
+
+   -------------------------------------------------------------------------
+   WHAT SHIPS ON THE WIRE, now that it ships
+   -------------------------------------------------------------------------
+   Measured Aug 20 2026, Playwright/Chromium over scripts/serve.py, index.html,
+   .df-cued stripped, against the real files and not an intercepted flag:
+
+     - THREE mask PNGs are now fetched that were not fetched before.  With LIVE
+       false the shipped page requested no mask at all, so this is new weight:
+       filmrow-mask-03 39.6KB + -01 40.8KB + -02 40.0KB = 120.4KB total.
+     - All three 200.  Zero 4xx, zero console errors, zero page errors.
+     - The masks resolve on the <video>, not the figure, at 100% 100%.
+     - No foreground canvas is mounted: the one canvas inside each row is
+       .fr-vhs, the tape treatment, which is a different file's business.
+     - No overflow guard style element, and documentElement.scrollWidth is
+       1440 against a 1440 viewport -- the glow's sideways-scroll problem
+       cannot arise while the glow is off.
+
+   AND ON A PHONE, which contradicts what handoff 42 assumed: css/filmrow-atmos.css
+   carries NO width media query at all, only prefers-reduced-motion.  So the
+   feather is NOT gated off below 768px -- at 390x844 all three rows carry
+   has-fr-feather, the masks resolve, and the same 120.4KB is fetched.  Looked
+   at, and it reads well against the star field.  If phones should not pay the
+   120.4KB, that is a media query somebody has to write; it does not exist yet
+   and nothing here was relying on it.
 
    -------------------------------------------------------------------------
    ONE THING HERE IS A WORKAROUND, NOT A DESIGN: the glow layer's ::before
@@ -99,15 +137,36 @@
 
   /* ---- THE SHIP FLAG ---------------------------------------------------- */
 
-  var LIVE = false;   // false = layers apply only at /?tune; true = every visitor sees them
+  var LIVE = true;    // false = layers apply only at /?tune; true = every visitor sees them
 
   /* Which layers ship when LIVE goes true.  Separate from LIVE because the
      owner may well approve the feather and the glow — which are static paint —
      before approving a canvas that animates in front of the footage.  This
      literal is the shipped source of truth in the js/clouds-sky.js sense: the
      tuner never rewrites it, so reading this file still tells you what a
-     visitor gets, and Copy values prints it ready to replace. */
-  var LAYERS = { feather: true, glow: true, fg: true };
+     visitor gets, and Copy values prints it ready to replace.
+
+     THAT SPLIT IS NOW LOAD-BEARING, not hypothetical (Aug 20 2026).  The owner
+     was shown row 1 in all four states and picked the feather on its own, so
+     glow and fg are false HERE while remaining fully wired.  Do not "tidy" this
+     back to three trues to match LIVE: turning them on is a taste decision the
+     owner has not made, and the flags being separate is what lets them make it
+     one layer at a time.  Both are still TUNABLE at /?tune -- switch the
+     toggle on to judge one -- but neither is applied there by default any
+     more, because the tab is seeded from this literal.  See the header.
+
+     Three things follow from glow:false, and I wrote a fourth that was WRONG
+     before checking it, so all four are recorded:
+       - overflowGuard(false) injects nothing, so the sideways-scroll fix is
+         moot here (index.html carries the real rule in its head anyway).
+       - applyGlow() is only ever called from the tuner, so the stylesheet is
+         untouched and there is not one inline glow property on a figure.
+       - .has-fr-glow is never added, so none of the gradients paint.
+       - "--fr-focus is never written" -- FALSE, and I nearly shipped it as a
+         comment.  focusPass() ran unconditionally and wrote the property on
+         every row on every scroll, for a layer that is not painting.  It is
+         now gated below; see the bind site. */
+  var LAYERS = { feather: true, glow: false, fg: false };
 
   /* Where the panel's dialled values persist, for this browser only, and read
      only at /?tune.  DECLARED UP HERE, NOT NEXT TO THE PANEL CODE THAT USES IT,
@@ -507,7 +566,14 @@
 
   applyToggles();
   applyFG();
-  if (!reduced) {
+  /* GATED ON THE GLOW, not just on reduced motion (Aug 20 2026).  --fr-focus
+     feeds the glow layer and nothing else, so with LAYERS.glow false this pass
+     was a scroll listener plus a getBoundingClientRect on three figures per
+     frame, writing an inline property no rule reads.  `|| TUNE` keeps it bound
+     at /?tune, where the tab can switch the glow on at runtime and would
+     otherwise get a field frozen at whatever focus held when the page loaded.
+     Shipped, feather-only, this now binds nothing at all. */
+  if (!reduced && (LAYERS.glow || TUNE)) {
     window.addEventListener('scroll', queueFocus, { passive: true });
     window.addEventListener('resize', queueFocus);
     focusPass();
@@ -745,7 +811,12 @@
     note.innerHTML = off.length
       ? 'live values differ from the files: <em>' + off.join(', ') + '</em> &middot; Reset restores'
       : 'matches the files &middot; persisted &middot; /?tune only' +
-        (LIVE ? '' : ' &middot; <em>LIVE is false</em>, so a visitor sees none of this');
+        (LIVE
+          ? (LAYERS.glow && LAYERS.fg ? ''
+            : ' &middot; a visitor gets <em>' +
+              (['feather', 'glow', 'fg'].filter(function (k) { return LAYERS[k]; }).join(' + ') || 'nothing') +
+              '</em> only')
+          : ' &middot; <em>LIVE is false</em>, so a visitor sees none of this');
   }
 
   /* Read key by key against SHIPPED rather than trusting the blob: a store

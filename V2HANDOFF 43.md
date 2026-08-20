@@ -14,7 +14,12 @@ journey landing on `index.html` and the first mobile pass. The plain
 **The feather went live — feather only, glow and foreground still parked. The
 About page took the infinity spine and the last two film-row clips, though not
 where anyone expected. "Download — $1" became "Purchase Rise Up" and there is
-now a three-edition purchase page, deliberately wired to nothing. Four commits.**
+now a three-edition purchase page, deliberately wired to nothing. Six commits.**
+
+**START WITH THE BUG.** The owner reported it at the very end of the session and
+it is reproduced, measured and NOT fixed: arriving at Music from the top nav
+lands on `/#tracks` and the deep-field background sits frozen on a single frame
+until you scroll. It has its own section below and it is `Still open` item 1.
 
 ---
 
@@ -302,9 +307,12 @@ Everything in 19–42's lists still stands. Additionally:
 ## Git state
 
 - Branch `feature/spine-ui-v2`. Session start `d903fda` (handoff 42).
-- **Four commits** plus this handoff:
+- **Six commits.** Four of code:
   `1710ce4` feather ships · `f090650` About media · `c32b10d` purchase rough-in ·
   `4e99759` connect heading.
+  Then two for this handoff: `45f05ab` wrote it, and `817f2dc` added the
+  deep-field freeze after the owner reported it. **`817f2dc` changed no code** —
+  the bug is recorded, not fixed.
 - New binaries: **+1.1MB** (one webp, two mp4s).
 - `--spine-build` 42, `--star-build` 29, `--df-build` 11 — **untouched**, no
   reactive-background stylesheet changed.

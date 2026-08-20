@@ -232,13 +232,45 @@
         <span class="ks-head__num">02</span>
         <h2 id="sound-heading">Hard Drums, Dark Rooms</h2>
       </div>
-      <!-- No figure here, so the setting goes two-up. The alternation between
-           floated-figure sections and two-column prose sections is most of what
-           gives this page its rhythm; keep it alternating. -->
-      <div class="ks-body ks-cols ks-r">
+      <!-- THIS SECTION USED TO BE THE TWO-UP ONE, and the comment here used to
+           say so: "the alternation between floated-figure sections and
+           two-column prose sections is most of what gives this page its
+           rhythm; keep it alternating." The owner asked for the infinity spine
+           beside this copy (Aug 20 2026), which means 01, 02 and 03 now all
+           carry a floated figure and that alternation is gone from the top of
+           the page. Recording it rather than deleting it: if the page starts
+           reading monotonous, this is the section that changed and `ks-cols`
+           is what it was.
+
+           The layout had to change with it. `ks-cols` is CSS multi-column, and
+           a float inside one floats within its OWN column -- at two columns
+           that is roughly half the measure, so the figure would have been
+           squeezed into one side rather than sitting beside the prose. Flow
+           plus a right float is the same construction sections 01 and 03 use. -->
+      <div class="ks-body ks-body--flow ks-r">
+        <!-- ks-cut--bare: transparent line art, so no border. See the note by
+             .ks-cut--bare in css/about-feature.css. The source is the owner's
+             own PNG, trimmed from 768x512 to its content box (467x228 of real
+             ink inside a mostly empty canvas) and re-encoded lossless to webp:
+             148KB as PNG against 52.9KB here, alpha identical. It is NOT
+             recoloured -- the ink is already neutral grey ~179 carried entirely
+             by the alpha channel, which reads correctly on the dark page. -->
+        <figure class="ks-cut ks-cut--right ks-cut--bare ks-r">
+          <img src="assets/about/even-infinity.webp" alt="A spine curved into an infinity symbol: two loops of vertebrae meeting at an octagonal joint, captioned &ldquo;Even infinity can&rsquo;t hide from itself.&rdquo;" width="483" height="244" loading="lazy" decoding="async">
+        </figure>
+
         <p class="ks-copy">At its foundation, Kundalini Spines is unapologetically underground hip-hop. The production lives in the territory of <strong>heavy drums, dusty samples, deep bass, eerie piano, detuned bells, scratches, vinyl texture and deliberate empty space</strong>. The sound carries recognizable DNA from artists and producers such as <strong>Wu-Tang Clan, Mobb Deep, Killarmy, Jedi Mind Tricks, DJ Premier, The Alchemist, Daringer and Griselda</strong>, but the group isn&rsquo;t interested in simply recreating another era.</p>
+        <!-- ONE piece of media here, not three. Both clips were tried in this
+             section first and taken out: three floats against three paragraphs
+             put the left and right ones within 4px of level, and paragraph 3
+             opened inside the 206px channel between them (938px measure),
+             breaking "That balance / is important." onto two stub lines. The
+             copy is too short to wrap three. They now sit in sections 07 and 08
+             where the subject actually matches. -->
         <p class="ks-copy">Instead, Kundalini Spines takes the discipline of classic underground rap and pushes it into a stranger environment. The beats remain patient and give the verses room to breathe. Drums can disappear at just the right moment. Scratches become punctuation. Silence creates tension. The production is atmospheric without forgetting that the MC is still supposed to be at the center of the record.</p>
         <p class="ks-copy">That balance is important. Kundalini Spines might surround itself with occult imagery, spiritual concepts and cinematic visuals, but the music never loses its connection to the basic mechanics of hip-hop: <strong>hard drums, sharp writing and records designed to be replayed.</strong></p>
+        <!-- Releases the float, or section 03's heading rides up beside it. -->
+        <div class="ks-clear"></div>
       </div>
     </section>
 
@@ -325,11 +357,29 @@
         <span class="ks-head__num">07</span>
         <h2 id="symbols-heading">A Language of Symbols</h2>
       </div>
-      <div class="ks-body">
+      <!-- Takes --flow because it now carries a figure: every other figure
+           section on this page (01, 03, 06) pairs the float with the wider
+           92ch measure, and a 380px float inside the bare 72ch leaves the
+           prose about a third of the line it was written for. -->
+      <div class="ks-body ks-body--flow">
+        <!-- THE BLACK ARCHIVE SITS HERE because the frame IS this section's
+             copy: bookshelves, a sacred-geometry diagram on the wall, an open
+             grimoire and a spine model on the shelf. The paragraph beside it
+             names sacred geometry, Metatron's Cube and the skeleton key. It
+             was in section 02 first, purely because that is where the owner
+             was looking; moved Aug 20 2026 when they said to find where the
+             clips fit best. Loops in view like every clip on this page -- see
+             the note on the graveyard clip in section 06. -->
+        <figure class="ks-cut ks-cut--left ks-r">
+          <video src="assets/about/the-black-archive.mp4" muted loop playsinline preload="metadata" data-about-clip aria-label="The Black Archive &mdash; video loop"></video>
+        </figure>
+
         <p class="ks-copy ks-r">The same ideas heard in the music extend into the visual identity. The spine appears constantly, alongside skeletons, keys, chambers, sacred geometry, Metatron&rsquo;s Cube, tombstones, fire, armor, blue moonlight and decaying urban environments. None of those elements exist simply as decoration. They function as a visual language tied to the larger themes of knowledge, transformation, mortality and access.</p>
         <p class="ks-copy ks-r">One of the strongest recurring objects is the <strong>skeleton key</strong>. In the Kundalini Spines universe, the key can be built from vertebrae, bone and geometry, turning a familiar object into something that suggests secrecy, knowledge and hidden entryways. Like much of the group&rsquo;s imagery, it raises a question without rushing to answer it.</p>
         <p class="ks-pull ks-r">What does the key open?</p>
         <p class="ks-copy ks-r">Kundalini Spines would rather let the listener decide.</p>
+        <!-- Releases the archive clip, or section 08's heading rides up beside it. -->
+        <div class="ks-clear"></div>
       </div>
     </section>
 
@@ -353,12 +403,25 @@
         <span class="ks-head__num">09</span>
         <h2 id="sum-heading">More Than the Sum of Its Parts</h2>
       </div>
-      <div class="ks-body">
+      <!-- --flow for the same reason as 07: it carries a figure now. -->
+      <div class="ks-body ks-body--flow">
+        <!-- LAST TRAIN BELOW CLOSES THE PAGE'S NARRATIVE. This section is the
+             one that says "two lifelong friends, two MCs" and recaps Seattle to
+             Honolulu, and the clip is the pair of them walking a station
+             platform together -- two figures, underground, mid-journey. It is
+             the last beat before Collaboration & Press, which is a contact
+             block and wants no media. Moved here Aug 20 2026 from section 02. -->
+        <figure class="ks-cut ks-cut--right ks-r">
+          <video src="assets/about/last-train-below.mp4" muted loop playsinline preload="metadata" data-about-clip aria-label="Last Train Below &mdash; video loop"></video>
+        </figure>
+
         <p class="ks-copy ks-r">That may be the simplest way to understand Kundalini Spines. <strong>It is more than the sum of its parts.</strong></p>
         <p class="ks-copy ks-r">Seattle and Honolulu. Blood Brother Phantoms and NHAC. Boom-bap and sacred geometry. Street experience and spiritual inquiry. Technology, mortality, paranoia, symbolism and knowledge all collide inside the same project. None of those elements alone defines the group. It is the tension between them that gives Kundalini Spines its identity.</p>
         <p class="ks-copy ks-r">For all the masks, symbolism and mythology surrounding the music, the foundation remains remarkably traditional: <strong>two lifelong friends, two MCs, hard drums and bars worth running back.</strong></p>
         <p class="ks-copy ks-r">Prophocie and Haight started making music together in Seattle housing projects, continued creating through different eras of their lives and eventually found themselves together again in Honolulu with more experience, more questions and more to say.</p>
         <p class="ks-copy ks-r">They gave that new chapter a name.</p>
+        <!-- Releases the train clip, or the sign-off rides up beside it. -->
+        <div class="ks-clear"></div>
       </div>
 
       <div class="ks-signoff ks-r">

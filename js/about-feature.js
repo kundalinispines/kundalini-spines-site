@@ -146,16 +146,25 @@
   /* Autoplay is deliberately NOT set in the markup. A looping video plays for
      the whole visit otherwise, including the ~90% of this page where it is off
      screen, and on a phone that is the single most expensive thing here. */
-  var clip = document.querySelector('[data-about-clip]');
-  if (clip && 'IntersectionObserver' in window) {
+  /* PLURAL SINCE Aug 20 2026. This was querySelector + a captured `clip`, which
+     was correct while the graveyard shift was the only clip on the page. Two
+     more landed in section 02 and that shape fails twice over: only the FIRST
+     clip is ever found, and the observer callback played the captured element
+     rather than the one that actually crossed the threshold — so even after
+     observing all three, every entry would have driven the graveyard clip.
+     entry.target is the fix for the second half, and it is why the play/pause
+     below reads off the entry instead of a variable in scope. */
+  var clips = [].slice.call(document.querySelectorAll('[data-about-clip]'));
+  if (clips.length && 'IntersectionObserver' in window) {
     var vio = new IntersectionObserver(function (entries) {
       entries.forEach(function (entry) {
-        if (entry.isIntersecting) { var pr = clip.play(); if (pr) pr.catch(function () {}); }
-        else { clip.pause(); }
+        var v = entry.target;
+        if (entry.isIntersecting) { var pr = v.play(); if (pr) pr.catch(function () {}); }
+        else { v.pause(); }
       });
     }, { threshold: 0.25 });
-    vio.observe(clip);
-  } else if (clip) {
-    clip.setAttribute('autoplay', '');
+    clips.forEach(function (v) { vio.observe(v); });
+  } else {
+    clips.forEach(function (v) { v.setAttribute('autoplay', ''); });
   }
 })();

@@ -231,6 +231,14 @@
    column bends around them. */
 .ks-cut { margin: 0.4em 0 1.8em; }
 .ks-cut img, .ks-cut video { width: 100%; display: block; border: 1px solid rgba(214, 213, 208, 0.14); }
+
+/* BARE — for a cut whose source is TRANSPARENT rather than a photograph.
+   The border above is right for the messenger photos: it gives a rectangle of
+   footage a defined edge against the page. On line art with an alpha channel
+   there is no rectangle to edge, so the border draws a frame around mostly
+   empty space and the art appears to sit in a box it does not fill.
+   Aug 20 2026, added for the infinity spine in section 02. */
+.ks-cut--bare img { border: none; }
 @media (min-width: 881px) {
   .ks-cut--right { float: right; width: min(40%, 400px); margin: 0.4em 0 1.8em var(--space-12); shape-outside: margin-box; }
   .ks-cut--left  { float: left;  width: min(38%, 380px); margin: 0.4em var(--space-12) 1.8em 0; shape-outside: margin-box; }

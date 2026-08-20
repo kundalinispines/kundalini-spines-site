@@ -171,6 +171,62 @@ spare (111.3px is the largest that still fits).
 crossing past ~1160px. At 900 and 390 it was centred correctly all along, which
 is why it reads as desktop-only.
 
+## THE BUG TO FIX FIRST — the deep-field background arrives frozen at `/#tracks`
+
+**Reported by the owner at the end of this session, reproduced and measured
+before it was written down. Nothing was changed; this is the next session's
+first job.**
+
+### What they saw
+
+Sitting on Transmissions or Archive, clicking **Music** in the top nav: the
+reactive background under the carousel "isn't loading", and playing a track
+shows "just the video still image".
+
+### What is actually happening
+
+Every off-index page links Music as **`/#tracks`**, so the click is a full page
+load of `index.html` that lands already inside the Music section. Measured at
+1440×900:
+
+| how you arrive at Music | deep-field video | `--df-lum` |
+|---|---|---|
+| **scrolled** down the page | `paused: false` — playing | 0.1576 |
+| **landed** on `/#tracks` | **`paused: true`, frozen at 3.479s** | 0.1576 |
+| then one scroll nudge | recovers, `currentTime` runs on to 5.291 | 0.8583 |
+
+So the background is not failing to load — `readyState` is **4** in every case,
+the clip is fully buffered. **It is parked on a single frame and never told to
+start.** That is precisely "just the video still image", and it clears itself
+the moment the visitor scrolls, which is why it can look intermittent.
+
+### Where to start
+
+`js/deep-field-bg.js`. The only `vid.play()` is in **`playTo()` (~line 658)**,
+and the leg machinery that calls it is driven by `onScroll`, bound at **~line
+1664**. A hash landing produces no scroll event, so nothing appears to make the
+first call. Note that **the deep-link case was already thought about** — the
+boot dissolve at ~line 1670 carries a comment beginning *"The deep-link case:
+arriving at /#tracks lands already inside Music"* — so the sky handover was
+handled and the video's first leg seemingly was not. Read that block before
+changing anything; the fix is probably one call, in the place that comment
+already identified.
+
+### One discrepancy, left honest
+
+The owner said this happens from **Transmissions and Archive but not Merch**.
+Measured here, **Merch behaves identically to Transmissions** — same `/#tracks`
+href on all five off-index pages, same frozen frame on arrival. Either the
+Merch case is timing-dependent on their machine, or the difference is something
+this harness does not reproduce. **Do not assume Merch is exempt**, and do not
+assume the owner is wrong either — check it on the real machine.
+
+### Not yet investigated
+
+Whether the same freeze affects `/#about`, `/#merch`, `/#transmissions`,
+`/#archive` or `/#newsletter`. Only `#tracks` was tested, because that is what
+was reported. It would be surprising if `#tracks` were special.
+
 ## What is deliberate, so nobody fixes it
 
 Everything in 30–42's lists still stands, except where corrected above.
@@ -256,35 +312,37 @@ Everything in 19–42's lists still stands. Additionally:
 
 ## Still open
 
-1. **Wire the purchase page, or decide not to yet.** Needs the owner: a Stripe
+1. **THE DEEP-FIELD FREEZE AT `/#tracks`** — see the section above. Reproduced
+   and measured, not yet fixed, and it is the owner's own report. **Start here.**
+2. **Wire the purchase page, or decide not to yet.** Needs the owner: a Stripe
    account, real prices, and the Payment-Links-vs-backend call in
    `STRIPE-SETUP.md`. Fulfilment (secure download, email, variant capture,
    edition numbering) is entirely unbuilt.
-2. **Whether phones should pay the 120.4KB of masks** — now a real question,
+3. **Whether phones should pay the 120.4KB of masks** — now a real question,
    since 42 wrongly assumed they did not.
-3. **Whether the glow and the foreground ever ship.** Both are wired and
+4. **Whether the glow and the foreground ever ship.** Both are wired and
    judgeable at `/?tune`.
-4. **`.btn` is 42px tall site-wide**, under the 44px touch target. Pinned for
+5. **`.btn` is 42px tall site-wide**, under the 44px touch target. Pinned for
    the purchase CTAs only; the real fix is in `css/components.css` and touches
    every page.
-5. **No Purchase entry in the nav** — a seven-file edit, and `merch.html`
+6. **No Purchase entry in the nav** — a seven-file edit, and `merch.html`
    documents why a nav that changes shape per page is worse than an absent one.
-6. **connect.html's comment claims it shares geometry with index.html's
+7. **connect.html's comment claims it shares geometry with index.html's
    newsletter block so the two "can never drift".** index.html no longer has
    that heading, so the note is already stale.
-7. **Assign masks 04–07 to rows**, or call 3 / 1 / 2 final.
-8. **Judge the hero-wait (~675ms)**, and the fork strike on a phone.
-9. **A glow gradient block** for `rain-transmission-rooftop`.
-10. **A JS transcription of the vertebral rhythm** for mask 06, plus a parity
+8. **Assign masks 04–07 to rows**, or call 3 / 1 / 2 final.
+9. **Judge the hero-wait (~675ms)**, and the fork strike on a phone.
+10. **A glow gradient block** for `rain-transmission-rooftop`.
+11. **A JS transcription of the vertebral rhythm** for mask 06, plus a parity
     story for 07.
-11. Rename the reference PNGs (`Untitled-2.png`, `Untitled-2fix.png`).
-12. **Mobile judgement calls** (41's item 5): nav links 25px, signup button
+12. Rename the reference PNGs (`Untitled-2.png`, `Untitled-2fix.png`).
+13. **Mobile judgement calls** (41's item 5): nav links 25px, signup button
     42px, tablets ≥768 taking the 4.9MB clip, About at 3.55:1 under AA.
-13. **Whether the VHS should run on phones.**
-14. **The lab's fate**, now that it duplicates `index.html`.
-15. **Phase two of the Music handoff** — playback gating; four hooks, none used.
-16. **A `-g 48` re-export of the spine render.**
-17. The two filmrow labs still scrubbing; the doc-rail ring inversion; the
+14. **Whether the VHS should run on phones.**
+15. **The lab's fate**, now that it duplicates `index.html`.
+16. **Phase two of the Music handoff** — playback gating; four hooks, none used.
+17. **A `-g 48` re-export of the spine render.**
+18. The two filmrow labs still scrubbing; the doc-rail ring inversion; the
     frame-budget decision; `music.html` still a redirect stub; stale amber-era
     `?tune` TIPS prose; the two missing trivia files; the astral scrim; the
     inherited pile.

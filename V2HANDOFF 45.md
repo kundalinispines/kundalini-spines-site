@@ -213,7 +213,9 @@ Everything in 19–44's lists still stands. Additionally:
 ## Git state
 
 - Branch `feature/spine-ui-v2`. Session start `1b5b742` (handoff 44).
-- **Two code commits**, then this handoff.
+- **Two code commits:** `26a79c1` the `.btn--primary` hover colour · `5940bb8`
+  the album masthead, the nav repoint and the three new binaries. Then this
+  handoff.
 - **Twelve files touched:** eleven HTML pages (nav; three of them also the cover),
   `css/purchase.css`, `css/components.css`.
 - **Three new binaries:** `assets/music/rise-up-cover.webp` (219 KB),

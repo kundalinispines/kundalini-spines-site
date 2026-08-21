@@ -208,7 +208,12 @@
   cursor: pointer;
 }
 .btn--primary { background: var(--color-white); color: var(--color-black); }
-.btn--primary:hover { background: var(--color-bone); border-color: var(--color-bone); }
+/* color is re-declared, not inherited. An <a class="btn btn--primary"> (merch.html)
+   otherwise loses it on hover: a:hover in css/base.css is (0,1,1) and beats the
+   (0,1,0) .btn--primary rule above, repainting the label bone on a bone
+   background. .btn--ghost:hover already re-declares color and was never hit;
+   purchase.html uses <button> and was never hit either. */
+.btn--primary:hover { background: var(--color-bone); border-color: var(--color-bone); color: var(--color-black); }
 .btn--ghost { background: transparent; color: var(--text-primary); }
 .btn--ghost:hover { background: var(--color-white); color: var(--color-black); }
 .btn:disabled { opacity: 0.4; cursor: not-allowed; }

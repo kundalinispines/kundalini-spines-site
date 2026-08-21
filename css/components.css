@@ -178,6 +178,29 @@
   text-transform: uppercase;
   text-decoration: none;
   padding: var(--space-3) var(--space-6);
+  /* 44px MINIMUM — THE TOUCH TARGET (Aug 21 2026).
+
+     This height is padding-derived: --space-3 (12px) top and bottom against a
+     --fs-label line. --space-3 is a fixed 12px but --fs-label is FLUID, so the
+     button shrinks with the viewport — and it is smallest exactly where the
+     target matters. MEASURED across all ten root pages: 47.4px at 1440, and at
+     390 connect.html's "Join the Signal" came out at 42px, the number
+     css/purchase.css already had written down.
+
+     A min-height rather than more padding, because padding would move every
+     button on the site at every width to fix the one width that is short.
+     Nothing at 1440 changes: 44 is under the 47.4 those already measure.
+
+     IT ALSO CATCHES THE OVERRIDES. .track-focus-panel__actions .btn sets its
+     own tighter padding (0.55rem) to keep five actions on one row and measured
+     40.2px at BOTH widths — the worst targets on the site, and the ones the
+     "42px site-wide" note missed. min-height lifts them to 44 without touching
+     the horizontal padding that row depends on.
+
+     css/purchase.css pinned this on its three CTAs first and said the site-wide
+     version belonged here. It is here now, and that pin is gone — one source of
+     truth, so a future change to this number reaches the purchase page too. */
+  min-height: 44px;
   border: 1px solid var(--color-white);
   border-radius: var(--radius-sharp);
   transition: background var(--motion-fast) var(--ease-standard),

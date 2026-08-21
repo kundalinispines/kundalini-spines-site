@@ -10,10 +10,11 @@
    used on exactly one page. If a second page ever needs one of these, extract it
    then — do NOT push it into components.css, which six pages load.
 
-   IT LOADS LAST, after components.css. .ks-edition__cta is a .btn and overrides
-   .btn's padding-derived height with an explicit min-height; that is a
-   same-specificity fight won by source order alone. purchase.html's <head>
-   carries the same warning.
+   IT LOADS LAST, after components.css. .ks-edition__cta is a .btn and restyles
+   it — full width, centred — and that is a same-specificity fight won by source
+   order alone. purchase.html's <head> carries the same warning. The height is
+   NO LONGER part of that fight: the 44px min-height moved into components.css
+   on Aug 21 2026 and is inherited here rather than overridden.
 
    NO OPAQUE SURFACE ANYWHERE IN THIS FILE. The nebula and two of the four star
    bands are pseudo-elements of <html> and <main> (css/star-bg.css). A solid panel
@@ -287,18 +288,18 @@
    blocks. The card is the flex column that makes this work — see .ks-edition. */
 .ks-edition__foot { margin-top: auto; }
 
-/* THE min-height IS NOT BELT-AND-BRACES, IT IS THE FIX. A bare .btn from
-   components.css was measured at 1440 with this page's own label text in it:
-   42px. That is under the 44px touch target, and it is under it on every page
-   of this site that uses .btn — components.css gives it --space-3 (12px) of
-   block padding against a 13px Rajdhani label at 1.65, and 12+18+12 lands short.
-   Pinned here for the three CTAs; the site-wide version of this fix belongs in
-   components.css and is NOT made from a file one page loads. Flagged to the
-   lead. */
+/* THE 44px PIN HAS MOVED TO components.css (Aug 21 2026), which is where the
+   note that used to sit here said it belonged. .btn now carries min-height:44px
+   site-wide, so these three CTAs inherit it and the local copy is gone — one
+   source of truth, and a change to that number now reaches this page too.
+   Re-measured after the move: all three still 44px at 1440 and at 390.
+
+   The rest of this rule stays local and is not about height at all: full width
+   and centred text are what make three buttons of different label lengths read
+   as one row of cards. */
 .ks-edition__cta {
   display: flex;
   width: 100%;
-  min-height: 44px;
   justify-content: center;
   text-align: center;
 }
@@ -503,8 +504,10 @@
      skip link (44px) → nav → OWN THE DIGITAL ALBUM (44px) → UNLOCK THE DELUXE
      EDITION (44px) → JOIN THE RELEASE LIST (47px) → Stream Rise Up → footer.
    CLAIM THE ARTIFACT is absent from that list and that is the design — see the
-   artifact-state note above. The 44px figures are the pinned min-height doing
-   its job; a bare .btn measured 42px.
+   artifact-state note above. The 44px figures were this file's own pinned
+   min-height doing its job against a bare .btn of 42px; since Aug 21 2026 the
+   pin lives in components.css and .btn carries it site-wide, so the same
+   numbers now come from there. Re-measured after the move: unchanged.
 
    THE ARTIFACT STATE SWITCH MOVES NO LAYOUT. Toggling
    [data-ks-edition-status].hidden in the console at 1440x900:

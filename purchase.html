@@ -44,9 +44,12 @@
      repo: the page renders pure black, with no error and nothing in the console
      to say why.
      css/purchase.css is the SIXTH and it goes last, after components.css, for
-     one concrete reason: it restyles .btn on the edition cards (min-height, full
-     width) and a same-specificity rule only wins by source order. Move it above
-     components.css and the CTAs silently lose their 44px touch target. -->
+     one concrete reason: it restyles .btn on the edition cards (full width,
+     centred) and a same-specificity rule only wins by source order. Move it
+     above components.css and the CTAs silently lose that layout.
+     The 44px touch target is NOT at stake here any more: it moved into
+     components.css on Aug 21 2026 and applies to every .btn on the site, so it
+     survives any order these two are loaded in. -->
 <link rel="stylesheet" href="css/tokens.css">
 <link rel="stylesheet" href="css/base.css">
 <link rel="stylesheet" href="css/star-bg.css">

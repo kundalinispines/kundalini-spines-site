@@ -72,6 +72,35 @@
 <link rel="stylesheet" href="css/components.css">
 <link rel="stylesheet" href="css/site-footer.css">
 
+<!-- A SIXTH STYLESHEET, ADDED Aug 21 2026, AND THE BANNER ABOVE THAT SAID
+     "THE FIVE STYLESHEETS ARE THE ROOT-PAGE SET" IS NOW ONE SHORT. It is not
+     deleted, because the ORDER claim in it is still load-bearing and still
+     true: tokens, base, star-bg, components, site-footer, in that order, and
+     dropping star-bg.css still renders the page pure black with nothing in the
+     console. This file simply goes after them.
+
+     WHY THIS FILE AND NOT THE INLINE <style> BLOCK BELOW, which is otherwise
+     this page's documented pattern for its own furniture. The album cover is
+     NOT this page's own furniture — it is one component now standing on three
+     pages (purchase.html, merch.html, here), and the reasoning merch.html
+     recorded when it took the same step applies verbatim: the same component on
+     more than one page belongs in one file, because a second copy is how two
+     surfaces drift apart. Reusing it also means the contrast measurement behind
+     the caption strip's scrim was done once and holds here.
+
+     THE UNUSED RULES ARE THE PRICE AND THEY WERE CHECKED, NOT WAVED THROUGH.
+     Most of css/purchase.css defines .ks-edition*, and this page has no edition
+     cards — it describes the three editions with .empty-state instead. Every
+     selector in that file was read against this page's markup: .ks-own,
+     .ks-own__head, .ks-own__lede, .ks-editions, .ks-edition and all their
+     descendants match NOTHING here, including inside its @media blocks, and its
+     .btn override is scoped to .ks-edition__cta so the three buttons in
+     .ks-result__actions are untouched. What it contributes to this page is the
+     masthead block and nothing else.
+
+     The inline <style> below keeps everything that IS this page's own. -->
+<link rel="stylesheet" href="css/purchase.css">
+
 <!-- SCOPED INLINE <style>, NOT A NEW STYLESHEET, AND NOT AN ADDITION TO
      css/components.css. Five pages share components.css; three rules that
      exist for two confirmation pages do not belong in a file every page pays
@@ -171,9 +200,9 @@
     <nav id="primary-nav" aria-label="Primary">
       <ul class="nav__links">
         <li><a href="/">Home</a></li>
-        <li><a href="/#about">About</a></li>
+        <li><a href="about.html">About</a></li>
         <li><a href="/#tracks">Music</a></li>
-        <li><a href="/#merch">Merch</a></li>
+        <li><a href="merch.html">Merch</a></li>
         <li><a href="transmissions.html">Transmissions</a></li>
         <li><a href="archive.html">Archive</a></li>
       </ul>
@@ -205,10 +234,50 @@
        page needs to change. That is why they are separated.
        ====================================================================== -->
   <section class="section container ks-result" style="padding-top: calc(var(--space-24) + 3rem);">
-    <div class="section-header" style="max-width: 68ch;">
-      <span class="label">Confirmation</span>
-      <h1 class="ks-result__headline">Transmission<br>Received</h1>
-      <p class="ks-result__lede">Rise Up is now yours.</p>
+    <!-- THE COVER STANDS BESIDE "RISE UP IS NOW YOURS", which is the one line
+         on this page it makes concrete. The sentence names a record; the sleeve
+         is what a record looks like. Nothing else on the page can show what was
+         bought — the three .empty-state cards below describe editions in words,
+         and per the note above they must keep doing exactly that.
+
+         IT IS NOT A DELIVERY, AND NOTHING ABOUT IT MAY SUGGEST ONE. This page is
+         under a hard rule (see the banner above): no download link, no "your
+         file is ready", and per §5 of js/purchase-checkout.js the album ZIP URL
+         must never appear in public HTML at all. So the cover is a plain <img>
+         in a <figure> — not wrapped in an <a>, not a button, carrying no
+         download attribute and no hover state. It identifies; it does not
+         deliver. If a future edit is tempted to make it clickable, that is the
+         rule it would be breaking.
+
+         THE --sm VARIANT, NOT THE SHOPFRONT SIZE. At the 400px purchase.html and
+         merch.html use, the sleeve outweighs TRANSMISSION RECEIVED — which is
+         Anton at --fs-hero and is meant to be the first thing read here. 240px
+         keeps the artwork an object and the headline the headline. The reasoning
+         and the measurement are at .ks-own__album--sm in css/purchase.css.
+
+         loading="lazy" IS DELIBERATELY ABSENT. On purchase.html and merch.html
+         the cover is below other content or far down the page; here it is the
+         first thing in <main>, above the fold at every width measured, and
+         lazy-loading an LCP-candidate image only delays it. -->
+    <div class="ks-own__album ks-own__album--sm">
+
+      <figure class="ks-own__cover">
+        <img src="assets/music/rise-up-cover.webp"
+             srcset="assets/music/thumbs/rise-up-cover.webp 448w,
+                     assets/music/rise-up-cover.webp 1254w"
+             sizes="(max-width: 880px) min(100vw - 48px, 320px), 240px"
+             width="1254" height="1254" decoding="async"
+             alt="Rise Up album cover: two hooded figures rising out of a cracked graveyard beneath a glowing spinal column and a sigil-marked moon.">
+        <!-- Read out of data/tracks.json, same line as the other two pages. -->
+        <figcaption class="ks-own__cover-cap readout">Rise Up &middot; 2026 &middot; 28&nbsp;tracks</figcaption>
+      </figure>
+
+      <div class="section-header" style="max-width: 68ch;">
+        <span class="label">Confirmation</span>
+        <h1 class="ks-result__headline">Transmission<br>Received</h1>
+        <p class="ks-result__lede">Rise Up is now yours.</p>
+      </div>
+
     </div>
 
     <!-- The order reference, hidden until there is one. Stripe substitutes the

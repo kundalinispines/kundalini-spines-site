@@ -75,9 +75,9 @@
     <nav id="primary-nav" aria-label="Primary">
       <ul class="nav__links">
         <li><a href="/">Home</a></li>
-        <li><a href="/#about">About</a></li>
+        <li><a href="about.html">About</a></li>
         <li><a href="/#tracks">Music</a></li>
-        <li><a href="/#merch">Merch</a></li>
+        <li><a href="merch.html">Merch</a></li>
         <li><a href="transmissions.html">Transmissions</a></li>
         <li><a href="archive.html">Archive</a></li>
       </ul>
@@ -135,11 +135,66 @@
        ========================================================================== -->
   <section class="section container ks-own" aria-labelledby="own-heading" data-ks-purchase-section>
 
-    <div class="ks-own__head">
-      <span class="label">Direct Purchase</span>
-      <h1 id="own-heading">Own the Album</h1>
-      <p class="ks-own__lede">Streaming gives you access. Ownership gives you the transmission.</p>
-      <p class="ks-own__sub">Purchase Rise Up directly from Kundalini Spines. High-resolution audio, artwork, exclusive material, and physical editions are available depending on the package.</p>
+    <!-- THE COVER GOES HERE, ONCE, AND NOT INSIDE THE THREE CARDS.
+         The owner's ask was "somewhere in the purchase cards". It was tried and
+         it is the wrong home for it, for three reasons worth writing down so it
+         is not re-tried:
+           1. THE SAME IMAGE THREE TIMES READS AS DECORATION. The artwork is the
+              album, not the tier. Repeating it once per card says nothing that
+              distinguishes Digital from Deluxe from Artifact — it just puts the
+              identical 1:1 block at the top of three columns and the eye stops
+              reading them as three different offers.
+           2. IT SPENDS THE DELUXE CARD'S EMPHASIS. That card's prominence is
+              carried by FOUR small accumulated differences (see the note at
+              .ks-edition--deluxe in css/purchase.css). Drop a piece of full-bleed
+              artwork into every card and every one of those four differences is
+              now competing with an image; the centrepiece stops reading as one.
+           3. THE CARDS ARE CATALOGUE ENTRIES ON PURPOSE. Hairlines, a mono
+              catalogue number, no glyph bullets, no radius — the nearest relative
+              is merch.html's catalogue, not a store. Art inside the frame is the
+              ecommerce product-tile shape the whole page was told not to be.
+
+         Above them it does the job the cards cannot: it says WHAT you are buying
+         before it says in how many ways. Cover left, the existing head copy
+         right, the three tiers unchanged below.
+
+         THE HAIRLINE ON THE FRAME IS NOT ORNAMENT. The cover's outer 40px are
+         near-black on every edge and this page's background is a star field at
+         roughly the same value — with no border the artwork has no boundary and
+         the graveyard just fades into the sky. 0.14 alpha is the SAME hairline
+         .ks-edition carries, so the cover and the cards read as one family.
+
+         NO LINK ON THE IMAGE. It is the subject, not a control; the three CTAs
+         below are the only things on this page that do anything.
+
+         width/height ARE THE INTRINSIC PIXELS (1254 square) so the box is
+         reserved before the file lands — this sits directly under the fixed nav
+         and a late-arriving 1:1 block here would shove the h1 down after paint.
+         The 448px thumb is the site's existing small-cover size (see
+         assets/music/thumbs/) and serves 1x displays; retina takes the 1254. -->
+    <div class="ks-own__album">
+
+      <figure class="ks-own__cover">
+        <img src="assets/music/rise-up-cover.webp"
+             srcset="assets/music/thumbs/rise-up-cover.webp 448w,
+                     assets/music/rise-up-cover.webp 1254w"
+             sizes="(max-width: 880px) min(100vw - 48px, 320px), 400px"
+             width="1254" height="1254" decoding="async"
+             alt="Rise Up album cover: two hooded figures rising out of a cracked graveyard beneath a glowing spinal column and a sigil-marked moon.">
+        <!-- Both facts are read out of data/tracks.json (release.name / .year and
+             the length of the tracks array), not typed from memory. If that file
+             gains or loses a track this line is wrong — it is the only hard count
+             on the page. -->
+        <figcaption class="ks-own__cover-cap readout">Rise Up &middot; 2026 &middot; 28&nbsp;tracks</figcaption>
+      </figure>
+
+      <div class="ks-own__head">
+        <span class="label">Direct Purchase</span>
+        <h1 id="own-heading">Own the Album</h1>
+        <p class="ks-own__lede">Streaming gives you access. Ownership gives you the transmission.</p>
+        <p class="ks-own__sub">Purchase Rise Up directly from Kundalini Spines. High-resolution audio, artwork, exclusive material, and physical editions are available depending on the package.</p>
+      </div>
+
     </div>
 
     <!-- Three <article>s, each an h2. The tier titles are the only h2s on the

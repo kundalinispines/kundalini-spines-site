@@ -23,14 +23,260 @@
    measured numbers are at .ks-edition below.
    ========================================================================== */
 
-/* ---- Section head --------------------------------------------------------
+/* ---- Section shell -------------------------------------------------------
    .section already gives --space-24 top padding from base.css. The extra 3rem is
    the same one-off merch.html applies inline, for the same reason: the fixed nav
    is 92px expanded (--nav-h-max) and .section's padding alone puts an h1 under
    it on first paint, before js/nav.js has collapsed the bar. */
 .ks-own { padding-top: calc(var(--space-24) + 3rem); }
 
-.ks-own__head { max-width: 72ch; margin-bottom: clamp(40px, 6vh, 72px); }
+/* ---- The album masthead --------------------------------------------------
+   THREE PAGES USE THIS BLOCK: purchase.html and merch.html, which are the two
+   shopfronts and get it at full size, and purchase-success.html, which gets the
+   --sm variant at the foot of this section. It lives here rather than being
+   copied into each because merch.html's stylesheet banner already settled the
+   question for the cards below it — two shopfronts sharing one definition is
+   the whole point, and a second copy is how they drift. Same argument, same
+   file, one more component.
+
+   THE COVER IS SHOWN ONCE, ABOVE THE TIERS, NOT INSIDE THEM. The full argument
+   is in the comment above .ks-own__album in purchase.html; the short form is
+   that the artwork identifies the ALBUM and the three cards distinguish the
+   EDITIONS, so putting it in each card repeats the one thing all three share
+   and spends the accumulated emphasis .ks-edition--deluxe is built out of.
+
+   400px IS THE COVER COLUMN AND IT IS A max, NOT A WIDTH. minmax(0, 400px)
+   rather than a bare 400px, and the difference is a safety net rather than
+   something you can see: a bare fixed track carries a min-content floor it can
+   never go under, so if the copy column's own min-content ever grew past what is
+   left, the grid would overflow the container instead of rebalancing. With
+   minmax(0, …) the cover is the track that yields.
+
+   MEASURED, IT NEVER ACTUALLY YIELDS above the 880px breakpoint, and that is the
+   correct outcome, not a sign the minmax is dead weight. Track widths and the
+   resulting copy measure, every step from the container width down to the
+   breakpoint (viewport → cover / copy):
+
+       1440 → 400 / 784      1000 → 400 / 512
+       1232 → 400 / 736       940 → 400 / 454
+       1100 → 400 / 608       881 → 400 / 398   <- last width before it stacks
+
+   The copy column takes the whole loss, bottoming at 398px one pixel above the
+   breakpoint, and documentElement.scrollWidth === window.innerWidth at every one
+   of those widths. The cover holding its size is what keeps the artwork readable
+   as artwork rather than as a thumbnail.
+
+   THE COPY'S MEASURE IS UNCHANGED BY THE COVER'S ARRIVAL, which is the one thing
+   that had to be true here. .ks-own__head's 72ch cap measures 734px in Plex Sans,
+   and 734 < the 784px track at 1440 — so the cap binds first and the head sets to
+   exactly the 734px it set to before, when it was a full-width block under the
+   same cap. That means the lede's three-line break survives untouched and the
+   line-width table recorded at .ks-own__lede below did not have to be re-run.
+   Confirmed: 3 lines at 1440, and still 3 at 950 and at 390.
+
+   align-items: start, NOT center. Centred against a 400px square, the label and
+   h1 drop ~90px below the top of the artwork and the section loses its top
+   edge — the first thing under the nav becomes a picture with nothing beside
+   it. Started, the label sits on the cover's top edge and the two columns share
+   one baseline to read from. */
+.ks-own__album {
+  display: grid;
+  grid-template-columns: minmax(0, 400px) 1fr;
+  gap: clamp(28px, 4vw, 48px);
+  align-items: start;
+  margin-bottom: clamp(40px, 6vh, 72px);
+}
+
+/* 880px IS css/about-feature.css's NUMBER AND IT IS THE RIGHT ONE TO BORROW.
+   That file uses 880 for exactly this situation — a figure standing beside
+   prose. The 1024px boundary used by .ks-editions below is for the three-card
+   row and does not transfer: two columns survive narrower than three do.
+
+   THE COVER IS CAPPED AT 320px WHEN STACKED, not set to 100%. A full-width
+   square on a 390px phone is 390px tall and pushes the h1 to the fold — the
+   reader meets the artwork and has to scroll to find out what the page is.
+   Capped, the cover, the label and the h1 all land above it. */
+/* ---- The receipt variant --------------------------------------------------
+   purchase-success.html ONLY. That page is a receipt, not a shopfront: the
+   reader has already decided, and the cover's job there is to confirm WHAT was
+   bought, not to sell it. At the shopfront's 400px it outweighs TRANSMISSION
+   RECEIVED, which is Anton at --fs-hero and is meant to be the first thing read
+   on that page. 240px keeps the artwork an object and the headline the headline.
+
+   IT IS A COLUMN CAP, NOT AN IMAGE WIDTH — the cover still fills its track, so
+   the hairline, the strip and the scrim keep working exactly as they do at
+   400px and the contrast measurement does not have to be redone for a size.
+
+   >> THIS RULE MUST STAY ABOVE THE @media BLOCK BELOW, AND ITS SELECTOR MUST
+   >> STAY IN THAT BLOCK'S LIST. <<
+   Both halves, or the phone layout breaks. .ks-own__album--sm is (0,1,0) —
+   exactly the same specificity as the .ks-own__album in the media block, and a
+   media query adds nothing to specificity — so the two can only be separated by
+   SOURCE ORDER. Written after the media block, as this shipped for one pass,
+   the variant wins at every width and the phone never stacks: measured at
+   390x844, purchase-success.html held two columns and squeezed them to 85px and
+   233px, i.e. an 85px cover, and there is no error and nothing in the console to
+   say why. css/star-bg.css records this identical trap at length for its page
+   blocks; this is the same one, in a different file.
+
+   The selector is ALSO added to the media block's list rather than relying on
+   source order alone. Belt and braces: source order is invisible in devtools
+   until you go looking, and naming the variant in the block that overrides it
+   makes the relationship greppable. */
+.ks-own__album--sm { grid-template-columns: minmax(0, 240px) 1fr; }
+
+@media (max-width: 880px) {
+  .ks-own__album,
+  .ks-own__album--sm { grid-template-columns: 1fr; gap: var(--space-6); }
+  .ks-own__cover { max-width: 320px; }
+}
+
+/* THE HAIRLINE IS STRUCTURAL, NOT DECORATIVE. The cover's outer edge is
+   near-black on all four sides and this page's backdrop is a star field at
+   close to the same value, so with no border the artwork has no boundary at
+   all — the graveyard simply dissolves into the sky and the image reads as a
+   bleed rather than as a record sleeve. 0.14 is the SAME alpha .ks-edition
+   carries, deliberately: the cover and the cards then read as one family of
+   filed objects rather than as a photo sitting next to some cards.
+
+   NO RADIUS AND NO SHADOW. --radius-sharp is the site default (tokens.css:
+   severe/institutional, not soft) and the cards only take a shadow on hover.
+   A rounded, drop-shadowed cover is the storefront product tile this page was
+   told not to be.
+
+   line-height: 0 ON THE FIGURE kills the inline-descender gap under the img
+   that would otherwise leave a ~5px sliver of page background inside the
+   border along the bottom edge only — a frame that looks 1px heavier at the
+   foot than at the sides. display:block on the img is the other half of it. */
+.ks-own__cover {
+  margin: 0;
+  line-height: 0;
+}
+.ks-own__cover img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+  border: 1px solid rgba(214, 213, 208, 0.14);
+  border-bottom: 0;
+  border-radius: var(--radius-sharp);
+}
+
+/* THE CAPTION IS A STRIP ATTACHED TO THE SLEEVE, NOT A LINE FLOATING UNDER IT,
+   AND THE REASON IS MEASURED, NOT STYLISTIC. The first version was exactly that
+   floating line — --text-muted on bare sky, 12px, sitting eight pixels below the
+   frame. Measured 2026-08-21 the way this file's foot block documents (animations
+   pinned to their 46% keyframe, the text set to `color: transparent`, contrast of
+   #78888F against every backdrop pixel in the caption's own box):
+
+                        worst 1%   worst 5%   median
+       1440x900           1.55       1.72      5.06
+        950x900           1.54       1.71      4.18
+        390x844           2.58       3.29      4.72
+
+   Nowhere near AA, and for the same reason the streaming line in the foot was
+   not: this strip sits directly beneath a big block of near-black artwork, which
+   is precisely where the eye has been dark-adapted, and the star field
+   immediately under the frame is some of the brightest sky on the page. Colour
+   cannot fix it — the absolute worst backdrop pixel computes to 1.05:1 against
+   --text-muted, i.e. a star at the same luminance as the type.
+
+   So it takes the treatment the foot took: a translucent wash. Attaching it to
+   the frame rather than washing a floating line is what stops it reading as a
+   grey chip stuck under a picture — the image drops its bottom border, the strip
+   carries a full one, and the two share a single hairline. What lands is a
+   sleeve with a filing label on it, which is the language of the three cards
+   below and of merch.html's catalogue.
+
+   0.94, DEEPER THAN THE FOOT'S 0.88, AND THE MARGIN IS THE WHOLE ARGUMENT.
+   Swept across all three pages that mount this strip, at the three viewports,
+   with the sky pinned to its 46% keyframe. worst 1% / worst 5% against
+   --text-muted; AA needs 4.5:
+
+       alpha        none         0.66        0.80        0.88        0.94
+       purchase 1440  1.45/3.17   2.35/4.82   3.69/5.19   4.52/5.33   5.12/5.46
+       purchase  950  1.06/1.34   3.03/3.83   4.22/4.68   4.82/5.07   5.24/5.34
+       purchase  390  1.43/2.40   4.02/4.62   4.77/5.08   5.12/5.27   5.37/5.43
+       merch    1440  1.41/3.19   2.43/4.84   3.74/5.19   4.57/5.33   5.15/5.46
+       merch     950  1.06/1.33   3.11/3.84   4.26/4.68   4.82/5.07   5.24/5.34
+       merch     390  1.55/2.42   4.12/4.63   4.82/5.08   5.13/5.28   5.37/5.43
+       success  1440  3.19/5.37   4.89/5.51   5.22/5.55   5.34/5.53   5.46/5.56
+       success   950  2.62/3.33   4.68/4.97   5.12/5.26   5.30/5.36   5.43/5.46
+       success   390  1.44/2.40   4.02/4.62   4.77/5.08   5.12/5.27   5.37/5.43
+
+   The foot's 0.88 technically passes — its worst cell is 4.52 — but that is a
+   margin of two hundredths of a ratio point, and it is not a margin worth
+   shipping: every figure above is ONE PINNED KEYFRAME of a sky whose twinkle and
+   cloud layers are not phase-locked (the note at the foot of this file says so),
+   and none of it has been seen on a real handset. 0.94 moves the worst cell to
+   5.12. Six points of alpha for six tenths of a ratio point is the right trade
+   here and it is the only place in this file that departs from the foot's value.
+
+   THE THREE PAGES AGREE WITH EACH OTHER, which is worth stating because a first
+   pass reported that they did not — merch.html appeared to fail at 390 with 3.64
+   while purchase.html passed. That was a measurement artifact, not a difference
+   between the pages; see the settle-gate trap below. Read across the rows above:
+   the two shopfronts are within 0.05 of each other at every alpha and every
+   width, exactly as two pages sharing one component and one sky should be.
+
+   TWO WAYS TO MIS-MEASURE THIS STRIP, BOTH OF WHICH HAPPENED HERE.
+
+   1. MEASURE THE CONTENT BOX, NOT THE BORDER BOX. The strip is ~400x34 with a
+      1px border, so the border is ~5% of its pixels — clip the element's full
+      rect and the worst-5% tail IS the border, which sits at 4.36:1 against
+      --text-muted no matter what the background alpha is. That is what a first
+      pass reported: a flat 4.36 at 0.88, 0.92, 0.94 and 0.96, a curve that does
+      not move because it was never measuring the backdrop. No glyph ever
+      overlaps the hairline. Inset by the border AND the padding before sampling.
+
+   2. LET THE PAGE SETTLE, AND SCROLL THE CAPTION ITSELF INTO VIEW. The sky
+      layers are position:fixed, so what sits behind this strip is a function of
+      scroll position. Centring a nearby heading instead pushes the strip
+      off-screen on a phone and the clip rect leaves the viewport entirely.
+      Worse, on a tall page — merch.html is 4819px — a screenshot taken straight
+      after scrollIntoView() catches the page mid-settle and samples a different
+      band of sky: that is where the phantom 3.64, and a 2.68 that reproduced
+      nowhere, came from. Await document.fonts.ready, scroll the caption, wait,
+      THEN pin the animations. Assert the caption's rect is fully inside the
+      viewport, and take two samples and require them to agree before believing
+      either.
+
+   Both are the same family as the fixed-layer screenshot trap recorded at
+   .ks-edition above: on this site, a contrast number you did not fight for is
+   probably measuring the wrong pixels.
+
+   MEASURE THE CONTENT BOX, NOT THE BORDER BOX, OR THE NUMBER IS THE HAIRLINE'S
+   AND NOT THE TEXT'S. This strip is about 400x34 with a 1px border, so the
+   border is ~5% of its pixels — clip the element's full rect and the worst-5%
+   tail IS the border, which sits at 4.36:1 against --text-muted no matter what
+   the background alpha is. That is what a first pass here reported: a flat 4.36
+   at 0.88, 0.92, 0.94 and 0.96, a curve that does not move because it was never
+   measuring the backdrop. No glyph ever overlaps the hairline. Inset by the
+   border and the padding before sampling. Same family of trap as the
+   fixed-layer screenshot one recorded at .ks-edition above.
+
+   .readout already sets Plex Mono / 12px / 0.08em / uppercase in base.css, so
+   only the wash, the frame, the colour and the spacing belong here. --text-muted
+   rather than secondary: the line restates what the h1 and the card titles
+   already say, and it must not compete with the DIRECT PURCHASE label sitting
+   directly across from it.
+   line-height is restored because the figure zeroed it for the image. */
+.ks-own__cover-cap {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid rgba(214, 213, 208, 0.14);
+  border-radius: var(--radius-sharp);
+  background: rgba(3, 4, 15, 0.94);
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+/* ---- Section head -------------------------------------------------------- */
+/* The bottom margin now lives on .ks-own__album, which is what actually sits
+   above the card row — leaving it here would have added a second gap inside
+   the two-column block and dropped the copy column out of alignment with the
+   top of the cover. */
+.ks-own__head { max-width: 72ch; }
 .ks-own__head .label { display: block; margin-bottom: var(--space-3); }
 
 /* The lede is the line that has to land. Set in the DISPLAY face rather than
@@ -544,4 +790,111 @@
    390x844 emulated viewport. And the 46% keyframe is the twinkle's peak, not
    necessarily the worst frame for any given pixel — the cloud layer breathes on
    its own cycle and the two are not phase-locked.
+   ========================================================================== */
+
+/* ==========================================================================
+   VERIFICATION NOTE — 2026-08-21, the album masthead.
+   Same method and same three viewports as the pass above, plus a DPR-2 run.
+   Everything below was observed.
+
+   THIS BLOCK NOW SERVES THREE PAGES and all three were verified, not just the
+   one it was designed against: purchase.html and merch.html at the full 400px,
+   purchase-success.html at the --sm 240px.
+
+   THE ASSET AND HOW TO REGENERATE IT. Source is the owner's master, which is
+   NOT in this repo:
+       Desktop/Kundalini-Spines-Track-Art/Kundalini Spines Album Cover Art/
+       Kundalini_Spines_Rise_Up_Stripe.jpg     (1254x1254 RGB, 1.18 MB)
+   Encoded to the two sizes this repo already uses for cover art — the full
+   1254 square beside the per-track covers, the 448 square in thumbs/ — with
+   Pillow at quality=82, method=6, the settings the existing set was cut at:
+       assets/music/rise-up-cover.webp          1254x1254   219 KB
+       assets/music/thumbs/rise-up-cover.webp    448x448      36 KB
+   Both sit inside the range of the 28 track covers already there (216-522 KB
+   full, 33-53 KB thumb), so nothing about this page's weight is exceptional.
+
+   srcset PICKS CORRECTLY, which is the only reason the 448 is worth shipping:
+       DPR 1, 400px box   -> thumbs/rise-up-cover.webp
+       DPR 2, 400px box   -> music/rise-up-cover.webp
+   The `sizes` attribute in purchase.html declares 400px above the breakpoint
+   and min(100vw - 48px, 320px) below it; both match the boxes measured below,
+   so the browser is never choosing against a wrong declared width.
+
+   LAYOUT, at DPR 1:
+                       cover img        caption strip      overflow
+       1440x900        400x400          400x44             0
+        950x900        400x400          400x44             0
+        390x844        320x320          320x44             0
+   documentElement.scrollWidth === window.innerWidth at 1440, 1232, 1100, 1000,
+   940, 890, 881, 880, 600 and 390 — the full sweep, not just the three.
+
+   THE SEAM IS EXACTLY 0.00px at all three widths: the caption's top edge sits on
+   the image's bottom edge, the image carries no bottom border and the strip
+   carries a full one, so what renders is a single shared hairline rather than
+   two stacked. If a future edit reintroduces a bottom border on the image, that
+   line doubles and the strip detaches visually.
+
+   LAYOUT AND ASSET SELECTION ON THE OTHER TWO PAGES, DPR 1 unless stated:
+                                   cover img    caption strip    seam    overflow
+       merch.html      1440         400x400       400x44         0.00      0
+       merch.html       950         400x400       400x44         0.00      0
+       merch.html       390         320x320       320x44         0.00      0
+       success.html    1440         240x240       240x62         0.00      0
+       success.html     950         240x240       240x62         0.00      0
+       success.html     390         320x320       320x44         0.00      0
+   At DPR 2 all three pages fetch music/rise-up-cover.webp and all three fetch
+   thumbs/rise-up-cover.webp at DPR 1 — the same result on every page, which is
+   what one shared `sizes` contract should produce.
+
+   THE 240px CAPTION WRAPS, AND THE COUNT IS PINNED TO ITS UNIT SO THAT IT WRAPS
+   WELL. "RISE UP - 2026 - 28 TRACKS" does not fit one line at 240px in Plex Mono
+   at 12px with 0.08em tracking, and left alone it broke after the 28 — a filing
+   label whose last line is the single word TRACKS. All three pages therefore
+   write `28&nbsp;tracks` in the markup, so the number and its unit travel
+   together and the break falls after the second separator instead. Two lines,
+   62px tall, and the same &nbsp; is in purchase.html and merch.html even though
+   neither wraps at 400px — the strip is one component and its text should not
+   need per-page fixing if a size ever changes.
+
+   The alternatives were a shorter caption on that page only, which makes the
+   three pages disagree about what the strip says, or a wider --sm, which puts
+   the sleeve back into competition with the headline. Neither is cheaper.
+
+   THE PHONE GETS ONE SIZE ON ALL THREE PAGES (320px), because the 880px media
+   block collapses --sm along with the base class. That is a deliberate pairing
+   and it is fragile: see the specificity warning at .ks-own__album--sm.
+
+   CONTRAST of the caption strip, content box only, at the shipped 0.94 — the
+   full alpha sweep and both mis-measurement traps are recorded at
+   .ks-own__cover-cap and are not repeated here:
+                          worst 1%   worst 5%
+       purchase.html 1440    5.12       5.46
+       purchase.html  950    5.24       5.34
+       purchase.html  390    5.37       5.43
+       merch.html    1440    5.15       5.46
+       merch.html     950    5.24       5.34
+       merch.html     390    5.37       5.43
+       success.html  1440    5.46       5.56
+       success.html   950    5.43       5.46
+       success.html   390    5.37       5.43
+   Every cell clears AA's 4.5:1, and each was sampled twice with the two samples
+   required to agree within 0.1 before being recorded.
+
+   UNCHANGED BY THIS PASS, checked rather than assumed:
+     - Tab order. The figure adds no focusable node on ANY of the three pages —
+       it is the subject, not a control — so purchase.html's sequence is still
+       skip link -> nav -> the three CTAs -> Stream Rise Up -> footer, exactly as
+       the note above records it. On purchase-success.html this is a rule and not
+       just an outcome: that page may not offer anything that looks like a
+       delivery, so the cover there is deliberately not a link.
+     - The lede still breaks over three lines at 1440, 950 and 390. The head
+       column's 72ch cap (734px) binds before the 784px grid track does, so the
+       copy measure is identical to what it was before the cover arrived.
+     - Zero console errors, zero page errors, zero failed requests, zero 4xx at
+       all three widths and at DPR 2.
+
+   STILL UNMEASURED: the owner's real phone, as above. And the artwork has not
+   been checked against a light-mode or forced-colors rendering — the site has
+   neither today, and a cover is an image either way, but the caption strip's
+   translucent wash would need a real background under forced-colors.
    ========================================================================== */

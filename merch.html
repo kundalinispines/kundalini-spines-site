@@ -80,7 +80,13 @@
      reader. When the owner is ready, the change is one <li> added to the same
      list in index / about / archive / transmissions / transmissions/001, plus
      aria-current here. The spine navigator (js/spine-ui.js, node 'merch')
-     already links here, so the page is reachable in the meantime. -->
+     already links here, so the page is reachable in the meantime.
+     That "in the meantime" is over: every page's Merch item now points at this
+     file directly instead of at the home page's #merch section, so this page IS
+     in the bar and the aria-current above is simply correct. Same day, About
+     was repointed to about.html the same way. The banner's opening line and the
+     "no other page's header lists this one" sentence are kept as the record of
+     what the nav used to be — read them as history, not as the current state. -->
 <header class="nav is-scrolled">
   <div class="container nav__inner">
     <a class="nav__mark" href="/"><img src="assets/marks/spine-mark-solid-cut.svg" alt="" width="18" height="18" style="vertical-align:-3px;margin-right:8px;">KUNDALINI SPINES</a>
@@ -88,9 +94,9 @@
     <nav id="primary-nav" aria-label="Primary">
       <ul class="nav__links">
         <li><a href="/">Home</a></li>
-        <li><a href="/#about">About</a></li>
+        <li><a href="about.html">About</a></li>
         <li><a href="/#tracks">Music</a></li>
-        <li><a href="/#merch" aria-current="page">Merch</a></li>
+        <li><a href="merch.html" aria-current="page">Merch</a></li>
         <li><a href="transmissions.html">Transmissions</a></li>
         <li><a href="archive.html">Archive</a></li>
       </ul>
@@ -234,12 +240,58 @@
        those numbers (markup here, markup there, and EDITIONS in
        js/purchase-checkout.js). Change one, change all three. -->
   <section class="section container" aria-labelledby="album-heading">
-    <div class="section-header">
-      <p class="label">Direct purchase</p>
-      <h2 id="album-heading">Own the Album</h2>
-    </div>
 
-    <p>An object you can hold is one way to carry this. The record itself is another. <strong>Rise Up</strong> is available directly from Kundalini Spines in three editions &mdash; the full contents, and the purchase, are on the editions page.</p>
+    <!-- THE COVER, AND IT IS THE SAME BLOCK purchase.html USES, NOT A SECOND
+         ONE. .ks-own__album / .ks-own__cover / .ks-own__cover-cap are all
+         defined in css/purchase.css, which this page already loads for the
+         cards below — so this adds no CSS anywhere, and the banner at the top
+         of this file still holds: not one new declaration here.
+
+         THAT SHARING IS THE POINT, not a shortcut. This section and the head of
+         purchase.html are the two shopfronts for the same record, and the note
+         above .ks-editions below spells out why they must not be allowed to
+         drift apart. Two copies of a cover treatment drift exactly the way two
+         copies of a contents list do. If the sleeve needs a different size or a
+         different caption here, that is a modifier in css/purchase.css — the way
+         --sm was added there for purchase-success.html — and not a local
+         override.
+
+         WHY IT IS NOT INSIDE THE THREE CARDS, since that is the obvious place to
+         reach for: the artwork identifies the ALBUM and the cards distinguish
+         the EDITIONS, so one copy per card repeats the only thing all three have
+         in common and puts an image in front of the four small differences the
+         Deluxe card's emphasis is built from. The long version is in the comment
+         above .ks-own__album in purchase.html.
+
+         THE SECTION HEADER AND THE INTRO MOVE INTO THE SECOND COLUMN and are
+         otherwise untouched — same markup, same copy, same id="album-heading"
+         that this <section> is labelled by. Nothing here changes what the page
+         says; it changes what is standing next to it. -->
+    <div class="ks-own__album">
+
+      <figure class="ks-own__cover">
+        <img src="assets/music/rise-up-cover.webp"
+             srcset="assets/music/thumbs/rise-up-cover.webp 448w,
+                     assets/music/rise-up-cover.webp 1254w"
+             sizes="(max-width: 880px) min(100vw - 48px, 320px), 400px"
+             width="1254" height="1254" decoding="async" loading="lazy"
+             alt="Rise Up album cover: two hooded figures rising out of a cracked graveyard beneath a glowing spinal column and a sigil-marked moon.">
+        <!-- Both facts come out of data/tracks.json (release.name / release.year
+             and the length of the tracks array). Same line as purchase.html —
+             if that file gains or loses a track, BOTH pages are wrong. -->
+        <figcaption class="ks-own__cover-cap readout">Rise Up &middot; 2026 &middot; 28&nbsp;tracks</figcaption>
+      </figure>
+
+      <div>
+        <div class="section-header">
+          <p class="label">Direct purchase</p>
+          <h2 id="album-heading">Own the Album</h2>
+        </div>
+
+        <p>An object you can hold is one way to carry this. The record itself is another. <strong>Rise Up</strong> is available directly from Kundalini Spines in three editions &mdash; the full contents, and the purchase, are on the editions page.</p>
+      </div>
+
+    </div>
 
     <div class="ks-editions">
       <article class="ks-edition" aria-labelledby="merch-edition-digital">

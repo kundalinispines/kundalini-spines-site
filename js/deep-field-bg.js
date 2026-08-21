@@ -218,6 +218,11 @@
   var raf = 0, ready = false;
   var skyT = 1, skySh = 1;          // starts UP: the sky is the boot state
   var wasParked = false, booting = true;
+  /* Has boot() AIMED the dissolve yet? Until it has, skyT is the placeholder 1
+     above rather than a target anyone chose, and onScroll() runs before then —
+     remeasure() calls it at 400ms and the video may not have a frame until well
+     after that. Anything comparing against skyT has to know the difference. */
+  var bootAimed = false;
 
   /* LEAVING MUSIC, THE SKY MUST COME DOWN IMMEDIATELY AND STAY DOWN.
 
@@ -1537,6 +1542,46 @@
        0.612 at t=713ms, 0.842 by the time the clip parked — instead of staying
        off and coming up over the settled frame. Music to Merch hid the fault
        because there both the lock and skyAt() wanted 0. */
+    /* THE BOOT DISSOLVE ONLY OWNS THE POSITION IT WAS AIMED AT (Aug 21 2026).
+
+       `booting` suppresses the line below so the opening dissolve cannot be
+       retargeted while it runs, and boot() clears the flag itself for the
+       deep-link case. That guard reads window.scrollY, and MEASURED on a cold
+       load of /#tracks at 1440x900 it is asked far too early to see anything:
+       html carries scroll-behavior: smooth (css/base.css:9), so Chrome
+       ANIMATES to the fragment and only begins at ~3.0s — boot() had already
+       run at ~0.6s with scrollY still 0. skyAt(0) is 0, so the flag stayed up,
+       the sky dissolved 1 → 0 across the whole fragment scroll, and `booting`
+       cleared at the landing with skyT still 0. Nothing scrolls after an
+       arrival, so the position was never re-read: --df-sky sat at 0.0000 at
+       Music, where the rest value is 1, until the visitor scrolled or the
+       window resized — a resize recovered it to 1.0000, which is what proved
+       the geometry was right and only the target was stale.
+
+       That is the owner's "the background isn't loading, it's just the video
+       still image" (Aug 20 2026). The CLIP was correct the whole time — parked
+       on f83, its own cue, exactly as a scrolled arrival parks it. What was
+       missing was the nebula over it. Handoff 43 reads the pause as the fault;
+       it is not, and playing the clip would have broken the park.
+
+       So: if the position now implies a different target than the dissolve was
+       aimed at, the page has moved and the dissolve's premise is gone. Ordinary
+       scrolling at the top does NOT trip this — skyAt() is 0 across everything
+       except Music's ramp and the tail — so the opening is untouched and only a
+       genuine change of destination ends it early. /#newsletter had the same
+       fault for the same reason; both now land on 1.0000.
+
+       IT MUST WAIT FOR bootAimed, and the version without it shipped nowhere
+       only because the opening was measured before and after. onScroll() runs
+       BEFORE boot() — remeasure() calls it at 400ms, while the clip may still
+       be fetching — and at that point skyT is the placeholder 1, so `skyAt(0)
+       !== skyT` was true at the top of the page and cleared the flag on an
+       ordinary load. MEASURED at 1440x900, three runs each: the opening
+       dissolve collapsed from 419/432/452ms to 107/109/122ms, a snap where the
+       0.06 rate specifies a dissolve — the exact fault the note in tick() says
+       cost a build. With the guard: 0.99 → 0.02 in 421ms, booting true the
+       whole way. */
+    if (booting && bootAimed && skyAt(y) !== skyT) booting = false;
     if (!booting && !skyLock) skyT = skyAt(y);
     cueBackstop();
 
@@ -1670,10 +1715,28 @@
     var boot = function () {
       booting = true;
       skyT = skyAt(window.scrollY);
+      bootAimed = true;      /* skyT is a chosen target from here on */
       /* The deep-link case: arriving at /#tracks lands already inside Music,
          where the sky target is 1 and there is no dissolve to wait for. Clear
          the flag here rather than in tick(), or onScroll never touches skyT
-         again and the sky stays pinned up for the session. */
+         again and the sky stays pinned up for the session.
+
+         THIS ONLY CATCHES A LANDING THAT HAS ALREADY FINISHED, and MEASURED at
+         1440x900 that is the RELOAD, not the fresh deep link. Reloading at
+         Music: the restore is served from cache and settles on 1833 by
+         t=1573ms, boot() runs at ~2.8s behind the video, skyAt(1833) is 1
+         against skySh 1, this line fires and --df-sky never leaves 1.0000.
+         A cold /#tracks is the other way round — html carries scroll-behavior:
+         smooth (css/base.css:9) so Chrome ANIMATES to the fragment starting at
+         ~3.0s, while boot() has already run at ~0.6s with scrollY still 0. Then
+         skyAt() answers 0 and this line does nothing at all.
+
+         So both arrivals are deep links and only one of them lands in time.
+         The other is ended by position in onScroll() — see the bootAimed note
+         there. Neither path replaces the other.
+
+         Not the phone or reduced motion: this module returns above, at the gate
+         on line 126, so boot() never runs in either. */
       if (skyT >= skySh) booting = false;
       onScroll();
     };

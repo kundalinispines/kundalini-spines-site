@@ -199,8 +199,14 @@
    by --from-alpha (see scripts/make-filmrow-mask.py). Serrated vertebral teeth
    down the sides; the top and bottom are an ordinary cloud blended in, because
    as painted they met the border at full strength (median 0px to full opacity)
-   and brought the rectangle back on two edges. Source kept at
-   assets/reference/Untitled-2.png. */
+   and brought the rectangle back on two edges. Sources kept at
+   assets/reference/filmrow-mask-07-painted.png (the owner's original, whose
+   alpha was compressed to 0..130) and filmrow-mask-07-painted-fixed.png (that
+   same alpha stretched onto 0..255). THE FIXED ONE IS WHAT GETS BAKED -- the 07
+   line beside SHIPPED_SEEDS in scripts/make-filmrow-mask.py passes it to
+   --from-alpha, and the original is kept only as provenance. Both were renamed
+   Aug 23 2026 from Untitled-2.png / Untitled-2fix.png, which is what V2HANDOFF
+   42 through 45 call them. */
 .ksd-filmrow__media[data-fr-mask="7"] { --fr-mask: url("../assets/atmos/filmrow-mask-07.png"); }
 
 /* ==========================================================================

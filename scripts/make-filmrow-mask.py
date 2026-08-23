@@ -351,9 +351,10 @@ def from_alpha(path, width, height, depth, seed, reach=REACH, edge_blend=True,
                invert=False):
     """Bake a mask from a HAND-PAINTED PNG's alpha channel.
 
-    The owner painted assets/reference/Untitled-2.png at exactly 768x640 with the
-    silhouette in ALPHA -- the right channel, which is the part most hand-rolled
-    masks get wrong.  Two things still needed doing, both measured Aug 19 2026:
+    The owner painted assets/reference/filmrow-mask-07-painted.png at exactly
+    768x640 with the silhouette in ALPHA -- the right channel, which is the
+    part most hand-rolled masks get wrong.  Two things still needed doing,
+    both measured Aug 19 2026:
 
     1. THE ALPHA WAS COMPRESSED TO 0..130, not 0..255.  Every pixel of the crisp
        core sat at 130, so the contract check read 0.0% opaque and the film row
@@ -470,7 +471,12 @@ def contour_spread(arr, band_px):
 #
 #     03  python scripts/make-filmrow-mask.py --seed 3 --corner 1.1
 #     06  python scripts/make-filmrow-mask.py --seed 6 --vertebrae 9 --vertebrae-mix 0.35
-#     07  python scripts/make-filmrow-mask.py --seed 7 #             --from-alpha assets/reference/Untitled-2fix.png --invert
+#     07  python scripts/make-filmrow-mask.py --seed 7 #             --from-alpha assets/reference/filmrow-mask-07-painted-fixed.png --invert
+#
+# 07 REFERENCE FILES WERE RENAMED Aug 23 2026.  filmrow-mask-07-painted.png and
+# filmrow-mask-07-painted-fixed.png were saved as Untitled-2.png and
+# Untitled-2fix.png, and V2HANDOFF 42 through 45 still call them that.  Nothing
+# about the bake changed, only the two names.
 #
 # These lines are the only record of how those three were made, exactly as the
 # header's bake line is for the rest.  Keep them in step with the files.

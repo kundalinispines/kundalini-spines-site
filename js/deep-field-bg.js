@@ -591,9 +591,9 @@
     skyTo: 0,          /* sky level it must reach on arrival  */
     skyIn: false,      /* bring the nebula up once parked     */
     raf: 0,
-    timer: 0,          /* the reverse pacer; see reverseTo     */
+    timer: 0,          /* the replay seek deadline; see replayLeg */
     done: null,        /* fires once, on arrival              */
-    reversing: false
+    replaying: false   /* mid backward seek, before the forward leg starts */
   };
 
   /* THE CROSSFADE HAPPENS AT THE PARK, NOT ACROSS THE LEG (owner's call,
@@ -633,7 +633,7 @@
     stopWatch();
     play.to = -1;
     play.stop = -1;
-    play.reversing = false;
+    play.replaying = false;
     vid.pause();
     var t = frameToTime(f);
     if (Math.abs(vid.currentTime - t) > 1 / (FPS * 4)) vid.currentTime = t;
@@ -649,7 +649,8 @@
     if (cb) cb();
   }
 
-  /* Forward, at 1.0x, to `f`. Never used to go backwards — see reverseTo. */
+  /* Forward, at 1.0x, to `f`. Since Aug 23 2026 this is the ONLY way the clip
+     ever advances, in either direction of travel - see replayLeg. */
   function playTo(f, cb) {
     stopWatch();
     play.to = f;
@@ -738,87 +739,109 @@
     })();
   }
 
-  /* Straight there, no playback. Used by the skip-ahead and by every reverse
-     leg that the reverse-play attempt hands back. */
+  /* Straight there, no playback. Used by the skip-ahead, and by a replay leg
+     whose backward seek does not land inside its deadline. */
   function jumpTo(f, cb) {
     arrive(f, cb);
   }
 
-  /* REVERSE, THE OWNER'S CALL (Aug 18 2026): try it for real, fall back if the
-     page cannot hold the frame rate.
+  /* GOING BACK: REPLAY THE LEG FORWARD (owner's call, Aug 23 2026).
 
-     Chrome refuses a negative playbackRate outright — setting one throws
-     NotSupportedError — so backwards can only ever be a hand-rolled seek loop.
-     MEASURED on an idle page over deep-field-2.webm, 48 frames around f144:
-     27.7ms mean, 33.2ms median, 49.5ms worst, about 36fps achievable — and that
-     range turned out to be the friendly one. THE f83-f157 RANGE IS MUCH WORSE:
-     30.1ms median but 13 of 40 frames over budget and a 449.9ms worst case,
-     because it crosses the hard cut at f126 and the bright plateau, where the
-     residuals a backward step has to rebuild are far larger. So reverse
-     playback is NOT uniformly achievable across this clip, and the honest
-     summary is that it holds on calm footage and gives up on busy footage.
-     That is what the fallback is for, and it is why the owner's answer was
-     "try it, keep the fallback" rather than "do it".
+     WHAT THIS REPLACES. From Aug 18 2026 until today, travelling back ran a
+     hand-rolled backward seek loop paced to 24fps, because Chrome refuses a
+     negative playbackRate outright - setting one throws NotSupportedError - so
+     backwards could only ever be a seek loop. It worked, and the owner liked
+     how it looked, but it was expensive and it degraded exactly where the clip
+     is busiest. The measurements are kept because they are why it is gone:
 
-     THE BUDGET IS ENFORCED AT RUNTIME, not assumed from that measurement,
-     because the real page also has the compositor, the star layers and the
-     stepper on the same thread. If frames arrive late STRIKES times in a row,
-     the leg gives up and seeks the rest of the way. Falling back mid-leg is
-     deliberate: a reverse that starts smooth and degrades is still better than
-     one that judders the whole way, and the reader is travelling backwards,
-     which is navigation rather than cinema. */
-  var REV_BUDGET = 1000 / FPS * 1.35;   /* 56.3ms — late, not merely over 41.7 */
-  var REV_STRIKES = 3;
+       f96-f144, calm footage      27.7ms mean, 33.2ms median, 49.5ms worst.
+                                   About 36fps achievable.
+       f83-f157, crossing the      30.1ms median, but 13 of 40 frames over
+       hard cut at f126            budget and a 449.9ms worst case: a backward
+                                   step has to rebuild far larger residuals on
+                                   the bright plateau.
 
-  function reverseTo(f, cb) {
+     So reverse held on calm footage and gave up on busy footage, and the thing
+     it gave up TO was a straight seek - a cut, with no motion at all. The
+     owner reported the whole gesture as sluggish. The call: stop asking the
+     decoder to do the one thing it is not built for.
+
+     WHAT HAPPENS INSTEAD. A backward leg seeks instantly to the frame the leg
+     BEGINS on - the cue of the stop before it - and then plays FORWARD to the
+     destination cue at 1.0x. Same footage, same direction, same speed as
+     coming down. One seek, then ordinary forward decode, which is what the
+     encode is cut for: -g 4 keyframes make that seek cheap, and no frame is
+     ever rebuilt backwards again.
+
+     WHY THE JUMP IS NOT HIDDEN. It cuts backwards PAST the destination and
+     that is meant to be seen: the reader is navigating, not watching, and a
+     cut followed by real motion reads as rewind-and-replay. Covering it would
+     mean crossfading two frames of the same clip, and the sky crossfade
+     already owns the park - doing both muddies both.
+
+     THE BRIEF IS UNCHANGED. One speed, the whole way, in both directions.
+     Nothing here touches playbackRate, and every leg still ends parked exactly
+     on its cue. */
+  function legStart(i) {
+    /* A leg begins on the cue of the stop before it. The first stop has none,
+       so its leg begins at the head of the clip - which is f0, the frame Home
+       and About already share. */
+    return i > 0 ? cueOf(i - 1) : 0;
+  }
+
+  /* The backward seek gets a deadline for the same reason playTo() has a stall
+     watcher: A LEG MUST ALWAYS END. If `seeked` never arrives - a cold buffer,
+     a range request that does not come back - the cue never fires and the
+     section stays held down, with nothing in the console to say why. On the
+     deadline it lands the old way, as a cut. */
+  var SEEK_GIVE = 700;
+
+  function replayLeg(i, f, cb) {
     stopWatch();
-    vid.pause();
     play.to = f;
     play.done = cb || null;
-    play.reversing = true;
-    var cur = Math.round(vid.currentTime * FPS - 0.5);
-    if (cur <= f) { arrive(f, cb); return; }
+    play.replaying = true;
 
-    /* PACED TO 24fps, NOT RUN FLAT OUT. This loop steps by seeking, and a seek
-       on this encode completes in about 22ms — comfortably less than a frame.
-       MEASURED before the pacer existed: reverse legs ran at 26 to 47 effective
-       fps, so travelling back up was between 1.1x and 2x the speed of coming
-       down. The brief is one speed in both directions, so each frame is held
-       until its due time. `due` advances by exactly one frame period rather
-       than being re-based on the clock, so a single slow seek is absorbed by
-       the next fast one instead of stretching the whole leg. */
-    var SPF = 1000 / FPS;
-    var due = performance.now();
-    var strikes = 0;
+    var start = legStart(i);
+    if (start >= f) {                    /* cues not ascending; nothing to replay */
+      play.replaying = false;
+      arrive(f, cb);
+      return;
+    }
 
-    (function step() {
+    var t = frameToTime(start);
+    play.from = start;
+    paintScrim(t);                       /* the scrim belongs to the frame we cut to */
+    vid.pause();
+
+    /* ALREADY THERE. A currentTime write that changes nothing may never fire
+       `seeked`, and waiting on one that cannot come is how a leg hangs. */
+    if (Math.abs(vid.currentTime - t) <= 1 / (FPS * 4)) {
+      play.replaying = false;
+      playWhenVisible(f, play.done);
+      return;
+    }
+
+    function landed() {
+      vid.removeEventListener('seeked', landed);
+      if (play.timer) { clearTimeout(play.timer); play.timer = 0; }
       if (play.to !== f) return;                        /* superseded */
-      if (cur <= f) { arrive(f, play.done); return; }
-      if (strikes >= REV_STRIKES) { arrive(f, play.done); return; }
-      cur--;
-      due += SPF;
-      var t0 = performance.now();
-      vid.currentTime = frameToTime(cur);
-      vid.addEventListener('seeked', function once() {
-        vid.removeEventListener('seeked', once);
-        if (play.to !== f) return;
-        var now = performance.now();
-        if (now - t0 > REV_BUDGET) strikes++; else strikes = 0;
-        /* THROTTLED, AND THIS IS NOT A MICRO-OPTIMISATION. Each of these
-           writes a custom property on <html>, which invalidates style for every
-           sky layer that reads it. MEASURED over f157->f83 with the page
-           otherwise idle: raw backward seeks ran a 30.1ms median, and the same
-           seeks with two custom properties written per frame ran 103.8ms — over
-           three times the cost, and past the frame budget that decides whether
-           this loop survives. Every third frame is 8 updates a second, which is
-           under the eye's threshold for a slow crossfade and a luminance scrim,
-           and it keeps the seek loop inside its budget. */
-        if ((cur % 3) === 0) paintScrim(vid.currentTime);
-        var wait = due - now;
-        if (wait > 1) play.timer = setTimeout(step, wait);
-        else play.raf = requestAnimationFrame(step);    /* already behind */
-      });
-    })();
+      play.replaying = false;
+      playWhenVisible(f, play.done);
+    }
+    vid.addEventListener('seeked', landed);
+
+    /* Held on play.timer so stopWatch() cancels it: a second gesture during the
+       seek must not leave this deadline armed behind the leg that supersedes it. */
+    play.timer = setTimeout(function () {
+      play.timer = 0;
+      vid.removeEventListener('seeked', landed);
+      if (play.to !== f) return;                        /* superseded */
+      play.replaying = false;
+      jumpTo(f, play.done);
+    }, SEEK_GIVE);
+
+    vid.currentTime = t;
   }
 
   /* THE SKY FOLLOWS THE CLIP, NOT THE SCROLL (Aug 18 2026).
@@ -1155,10 +1178,10 @@
     if (cue >= cur) {
       playWhenVisible(cue, function () { fireCue(i); });
     } else {
-      /* Going back. reverseTo tries true reverse playback and falls back to a
-         seek on its own budget; either way the reveal is already showing on a
-         section the reader has seen, so nothing waits on it. */
-      reverseTo(cue, function () { fireCue(i); });
+      /* Going back. replayLeg cuts to the frame this leg begins on and plays
+         it forward; either way the reveal is already showing on a section the
+         reader has seen, so nothing waits on it. */
+      replayLeg(i, cue, function () { fireCue(i); });
     }
   }
 
@@ -1795,7 +1818,7 @@
       frame: Math.round(vid.currentTime * FPS - 0.5),
       time: vid.currentTime,
       playingTo: play.to,
-      reversing: play.reversing,
+      replaying: play.replaying,
       paused: vid.paused,
       rate: vid.playbackRate,
       cues: stops.map(function (st, i) { return { name: st.name, cue: cueOf(i) }; }),

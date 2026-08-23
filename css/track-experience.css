@@ -353,6 +353,107 @@
   .track-experience { --card-w: min(42vw, 190px); --arc-h: 420px; }
 }
 
+/* ---- Short windows ----------------------------------------------------------
+   V2HANDOFF 44 open item 4 / 45 open item 4: the carousel is cut off at common
+   laptop heights. Closed Aug 23 2026.
+
+   WHAT WAS ACTUALLY WRONG, because it is not what it looks like. Nothing here
+   is viewport-relative: .track-experience is min-height:auto on purpose (the
+   note at the head of this file says why), so the arch is the same size on a
+   720px window as on a 1290px one. js/deep-field-bg.js restPoint() measures the
+   PAINTED UNION of .track-arc li plus .track-focus-panel, centres it in the room
+   under the masthead, and when there is not enough room it pins the top and lets
+   the bottom fall off the screen. That last part is a DELIBERATE decision, in as
+   many words at restPoint():
+
+     "the card is the thing being looked at, and losing the last line of fine
+      print off the bottom is the better failure than beheading the artwork"
+
+   THAT DECISION IS NOT BEING REVERSED HERE, and it must not be. Music has one
+   stop and the stepper glides you back onto it, so the lost tail is not merely
+   below the fold, it is unreachable by scrolling. Sharing the loss between top
+   and bottom instead would behead the artwork AND still hide the tail. The only
+   honest fix is to stop overflowing: make the union small enough to fit.
+
+   MEASURED Aug 23 2026, Playwright/Chromium at 1440 wide, union height against
+   --card-w, which is the only variable that moves it:
+
+       --card-w   union    needs (union + 92 masthead)
+         250px     761px      853px      <- ships above 880px tall
+         235px     733px      825px
+         225px     714px      806px
+         215px     695px      787px
+         205px     676px      768px
+         195px     658px      750px
+         190px     648px      740px
+
+   That is linear at 1.883px of union per px of card. The three steps below are
+   NOT set to the bare arithmetic, though, for a reason worth knowing about:
+
+   THE UNION SITS ABOUT 18px LOWER BEFORE THE ENTRANCE HAS PLAYED. restPoint()
+   subtracts the pending translateY(24px) that .track-arc-wrap carries until
+   .is-visible lands, which is right, but the two states do not agree exactly
+   and the section is landed on in the earlier one. MEASURED at the rest point,
+   union top, same page, same width:
+
+       1440x900   before the title card hands over   133      after   115
+       1366x768                                      135              117
+       1280x720                                      135              117
+
+   The cards are still at opacity 0 in the earlier state, so nothing is visibly
+   cut there and this is not a bug report. It does mean an arithmetic-tight
+   value clips for the half second before the reveal, so each step below is one
+   notch smaller than the settled arithmetic needs and clears BOTH states.
+
+   VERIFIED Aug 23 2026, parked on Music with flick-shaped wheel bursts (a
+   scripted scrollIntoView does not run a leg and lands about 18px off), read
+   off window.__deepField().card after the title card hands over:
+
+       1440x900   card-w 250  union 761   bottom 876/900   24px spare
+       1440x860   card-w 220  union 704   bottom 846/860   14px spare
+       1440x800   card-w 178  union 626   bottom 776/800   24px spare
+       1366x768   card-w 178  union 626   bottom 743/768   25px spare
+       1280x720   card-w 152  union 577   bottom 694/720   26px spare
+
+   1440x900 is the untouched shipped case and is listed to show the fix does not
+   reach it. Zero console errors and zero horizontal overflow at all five. The
+   1280x720 capture was looked at: the counter row, the eyebrow, the blurb, the
+   sample player, all five buttons, the disclaimer and the close control are all
+   on screen, which is the whole complaint closed.
+
+   IF THE 18px IS EVER RECONCILED in restPoint(), every step here can go back up
+   by roughly ten pixels. That is the only headroom left on the table, and it is
+   in js/deep-field-bg.js, not in this file.
+
+   --arc-h IS NOT IN THIS BLOCK, and adding it would do nothing. Lowering it
+   shrinks .track-arc-viewport and makes the focus panel's negative top margin
+   less negative by exactly the same amount, because that margin is derived from
+   it: calc(var(--card-w) * 1.425 - var(--arc-h) - 4px). The panel's absolute
+   position, and so the union, is unchanged. It is only the viewport's own
+   min-height, and the cards already exceed it. Measured, not assumed.
+
+   WHY min-width: 769px ON ALL THREE. Below 769 the block above already sets
+   --card-w: min(42vw, 190px), which is width-relative on purpose, and
+   js/deep-field-bg.js switches itself off entirely. Without this guard a phone
+   held in landscape is short enough to match these queries and would take a
+   fixed pixel card in place of its fluid one.
+
+   The head of this file warns that the push-pull constants were tuned against a
+   250px card and that changing the width shifts the layout. That is the intent
+   here, and it is the same move this file already makes twice at 1024 and 768;
+   the arch simply gets smaller, and a smaller hero card also RISES less, so the
+   140px of headroom .ksd-bleed holds for it (V2HANDOFF 31 item 1) is never at
+   risk from this direction. */
+@media (min-width: 769px) and (max-height: 880px) {
+  .track-experience { --card-w: 220px; }
+}
+@media (min-width: 769px) and (max-height: 805px) {
+  .track-experience { --card-w: 178px; }
+}
+@media (min-width: 769px) and (max-height: 749px) {
+  .track-experience { --card-w: 152px; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .track-card { transition: none; }
   .track-experience__intro,

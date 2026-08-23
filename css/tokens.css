@@ -12,6 +12,26 @@
    ========================================================================== */
 
 :root {
+  /* THE SITE DECLARES ITS OWN SCHEME (Aug 23 2026, V2HANDOFF 45 open item 17,
+     the light-mode half). This is NOT a light mode and it is not the start of
+     one. It tells the UA that the page is already dark, which buys three things
+     that were previously left to chance: the canvas is painted dark BEFORE
+     first paint, so the white flash on a cold load goes; scrollbars, the text
+     caret and any control this repo has not styled by hand render dark instead
+     of light-on-dark; and a form control added later cannot arrive as a white
+     rectangle on a black page.
+
+     WHY THERE IS NO prefers-color-scheme BLOCK ANYWHERE, and why item 17's
+     other half should stay closed. A light theme here is not a token flip. The
+     background is six url() sky layers in css/star-bg.css with baked black
+     points and a mix-blend-mode: screen twinkle stack, and there is no light
+     version of that photograph. Every contrast figure measured in this repo,
+     including the whole alpha sweep in css/purchase.css, is calibrated against
+     --color-black and that one image; a light theme invalidates all of them at
+     once. Honouring a preference the design cannot actually serve would be
+     worse than declaring the one it does. */
+  color-scheme: dark;
+
   /* ---- Color: core palette (cold; authored against the nebula hero) ----
      Black dominates. The neutrals are cold. Signal red is a rare interruption:
      two uses per page is the budget. The spine's light is white, not warm. */

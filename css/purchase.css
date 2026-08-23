@@ -897,4 +897,119 @@
    been checked against a light-mode or forced-colors rendering — the site has
    neither today, and a cover is an image either way, but the caption strip's
    translucent wash would need a real background under forced-colors.
+
+   THE LAST SENTENCE HAS THE FAILURE BACKWARDS, corrected Aug 23 2026 and kept
+   as the record. background-color is a FORCED property: under forced colours
+   the UA does not fade rgba(3, 4, 15, 0.94) away, it REPLACES it — alpha
+   discarded — with an opaque system fill. The strip therefore ends up more
+   opaque than it ships, not less, and the caption was never the thing at risk.
+   The alpha sweep above is simply dead weight in that mode, which is fine.
+
+   WHAT IS ACTUALLY AT RISK IS THE OTHER HALF OF THE PAGE, and this file's own
+   table two notes up is the evidence. Forced colours drops background-image
+   ONLY for values that are not url(). Every sky layer in css/star-bg.css is a
+   url(), so the photograph keeps painting — while both scrims laid over it are
+   linear-gradient()s and are deleted outright. That is exactly the scrim
+   removed column: 3.11 on the card contents, 2.64 on the support paragraph,
+   1.41 on the streaming line. The two-pass text-shadow that might have softened
+   that is dropped in this mode too. The block below closes all of it.
    ========================================================================== */
+
+/* ==========================================================================
+   FORCED COLOURS (Windows High Contrast) — added Aug 23 2026, V2HANDOFF 45
+   open item 17.
+   ==========================================================================
+   THIS BLOCK IS LAST IN THE FILE ON PURPOSE, AND MOVING IT UP WILL BREAK IT.
+   A media query adds no specificity. Every selector below ties exactly with the
+   base rule it is overriding — and with the 600px and 880px blocks, which also
+   set background and colour on some of them — so SOURCE ORDER IS THE ONLY THING
+   MAKING IT WIN. This is the same trap that shipped .ks-own__album--sm the wrong
+   way round and gave the phone an 85px cover with nothing in the console. Keep
+   this block at the foot, below every media query in the file.
+
+   NOT SEEN ON A REAL HIGH-CONTRAST THEME. Everything here is reasoned from the
+   forced-colors substitution rules, not measured the way the rest of this file
+   is measured. It is a floor, not a verified result. The first person to have a
+   Windows HC theme in front of them should re-check it and correct this note
+   rather than delete it.
+
+   WHAT THE MODE DOES: the UA replaces color, background-color, border-color and
+   text-decoration-color from the system palette, and drops box-shadow and
+   text-shadow to none. It drops background-image too — BUT ONLY FOR VALUES THAT
+   ARE NOT url(). That single exception decides everything below.
+
+   1. THE CAPTION STRIP NEEDS ALMOST NOTHING, which is the opposite of what open
+      item 17 assumed; the correction is in the note directly above. Its wash is
+      a background-COLOR, so the UA replaces it with an opaque system fill on its
+      own. Canvas is restated anyway because this component's whole legibility
+      argument is that the strip is opaque, and a rule saying so is greppable in
+      a way a UA default is not.
+
+   2. THE HAIRLINE MUST STAY SINGLE. border-WIDTH is not a forced property —
+      only border-COLOR is — so `border-bottom: 0` on .ks-own__cover img holds
+      and the 0.00px seam recorded above survives this mode by itself. All that
+      is done here is giving both halves the SAME colour so the frame does not
+      change value across the seam. IF YOU ADD TO THIS BLOCK: do not give the
+      image a bottom border and do not put a border on the figure. Either one
+      doubles the line and detaches the strip.
+
+      ButtonBorder, not CanvasText, because that frame is a structural edge and
+      not type. It matters most on a DARK HC theme, where the cover's near-black
+      edges sit on a near-black Canvas and the frame is the only thing saying
+      where the sleeve stops. At 0.14 alpha it is a suggestion; forced, it is a
+      line.
+
+   3. THE SCRIMS ARE THE REAL REPAIR, and they are not the masthead at all. Both
+      are linear-gradient()s, so both are deleted in this mode, while the six sky
+      layers in css/star-bg.css are url() and keep painting underneath. The
+      contrast table above already measured that exact state as the first draft
+      of this page: 3.11 on the card contents, 2.64 on the support paragraph and
+      1.41 on the streaming line, against AA's 4.5. Canvas restores an opaque
+      floor under all three. Left undone, item 17 would have polished the one
+      part of the page that was never in danger.
+
+   4. THE 1px RULES ARE DRAWN AS BACKGROUNDS, not borders — the filing rule above
+      the catalogue number and the dash marker in the contents list. Forced to
+      Canvas they would be Canvas on Canvas and vanish, so they are named
+      explicitly and given the frame colour.
+
+   5. NO forced-color-adjust ANYWHERE, and that is a decision. The only thing
+      `forced-color-adjust: none` does is put the author's colours back — here, a
+      translucent wash over a star field, for the one reader who asked the OS to
+      remove exactly that. The artwork does not need it either: forced colours
+      never recolours img content, so the cover paints as itself with no opt-out.
+      That property earns its place when a component carries meaning IN colour
+      that the palette would flatten — a status swatch, a chart key. Nothing here
+      does.
+
+   6. NO LinkText, because there is no link. The cover is deliberately not an
+      anchor on any of the three pages. If a shopfront ever makes it clickable,
+      its colour goes here.
+
+   background-color rather than the `background` shorthand throughout: the
+   shorthand would also reset background-image, and none of these rules has any
+   business having an opinion about a property their base rules never set. */
+@media (forced-colors: active) {
+
+  /* The masthead — item 17 as written. */
+  .ks-own__cover img { border-color: ButtonBorder; }
+  .ks-own__cover-cap {
+    background-color: Canvas;
+    border-color: ButtonBorder;
+    color: CanvasText;
+  }
+
+  /* The scrims the mode deletes. See 3 above: this is the half that matters. */
+  .ks-edition,
+  .ks-edition--deluxe,
+  .ks-own__foot {
+    background-color: Canvas;
+  }
+
+  /* Hairlines drawn as backgrounds, which would otherwise be Canvas on Canvas. */
+  .ks-edition::before,
+  .ks-edition--deluxe::before,
+  .ks-edition__contents li::before {
+    background-color: ButtonBorder;
+  }
+}

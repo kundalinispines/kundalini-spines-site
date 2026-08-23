@@ -300,26 +300,79 @@
                      frame delay on the flash, well inside the window where
                      sound and light read as simultaneous; the win is a
                      failure mode removed, not a tuning preference.
-       COINC         how recent the 200Hz body onset must be for a noise-band
-                     onset to count as a snare. The gate is a coincidence of
-                     ONSETS, not of derivatives — the first offline attempt
-                     gated on "body RMS rising", which is true half the time
-                     regardless, fired 26 times per 20s and scored 0.30 phase
-                     concentration. Two full threshold machines, 0.66.
+       COINC         how far apart the 200Hz body onset and the noise-band
+                     onset may be and still count as one snare. The gate is a
+                     coincidence of ONSETS, not of derivatives — the first
+                     offline attempt gated on "body RMS rising", which is true
+                     half the time regardless, fired 26 times per 20s and
+                     scored 0.30 phase concentration. Two full threshold
+                     machines, 0.66. Now the default of --snare-coinc rather
+                     than a constant; see the two-sided note below.
        BODY_HZ/SENS  the body band. Fixed, not sliders: the sweep moved them
                      an entire step (1.3 -> 2.0) for 0.05 of concentration,
                      and a slider that does nothing reads as broken. */
     var REFRACTORY_S = 150;
     var VETO = 45;
-    var COINC = 45;
+    var COINC = 85;      /* default only; --snare-coinc overrides it live */
     var BODY_HZ = 200;
     var BODY_SENS = 1.5;
+
+    /* ---- THE BODY GATE IS TWO-SIDED, 2026-08-23 --------------------------
+       It used to be one-sided: a noise onset counted only if the body band
+       had ALREADY fired within COINC ms. MEASURED over all 28 samples with
+       the shipped config (the diagnostic pass in scripts/snare-tuning.py),
+       that gate was the whole reason the detector was hitting about half the
+       snares the owner could hear — not the threshold:
+
+         609 noise-band onsets over 28 tracks, 260 accepted.
+         293 of the 609 (48%) were killed by the body gate. Everything else
+         put together took 43: refractory 17, pending-busy 19, kick veto 7.
+
+       And a fifth of the rejected ones were real. Of the 293, the nearest
+       body onset arrived 0-45ms AFTER the noise onset in 63 cases (22%) and
+       45-100ms after in another 66 — which band trips first is a property of
+       the mix, not of the drum, and the one-sided window threw away every
+       snare whose body was the slower of the two.
+
+       The fix costs NOTHING, because the candidate was already being held:
+       the coincidence is now tested when pendingSnare RELEASES, VETO ms after
+       the onset, instead of at the onset. So the window reads COINC ms
+       backward and min(COINC, VETO) ms forward — the forward side is capped
+       by how long the hold lasts, and it is free within that cap. No extra
+       latency, no extra state.
+
+       MEASURED, 28 samples, at the hz 2500 / sens 2.2 the sweep picked and
+       the detector shipped with at the time:
+         one-sided 45 (old)   hits 9.0/20s   conc 0.66 mean / 0.42 worst
+         two-sided 45         hits 10.9      conc 0.62 / 0.31   +21%
+         two-sided 100        hits 12.0      conc 0.59 / 0.31   +33%
+         two-sided 150        hits 12.8      conc 0.57 / 0.31   +41%
+
+       The live page has since moved to hz 1600 / sens 1.95 / coinc 85 on the
+       owner's ear, where the same window reads 11.9 / 13.6 / 15.6 / 17.5
+       strikes at 30 / 45 / 85 / 150ms. This file is the mechanism;
+       css/spine-bg.css carries both tables and why the values are what they
+       are.
+
+       READ THE CONCENTRATION DROP CAREFULLY. It is not a quality loss the way
+       the sens sweep's is. Concentration measures how tightly the strikes
+       cluster at ONE phase between reference kicks, so catching the second
+       real snare in a bar LOWERS it by construction — the header of
+       scripts/snare-tuning.py already made this point about the three busiest
+       tracks. What it cannot do is tell a recovered snare from a recovered
+       hat, so the owner's ear stays the last word, and --snare-coinc is a
+       slider for exactly that reason. */
 
     /* The numbers JS reads out of CSS. Re-read on a throttle rather than per
        frame — getComputedStyle 5x/sec is free, 60x/sec is not, and the only
        thing that ever changes them is a human dragging a slider. */
+    /* Fallbacks, and they MIRROR THE :root BLOCK of css/spine-bg.css - the
+       snare four are the owner's ear values, not the sweep's. They are only
+       reached on a page that loads this file without that stylesheet, which
+       is no page today; keep them in step anyway, because a stale number
+       here reads as the documented default. */
     var P = { gain: 1, decay: 260, sens: 1.8, freq: 90,
-              sdecay: 260, ssens: 2.2, sfreq: 2500, sall: 0 };
+              sdecay: 260, ssens: 1.95, sfreq: 1600, sall: 0.12, scoinc: COINC };
     var paramsAt = -1e9;
     function readParams(now) {
       if (now - paramsAt < 200) return;
@@ -339,14 +392,19 @@
       } else {
         P.freq = f;
       }
-      /* The snare's three live controls; the body band is fixed (see the
-         constants above). NOT scaled by --kick-gain anywhere — the kick and
-         the snare are separate channels, and coupling their outputs through
-         one master would retune the lightning every time the column is. */
+      /* The snare's four live controls; the body BAND (200Hz, sens 1.5) is
+         still fixed, only the window around it moves (see the constants
+         above). NOT scaled by --kick-gain anywhere — the kick and the snare
+         are separate channels, and coupling their outputs through one master
+         would retune the lightning every time the column is. */
       P.sdecay = Math.max(30, num('--snare-decay', 260));
-      P.ssens  = Math.max(1.01, num('--snare-sens', 2.2));
-      P.sall   = Math.max(0, Math.min(1, num('--snare-all', 0)));
-      var sf = Math.max(500, Math.min(8000, num('--snare-freq', 2500)));
+      P.ssens  = Math.max(1.01, num('--snare-sens', 1.95));
+      P.sall   = Math.max(0, Math.min(1, num('--snare-all', 0.12)));
+      /* Clamped at 20 because below one frame the gate can only ever be met
+         by the two bands tripping on the same frame, and at 300 because by
+         then "coincident" has stopped meaning anything at these tempos. */
+      P.scoinc = Math.max(20, Math.min(300, num('--snare-coinc', COINC)));
+      var sf = Math.max(500, Math.min(8000, num('--snare-freq', 1600)));
       if (sf !== P.sfreq && hpFilters) {
         P.sfreq = sf;
         for (var j = 0; j < hpFilters.length; j++) hpFilters[j].frequency.value = sf;
@@ -405,11 +463,17 @@
          pending strike below. ---- */
 
       /* A candidate waiting out the ±VETO window: cancelled if a kick landed
-         inside it, accepted — and only then flashed — once it closes. */
+         inside it, and once it closes, tested against the body band and only
+         then flashed. Both tests happen HERE, at the release, which is what
+         makes the body window two-sided — a body onset that arrived after the
+         noise onset has had VETO ms to land and is visible in lastBody by
+         now. lastSnare is set only on acceptance, so a candidate the body
+         gate rejects costs nothing but its own hold. */
       if (pendingSnare >= 0) {
         if (lastKick > pendingSnare - VETO) {
           pendingSnare = -1;
-        } else if (now - pendingSnare >= VETO) {
+        } else if (now - pendingSnare >= VETO &&
+                   Math.abs(lastBody - pendingSnare) <= P.scoinc) {
           lastSnare = pendingSnare;
           pendingSnare = -1;
           snares++;
@@ -447,6 +511,11 @@
             bolts[boltAt].classList.add('is-struck');
           }
           if (pendingHit > envS) envS = pendingHit;
+        } else if (now - pendingSnare >= VETO) {
+          /* The hold closed with no body onset within P.scoinc on either
+             side: a hat, a sibilant, a cymbal. Drop it WITHOUT touching
+             lastSnare, so a rejected candidate spends no refractory. */
+          pendingSnare = -1;
         }
       }
 
@@ -469,9 +538,12 @@
       }
 
       /* The 2.5kHz noise machine. An onset here is a snare only if the body
-         band produced its own onset within COINC ms AND no kick sits inside
-         the ±VETO window — the second half of which is what pendingSnare is
-         waiting to find out. */
+         band produced its own onset within --snare-coinc ms AND no kick sits
+         inside the ±VETO window — BOTH of which pendingSnare is now waiting
+         to find out. Neither is tested here any more: the body test moved to
+         the release so a body onset arriving after this one still counts (see
+         the two-sided note in the constants), and only the "no kick in the
+         last VETO ms" half of the veto is cheap enough to check early. */
       analyserS.getFloatTimeDomainData(bufS);
       var sumS = 0;
       for (var is2 = 0; is2 < bufS.length; is2++) sumS += bufS[is2] * bufS[is2];
@@ -484,8 +556,7 @@
       if (levelS > thrS && risingS && armedS) {
         armedS = false;
         if (now - startedAt > WARMUP && now - lastSnare > REFRACTORY_S &&
-            pendingSnare < 0 && now - lastBody <= COINC &&
-            now - lastKick >= VETO) {
+            pendingSnare < 0 && now - lastKick >= VETO) {
           pendingSnare = now;
           /* Sized now, against the band's stats at the moment of the onset,
              not at acceptance 45ms later when the transient has passed. */
@@ -690,14 +761,39 @@
       }
     }
 
-    /* track-experience.js announces each sample element as it wires it. */
-    section.addEventListener('ks:sample-ready', function (e) {
-      var audio = e.detail && e.detail.audio;
-      if (!audio) return;
+    /* track-experience.js announces each sample element as it wires it — and
+       parks the current one on the section, which is the half that matters
+       here. THE ANNOUNCEMENT FOR THE FIRST SAMPLE OF A PAGE LOAD ARRIVES
+       BEFORE THIS FILE RUNS: that file's init() hangs off a fetch, and on
+       localhost the promise resolves in the gap between two script tags below
+       the footer — measured 2026-08-23 at 2128.3ms against this listener
+       registering at 2217.4ms. So the event alone leaves the detector deaf to
+       whichever track the page opened on, and the owner sees a sample that
+       plays with no lightning until they step to another track.
+
+       It is a RACE, not a fixed ordering — a slower network hands the fetch
+       back after this file has run and the event arrives normally — so both
+       paths have to exist and either one may be the one that fires. Hence the
+       replay below: subscribe, then ask whether the answer already came.
+
+       listened is a WeakMap for the same reason `sources` is: keyed by ELEMENT,
+       because a session builds 28 of them, and it stops the two paths
+       double-binding play/pause/ended when both reach the same element. A
+       WeakMap rather than a WeakSet only to keep the capability guard at the
+       top of this block honest — it tests window.WeakMap and nothing else. */
+    var listened = new WeakMap();
+    var listenTo = function (audio) {
+      if (!audio || listened.has(audio)) return;
+      listened.set(audio, 1);
       audio.addEventListener('play', function () { attach(audio); });
       audio.addEventListener('pause', stop);
       audio.addEventListener('ended', stop);
+    };
+
+    section.addEventListener('ks:sample-ready', function (e) {
+      listenTo(e.detail && e.detail.audio);
     });
+    listenTo(section.ksCurrentSample);
 
     /* Reduced motion can be toggled without a reload. Honour it live — every
        other motion feature on this page does. */
@@ -840,14 +936,40 @@
                  --star-cloud trap again.
          s ms    the strike's decay. Its own envelope, not the kick's — the
                  two decays are independent.
-         s sns   threshold multiple on the 2.5kHz noise band.
-         s hz    the noise band's highpass cutoff. The 200Hz body gate and
-                 the ±45ms kick veto are fixed in code, measured, not
-                 sliders. */
+         s sns   threshold multiple on the 2.5kHz noise band. The floor was
+                 1.5 until 2026-08-23 and is 1.2 now because the owner asked
+                 to be able to reach further down — but REACH FOR s coin
+                 FIRST. The measurement below is why: this slider is not what
+                 was costing the missing strikes, and the bottom of its new
+                 range is measurably bad.
+         s coin  how far apart the noise burst and the 200Hz body thump may
+                 land and still count as one snare, ms. THIS is the recall
+                 control: the body gate, not the threshold, was rejecting 48%
+                 of all noise onsets (293 of 609 over the 28 samples), and a
+                 fifth of those had a real body thump arriving a frame or two
+                 LATE. Measured mean strikes per 20s, everything else shipped:
+                 30ms 11.9 · 45ms 13.6 · 85ms 15.6 (ships) · 150ms 17.5
+                 at the shipped hz 1600 / s sns 1.95, and 9.7 / 10.9 /
+                 12.0 (at 100) / 12.8 at the hz 2500 / 2.2 the sweep
+                 picked — against 9.0 for the one-sided window this
+                 replaced. Past
+                 ~100ms it is buying fewer and fewer real snares, so if it is
+                 still missing strikes up there the problem is elsewhere.
+                 Contrast s sns at the same default window: 2.0 gives 13.2
+                 strikes but drops phase concentration 0.62 -> 0.57, 1.5 gives
+                 19.1 at 0.32, and 1.2 gives 22.6 at 0.20 — by the bottom of
+                 the slider it is firing on hats, which is the failure the
+                 offline proof existed to catch. More strikes, fewer of them
+                 snares.
+         s hz    the noise band's highpass cutoff. The body band itself
+                 (200Hz, sens 1.5) and the ±45ms kick veto are still fixed in
+                 code, measured, not sliders — only the window around the
+                 body onset moved out here. */
     { v: '--snare-bolt', label: 's bolt', min: 0, max: 1,   step: 0.02, unit: '',
       file: 'css/star-bg.css' },
     { v: '--snare-decay', label: 's ms', min: 60, max: 900, step: 10, unit: '' },
-    { v: '--snare-sens', label: 's sns', min: 1.5, max: 3.5, step: 0.05, unit: '' },
+    { v: '--snare-sens', label: 's sns', min: 1.2, max: 3.5, step: 0.05, unit: '' },
+    { v: '--snare-coinc', label: 's coin', min: 30, max: 150, step: 5, unit: '' },
     { v: '--snare-freq', label: 's hz', min: 1000, max: 5000, step: 100, unit: '' },
     { v: '--snare-all', label: 's fork', min: 0, max: 0.5, step: 0.01, unit: '' },
     /* NOT A SPINE CONTROL. How heavy the page feels under a mouse wheel, read by
@@ -1027,7 +1149,8 @@
     /* snare */
     '--snare-bolt': 'How hard the lightning strikes per unit of SNARE envelope, its own channel, never the kick. Whole 0 to 1 range is real. Brightness is bolt b',
     '--snare-decay': 'Decay of the strike in ms, tail reads about 2 to 3x this. Independent of k ms — the snare is a second envelope',
-    '--snare-sens': 'Snare threshold as a MULTIPLE of the 2.5kHz band average. Stricter than the kick on purpose; below about 2 it starts firing on hats',
+    '--snare-sens': 'Snare threshold as a MULTIPLE of the noise band average. Stricter than the kick on purpose; below about 2 it starts firing on hats — measured at the swept config, 1.5 puts phase concentration at 0.32 and 1.2 at 0.20 against 0.62. Ships at 1.95, one step over that line on the owner ear. If strikes are MISSING, this is still the wrong slider: try s coin first',
+    '--snare-coinc': 'How far apart the noise burst and the 200Hz body thump may land and still count as one snare, ms. THE RECALL CONTROL — the body gate was rejecting 48% of all noise onsets, far more than the threshold ever did. Ships at 85, which measures 15.6 strikes per 20s; 45 reads 13.6, 150 reads 17.5. Unlike s sns it adds strikes without loosening what counts as a drum',
     '--snare-freq': 'Highpass cutoff of the snare noise band in Hz. 2500 measured best over all 28 samples. The 200Hz body gate is fixed and separate',
     '--snare-all': 'Chance a strike lights EVERY pattern at once instead of one. 0 is the shipped behaviour everywhere except the deep-field lab. Keep it low, a fork that happens often is just five bolts with no variety left to interrupt',
     /* page feel */
@@ -1311,9 +1434,9 @@
      a property of the source and identical on every page; counting only the
      visible rows would print a smaller number on about.html and read as eight
      tips having gone missing, which is the one thing this check exists to
-     catch. The count stays FIELDS.length — 48 now the astral scrim group is
-     parked and --snare-all has been added; it read 55 while that group was
-     live, and 47 before the fork strike — everywhere, and
+     catch. The count stays FIELDS.length — 49 now the astral scrim group is
+     parked and --snare-all and --snare-coinc have been added; it read 55
+     while that group was live, 47 before the fork strike — everywhere, and
      the suffix says what is hidden. */
   (function () {
     var missing = FIELDS.filter(function (f) { return !TIPS[f.v]; })
@@ -1348,7 +1471,7 @@
        tuned now. Hidden with the kick group on pages without the detector
        (the filter below catches the --snare- prefix too). */
     { title: 'snare', open: true, vars: ['--snare-all', '--snare-bolt', '--snare-decay',
-        '--snare-sens', '--snare-freq'] },
+        '--snare-sens', '--snare-coinc', '--snare-freq'] },
     /* Open for the same reason kick and snare are: it is what is being tuned
        now (added Aug 14 2026 with the field + ripple work). Hidden whole on
        pages without the rail — `why` is the drop message for that case. */

@@ -3,6 +3,8 @@
   "configurations": [
     {
       "name": "kundalini",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["scripts/serve.py"],
       "url": "http://localhost:8000",
       "port": 8000
     }

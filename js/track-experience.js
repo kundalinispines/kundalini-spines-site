@@ -926,7 +926,27 @@
        must key its graph by element — createMediaElementSource throws on a
        second call for the SAME element. Nothing here depends on anyone
        listening; with no listener this is an event into the void and playback
-       is untouched. */
+       is untouched.
+
+       AND THE ELEMENT IS PARKED ON THE SECTION FIRST, because an event into
+       the void is exactly what this was for the first sample of every page
+       load. init() hangs off fetch('data/tracks.json'), and on localhost that
+       promise resolves BETWEEN two of the script tags at the bottom of
+       index.html — this file is tag 4, js/spine-bg.js is tag 8, and the
+       microtask lands in the gap. MEASURED 2026-08-23: announcement at
+       2128.3ms, spine-bg.js registering its listener at 2217.4ms, 89ms late
+       and permanently deaf to the track already on screen. Pressing play on it
+       gave audio and no lightning; stepping one track re-announced and fixed
+       itself, which is what made it look like a detector bug rather than a
+       race.
+
+       It IS a race, not an ordering mistake — a slower fetch and spine-bg.js
+       wins — so the fix cannot be "dispatch later" or "load in a different
+       order". A late subscriber needs to be able to ask. Reading this property
+       is not the prototype-patching hunt HANDOFF 7 ruled out; it is the same
+       handover, left where someone arriving second can still find it. Keep the
+       two in step: whatever is announced is what is parked here. */
+    section.ksCurrentSample = audio;
     section.dispatchEvent(new CustomEvent('ks:sample-ready', {
       detail: { audio: audio, title: track.title || null }
     }));

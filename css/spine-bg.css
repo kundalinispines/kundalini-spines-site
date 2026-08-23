@@ -72,6 +72,12 @@
      actually loaded. python -m http.server serves Last-Modified only, and a
      browser sitting on a cached copy looks identical to a change that did not
      work — this makes the difference visible instead of arguable.
+     43 = the snare stops missing half the strikes: the 200Hz body window is
+     two-sided now and lives on a slider (--snare-coinc), and the owner's ear
+     set the whole channel afterwards — sens 2.2 -> 1.95, freq 2500 -> 1600,
+     coinc 85, and --snare-all promoted 0 -> 0.12 so one strike in eight forks
+     on the live site. Measured 15.6 strikes per 20s against 9.0 before any of
+     it; both tables are in the snare block.
      42 = the palette reverted to Signal Red, which in this file is the one
      hardcoded scan-line core, back to #C8302E; everything else here takes
      the accent through var(--color-crimson-lit) and needed no edit. 41 was the
@@ -102,7 +108,7 @@
      kick. 33 = the lightning layer wired in (js injection + tuner rows; the
      layer itself lives in css/star-bg.css) and the stale "loaded by
      index.html only" header line above corrected. */
-  --spine-build: 42;
+  --spine-build: 43;
 
   --charge: 0;          /* 0..1, written by js/spine-bg.js every scroll frame */
 
@@ -383,50 +389,154 @@
        - a 2.5kHz HIGHPASS x3 side chain (the snare's noise burst) with the
          same base/peak/floor threshold machine as the kick,
        - gated on a COINCIDENT ONSET in a 200Hz body band (its own machine,
-         fixed sens 1.5 in the JS) within 45ms — a snare is the one thing in
-         these mixes that hits both bands at once; hats have no body, bass
-         has no noise,
+         fixed sens 1.5 in the JS) within --snare-coinc, 45ms by default — a
+         snare is the one thing in these mixes that hits both bands at once;
+         hats have no body, bass has no noise. The window was backward-only
+         until 2026-08-23 and is two-sided now; that block is below, and it
+         is the one thing to reach for when strikes go missing,
        - and a SYMMETRIC ±45ms kick veto, paid for by holding each candidate
          45ms (~3 frames) before the flash — the kick's own beater click
          crosses 2.5kHz a few ms before the low band trips, so a one-sided
          veto still fires on the kick itself. The 45ms lands well inside the
          window where sound and light read as simultaneous.
 
-     MEASURED at these defaults: 3-15 strikes per 20s sample (mean 9) against
-     16-31 kicks, phase concentration 0.66 mean / 0.42 worst, >= 0.5 on 25 of
-     28 tracks. Concentration measures CONSISTENCY, not correctness — there
-     is no hand-labelled snare reference — so the owner's ear is the last
-     word on whether it is landing on the snare; these numbers say it lands
-     in one stable place in the bar.
+     MEASURED. Two configurations matter and this file quotes both, so read
+     the label before comparing any number below:
+
+       THE SWEPT CONFIG, hz 2500 / sens 2.2 — what the offline sweep picks.
+         10.9 strikes per 20s (3-15), concentration 0.62 mean / 0.31 worst,
+         >= 0.5 on 20 of 28. Was 9.0 and 0.66 / 0.42 / 25 of 28 with the
+         one-sided body window this replaced.
+       THE SHIPPED CONFIG, hz 1600 / sens 1.95 / coinc 85 — what the owner
+         dialled in by ear on 2026-08-23, and what is actually set above.
+         15.6 strikes per 20s (10-21) against 16-31 kicks, concentration
+         0.45 mean / 0.16 worst, >= 0.5 on 12 of 28.
+
+     So the live page answers the snare about 70% more often than the swept
+     numbers describe, and it is less consistent about where in the bar it
+     does it. Concentration measures CONSISTENCY, not correctness — there is
+     no hand-labelled snare reference — so the owner's ear is the last word on
+     whether it is landing on the snare, and it has now had it. What the
+     figure does say is that the shipped setting is answering more than one
+     event per bar; some of that is the second real snare the two-sided window
+     found, and some of it, at 1600Hz and 1.95, will be hats.
 
        decay  ms; the strike's visible tail is roughly 2-3x this.
        sens   threshold as a MULTIPLE of the high band's running average.
               2.2 is deliberately stricter than the kick's 1.8: the high band
               is busier (hats, sibilance, vocal noise), and the sweep showed
               everything below ~2.0 bleeding onto the hats. Fire-on-
-              everything: raise. Missing strikes: lower, and expect hats
-              before you expect nothing.
+              everything: raise. MISSING STRIKES: NOT THIS ONE — go to coinc.
+              Measured, this was never the bottleneck: at 2.2 only 17 of 609
+              onsets were lost to anything the threshold could fix, while
+              dropping to 1.5 tripled the onsets for a third more strikes and
+              took phase concentration from 0.62 to 0.32. The tuner floor was
+              lowered to 1.2 on 2026-08-23 at the owner's request; the bottom
+              half of that range is the hat detector, and it is theirs to
+              judge by ear. SHIPS AT 1.95, which is on the wrong side of that
+              2.0 line on purpose — see the note on the declaration.
        freq   highpass cutoff of the noise side chain, Hz. 2500 measured
-              best; 2000-3000 all workable, below that the body bleeds in.
-              The 200Hz body band is NOT this and is not a slider. */
+              best; 2000-3000 all workable, below that the body bleeds in —
+              i.e. the noise band starts hearing what the body band hears, the
+              two stop being independent evidence, and the coincidence gate
+              gets easier to satisfy by accident. SHIPS AT 1600, below that
+              line, also on purpose. At the shipped sens and window, moving
+              the cutoff back up to 2500 lifts concentration 0.45 -> 0.49 but
+              drops the quietest track from 10 strikes per 20s to 5; the owner
+              took the floor over the consistency.
+              The 200Hz body band is NOT this and is not a slider.
+       coinc  how far apart the noise burst and the 200Hz body thump may land
+              and still be read as one snare, ms. See the block below — this
+              is the control that decides HOW MANY snares are caught, and
+              sens is not. */
   --snare: 0;
   --snare-decay: 260;
-  --snare-sens: 2.2;
-  --snare-freq: 2500;
+  /* SENS AND FREQ ARE THE OWNER'S EAR, 2026-08-23, not the sweep's pick. The
+     sweep's best pair is sens 2.2 / freq 2500 and both are still written up
+     below, because they are the measurement and it did not change; these are
+     the numbers the owner dialled in on the live page afterwards, listening to
+     the lightning against the record rather than to a concentration score.
+     Both sit outside what the offline run recommends — 1.95 is under the 2.0
+     the sweep called the hat line, 1600 is under the 2000 where the body
+     starts bleeding into the noise band. What that costs, measured the same
+     way as everything else here, is in the block below. Do not "restore" them
+     to the swept values: they are a decision, not a drift. */
+  --snare-sens: 1.95;
+  --snare-freq: 1600;
+
+  /* ---- THE BODY WINDOW, and why it is the recall control, 2026-08-23 -----
+     The owner's report was that the lightning answered about half the snares
+     they could hear. It was not the threshold. Re-measured over all 28
+     samples at what was then shipped (hz 2500, sens 2.2), counting why each
+     noise-band onset was turned away:
+
+       609 noise onsets, 260 accepted.
+       293 (48%) rejected by the BODY GATE.
+       43 by everything else combined — refractory 17, pending-busy 19,
+       kick veto 7.
+
+     And the gate was one-sided: it asked whether the body band had ALREADY
+     fired. Of those 293, the nearest body onset arrived 0-45ms AFTER the
+     noise onset 63 times and 45-100ms after another 66. Which of the two
+     bands crosses its threshold first is a property of the mix, so a
+     backward-only window threw away every snare whose body was the slower
+     half of it.
+
+     js/spine-bg.js now tests the coincidence when the candidate RELEASES
+     rather than when it starts — the 45ms hold the kick veto already pays
+     for — so the window is `coinc` ms backward and up to 45ms forward at no
+     latency cost. Measured strikes per 20s, mean over the 28 samples, AT THAT
+     SAME hz 2500 / sens 2.2:
+
+       one-sided 45 (before)   9.0     phase concentration 0.66 / 0.42 worst
+       two-sided 45           10.9     0.62 / 0.31
+       two-sided 100          12.0     0.59 / 0.31
+       two-sided 150          12.8     0.57 / 0.31
+
+     AND AT WHAT ACTUALLY SHIPS, hz 1600 / sens 1.95 — the same slider over
+     the same 28 samples, so this is the row to read when judging the live
+     page:
+
+       two-sided 30           11.9     0.58 / 0.31 worst, >= 0.5 on 21 of 28
+       two-sided 45           13.6     0.53 / 0.25, 16 of 28
+       two-sided 85 (ships)   15.6     0.45 / 0.16, 12 of 28
+       two-sided 150          17.5     0.42 / 0.16, 7 of 28
+
+     A lower cutoff and a looser threshold hand the window more candidates to
+     work with, so the same millisecond figure buys more strikes here and
+     costs more consistency. 85 is where the owner's ear put it.
+
+     The concentration drop is NOT the sens sweep's kind of loss. It measures
+     how tightly strikes cluster at one phase between kicks, so catching the
+     second real snare in a bar lowers it by construction. What it cannot do
+     is tell a recovered snare from a recovered hat — which is why this is a
+     slider and the owner's ear is still the last word.
+
+     RAISE THIS, NOT sens, IF STRIKES ARE MISSING. Compare, at the swept
+     config's 45ms window: sens 2.0 buys 13.2 strikes for 0.57 concentration,
+     1.5 buys 19.1 for 0.32, 1.2 buys 22.6 for 0.20 — that is the detector
+     firing on hats, the exact failure scripts/snare-tuning.py was written to
+     catch. The shipped 1.95 is one step down that road and no further; if the
+     lightning ever reads as jittery rather than sparse, this is the first
+     number to put back before touching the window. */
+  --snare-coinc: 85;
 
   /* THE FORK STRIKE: chance that one strike lights EVERY pattern at once
      instead of one. Found by accident — a cascade bug in css/deep-field-bg.css
      lifted the idle-zero off all five bolts, so every strike fired all of them,
      and the owner liked the look enough to keep it as a rare event.
 
-     SHIPS AT 0, so index.html and every other page keep the measured
-     one-pattern-per-strike behaviour untouched. home-deepfield-lab.html raises
-     it. Promote it here only if the owner wants it on the live site.
+     PROMOTED TO THE LIVE SITE 2026-08-23, the owner's call, at the 0.12
+     css/deep-field-bg.css had already been running — this block used to say
+     "ships at 0, promote it here only if the owner wants it on the live site",
+     and that is what just happened. Roughly one strike in eight forks now.
 
      Keep it LOW. The whole point of the five patterns is that no two strikes
      look alike; a fork that happens often is just the bug again, at which
-     point there is no variety to interrupt. */
-  --snare-all: 0;
+     point there is no variety to interrupt. 0.12 is about the top of what
+     still reads as an event — at 11 strikes per 20s it lands a little over
+     once every two samples. */
+  --snare-all: 0.12;
 
   --spine-bloom: 0;     /* the flare riding the charge front, 0 = off */
   --spine-glow: 0;      /* 1 = the bloom as generated, 0 = crushed to hard lines */

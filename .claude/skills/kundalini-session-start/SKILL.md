@@ -1,6 +1,6 @@
 ---
 name: kundalini-session-start
-description: Start-of-session prep for the Kundalini Spines website — read the newest handoff, connect the desktop project folder, sync the GitHub repo into the workspace, verify the desktop copy matches the remote, check for unfinished work from prior sessions, and load the project's working conventions before touching any file. Use at the START of any session that will work on the Kundalini Spines site — when the user attaches a HANDOFF file, says "let's get started" / "continue working on the site", asks to wire, tune, fix, or build anything on the website, or mentions the kundalini-spines folder — even if they never say the words "start a session". Companion to kundalini-session-end, which owns the wrap-up.
+description: Start-of-session prep for the Kundalini Spines website — handoff, repo sync, and working conventions, before any file is touched. Use at the START of any session that will work on the Kundalini Spines site — when the user attaches a HANDOFF file, says "let's get started" / "continue working on the site", asks to wire, tune, fix, or build anything on the website, or mentions the kundalini-spines folder — even if they never say the words "start a session". Companion to kundalini-session-end, which owns the wrap-up.
 ---
 
 # Starting a Kundalini Spines session

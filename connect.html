@@ -39,6 +39,21 @@
      every class below already has rules — .section/.container/.section-header/
      .label from css/base.css, .newsletter*/.btn from css/components.css, which
      is the same block index.html renders under its carousel. -->
+
+<!-- THAT LAST CLAUSE IS STALE, AND IS KEPT AS THE RECORD (Aug 23 2026).
+     index.html has not rendered this block since commit 2316f1f, "index.html is
+     the spine document" (Aug 13 2026), which rebuilt Home out of .ksd-section
+     columns. Home's sign up is now the LAST of six sections inside .ksd-doc__col,
+     marked up as .ksd-section with data-ksd-section="connect" and a .ksd-connect
+     wrapper: not under the carousel, and carrying neither .newsletter nor
+     .newsletter__inner. THIS FILE IS NOW THE ONLY ONE IN THE REPO USING THOSE
+     TWO CLASSES. The note beside the section below has the full divergence.
+
+     THE REST OF THIS BANNER WAS RECHECKED THE SAME DAY AND STILL HOLDS: five
+     sheets, that order, no sixth and no inline style, every class resolving
+     inside them. One nit for anyone reading the list literally, .section-header
+     is named above but no element in this file carries it. It is a leftover from
+     the first, left hung cut of the block below, and it is harmless. -->
 <link rel="stylesheet" href="css/tokens.css">
 <link rel="stylesheet" href="css/base.css">
 <link rel="stylesheet" href="css/star-bg.css">
@@ -83,12 +98,58 @@
        The duplicate ids (newsletter-form / newsletter-email / newsletter-status)
        are safe: one copy per PAGE, never two in one document, and
        js/newsletter.js looks them up per page load. -->
+  <!-- "THE SAME BUTTONDOWN BLOCK" NARROWED ON Aug 23 2026, kept as the record.
+       It is still exactly true of the form element and the three paragraphs
+       under it, which are byte identical to index.html's copy. Everything
+       wrapping them diverged when Home became the spine document. The endpoint,
+       the native POST and the no target blank decision are untouched by any of
+       that and still stand as measured 2026-07-29. -->
   <!-- CENTERED, LIKE THE HOMEPAGE BLOCK — owner call, Aug 12 2026. The first
        cut set this as a left-aligned .section-header column and the owner asked
        for centre; rather than centring by hand it reuses index.html's own
        .newsletter / .newsletter__inner classes, so the two copies of this form
        can never drift apart geometrically. The h1 was added to the stencil
        rule in css/components.css beside the h2 the homepage uses. -->
+  <!-- THE COUPLING CLAIM ABOVE IS FALSE, AND IS KEPT AS THE RECORD (Aug 23
+       2026). Those classes were never index.html's, they are
+       css/components.css's, and since 2316f1f (Aug 13 2026) index.html carries
+       neither of them. The two copies have already drifted, structurally:
+
+         here                             index.html
+         section.section.newsletter       section.ksd-section, data-ksd-section
+         div.container.newsletter__inner  div.ksd-connect, wrapping only the
+           wrapping everything              form and the three paragraphs
+         span.label, h1, p                h2.ksd-head, p.ksd-body, no eyebrow
+         measure 56ch, 523px at 1440      measure 520px flat, css/spine-doc.css
+         .section padding-block 96px,     .ksd-section padding-block
+           plus the inline padding-top      clamp(64px, 10vh, 140px), no style
+           on the line below                attribute at all
+         parent is main, width from       parent is .ksd-doc__col, which sets a
+           .container at 1280px             6vw axis margin and a 6vw padding
+         five stylesheets                 twelve, plus an inline style element
+
+       EVEN THE SHARED FORM RUN DIFFERS ON SCREEN. index.html loads
+       css/spine-bg.css, whose .newsletter-form .btn puts a box-shadow under the
+       button so it reads as an object sitting on the lit spine column. This page
+       never loads that file, so the button here has none. By the same absence
+       this page KEEPS the border-top and border-bottom hairlines on .newsletter
+       that spine-bg.css was written to strip on the page with the column. Both
+       are right for their own page. Neither is shared.
+
+       THE CENTRING ITSELF IS UNAFFECTED AND STAYS. .newsletter is still
+       text-align: center and .newsletter__inner is still 56ch with
+       margin-inline: auto in css/components.css, which is what the owner asked
+       for. Only the REASON given for trusting it was wrong: this block is
+       centred because components.css centres it, not because Home centres one
+       too. css/spine-doc.css says in as many words that Home deliberately uses
+       .ksd-connect and NOT .newsletter, so the coupling this note claimed does
+       not exist in either direction and there is nothing to restore.
+
+       THE STENCIL SENTENCE IS HALF STALE. css/components.css still sets
+       .newsletter h1 and .newsletter h2 in the display stencil, and the h1 half
+       is live on this page. The h2 half no longer reaches Home, whose heading is
+       h2.ksd-head and takes its font from css/spine-doc.css. Today that rule's
+       h2 half catches only the Channels heading further down THIS file. -->
   <section class="section newsletter" style="padding-top: calc(var(--space-24) + 3rem);">
     <div class="container newsletter__inner">
       <span class="label">Stay Connected</span>

@@ -153,9 +153,27 @@ loads. Grep before you trust:
 grep -rn "[$][0-9]" purchase.html merch.html js/purchase-checkout.js STRIPE-SETUP.md
 ```
 
-### For option (a): create the Payment Links
+### For option (a): there is a wizard, and it is the shorter path
 
-Products → the product → **Create payment link**. On each link set:
+**Run `scripts/stripe-payment-link.sh`.** It walks you through Test mode, the
+product, the $20 price and the Payment Link, then writes the resulting URL into
+`js/purchase-checkout.js` itself and runs the test-card checklist with you:
+
+```
+bash scripts/stripe-payment-link.sh
+```
+
+It only ever asks you for the public `buy.stripe.com` URL. It never asks for a
+key, writes no `.env`, and sets no GitHub secret — because Payment Links need
+none of those here. If a step ever seems to want an `sk_` or `whsec_` value, you
+are on the wrong path; stop and re-read section 1.
+
+**It deliberately tells you NOT to set a redirect.** See section 4 — the return
+pages are not deployed, so a redirect today would 404 a paying customer.
+
+### Doing it by hand instead
+
+Products — the product — **Create payment link**. On each link set:
 
 - **After payment → Redirect to a page**, with your success URL (section 4).
 - **Collect customer's address** — on for anything physical, off for Digital.
@@ -209,7 +227,23 @@ than by editing and redeploying code.
 
 ## 4. The return URLs
 
-Two pages are built and live in the repo root:
+> **CORRECTION, Aug 27 2026 — these pages are BUILT but NOT LIVE.** This section
+> said "live in the repo root" from the day it was written, and that has never
+> been true. `.github/workflows/deploy-pages.yml` builds GitHub Pages from
+> **`main`**, and `main` contains no `purchase.html`, no `purchase-success.html`,
+> no `purchase-cancelled.html` and no `merch.html` — the entire purchase surface
+> exists only on `feature/spine-ui-v2`, which is 169 commits ahead of it.
+>
+> **So do not set a Payment Link redirect to either URL yet.** A paying customer
+> would land on a 404, which is the one failure the `null` in `checkoutUrl`
+> exists to prevent — arriving through the Dashboard, where no code guard can
+> see it. Leave the link on Stripe's own confirmation page until V2 ships.
+>
+> This costs nothing later: **After the payment** is editable on an existing
+> link, so the same link gains the branded page the day the pages deploy. No new
+> link and no code change.
+
+Two pages are built and sit in the repo root:
 
 - `https://<your-domain>/purchase-success.html`
 - `https://<your-domain>/purchase-cancelled.html`
@@ -218,8 +252,11 @@ Both are branded to the site — the site's nav, footer, starfield and type, not
 generic Stripe confirmation. Both are marked `noindex` so a confirmation page
 never turns up in a search result.
 
-For a Payment Link, the success URL goes in **After payment → Redirect**. To get
-the order reference to display, append Stripe's token:
+For a Payment Link, the success URL goes in **After the payment** — **Confirmation
+page** — the redirect option. (Those are the labels as of Aug 27 2026, taken from
+docs.stripe.com; the older "After payment — Redirect" wording in earlier drafts of
+this document was wrong.) To get the order reference to display, append Stripe's
+token:
 
 ```
 https://<your-domain>/purchase-success.html?session_id={CHECKOUT_SESSION_ID}
@@ -374,4 +411,5 @@ Before flipping anything to live mode:
 | `css/purchase.css` | Their styling. |
 | `purchase-success.html` | Branded return page for a completed purchase. |
 | `purchase-cancelled.html` | Branded return page for an abandoned one. |
+| `scripts/stripe-payment-link.sh` | The wizard. Walks the Dashboard steps, writes the URL into the config, runs the test-card checklist. |
 | `STRIPE-SETUP.md` | This document. |

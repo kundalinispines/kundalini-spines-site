@@ -240,6 +240,12 @@
      The old build had this guard as snap.racing, which went out with the Music
      race. The race is gone for good; the guard is not optional. */
   var skyLock = false;
+  /* THE PLAYBACK HOLD. True while the carousel has a sample playing. A separate
+     flag from skyLock on purpose: skyLock belongs to the legs and is cleared by
+     arrive(), so a hold that borrowed it would be wiped by the first arrival
+     after the reader pressed play. See the clamp in tick(), and --df-hold-play
+     in css/deep-field-bg.css for what it is for. */
+  var playHold = false;
   /* The rate tick() eases --df-sky at, set per transition. Two speeds, because
      they are not the same event: coming OUT from under the sky is a handover
      the reader should barely notice, and coming IN over a settled frame is a
@@ -255,7 +261,7 @@
      that turn nothing, which this project has been bitten by before. */
   var T = { tail: 1, stagger: 90, snap: 1,
             step: 1, stepMs: 620, gap: 180,
-            skyIn: 0.055, skyOut: 0.10, titleMs: 1000 };
+            skyIn: 0.055, skyOut: 0.10, titleMs: 1000, holdPlay: 1 };
   var lastRead = 0;
   function syncTunables(now) {
     if (now - lastRead < 200) return;
@@ -273,6 +279,8 @@
     var so = parseFloat(cs.getPropertyValue('--df-sky-out'));
     if (isFinite(si) && si > 0) T.skyIn = si;
     if (isFinite(so) && so > 0) T.skyOut = so;
+    var hp = parseFloat(cs.getPropertyValue('--df-hold-play'));
+    if (isFinite(hp)) T.holdPlay = hp;
     var st = parseFloat(cs.getPropertyValue('--df-step'));
     var sm = parseFloat(cs.getPropertyValue('--df-step-ms'));
     var gp = parseFloat(cs.getPropertyValue('--df-gap'));
@@ -1527,17 +1535,27 @@
        The equality branch still must NOT clear `booting` — see the note below,
        which cost a build when the rising branch cleared it before the opening
        dissolve had started. */
-    if (Math.abs(skyT - skySh) < 0.002) {
-      skySh = skyT;
+    /* THE PLAYBACK HOLD IS APPLIED HERE, as a clamp on the target, and not by
+       writing skyT at the call sites. Four places set skyT - boot(), the two
+       leg branches in stepTo() and onScroll() - and a hold that competed with
+       them would have to win against every one, including the skyLock a leg
+       sets precisely to keep onScroll out. Clamping the GOAL at the single
+       point it is consumed beats all four for free and leaves skyLock alone,
+       so when the sample ends the value skyT already carries is the one the
+       reader's scroll position calls for and the release needs no recompute.
+       --df-hold-play 0 restores the pre-build-12 behaviour exactly. */
+    var skyGoal = (playHold && T.holdPlay) ? 1 : skyT;
+    if (Math.abs(skyGoal - skySh) < 0.002) {
+      skySh = skyGoal;
       skyDone = true;
     } else {
       /* 0.06 on the opening (~800ms) against 0.18 for the Music exit (~200ms).
          They are different events: the opening is a dissolve the visitor is
          meant to notice, the exit is the owner's "immediate swap" and only
          eases at all so it is not a one-frame cut. */
-      skySh += (skyT - skySh) * (booting ? 0.06 : skyRate);
-      if (Math.abs(skyT - skySh) < 0.002) { skySh = skyT; booting = false; }
-      skyDone = (skySh === skyT);
+      skySh += (skyGoal - skySh) * (booting ? 0.06 : skyRate);
+      if (Math.abs(skyGoal - skySh) < 0.002) { skySh = skyGoal; booting = false; }
+      skyDone = (skySh === skyGoal);
     }
     root.style.setProperty('--df-sky', skySh.toFixed(4));
 
@@ -1643,6 +1661,9 @@
       { k: '--df-sky-out', g: 'handoff', label: 'sky out', min: 0.02, max: 0.4, step: 0.01,
         tip: 'How fast the nebula clears when a leg begins, handing the screen back to the clip. It shipped faster than sky in and the owner levelled the two on Aug 18 2026. At 0.06 the nebula is gone 27 frames into the Music to Merch leg, so the clip owns 61 percent of it; at 0.10 it was 15 frames and 79 percent' },
 
+      { k: '--df-hold-play', g: 'handoff', label: 'hold', min: 0, max: 1, step: 1,
+        tip: 'Whether a playing sample holds the sky up wherever you scroll to. 1 keeps the stars and the lightning with the track until it stops. 0 is the behaviour before build 12, where the sky followed scroll position alone and dropped the moment you left Music - while the kick and snare detector kept running into nothing, because the home page turns the reactive column off and the sky layers are the only things left reading those envelopes' },
+
       { k: '--df-title-ms', g: 'handoff', label: 'title hold', min: 0, max: 3000, step: 50,
         tip: 'How long Enter the Tracks holds the screen on its own before the cards replace it. Runs once, on the first arrival at Music. 0 skips the title card entirely' },
 
@@ -1731,6 +1752,39 @@
 
     window.addEventListener('scroll', onScroll, { passive: true });
 
+    /* WHAT MAKES THE SWAP ANSWER PLAYBACK RATHER THAN GEOMETRY.
+       js/spine-bg.js:183 watches this same class on this same element for its
+       own reasons, and this deliberately does NOT reuse the .is-spine-pulsing
+       flag that one writes onto <html>. That class is one of four hooks the
+       reactive system toggles and .is-spine-kicking moves beside it every
+       frame, so an attribute observer on documentElement would wake this
+       module on every kick. The section's own class changes twice per sample.
+
+       No guard beyond the null check: a page that has no player simply never
+       holds, which is the correct behaviour for every other host of this file. */
+    if (window.MutationObserver) {
+      var player = document.querySelector('.track-experience');
+      if (player) {
+        var syncHold = function () {
+          var now = player.classList.contains('is-playing');
+          if (now === playHold) return;
+          playHold = now;
+          /* Coming up is a deliberate transition the reader is meant to watch,
+             so it takes the in-rate; the release takes the out-rate, which is
+             the owner's "immediate swap that still must not be a one-frame
+             cut". onScroll() then recomputes skyT from where the reader
+             actually is, so a release lands on the right target rather than on
+             whatever a leg last left in it - and it restarts the rAF for us. */
+          skyRate = playHold ? T.skyIn : T.skyOut;
+          onScroll();
+        };
+        new MutationObserver(syncHold).observe(player, {
+          attributes: true, attributeFilter: ['class']
+        });
+        syncHold();
+      }
+    }
+
     /* THE BOOT DISSOLVE. --df-sky starts at 1, so the first thing painted is
        the sky the visitor already knows rather than a bare page floor or a
        poster popping into a scrub. It only hands over once the decoder has a
@@ -1775,6 +1829,7 @@
     var cs = getComputedStyle(root);
     return {
       ready: ready,
+      hold: playHold,
       segments: segs.map(function (s) {
         return { name: s.name, y0: s.y0, y1: s.y1, cue: s.cue };
       }),

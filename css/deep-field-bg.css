@@ -1,5 +1,5 @@
 /* deep-field-bg.css — the home page's background clip.
-   --df-build: 11;
+   --df-build: 12;
 
    WHAT THIS IS
    The 12.042s deep-field-2 clip painted full-bleed behind the whole home
@@ -27,6 +27,14 @@
    plays where the reader is standing. */
 
 :root {
+  /* THE STYLESHEET'S OWN VERSION, and it is a real property so the browser can
+     be asked. It lived in this file's header comment for eleven builds while
+     css/spine-bg.css and css/star-bg.css both declared theirs for real, which
+     meant the one check the convention exists for - "is the browser running the
+     file I just edited, or a cached copy?" - could not be run against the deep
+     field at all. Declared Aug 26 2026. Keep it in step with the header. */
+  --df-build: 12;
+
   /* 0 = sky fully suppressed and the clip is the only background.
      1 = the real star field at its normal strength.
      js/deep-field-bg.js writes it every frame: 0 for most of the page, rising
@@ -134,6 +142,58 @@
      scroll position. */
   --df-sky-in: 0.06;
   --df-sky-out: 0.06;
+
+  /* THE PLAYBACK HOLD, build 12. 1 = a playing sample holds the sky up wherever
+     the reader scrolls to; 0 = the sky follows scroll position alone, which is
+     how every build before this one behaved.
+
+     WHAT IT FIXES. The handover to the reactive sky was pure geometry: skyAt()
+     raises it across Music and drops it the moment you leave, and because the
+     player lives in Music the swap LOOKED like it was answering playback. It
+     never was. MEASURED Aug 26 2026 at 1440x900, one wheel gesture out of Music
+     with a sample still running: --df-sky went 1.0000 -> 0.0104 at 900ms ->
+     0.0000, while .is-playing stayed true and js/spine-bg.js kept writing
+     --kick and --snare every frame. The home page runs --spine-on: 0
+     (css/spine-bg.css:664), so the sky layers are the ONLY consumers of those
+     two envelopes - the detector was computing a full kick and snare response
+     that was then multiplied to nothing.
+
+     V2HANDOFF 37 asked for "the stop-and-swap to the reactive background when a
+     carousel card plays music, resuming the scrub on scroll out" and that much
+     the geometry already did. This is 38's stronger reading - "a playing track
+     holds the sky" - which the owner picked on Aug 26 2026 with both described.
+
+     THE CLIP IS DELIBERATELY NOT PAUSED WHILE THE SKY IS HELD, even though it
+     is fully invisible at --df-sky 1 and still decoding. The legs own the video
+     element: a leg plays forward to a cue and arrive() fires at the end of it.
+     Pausing mid-leg means that arrival never lands and the sequence wedges with
+     skyLock still set. Letting it run costs decode work nobody sees and buys a
+     seamless release - when the sample ends, the clip is already parked on the
+     frame the reader's scroll position calls for, so the sky drops onto the
+     right picture instead of onto a seek. If that decode cost ever matters, the
+     fix is a leg-aware pause, not a bare vid.pause() here.
+
+     WHAT IT COSTS BODY COPY, measured Aug 26 2026 on the Merch paragraph at
+     1440x900, sampling the actual painted pixels behind the text with the text
+     itself hidden:
+
+       behind the copy        under 4.5:1   under 3:1   1st pct   mean
+       nebula (hold ON)          18.0%         8.9%      1.24:1   6.85:1
+       clip   (hold OFF)          9.8%         0.0%      3.59:1   7.89:1
+
+     The mean is comfortably AA either way; the failures are sparse point-stars
+     sitting behind glyph strokes, not a bright wash. The reason the nebula is
+     the worse of the two is stated 200 lines below and is deliberate: the scrim
+     lives INSIDE .df-bg, so `opacity: 1 - --df-sky` takes it away exactly when
+     the sky arrives, because the scrim exists to sit over the footage.
+
+     THIS IS NOT A CONDITION THIS BUILD INVENTED. Copy over an unscrimmed sky
+     already ships at Music and at Stay Connected, where --df-sky is 1 by
+     geometry. What build 12 does is extend it to Merch, Transmissions and
+     Archive for as long as a sample runs. If it ever wants fixing, the fix is a
+     sky-side scrim and it changes those two existing surfaces too, so it is the
+     owner's call and not a tidy-up. --df-hold-play 0 sidesteps it entirely. */
+  --df-hold-play: 1;
   /* How long the Music title card holds the screen on its own before it hands
      over to the cards. The owner asked for "about a second"; it is a dial
      because it is a piece of timing that can only be judged by watching it -

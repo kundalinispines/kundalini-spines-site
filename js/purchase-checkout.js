@@ -98,7 +98,7 @@
       recommended: false,
       status: 'available',
       /* Stripe Payment Link, or a future /api/checkout endpoint. See §4. */
-      checkoutUrl: null
+      checkoutUrl: 'https://buy.stripe.com/test_5kQbIT7b6gYhfc8aQBaIM00'
     },
     {
       id: 'deluxe',

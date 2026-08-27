@@ -192,7 +192,15 @@
      geometry. What build 12 does is extend it to Merch, Transmissions and
      Archive for as long as a sample runs. If it ever wants fixing, the fix is a
      sky-side scrim and it changes those two existing surfaces too, so it is the
-     owner's call and not a tidy-up. --df-hold-play 0 sidesteps it entirely. */
+     owner's call and not a tidy-up. --df-hold-play 0 sidesteps it entirely.
+
+     THE OWNER MADE THAT CALL ON AUG 26 2026, the day after the table above was
+     measured: they played a sample on the home page, scrolled out through Merch
+     with the nebula held, read the paragraph, and said it reads fine. So the
+     sky-side scrim is NOT wanted, and the numbers above are a record of a cost
+     that was accepted - not an open defect waiting for someone to fix it. The
+     18.0% is still true; it was judged and it lost to the look. Reopening this
+     needs the owner, exactly as it did before. */
   --df-hold-play: 1;
   /* How long the Music title card holds the screen on its own before it hands
      over to the cards. The owner asked for "about a second"; it is a dial
@@ -263,7 +271,27 @@
      Set it to 0 here to take it back off without touching any other page.
      0.12 is about one strike in eight — often enough to be a thing that
      happens, rare enough that the five-pattern rotation is still what you
-     mostly see. Tunable live as `s fork` in the Spine tab. */
+     mostly see. Tunable live as `s fork` in the Spine tab.
+
+     SEEN ON A PHONE AT LAST, 2026-08-26. It had been shipping since Aug 23 with
+     nobody having watched it below 768px. Measured at 390x844, Chrome for
+     Testing, at the owner's live config - hz 1600 / s sns 1.95 / s coin 85 /
+     s ms 410 - over six 20s samples: 9 forks in 76 strikes, an observed rate of
+     0.118 against the 0.12 asked for. The struck-count histogram is clean, 67
+     ones and 9 fives and never a number in between, so the clear-all-then-add
+     in js/spine-bg.js holds on mobile exactly as it does on the desktop.
+
+     IT IS NOT WASTED ON A SMALL SCREEN, which was the open question. A fork
+     repaints 14.9% of a 390x844 frame at a mean luminance delta of 35, against
+     13.3% and delta 48 at 1440x900 (medians; the desktop spread was wide
+     because a capture can land anywhere on the decay). The phone gives up some
+     brightness and none of the coverage, and two gates at the foot of this file
+     are why: .df-bg is display:none up here so no clip competes for the frame,
+     and --df-sky is pinned to 1, which holds the bolt at full strength in the
+     calc that multiplies by it.
+
+     Do not read that coverage figure as a single-strike figure. It is the fork,
+     all five patterns at once; a lone pattern lights far less. */
   --snare-all: 0.12;
 }
 

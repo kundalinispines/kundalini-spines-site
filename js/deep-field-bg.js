@@ -1661,6 +1661,10 @@
       { k: '--df-sky-out', g: 'handoff', label: 'sky out', min: 0.02, max: 0.4, step: 0.01,
         tip: 'How fast the nebula clears when a leg begins, handing the screen back to the clip. It shipped faster than sky in and the owner levelled the two on Aug 18 2026. At 0.06 the nebula is gone 27 frames into the Music to Merch leg, so the clip owns 61 percent of it; at 0.10 it was 15 frames and 79 percent' },
 
+      /* This dial stays. The owner watched the hold on Aug 26 2026, kept it at 1,
+         and asked in the same breath that the slider be left in the panel in case
+         they change their mind. It is a settled value with a live escape hatch,
+         not a dead knob to prune on a tidy-up pass. */
       { k: '--df-hold-play', g: 'handoff', label: 'hold', min: 0, max: 1, step: 1,
         tip: 'Whether a playing sample holds the sky up wherever you scroll to. 1 keeps the stars and the lightning with the track until it stops. 0 is the behaviour before build 12, where the sky followed scroll position alone and dropped the moment you left Music - while the kick and snare detector kept running into nothing, because the home page turns the reactive column off and the sky layers are the only things left reading those envelopes' },
 

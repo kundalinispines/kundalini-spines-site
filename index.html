@@ -174,14 +174,29 @@
     <button class="nav__toggle" aria-expanded="false" aria-controls="primary-nav">Menu</button>
     <nav id="primary-nav" aria-label="Primary">
       <!-- The nav mixes two kinds of destination on purpose: Music scrolls this
-           document, About/Merch/Transmissions/Archive swap pages. About and
-           Merch used to scroll here too; they now go straight to about.html and
-           merch.html, which are the fuller pages. The #about and #merch sections
-           below are untouched and still reachable by hash. -->
+           document, About/Album/Merch/Transmissions/Archive swap pages. About
+           and Merch used to scroll here too; they now go straight to about.html
+           and merch.html, which are the fuller pages. The #about and #merch
+           sections below are untouched and still reachable by hash.
+
+           ALBUM POINTS AT purchase.html, WHICH CALLS ITSELF "Own the Album" —
+           the label follows the page's own name, not the filename. It sits
+           between Music and Merch because the row then follows what a listener
+           actually does: hear the record, own the record, then the goods.
+           IT IS DELIBERATELY NOT PAIRED WITH MERCH. Sitting next to it made the
+           two read as rival shopfronts; sitting after Music makes Album the
+           record and Merch everything else. merch.html shows the three editions
+           and links here, but purchase.html is the only page bound to
+           js/purchase-checkout.js.
+           Added Aug 27 2026 because the Digital Edition became genuinely
+           buyable and Merch was the ONLY route to it. Note the row does not fit
+           seven items at its narrowest without the gap block in
+           css/components.css — see the comment there before adding an eighth. -->
       <ul class="nav__links">
         <li><a href="/" aria-current="page">Home</a></li>
         <li><a href="about.html">About</a></li>
         <li><a href="#tracks">Music</a></li>
+        <li><a href="purchase.html">Album</a></li>
         <li><a href="merch.html">Merch</a></li>
         <li><a href="transmissions.html">Transmissions</a></li>
         <li><a href="archive.html">Archive</a></li>

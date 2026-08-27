@@ -124,6 +124,24 @@
 }
 .nav__links a:hover, .nav__links a[aria-current="page"] { color: var(--color-white); }
 
+/* SEVEN ITEMS DO NOT FIT THE ROW AT ITS NARROWEST, SO THE GAP TIGHTENS EARLY.
+   The row is only used from 769px up; below that the fullscreen menu takes
+   over. With six items it cleared 769px with 27px to spare. The Album entry
+   added Aug 27 2026 pushed the list PAST the container's right edge there, and
+   the overflow was INVISIBLE to scrollWidth because .nav is position:fixed —
+   it showed up only in a screenshot, as a clipped label at the right edge.
+   Measured at 769px with the longest label considered: gap 34 -> 62px over,
+   28 -> 26 over, 24 -> 2 over, 22 -> clears by 10px.
+   22px is the value because the row ALREADY reaches 19px once scrolled, so
+   this is the scrolled spacing arriving early on narrow screens rather than a
+   new number in the design. The scrolled endpoint stays 19px, unchanged.
+   840 is the upper bound: "Album" clears the row unaided from 804px, so this
+   covers that with margin and stops before widths that never needed it.
+   IF AN EIGHTH ITEM IS EVER ADDED, RE-MEASURE — do not assume this still holds. */
+@media (min-width: 769px) and (max-width: 840px) {
+  .nav__links { gap: calc(22px - 3px * var(--nav-q)); }   /* 22 → 19px */
+}
+
 /* Mobile travels less — see the header note. 760 is the collapse spec's own
    breakpoint (it pairs with --nav-h-max in tokens.css); the fullscreen menu
    below keeps its historical 768. */

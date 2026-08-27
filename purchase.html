@@ -110,7 +110,7 @@
              one is the LEAD'S hook, not the module's; the module never reads it.
          [data-ks-purchase="digital|deluxe|artifact"]  on each real <button>.
              bindButtons() attaches the click; this file binds nothing.
-         [data-ks-price="12|25|45"]                    on the DISPLAYED price.
+         [data-ks-price="20|42|75"]                    on the DISPLAYED price.
              Deliberately not also on the buttons — see the price note below.
          [data-ks-edition-status="artifact"]           TAKES THE EDITION ID AS
              ITS VALUE. syncStatus() does find(el.getAttribute(...)), so a bare
@@ -123,15 +123,22 @@
          [data-ks-purchase-section]                    optional; the element
              whose visibility fires album_package_view.
 
-       THE PRICES IN THIS FILE AND IN THE MODULE DISAGREE, AND A HUMAN HAS TO
-       SETTLE IT. The copy this page was given says Deluxe $25 and Artifact from
-       $45; js/purchase-checkout.js's EDITIONS config says 35 and 150. Digital
-       agrees at 12. The module has a drift guard that warns when a BUTTON
-       carries data-ks-price, so data-ks-price is on the price text only — the
-       lead's contract asked for it there, and putting it on the buttons as well
-       would print two console warnings on every load for a disagreement neither
-       file is allowed to settle on its own. Do not "fix" this by editing one
-       side; they change together or not at all.
+       THE PRICES HERE AND IN THE MODULE AGREE, AND THE OWNER SET THEM ON
+       AUG 27 2026 — Digital 20 as the base, with Deluxe 42 and Artifact from
+       75 scaled off it so the ladder kept its old shape. They disagreed once:
+       this file said 25 and from 45 while EDITIONS said 35 and 150, which was
+       settled to 12 / 25 / 45 while all three were still placeholders. That
+       disagreement is the reason for the shape below, so it is recorded here
+       rather than deleted.
+
+       The module has a drift guard that warns when a BUTTON carries
+       data-ks-price, so data-ks-price is on the price text only — the lead's
+       contract asked for it there, and putting it on the buttons as well would
+       print two console warnings on every load. Do not "fix" a future
+       disagreement by editing one side. The price lives in FOUR files — this
+       one, EDITIONS in js/purchase-checkout.js, merch.html, and STRIPE-SETUP.md
+       — and they change together or not at all. Only this file is guarded;
+       merch.html carries no data-ks-price and the guard is blind to it.
        ========================================================================== -->
   <section class="section container ks-own" aria-labelledby="own-heading" data-ks-purchase-section>
 
@@ -213,7 +220,7 @@
 
         <h2 class="ks-edition__title" id="edition-digital-title">Rise Up &mdash; Digital Album</h2>
 
-        <p class="ks-edition__price"><span data-ks-price="12">$12</span></p>
+        <p class="ks-edition__price"><span data-ks-price="20">$20</span></p>
 
         <span class="label ks-edition__contents-label">Contents</span>
         <ul class="ks-edition__contents">
@@ -248,7 +255,7 @@
 
         <h2 class="ks-edition__title" id="edition-deluxe-title">Rise Up &mdash; Deluxe Transmission</h2>
 
-        <p class="ks-edition__price"><span data-ks-price="25">$25</span></p>
+        <p class="ks-edition__price"><span data-ks-price="42">$42</span></p>
 
         <span class="label ks-edition__contents-label">Contents</span>
         <ul class="ks-edition__contents">
@@ -301,7 +308,7 @@
 
         <h2 class="ks-edition__title" id="edition-artifact-title">Rise Up &mdash; Artifact Edition</h2>
 
-        <p class="ks-edition__price"><span class="ks-edition__from">From</span> <span data-ks-price="45">$45</span></p>
+        <p class="ks-edition__price"><span class="ks-edition__from">From</span> <span data-ks-price="75">$75</span></p>
 
         <span class="label ks-edition__contents-label">Contents</span>
         <ul class="ks-edition__contents">

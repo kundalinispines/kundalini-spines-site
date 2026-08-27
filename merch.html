@@ -293,11 +293,22 @@
 
     </div>
 
+    <!-- THESE THREE PRICES ARE DUPLICATES AND NOTHING GUARDS THEM.
+         The owner's prices live in js/purchase-checkout.js's EDITIONS array.
+         purchase.html prints them too, but its price spans carry data-ks-price
+         and that page loads the purchase module, so its drift guard shouts in
+         the console when the two fall out of step. THIS page loads no purchase
+         module and carries no data-ks-price, so these three numbers are checked
+         by nothing at all — they were still reading 12 / 25 / 45 on Aug 27
+         2026, after the owner had set 20 / 42 / 75, and were caught only because
+         someone grepped for the digits. Change them here in the same edit as the
+         other three files, and do not add data-ks-price to them expecting the
+         guard to help: the guard lives in a module this page does not load. -->
     <div class="ks-editions">
       <article class="ks-edition" aria-labelledby="merch-edition-digital">
         <p class="ks-edition__cat readout">01 / Digital</p>
         <h3 class="ks-edition__title" id="merch-edition-digital">Rise Up &mdash; Digital Album</h3>
-        <p class="ks-edition__price"><span>$12</span></p>
+        <p class="ks-edition__price"><span>$20</span></p>
         <span class="label ks-edition__contents-label">Contents</span>
         <ul class="ks-edition__contents">
           <li>Complete Rise Up album</li>
@@ -314,7 +325,7 @@
         <p class="ks-edition__cat readout">02 / Deluxe</p>
         <p class="ks-edition__flag readout">Recommended</p>
         <h3 class="ks-edition__title" id="merch-edition-deluxe">Rise Up &mdash; Deluxe Transmission</h3>
-        <p class="ks-edition__price"><span>$25</span></p>
+        <p class="ks-edition__price"><span>$42</span></p>
         <span class="label ks-edition__contents-label">Contents</span>
         <ul class="ks-edition__contents">
           <li>Everything in the Digital Album</li>
@@ -330,7 +341,7 @@
       <article class="ks-edition" aria-labelledby="merch-edition-artifact">
         <p class="ks-edition__cat readout">03 / Artifact</p>
         <h3 class="ks-edition__title" id="merch-edition-artifact">Rise Up &mdash; Artifact Edition</h3>
-        <p class="ks-edition__price"><span class="ks-edition__from">From</span> <span>$45</span></p>
+        <p class="ks-edition__price"><span class="ks-edition__from">From</span> <span>$75</span></p>
         <span class="label ks-edition__contents-label">Contents</span>
         <ul class="ks-edition__contents">
           <li>Everything in the Deluxe Digital Edition</li>

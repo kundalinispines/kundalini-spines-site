@@ -51,24 +51,36 @@
      not open yet". A '#' or an '' in that slot would send a paying visitor to a
      dead page, which is the exact failure this shape exists to prevent.
 
-     THE PRICES BELOW ARE PLACEHOLDERS AND HAVE NOT BEEN SET BY THE OWNER.
-     Nothing in the repo carries a price for Rise Up — the only number that ever
-     existed was the hardcoded "$1" per-track download in js/track-experience.js
-     that was removed on Aug 20 2026 (see the note at its buildLinks()). 12 / 25
-     / 45 are the numbers purchase.html renders, taken from that file rather than
-     chosen here so the two agree on arrival; they exist so the interface has
-     something to draw and the analytics payload has a shape, and they are not a
-     pricing decision.
+     THE PRICES BELOW WERE SET BY THE OWNER ON AUG 27 2026 AND ARE REAL. They
+     were placeholders until that day: 12 / 25 / 45, taken from purchase.html
+     rather than chosen here so the two agreed on arrival, existing only so the
+     interface had something to draw and the analytics payload had a shape. The
+     owner set the Digital Edition to 20 as the base and asked for the other two
+     to hold the ladder's existing shape, so 25 and 45 were scaled by the same
+     20/12 and rounded to 42 and 75. The felt distance between the tiers is
+     unchanged — 1 / 2.08 / 3.75 became 1 / 2.10 / 3.75.
 
-     THE PRICE LIVES IN TWO PLACES AND THAT IS A KNOWN COST. purchase.html prints
-     its prices as static markup — deliberately, so the page is correct with JS
-     off — and this array holds them as config. They can drift silently. The
-     drift guard in bindButtons() below reads the page's own [data-ks-price] and
-     warns when they disagree; it never rewrites the page, because a price
-     written by JS is a different number for a visitor with JS disabled, which
-     is worse than the drift. Change both in the same edit.
+     So these are a pricing decision now, and the old licence to treat them as
+     scratch numbers is withdrawn. Do not round them toward tidier ones.
 
-     THE ARTIFACT IS PRICED "From $45" ON THE PAGE. `price` here is the floor,
+     THE PRICE LIVES IN FOUR PLACES AND THAT IS A KNOWN COST. purchase.html and
+     merch.html both print their prices as static markup — deliberately, so both
+     pages are correct with JS off — this array holds them as config, and
+     STRIPE-SETUP.md quotes them in prose. They can drift silently. The drift
+     guard in bindButtons() below reads the page's own [data-ks-price] and warns
+     when they disagree; it never rewrites the page, because a price written by
+     JS is a different number for a visitor with JS disabled, which is worse
+     than the drift.
+
+     THE GUARD ONLY EVER SEES purchase.html, AND THAT IS THE TRAP. merch.html
+     prints the same three numbers with no data-ks-price on them and never loads
+     this module at all, so nothing checks that page — its prices sat at the
+     old 12 / 25 / 45 and were caught on Aug 27 2026 only because someone grepped
+     for the digits before editing. STRIPE-SETUP.md was unguarded the same way
+     and had been wrong for a week, still quoting a 12 / 35 / 150 set that no
+     file had carried since Aug 20. Four files, one edit, every time.
+
+     THE ARTIFACT IS PRICED "From $75" ON THE PAGE. `price` here is the floor,
      not a fixed amount — it is a configured bundle. Whatever the analytics
      payload says about it is the entry price and nothing more.
 
@@ -80,7 +92,7 @@
       id: 'digital',
       code: '01',
       name: 'Digital Edition',
-      price: 12,
+      price: 20,
       currency: 'USD',
       cta: 'Get the Digital Edition',
       recommended: false,
@@ -92,7 +104,7 @@
       id: 'deluxe',
       code: '02',
       name: 'Deluxe Edition',
-      price: 25,
+      price: 42,
       currency: 'USD',
       cta: 'Get the Deluxe Edition',
       recommended: true,
@@ -103,7 +115,7 @@
       id: 'artifact',
       code: '03',
       name: 'Artifact Edition',
-      price: 45,
+      price: 75,
       currency: 'USD',
       cta: 'Join the Artifact List',
       recommended: false,

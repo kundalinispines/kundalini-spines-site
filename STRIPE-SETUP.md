@@ -109,30 +109,49 @@ Create **one Product per edition**, each with **one Price**:
 
 | Edition | Product name | Price | Type | Notes |
 |---|---|---|---|---|
-| 01 | `Rise Up — Digital Edition` | see below | One-time | No shipping. |
-| 02 | `Rise Up — Deluxe Edition` | see below | One-time | Collect shipping address if anything physical is in it. |
-| 03 | `Rise Up — Artifact Edition` | see below | One-time | Collect shipping address. Limited run — see section 6. |
+| 01 | `Rise Up — Digital Edition` | **$20** | One-time | No shipping. |
+| 02 | `Rise Up — Deluxe Edition` | **$42** | One-time | Collect shipping address if anything physical is in it. |
+| 03 | `Rise Up — Artifact Edition` | **$75** floor | One-time | Collect shipping address. Limited run — see section 6. |
 
-### The prices are not set, and the placeholders are wrong on purpose
+### The prices are set — $20 / $42 / from $75
 
-**No price for Rise Up exists anywhere in this project.** The only number that
-ever existed was a hardcoded `$1` per-track download in `js/track-experience.js`,
-which was removed on Aug 20 2026 and was never a working link.
+**The owner set these on Aug 27 2026.** They are no longer placeholders and no
+longer yours to invent: Digital **$20** as the base, with Deluxe **$42** and
+Artifact **from $75** scaled off it so the ladder kept the shape it had at
+12 / 25 / 45.
 
-The rough-in needs *some* number to render, so `js/purchase-checkout.js` carries
-placeholders — **$12 / $35 / $150**. Those are not a pricing recommendation and
-were not chosen by anyone who knows what is in the editions. **They are yours to
-set.**
+Everything before that date was scratch. The only price this project ever
+carried on its own was a hardcoded `$1` per-track download in
+`js/track-experience.js`, removed on Aug 20 2026 and never a working link. This
+section itself went on quoting a **$12 / $35 / $150** set for a week after no
+file carried it — which is the whole reason for the warning below.
 
-When you set them, change them in **two places, in the same edit**:
+### The price lives in four files, and only one of them is guarded
 
-1. `js/purchase-checkout.js` — the `EDITIONS` array at the top.
-2. `purchase.html` — the prices printed on the cards.
+Change all four in the same edit:
 
-They can drift apart silently, because the HTML prints its prices as fixed text.
+1. `js/purchase-checkout.js` — the `EDITIONS` array at the top. **The source
+   of truth.**
+2. `purchase.html` — the prices printed on the three cards. **Guarded.**
+3. `merch.html` — the same three prices printed again on the album section.
+   **Not guarded, by anything.**
+4. This document — the table above.
+
+They drift apart silently, because the HTML prints its prices as fixed text.
 There is a guard in `js/purchase-checkout.js` that warns in the browser console
-if the two disagree, but it only warns; it will not fix it, and nobody sees a
-console warning on a live site.
+when `purchase.html` disagrees with the config, but it only warns; it will not
+fix it, and nobody sees a console warning on a live site.
+
+**The guard cannot see `merch.html` at all.** That page carries no
+`data-ks-price` and does not load the purchase module, so its three prices are
+checked by nothing. On Aug 27 2026 they were found still reading the old
+12 / 25 / 45 — caught by grepping for the digits, not by any tooling. Adding
+`data-ks-price` there would not help; the guard is in a module that page never
+loads. Grep before you trust:
+
+```
+grep -rn "[$][0-9]" purchase.html merch.html js/purchase-checkout.js STRIPE-SETUP.md
+```
 
 ### For option (a): create the Payment Links
 
@@ -297,7 +316,9 @@ None of the following exists in any form. This is the honest list.
    buy" other than the buyer's own email.
 7. **Refunds, taxes, and terms.** Stripe Tax is a Dashboard toggle. A refund and
    delivery policy is a page that does not exist on this site.
-8. **The prices themselves.** See section 2.
+8. ~~**The prices themselves.**~~ **Done — set by the owner on Aug 27 2026 at
+   $20 / $42 / from $75.** See section 2. What is still outstanding is that no
+   Stripe Price object exists carrying any of them.
 
 ---
 

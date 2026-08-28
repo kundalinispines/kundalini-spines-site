@@ -89,8 +89,11 @@ jobs:
           # THE PUBLIC SURFACE. Verified 12 Aug 2026 against `git ls-files`,
           # the README page inventory, sitemap.xml, and every href/src/fetch()
           # in the public pages. Nothing else ships.
+          # Re-verified 28 Aug 2026 when the purchase pages were added: root
+          # .html count is 33 = 10 public + 23 internal (18 *-lab.html,
+          # links.html, 2 raster-test*.html, 2 transmissions-option*.html).
           PUBLIC=(
-            # Pages (7). music.html is a deliberate redirect to /#tracks and is
+            # Pages (10). music.html is a deliberate redirect to /#tracks and is
             # kept so bookmarks survive — see README "Deliberate oddities".
             'index.html'
             'about.html'
@@ -99,6 +102,16 @@ jobs:
             'merch.html'
             'music.html'
             'transmissions.html'
+            # The purchase surface, added 28 Aug 2026. The nav's Album entry
+            # points at purchase.html on every page, so shipping the nav
+            # without these three would 404 the row's newest link.
+            # purchase.html is in sitemap.xml; the two return pages are
+            # deliberately NOT in it and carry noindex,nofollow - they are
+            # Stripe checkout round-trip destinations, published only so the
+            # checkout has somewhere real to return to.
+            'purchase.html'
+            'purchase-success.html'
+            'purchase-cancelled.html'
             # Detail-page trees. These are directories, not the same thing as
             # archive.html / transmissions.html above; both are needed.
             'archive'

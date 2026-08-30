@@ -72,6 +72,9 @@
      actually loaded. python -m http.server serves Last-Modified only, and a
      browser sitting on a cached copy looks identical to a change that did not
      work — this makes the difference visible instead of arguable.
+     44 = --snare-coinc 85 -> 110, the owner's call after hearing build 43 on
+     the live site: more lightning still. One value, one file; the tables in
+     the snare block bracket it at 15.6 (85) and 17.5 (150) strikes per 20s.
      43 = the snare stops missing half the strikes: the 200Hz body window is
      two-sided now and lives on a slider (--snare-coinc), and the owner's ear
      set the whole channel afterwards — sens 2.2 -> 1.95, freq 2500 -> 1600,
@@ -108,7 +111,7 @@
      kick. 33 = the lightning layer wired in (js injection + tuner rows; the
      layer itself lives in css/star-bg.css) and the stale "loaded by
      index.html only" header line above corrected. */
-  --spine-build: 43;
+  --spine-build: 44;
 
   --charge: 0;          /* 0..1, written by js/spine-bg.js every scroll frame */
 
@@ -504,7 +507,10 @@
 
      A lower cutoff and a looser threshold hand the window more candidates to
      work with, so the same millisecond figure buys more strikes here and
-     costs more consistency. 85 is where the owner's ear put it.
+     costs more consistency. 85 is where the owner's ear first put it;
+     2026-08-30, with the retune live, the owner asked for more again, so it
+     ships at 110 — between the measured 85 and 150 rows, call it ~16.3
+     strikes per 20s by interpolation, not a measured point of its own.
 
      The concentration drop is NOT the sens sweep's kind of loss. It measures
      how tightly strikes cluster at one phase between kicks, so catching the
@@ -519,7 +525,7 @@
      catch. The shipped 1.95 is one step down that road and no further; if the
      lightning ever reads as jittery rather than sparse, this is the first
      number to put back before touching the window. */
-  --snare-coinc: 85;
+  --snare-coinc: 110;
 
   /* THE FORK STRIKE: chance that one strike lights EVERY pattern at once
      instead of one. Found by accident — a cascade bug in css/deep-field-bg.css

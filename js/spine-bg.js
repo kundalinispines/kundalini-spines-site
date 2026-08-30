@@ -313,7 +313,7 @@
                      and a slider that does nothing reads as broken. */
     var REFRACTORY_S = 150;
     var VETO = 45;
-    var COINC = 85;      /* default only; --snare-coinc overrides it live */
+    var COINC = 110;     /* default only; --snare-coinc overrides it live */
     var BODY_HZ = 200;
     var BODY_SENS = 1.5;
 
@@ -348,8 +348,9 @@
          two-sided 100        hits 12.0      conc 0.59 / 0.31   +33%
          two-sided 150        hits 12.8      conc 0.57 / 0.31   +41%
 
-       The live page has since moved to hz 1600 / sens 1.95 / coinc 85 on the
-       owner's ear, where the same window reads 11.9 / 13.6 / 15.6 / 17.5
+       The live page has since moved to hz 1600 / sens 1.95 / coinc 110 on the
+       owner's ear (85 until 2026-08-30), where the same window reads
+       11.9 / 13.6 / 15.6 / 17.5
        strikes at 30 / 45 / 85 / 150ms. This file is the mechanism;
        css/spine-bg.css carries both tables and why the values are what they
        are.
@@ -948,7 +949,8 @@
                  of all noise onsets (293 of 609 over the 28 samples), and a
                  fifth of those had a real body thump arriving a frame or two
                  LATE. Measured mean strikes per 20s, everything else shipped:
-                 30ms 11.9 · 45ms 13.6 · 85ms 15.6 (ships) · 150ms 17.5
+                 30ms 11.9 · 45ms 13.6 · 85ms 15.6 · 150ms 17.5 — ships
+                 at 110, between the last two measured rows,
                  at the shipped hz 1600 / s sns 1.95, and 9.7 / 10.9 /
                  12.0 (at 100) / 12.8 at the hz 2500 / 2.2 the sweep
                  picked — against 9.0 for the one-sided window this
@@ -1150,7 +1152,7 @@
     '--snare-bolt': 'How hard the lightning strikes per unit of SNARE envelope, its own channel, never the kick. Whole 0 to 1 range is real. Brightness is bolt b',
     '--snare-decay': 'Decay of the strike in ms, tail reads about 2 to 3x this. Independent of k ms — the snare is a second envelope',
     '--snare-sens': 'Snare threshold as a MULTIPLE of the noise band average. Stricter than the kick on purpose; below about 2 it starts firing on hats — measured at the swept config, 1.5 puts phase concentration at 0.32 and 1.2 at 0.20 against 0.62. Ships at 1.95, one step over that line on the owner ear. If strikes are MISSING, this is still the wrong slider: try s coin first',
-    '--snare-coinc': 'How far apart the noise burst and the 200Hz body thump may land and still count as one snare, ms. THE RECALL CONTROL — the body gate was rejecting 48% of all noise onsets, far more than the threshold ever did. Ships at 85, which measures 15.6 strikes per 20s; 45 reads 13.6, 150 reads 17.5. Unlike s sns it adds strikes without loosening what counts as a drum',
+    '--snare-coinc': 'How far apart the noise burst and the 200Hz body thump may land and still count as one snare, ms. THE RECALL CONTROL — the body gate was rejecting 48% of all noise onsets, far more than the threshold ever did. Ships at 110, between the measured 85 (15.6 strikes per 20s) and 150 (17.5); 45 reads 13.6. Unlike s sns it adds strikes without loosening what counts as a drum',
     '--snare-freq': 'Highpass cutoff of the snare noise band in Hz. 2500 measured best over all 28 samples. The 200Hz body gate is fixed and separate',
     '--snare-all': 'Chance a strike lights EVERY pattern at once instead of one. 0 is the shipped behaviour everywhere except the deep-field lab. Keep it low, a fork that happens often is just five bolts with no variety left to interrupt',
     /* page feel */

@@ -80,8 +80,12 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
+      # v5 targets Node 24; v4 drew a deprecation warning on every run after
+      # GitHub retired Node 20 on its runners (Sept 2025 changelog). The
+      # wrangler-action@v3 warning below it stays until Cloudflare ships a
+      # Node-24 target — it runs fine on the forced runtime meanwhile.
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       # `cp -R` of an explicit list rather than tar with excludes: with an
       # allowlist there is nothing to exclude, and cp needs no pattern language

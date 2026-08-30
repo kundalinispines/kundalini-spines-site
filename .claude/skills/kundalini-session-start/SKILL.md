@@ -22,9 +22,13 @@ do all of it.
 
 ## Project facts
 
-- **Work now happens on the Spine UI V2 branch, not production `main`.** The
-  owner iterates on V2; `main` (the production site) is dormant — do not build
-  on it, and never push to it.
+- **Work now happens on the Spine UI V2 branch.** The owner iterates on V2;
+  `main` is the **release branch** (superseded 2026-08-28 — this file used to
+  call it dormant): a sync to `main` is a release act, owner's word each time,
+  never a session's own initiative. Since 2026-08-30 a push to `main` also
+  deploys — it triggers `deploy-cloudflare.yml`, which ships the allowlisted
+  public set to Cloudflare Pages (https://kundalini-spines.pages.dev). Do not
+  build on `main`, and never sync it unprompted.
 - **Working folder:** `C:\Users\Haight\Desktop\kundalini-spines-spine-ui` on the
   device "haight" (Windows) — a git **worktree** checked out to branch
   `feature/spine-ui-v2`. The production worktree
@@ -33,8 +37,9 @@ do all of it.
   is on `feature/spine-ui-v2` (`git branch --show-current`) before editing.
 - **Remote:** `https://github.com/kundalinispines/kundalini-spines-site.git`.
   V2 lives on branch **`feature/spine-ui-v2`** — pushed/backed up Aug 8 2026 with
-  upstream tracking set, so `git push` backs it up. `main` is production; the
-  feature branch is a sibling and can never reach it on its own.
+  upstream tracking set, so `git push` backs it up. `main` is the release
+  branch; the feature branch reaches it only by owner-instructed fast-forward
+  (`git push origin feature/spine-ui-v2:main`), never on its own.
 - **Handoff series:** the V2 track uses **`V2HANDOFF N.md`** (newest = highest N;
   the series starts at 19). The old `HANDOFF 1–19` series documents the dormant
   production line — background reading only, not the live task.

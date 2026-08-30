@@ -15,7 +15,7 @@ Two jobs, in this order: **get the work into GitHub**, then **make the next chat
 
 ## Project facts
 
-- **This is the Spine UI V2 track.** Work lives on branch **`feature/spine-ui-v2`**, never `main`. `main` is the dormant production site — do not commit to it, do not merge V2 into it, and do not open or merge a pull request into it without explicit approval.
+- **This is the Spine UI V2 track.** Work lives on branch **`feature/spine-ui-v2`**. `main` is the **release branch** (superseded 2026-08-28; this file used to call it dormant): syncing it is a release act that happens **only on the owner's word, each time** — never on a session's own initiative. The sync itself is a fast-forward push (`git push origin feature/spine-ui-v2:main`); `main` lagging the feature branch between releases is normal, not a discrepancy.
 - **Folder:** `C:\Users\Haight\Desktop\kundalini-spines-spine-ui` — a git **worktree** on `feature/spine-ui-v2`. The production worktree `C:\Users\Haight\Desktop\kundalini-spines` (on `main`) is separate; never use it here. Confirm `git branch --show-current` reads `feature/spine-ui-v2` before any commit.
 - **Remote:** `https://github.com/kundalinispines/kundalini-spines-site.git`. V2 pushes to branch **`feature/spine-ui-v2`** — already on GitHub with upstream tracking set (since Aug 8 2026), so `git push` backs it up.
 - **Static HTML/CSS/JS, no build step.** Serve with **`python scripts/serve.py`** — the carousel and Transmissions use `fetch()`, which browsers block on `file://`. **Not `python -m http.server 8000`**, which this file recommended until Aug 12 2026: it answers media requests with no `Accept-Ranges`, so Chrome reports `video.seekable` as `[[0, 0]]` and every `currentTime` assignment silently clamps to 0. No console error, no failed request. Three sessions' video measurements were invalidated by it (V2HANDOFF 23), and the `kundalini-session-start` skill was corrected at the time while this one was missed. The V2 prototype is `spine-lab.html`.
@@ -71,9 +71,9 @@ git status
 
 ## Part 2 — Deployment state
 
-**Pushing `feature/spine-ui-v2` backs up the work; it does not publish anything.** Production publishing is a `main` concern and stays dormant (as of production HANDOFF 5, GitHub Pages was disabled and DNS for `kundalinispines.com` was the blocker — do not enable it from the V2 branch).
+**Pushing `feature/spine-ui-v2` backs up the work; it does not publish anything.** Publishing happens from `main`: since 2026-08-30 a push to `main` triggers `.github/workflows/deploy-cloudflare.yml`, which assembles the allowlisted `_site`, runs the accounting and leak-guard steps, and direct-uploads to **Cloudflare Pages** (project `kundalini-spines`, live at https://kundalini-spines.pages.dev). So a release to `main` IS a deploy — one more reason it happens only on the owner's word.
 
-If the repo has a GitHub↔Vercel integration that builds feature branches, the push may produce a **preview deployment of V2** — useful for comparing against production, and harmless. Do not modify production deployment configuration to make it happen. Never promise the V2 branch is "live" on the real domain — it is a preview at most.
+**GitHub Pages is retired and must stay off** — enabling it would create a second live copy. The old `deploy-pages.yml` is gone from the tree (its guards live on in `deploy-cloudflare.yml`); its history has the full story. Whether `kundalinispines.com` points at the Pages project depends on wizard stages 7–9 (`scripts/cloudflare-migration.sh`) — check the newest handoff rather than assuming.
 
 ## Part 3 — Hand off to the next chat
 

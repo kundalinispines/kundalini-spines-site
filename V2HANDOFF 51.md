@@ -168,9 +168,18 @@ unchanged from 49.
 
 ## Still open
 
-1. **DNS / custom domain** — wizard stages 7–9: move `kundalinispines.com`
-   off Namecheap parking, attach apex + www to the Pages project. Owner's
-   call, owner's hands. This is what makes the real domain live.
+1. **DNS / custom domain — IN FLIGHT as of the evening of 30 Aug 2026.**
+   Stage 7 is DONE: the zone exists in the owner's Cloudflare account
+   (Connect, Free plan), the imported parking records (apex A + www CNAME)
+   were deleted, and the assigned nameservers are `kevin.ns.cloudflare.com`
+   / `priscilla.ns.cloudflare.com`. Stage 8 is DELEGATED: the domain sits in
+   the owner's BROTHER's Namecheap account, and the owner emailed him
+   nameserver-change instructions (not in the repo — personal email; the
+   zone shows Pending until he acts). Stage 9 (Custom domains: apex + www on
+   the `kundalini-spines` Pages project) waits for Cloudflare's Active
+   email. If the domain resolves to the site when you read this, all three
+   finished; if it still parks, the brother has not flipped it yet — that is
+   the expected hold, not a bug. Do not re-run stages 1–7.
 2. **The fulfilment Worker** (50's architecture stands: Worker + R2 signed
    links + Resend). Waits on the owner saying go. The vendored r2/workers/
    miniflare references and the MCP servers are in place for it.

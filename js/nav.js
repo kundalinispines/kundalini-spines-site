@@ -25,21 +25,42 @@
      COARSE-POINTER GATED, deliberately: on desktop lvh == vh and window
      resizes are real geometry changes the sky should follow — a sticky
      maximum there would stop the sky rescaling when the window shrinks.
-     Phones and tablets are where dynamic browser chrome exists at all. */
+     Phones and tablets are where dynamic browser chrome exists at all.
+
+     BUILD 32 — THE LOCK REMEMBERS ACROSS PAGE LOADS. The owner still saw
+     the sky move after build 31, and the hole was the lock's lifecycle, not
+     its coverage: lockH started at 0 on EVERY page load, and a page is
+     normally opened with Brave's chrome up — so each load published the
+     shrunken height, and the first scroll-down (chrome hides, viewport
+     grows) grew the lock and re-cropped the sky once. Once per page, every
+     page, which reads as "still moving". The per-width maximum is now
+     persisted (ks.skyLock in localStorage, {w, h}) and seeded at script
+     run, so a revisited width starts already locked at the tall height and
+     only the first-ever scroll at a given width can move the sky. A stale
+     OVERSIZED value is harmless — the layer overscans below the viewport
+     and holds still; an undersized one grows on first observation, which is
+     just the old behaviour once. */
   if (window.matchMedia('(pointer: coarse)').matches &&
       window.CSS && CSS.supports && CSS.supports('height', '100lvh')) {
     const probe = document.createElement('div');
     probe.style.cssText =
       'position:absolute;top:0;left:0;width:0;height:100lvh;visibility:hidden;pointer-events:none';
     document.body.appendChild(probe);
+    const LOCK_KEY = 'ks.skyLock';
     let lockW = window.innerWidth;
     let lockH = 0;
+    try {
+      const saved = JSON.parse(localStorage.getItem(LOCK_KEY) || 'null');
+      if (saved && saved.w === lockW && isFinite(saved.h) && saved.h > 0) lockH = saved.h;
+    } catch (e) {}
+    if (lockH) document.documentElement.style.setProperty('--sky-lock', lockH + 'px');
     const setSkyLock = () => {
       if (window.innerWidth !== lockW) { lockW = window.innerWidth; lockH = 0; }
       const h = Math.max(probe.offsetHeight, window.innerHeight);
       if (h > lockH) {
         lockH = h;
         document.documentElement.style.setProperty('--sky-lock', lockH + 'px');
+        try { localStorage.setItem(LOCK_KEY, JSON.stringify({ w: lockW, h: lockH })); } catch (e) {}
       }
     };
     setSkyLock();

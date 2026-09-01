@@ -139,6 +139,27 @@ centring would ADD ~25 px. Verified in the pane at an emulated Android
 layer including the cloud stage, html::after keeps its overscan centred
 (−97.31 → centre exactly 50%), desktop shows no class and top 0.
 
+**Build 34 measured on-device and superseded the same session (build 35).**
+The owner's second recording showed the sky still riding the full chrome
+shift, and one panel frame explained it browser-side: with the bars fully
+returned it read `in x 790` while `vv h 734` was still animating — **Brave
+leaves `innerHeight` stale until the gesture settles, while
+`visualViewport.height` animates with the bars.** Build 34's
+`top: calc(50% - lock/2)` resolves against innerHeight, so it could only
+correct AFTER each transition (full ride during, snap after — the exact
+failure mode the previous section flagged as possible). Build 35 / df 16
+moves the centring into JS: js/nav.js writes `--sky-cen =
+(visualViewport.height - lock) / 2` on vv-resize + scroll + a 250 ms
+interval, guarded against pinch-zoom (`scale != 1` returns) and the soft
+keyboard (chrome delta capped at 220 CSS px); the CSS reads
+`var(--sky-cen, <the 34 calc>)` so no-visualViewport browsers degrade to
+34 exactly. The ?skydiag panel gained a `cen` / `bb t` row (proves the
+writes live) and its title now READS `--star-build` instead of asserting
+it — a hardcoded `b33` survived the 34 deploy and read as a stale site.
+Verified in the pane: cen −72.0 written by the interval alone at an
+emulated 844-lock/700-viewport, all layers following; desktop
+class-free, top 0, zero console errors.
+
 ## Verified vs. asserted — and the honest gap
 
 **Verified:** everything above, locally. **Asserted / NOT verified:** the
@@ -186,12 +207,14 @@ and `localStorage.getItem('ks.skyLock')` on the device before touching code.
 
 ## Still open
 
-1. **Build 34 on the owner's phone** — the ride should drop from ~56 CSS px
-   to ~4. If it still reads as moving, re-record over `?skydiag` and
-   frame-track the recording again (scripts: scratchpad's track_nav.py
-   pattern, template-match the nav wordmark) BEFORE touching code — and
-   mind that a residual ride-then-snap would mean Brave resolves % tops
-   only at animation end, which would be a finding, not a bug in the CSS.
+1. **Build 35 on the owner's phone** — the panel title now proves the build
+   (it reads `--star-build`), and the `cen` row must be seen CHANGING
+   during a swipe (0 ↔ ~−60) for the mechanism to be live. If the sky
+   still rides with cen visibly moving, the residual is the vv-event
+   latency and the next lever is unknown; if cen sits frozen, find out why
+   before touching the mechanism. Frame-track any new recording
+   (track_nav.py pattern) — and mind that starry IN-FLOW artwork polluted
+   the star tracker once already; pick sky patches by hand.
 2. **The listen test at coinc 110** (52's item 1, unchanged).
 3. **The fulfilment Worker** — waits on the owner's go.
 4. **Live Stripe link swap** — the real domain now exists; still waits on

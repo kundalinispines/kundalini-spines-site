@@ -189,7 +189,7 @@
          34; the gate's reasoning is in js/nav.js, which runs before this
          file and publishes the class). */
       if (document.documentElement.classList.contains('sky-center')) {
-        stage.style.top = 'calc(50% - var(--sky-lock, 100lvh) / 2)';
+        stage.style.top = 'var(--sky-cen, calc(50% - var(--sky-lock, 100lvh) / 2))';
       }
     }
 

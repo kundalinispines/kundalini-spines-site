@@ -41,6 +41,17 @@
 :root {
   /* Bumped on every change, same reason as --spine-build: a browser sitting on
      a cached stylesheet is indistinguishable from a change that did not work.
+     35 = the centring runs on visualViewport. The owner's second recording
+     killed 34's mechanism on-device: Brave leaves innerHeight STALE until
+     a gesture settles (panel read in=790 with the bars fully returned,
+     vv h 734 still animating), and 34's top: 50% resolves against
+     innerHeight — so the sky rode the full transition and corrected
+     after. js/nav.js now writes --sky-cen from visualViewport.height
+     (which animates with the bars) on vv-resize/scroll/interval, guarded
+     against pinch-zoom (scale != 1) and the soft keyboard (chrome delta
+     capped at 220); the CSS reads var(--sky-cen, <the 34 calc>) so a
+     browser without visualViewport degrades to 34's behaviour exactly.
+     The ?skydiag panel gained a cen/bb-t row to prove the writes live.
      34 = the Android center-anchor. Build 33's on-device measurement
      (V2HANDOFF 53) proved the layer boxes pixel-still and the remaining
      motion to be the BROWSER translating the whole surface with its
@@ -141,7 +152,7 @@
      as worth 63 -> 88 fps; that figure was taken on a software renderer and is
      corrected under html::after below). 6 was the single lockstep cores
      layer. */
-  --star-build: 34;
+  --star-build: 35;
 
   /* Brightness of the whole field. 0 is off — the layer still exists but adds
      no light, and under screen blending (see below) that is exactly the same
@@ -1010,16 +1021,21 @@ html::after {
      shift puts the screen anyway. All layers share the formula, so the
      same-aspect registration holds; html::after keeps its ±3% overscan
      symmetric about the same centre. */
+  /* --sky-cen (build 35) is the same centring offset computed by js/nav.js
+     from visualViewport.height, which animates WITH the browser bars —
+     the 50% calc fallback resolves against innerHeight, which Brave holds
+     stale until a gesture settles, so alone it could only correct after
+     each transition (measured on-device, V2HANDOFF 53). */
   .sky-center body::before,
   .sky-center body::after,
   html.sky-center::before,
   .sky-center main::before,
   .sky-center main::after,
   .sky-center .star-bolt {
-    top: calc(50% - var(--sky-lock, 100lvh) / 2);
+    top: var(--sky-cen, calc(50% - var(--sky-lock, 100lvh) / 2));
   }
   html.sky-center::after {
-    top: calc(50% - var(--sky-lock, 100lvh) * 0.53);
+    top: calc(var(--sky-cen, calc(50% - var(--sky-lock, 100lvh) / 2)) - var(--sky-lock, 100lvh) * 0.03);
   }
 }
 

@@ -97,8 +97,29 @@
       cta: 'Get the Digital Edition',
       recommended: false,
       status: 'available',
-      /* Stripe Payment Link, or a future /api/checkout endpoint. See §4. */
-      checkoutUrl: 'https://buy.stripe.com/test_5kQbIT7b6gYhfc8aQBaIM00'
+      /* THE LIVE PAYMENT LINK. Sept 1 2026 — this line is the one that opens
+         real sales, and until today it read
+         `https://buy.stripe.com/test_5kQbIT7b6gYhfc8aQBaIM00`, a TEST link
+         that took no money. Everything else was built and released ahead of
+         it deliberately, so that the whole path could be stood up and probed
+         with nothing at stake.
+
+         THIS LINE IS USELESS WITHOUT THE REDIRECT SET ON THE LINK ITSELF.
+         In the Stripe Dashboard, this Payment Link's "After the payment →
+         Confirmation page" must be the redirect option pointed at
+         `https://kundalinispines.com/purchase-success?session_id={CHECKOUT_SESSION_ID}`
+         — with Stripe's literal token, which Stripe substitutes for the real
+         Session ID. Without it a buyer pays, lands on the success page with
+         no query string, and is told the page was opened without an order
+         reference. They would have been charged and shown nothing. The money
+         is safe and the order is real either way — the webhook, not this
+         page, is the record — but there is no self-serve download.
+
+         REVERTING IS THE SAFE DIRECTION. Putting the test link back closes
+         sales instantly and breaks nothing: outstanding orders keep working,
+         because /api/verify asks Stripe about the session rather than
+         anything stored here. */
+      checkoutUrl: 'https://buy.stripe.com/3cI28te6d2XsgTh3FSbsc01'
     },
     {
       id: 'deluxe',

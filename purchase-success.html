@@ -300,8 +300,24 @@
 
     <!-- The STANDBY panel. .empty-state is the site's existing dashed-border
          "nothing filed here yet" treatment, used unchanged so this reads as
-         part of the page rather than as an error state. -->
-    <div class="empty-state" style="margin-top: var(--space-8); max-width: 68ch;">
+         part of the page rather than as an error state.
+
+         IT MUST NOT BE SHOWN TO SOMEONE WHO JUST PAID. Until Aug 31 2026 this
+         panel was unconditional markup, so the day a live Payment Link gained
+         a redirect here, a paying customer would have been told "nothing has
+         been charged and no order exists" directly underneath their own order
+         reference. Caught by reading the page, not by any tooling — nothing
+         tests this page's copy against its own query string.
+
+         The script at the foot of the page hides it whenever `session_id` is
+         present, which is the same signal that reveals the order reference:
+         one arrival is a buyer returning from a processor, the other is
+         someone who typed the URL. Default-visible on purpose — with JS off,
+         or with no query string, STANDBY is the truthful state of the site.
+         A buyer with JS off therefore still sees it, and still sees no order
+         reference; that pair is the honest failure and is preferable to
+         hiding the status for everyone before the checkout exists. -->
+    <div class="empty-state" data-ks-standby style="margin-top: var(--space-8); max-width: 68ch;">
       <span class="label">Status</span>
       <p style="margin: 0;">
         STANDBY. Purchasing is not open yet &mdash; no payment processor is connected to this site, so nothing has been charged and no order exists. If you have reached this page, you reached it directly. It is the address a completed purchase will return to once the checkout is built.
@@ -425,6 +441,19 @@
     ref.textContent = 'Order reference — ' + sessionId.slice(0, 64);
     ref.hidden = false;
   }
+
+  /* The mirror of the block above: a session_id means a processor sent this
+     visitor here, so the STANDBY panel's "nothing has been charged" is false
+     for them and is removed. See the panel's own comment for why it defaults
+     to visible. `hidden` rather than a class because the panel carries inline
+     styles and no stylesheet rule of its own; the attribute needs neither.
+
+     Deliberately not validating the value. A fabricated ?session_id=x hides a
+     status note and reveals a meaningless reference to the person who typed
+     it — no harm worth the code. The authority on whether an order exists is
+     the webhook (§5 of js/purchase-checkout.js), never this page. */
+  var standby = document.querySelector('[data-ks-standby]');
+  if (standby && sessionId) { standby.hidden = true; }
 
   if (window.KSPurchase && typeof window.KSPurchase.track === 'function') {
     var known = edition && window.KSPurchase.find(edition);

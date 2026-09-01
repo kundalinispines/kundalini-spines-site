@@ -75,6 +75,28 @@ git status
 
 **GitHub Pages is retired and must stay off** — enabling it would create a second live copy. The old `deploy-pages.yml` is gone from the tree (its guards live on in `deploy-cloudflare.yml`); its history has the full story. Whether `kundalinispines.com` points at the Pages project depends on wizard stages 7–9 (`scripts/cloudflare-migration.sh`) — check the newest handoff rather than assuming.
 
+## Part 2b — Did a milestone ship? File a transmission.
+
+**If this session shipped something a visitor could notice** — a release going
+live, sales opening or closing, a page or feature shipping, artwork or a video
+landing — the Channel Terminal on `transmissions.html` has to say so, and it
+goes stale silently. Nothing warns you that the log stopped matching the site.
+
+That is not hypothetical: on Sept 1 2026 the Digital Edition went live, four
+other pages were corrected to match, and the transmissions feed still ended in
+July until the owner noticed.
+
+Switch to **`kundalini-transmission`** — it owns the schema, the voice, the
+newest-first rule and the verification. Skip it for refactors, comment fixes,
+doc updates, build-number bumps and tuning nobody asked about; a log padded
+with invisible work stops being read. If you are unsure whether something
+counts, ask the owner rather than guessing either way.
+
+A transmission is its own commit, and it must not be released ahead of the
+thing it announces.
+
+---
+
 ## Part 3 — Hand off to the next chat
 
 ### Is the handoff current?
@@ -112,6 +134,7 @@ Confirm out loud, each one checked rather than assumed:
 - The newest handoff describes what actually happened this session
 - The handoff itself is committed
 - Anything visual that shipped was screenshotted and looked at, or the handoff says plainly that it was not
+- If a milestone shipped, a transmission was filed for it (or the owner said not to)
 - The user knows what is *not* done — anything left open, and anything waiting on them
 
 Then give a short plain-language summary: what changed, what is still open, and the single most useful next step.

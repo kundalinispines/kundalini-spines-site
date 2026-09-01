@@ -377,8 +377,20 @@
           <strong>Rise Up &mdash; Digital Album.</strong> Payment confirmed with Stripe. Thank you for supporting Kundalini Spines &mdash; this is what pays for the next one.
         </p>
         <p style="margin: 0 0 var(--space-6);" data-ks-delivery-note></p>
-        <p style="margin: 0;">
-          <a class="btn btn--primary" data-ks-download href="#" download>Download Rise Up</a>
+        <!-- TWO DOWNLOADS, MP3 FIRST AND PRIMARY. The delivery is an MP3 set
+             (271 MB) and a WAV set (1.4 GB), and the sizes are printed because
+             a buyer on a phone deserves to know which one is going to cost
+             them their evening. MP3 carries btn--primary and WAV is a ghost:
+             most people want the listenable files, and the masters are the
+             deliberate second choice rather than the accidental first click.
+             Both hrefs are written by the script from the same token — one
+             purchase, both files, no second entitlement. -->
+        <p style="margin: 0; display: flex; flex-wrap: wrap; gap: var(--space-4);">
+          <a class="btn btn--primary" data-ks-download="mp3" href="#" download>Download &middot; MP3</a>
+          <a class="btn btn--ghost" data-ks-download="wav" href="#" download>Download &middot; WAV masters</a>
+        </p>
+        <p class="readout" style="margin: var(--space-4) 0 0; opacity: 0.7;">
+          MP3 &middot; 271&nbsp;MB &nbsp;&mdash;&nbsp; WAV &middot; 1.4&nbsp;GB
         </p>
       </div>
 
@@ -623,9 +635,17 @@
           ref.hidden = false;
         }
 
-        var link = region.querySelector('[data-ks-download]');
-        if (link && r.body.token) {
-          link.setAttribute('href', '/api/download?token=' + encodeURIComponent(r.body.token));
+        /* Both buttons, one token. The format rides in the query string
+           rather than in the token because it is not an entitlement —
+           see the FORMATS note in functions/api/download.js. */
+        if (r.body.token) {
+          var qs = '/api/download?token=' + encodeURIComponent(r.body.token) + '&format=';
+          Array.prototype.forEach.call(
+            region.querySelectorAll('[data-ks-download]'),
+            function (link) {
+              link.setAttribute('href', qs + encodeURIComponent(link.getAttribute('data-ks-download')));
+            }
+          );
         }
 
         /* The email is shown only to confirm WHERE the receipt went, which is

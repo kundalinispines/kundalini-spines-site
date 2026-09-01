@@ -192,7 +192,7 @@ finish() {
 # gitignored here, so it would not be committed — but "it would not have been
 # committed" is a thin reason to keep a secret around. STRIPE-SETUP.md §3 says
 # never in this repo, and that includes ignored files.
-TOTAL_STAGES=9
+TOTAL_STAGES=10
 
 banner "Kundalini Spines — R2 album download"
 
@@ -235,26 +235,97 @@ note "Development URL' panel — leave it alone. Bucket stays private."
 pause "Bucket created and still private?"
 
 # ──────────────────────────────────────────────────────────────────────────
-stage "Upload the album ZIP"
-say "Still on your new bucket's page."
-step "Click 'Upload' → 'Select from computer' and pick the album ZIP."
-step "Wait for it to finish — a large file can take a while."
+stage "Upload the MP3 zip — the one the dashboard can take"
+say "There are two files to get into the bucket:"
 printf '\n'
-say "The code expects the object to be named exactly:"
-printf '\n      %srise-up-digital.zip%s\n\n' "$BOLD" "$RESET"
-note "If your file is named something else you have two options: rename it"
-note "in the bucket, or set ALBUM_OBJECT_KEY in stage 7 to the real name."
-note "Renaming is simpler. Whatever you choose, the two must match or the"
-note "buyer gets 'file_missing' after paying — which is the one failure in"
-note "this system that costs you money."
+printf '      %sKundaliniSpines_RiseUp_MP3.zip%s    271 MB\n' "$BOLD" "$RESET"
+printf '      %sKundaliniSpines_RiseUp_WAV.zip%s  1,395 MB\n\n' "$BOLD" "$RESET"
+say "This stage does the MP3. The WAV needs a different tool and gets the"
+say "whole of the next stage."
 printf '\n'
-ask ALBUM_KEY_CONFIRM "Type the object name as it now appears in the bucket:"
-if [[ "$ALBUM_KEY_CONFIRM" != "rise-up-digital.zip" ]]; then
-  warn "Noted: '$ALBUM_KEY_CONFIRM' is not the default."
-  warn "You MUST set ALBUM_OBJECT_KEY=$ALBUM_KEY_CONFIRM in stage 7."
-  SKIPPED+=("Set ALBUM_OBJECT_KEY=$ALBUM_KEY_CONFIRM in the Pages env vars")
-  pause "Understood?"
-fi
+step "On your bucket's page, click 'Upload' → 'Select from computer'."
+step "Pick KundaliniSpines_RiseUp_MP3.zip from"
+step "  Desktop\\RiseUp_Digital_Delivery\\"
+step "Wait for it to finish."
+printf '\n'
+warn "DO NOT RENAME IT. The code defaults to these exact filenames, so"
+warn "leaving them alone means there is nothing to configure in stage 7."
+printf '\n'
+note "If the browser upload fails on this one too, skip it — stage 4 uploads"
+note "both files at once and makes this stage unnecessary."
+pause "MP3 uploaded (or skipped)?"
+
+# ──────────────────────────────────────────────────────────────────────────
+stage "Upload the WAV zip — 1.4 GB, so not through the browser"
+say "The dashboard uploads a file in a single request. At 1,395 MB the WAV"
+say "set is past what that can carry, which is why it failed. This is a"
+say "limit of the upload METHOD, not of R2 — R2 holds objects up to 5 TB."
+printf '\n'
+say "Large files need a multipart upload. Cloudflare's own recommendation"
+say "is rclone: one Windows .exe, no Node, no npm, no installer. It splits"
+say "the file automatically and resumes if the connection drops."
+printf '\n'
+step "1. Download rclone for Windows (AMD64):"
+open_url "https://rclone.org/downloads/"
+step "   Unzip it anywhere — Desktop is fine. You want rclone.exe."
+printf '\n'
+step "2. Create an R2 API token:"
+open_url "https://dash.cloudflare.com/?to=/:account/r2/api-tokens"
+step "   'Create API token' → Permissions: Object Read & Write"
+step "   → scope it to the kundalini-spines-album bucket → Create."
+step "   Copy the Access Key ID and Secret Access Key, and your Account ID"
+step "   from the R2 overview page."
+printf '\n'
+warn "That token is a write credential for your bucket. It goes into the"
+warn "rclone config on your machine and nowhere near this repo."
+printf '\n'
+pause "Got rclone.exe and the three values?"
+
+printf '\n'
+say "3. Configure rclone. In PowerShell, from the folder holding rclone.exe:"
+printf '\n'
+printf '      %s.\\rclone.exe config%s\n\n' "$BOLD" "$RESET"
+step "   n (new remote)  →  name it:  r2"
+step "   Storage:  s3        Provider:  Cloudflare"
+step "   access_key_id / secret_access_key: the two you just copied"
+step "   region:  auto"
+step "   endpoint:  https://<ACCOUNT_ID>.r2.cloudflarestorage.com"
+step "   Leave the rest blank, then q to quit."
+printf '\n'
+pause "Remote 'r2' configured?"
+
+printf '\n'
+say "4. Upload. This is the command — it does both files, so it also covers"
+say "   the MP3 if the browser upload failed:"
+printf '\n'
+printf '      %s.\\rclone.exe copy "$HOME\\Desktop\\RiseUp_Digital_Delivery" r2:kundalini-spines-album --progress%s\n\n' "$BOLD" "$RESET"
+note "rclone skips files already present and identical, so re-running it is"
+note "safe and it will not re-send the MP3 if it is already there."
+note "Expect the WAV to take a while — it shows a live progress bar. If it"
+note "drops, run the same command again and it picks up where it stopped."
+printf '\n'
+pause "Both files uploaded?"
+
+printf '\n'
+say "5. Confirm what actually landed:"
+printf '\n'
+printf '      %s.\\rclone.exe ls r2:kundalini-spines-album%s\n\n' "$BOLD" "$RESET"
+say "You want exactly these two lines, sizes in bytes:"
+printf '\n'
+printf '      %s1463052288 KundaliniSpines_RiseUp_WAV.zip%s\n' "$DIM" "$RESET"
+printf '      %s 284489728 KundaliniSpines_RiseUp_MP3.zip%s\n\n' "$DIM" "$RESET"
+note "Approximate — yours will differ a little. What matters is that both"
+note "names are present and neither size is suspiciously small, which is"
+note "what a half-finished upload looks like."
+printf '\n'
+ask BUCKET_LISTING_OK "Are both files listed, at full size? (yes/no):"
+case "$BUCKET_LISTING_OK" in
+  [Yy]*) say "Good." ;;
+  *) warn "Do not go further until both are in the bucket. A buyer who pays"
+     warn "and hits a missing file is the one failure here that costs money."
+     SKIPPED+=("Finish uploading both zips to kundalini-spines-album")
+     pause "Noted — continuing so you can finish the rest." ;;
+esac
 
 # ──────────────────────────────────────────────────────────────────────────
 stage "Bind the bucket to the Pages project"
@@ -340,11 +411,11 @@ printf '\n'
 step "3.  PRICE_ID_DIGITAL     = $PRICE_ID_DIGITAL"
 say "        Not secret. Leave it as plain text."
 printf '\n'
-if [[ "${ALBUM_KEY_CONFIRM:-rise-up-digital.zip}" != "rise-up-digital.zip" ]]; then
-  step "4.  ALBUM_OBJECT_KEY     = $ALBUM_KEY_CONFIRM"
-  say "        Because your ZIP is not named the default."
-  printf '\n'
-fi
+note "No object-key variables needed: the code defaults to"
+note "KundaliniSpines_RiseUp_MP3.zip and KundaliniSpines_RiseUp_WAV.zip,"
+note "which is why the last two stages told you not to rename anything."
+note "Only set ALBUM_OBJECT_KEY_MP3 / ALBUM_OBJECT_KEY_WAV if you did."
+printf '\n'
 step "Click 'Save'."
 printf '\n'
 warn "Encrypt means you cannot read the value back afterwards. That is the"

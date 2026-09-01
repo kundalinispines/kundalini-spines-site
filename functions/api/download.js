@@ -37,10 +37,38 @@ const REQUIRED_ENV = ['STRIPE_SECRET_KEY', 'PRICE_ID_DIGITAL', 'DOWNLOAD_SIGNING
 
 const DEFAULT_WINDOW_HOURS = 72;
 
-/* The object key inside the bucket, and the name the buyer's browser saves.
-   Both are overridable so the file can be re-cut without a code change. */
-const DEFAULT_OBJECT_KEY = 'rise-up-digital.zip';
-const DEFAULT_FILENAME = 'Kundalini Spines - Rise Up (Digital Edition).zip';
+/* TWO FILES, NOT ONE. Written Aug 31 2026 against a single
+   `rise-up-digital.zip`, corrected the same day when the actual delivery
+   folder turned out to hold an MP3 set and a WAV set:
+
+     KundaliniSpines_RiseUp_MP3.zip    271 MB
+     KundaliniSpines_RiseUp_WAV.zip  1,395 MB
+
+   Combining them into one 1.7 GB archive was the obvious alternative and it
+   is worse for everybody: a phone buyer who only wants listenable files pays
+   for the masters in download time, and a dropped connection restarts all of
+   it. Two objects, two buttons, one entitlement.
+
+   THE FORMAT IS NOT PART OF THE SIGNED TOKEN, DELIBERATELY. Someone holding a
+   valid token can fetch either file — which is correct, because they bought
+   the album and both files ARE the album. Signing the format would imply the
+   two are separately purchasable and invite the question of what happens when
+   a buyer wants the other one. An unknown format falls back to MP3 rather
+   than erroring: the failure mode of a typo'd query string should be a
+   working download, not a paid customer staring at JSON. */
+const FORMATS = {
+  mp3: {
+    envKey: 'ALBUM_OBJECT_KEY_MP3',
+    defaultKey: 'KundaliniSpines_RiseUp_MP3.zip',
+    filename: 'Kundalini Spines - Rise Up (MP3).zip'
+  },
+  wav: {
+    envKey: 'ALBUM_OBJECT_KEY_WAV',
+    defaultKey: 'KundaliniSpines_RiseUp_WAV.zip',
+    filename: 'Kundalini Spines - Rise Up (WAV masters).zip'
+  }
+};
+const DEFAULT_FORMAT = 'mp3';
 
 function fail(error, status) {
   return new Response(JSON.stringify({ ok: false, error: error }), {
@@ -163,7 +191,10 @@ export async function onRequestGet(context) {
      object when it honoured one, which is what distinguishes the 206 reply
      from the 200 — do not infer it from the request header alone, because an
      unsatisfiable range comes back as a full object. */
-  const objectKey = env.ALBUM_OBJECT_KEY || DEFAULT_OBJECT_KEY;
+  const requested = (new URL(request.url).searchParams.get('format') || '').toLowerCase();
+  const format = FORMATS[requested] ? requested : DEFAULT_FORMAT;
+  const spec = FORMATS[format];
+  const objectKey = env[spec.envKey] || spec.defaultKey;
   const rangeHeader = request.headers.get('range');
 
   let object;
@@ -193,10 +224,11 @@ export async function onRequestGet(context) {
   headers.set('accept-ranges', 'bytes');
   /* RFC 5987 filename* alongside a plain ASCII filename: the delivered name
      has spaces and parentheses in it and older clients mangle the bare form. */
-  const filename = env.ALBUM_FILENAME || DEFAULT_FILENAME;
+  const filename = spec.filename;
   headers.set(
     'content-disposition',
-    'attachment; filename="rise-up.zip"; filename*=UTF-8\'\'' + encodeURIComponent(filename)
+    'attachment; filename="rise-up-' + format + '.zip"; filename*=UTF-8\'\'' +
+      encodeURIComponent(filename)
   );
 
   /* `object.size` IS THE FULL OBJECT, NOT THE SLICE — that is the trap in this

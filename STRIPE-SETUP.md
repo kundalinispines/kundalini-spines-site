@@ -240,8 +240,8 @@ diff for `sk_`/`whsec_` but it cannot see the Cloudflare dashboard.
 | `STRIPE_SECRET_KEY` | `sk_live_...` / `sk_test_...`. Reads Checkout Sessions to confirm payment. | **Yes — Encrypt** |
 | `DOWNLOAD_SIGNING_KEY` | HMAC key signing the short-lived download token. Any long random string; 32+ bytes. Rotating it invalidates outstanding download tokens and nothing else — buyers just re-verify. | **Yes — Encrypt** |
 | `PRICE_ID_DIGITAL` | `price_...` for edition 01. Checked against the session's line items so that a paid order for something else cannot unlock the album. | No, but keep it out of the repo |
-| `ALBUM_OBJECT_KEY` | Key of the ZIP inside the bucket. Optional; defaults to `rise-up-digital.zip`. | No |
-| `ALBUM_FILENAME` | The name the buyer's browser saves. Optional; defaults to `Kundalini Spines - Rise Up (Digital Edition).zip`. | No |
+| `ALBUM_OBJECT_KEY_MP3` | Key of the MP3 zip. Optional; defaults to `KundaliniSpines_RiseUp_MP3.zip`. | No |
+| `ALBUM_OBJECT_KEY_WAV` | Key of the WAV zip. Optional; defaults to `KundaliniSpines_RiseUp_WAV.zip`. | No |
 | `DOWNLOAD_WINDOW_HOURS` | How long after purchase the download stays open. Optional; defaults to `72`. | No |
 
 **Plus one binding, which is configured somewhere else in the dashboard and is
@@ -275,8 +275,20 @@ and hands back an error panel.
    A public bucket URL is exactly the unsigned, unrevocable address §5 of
    `js/purchase-checkout.js` has forbidden since Aug 20. The binding is the only
    access path this design wants.
-2. **Upload the album ZIP** into that bucket, keyed `rise-up-digital.zip` (or
-   set `ALBUM_OBJECT_KEY` to whatever you name it).
+2. **Upload BOTH album ZIPs** into that bucket, under their existing names —
+   `KundaliniSpines_RiseUp_MP3.zip` and `KundaliniSpines_RiseUp_WAV.zip`. Do
+   not rename them; the code defaults to exactly these, so leaving them alone
+   means nothing to configure.
+
+   **The dashboard cannot take the WAV.** A browser upload is a single PUT,
+   and at ~1,395 MB the WAV set is past what that carries; the 271 MB MP3 goes
+   through fine. This is a limit of the upload *method*, not of R2, which
+   holds objects up to 5 TB. Large files need a multipart upload, and
+   Cloudflare's own recommendation is **rclone** — a single Windows `.exe`,
+   no Node, no npm, no installer, and it splits and resumes automatically.
+   `wrangler r2 object put` is *not* the way round it: it caps at 315 MB and
+   would need Node anyway. `scripts/r2-album-download.sh` stages 3 and 4 walk
+   the whole thing, R2 API token included.
 3. **Create the live product and price** — $20 USD, one-time — and copy the
    `price_...` id into `PRICE_ID_DIGITAL`. §2 covers the Dashboard steps.
 4. **Set the environment variables and the R2 binding** per the table above.
@@ -598,6 +610,15 @@ The record is theirs permanently; the *link* is not. The `window_closed` copy on
 the success page resolves it honestly — it says the limit is on the link, not on
 what they bought, and to write in for a reissue. If reissues become frequent,
 raise `DOWNLOAD_WINDOW_HOURS` rather than editing the promise.
+
+**The WAV set is 1.4 GB and it streams through the Worker.** That is fine —
+the function pipes R2's body straight through rather than buffering it, and
+Range requests are passed to R2 so a dropped connection resumes instead of
+restarting. But it is worth knowing where the bytes go: every WAV download is
+1.4 GB of Workers egress. R2 egress itself is free, and Pages Functions bill
+per request rather than per byte, so the cost is not the worry — the worry is
+a buyer on a phone tapping the wrong button. That is why MP3 is the primary
+button, WAV is a ghost button, and both sizes are printed next to them.
 
 **A Stripe outage blocks downloads.** `/api/download` re-asks Stripe on every
 request rather than trusting its own token, so that a refund or dispute landing

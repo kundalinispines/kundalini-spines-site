@@ -160,6 +160,42 @@ Verified in the pane: cen −72.0 written by the interval alone at an
 emulated 844-lock/700-viewport, all layers following; desktop
 class-free, top 0, zero console errors.
 
+**Build 35 measured on-device and the whole centring RETIRED (build 36 /
+df 17).** The owner's third recording ("oh god its worse now") ran b35
+with the mechanism demonstrably live (`cen 0.1 [−59–0]`, `bb t` following)
+— and frame-tracking plus the panel timeline convicted the mechanism
+itself, not a bug in it. The compositor snap finishes in ~3 frames
+(~200 ms): nav parked at its new spot at f83. `visualViewport.height` had
+only moved 790→781 by then, and GLIDED for the next ~10 frames
+(781→734→671) — ~1 s AFTER the visual transition was over. So the
+vv-driven anchor cannot oppose the ride (vv hasn't moved yet while the
+surface snaps) and instead replays it late: the sky rides the snap
+coherently with everything, THEN crawls ~60 px alone over the following
+second, on every swipe. Also measured: only 2 vv-resize events fired in a
+10 s recording — the scroll listener and interval carried the writes.
+
+**That closes all three clocks.** Rec 1: DOM boxes never move (the ride
+is compositor surface translation, invisible to every DOM metric). Rec 2:
+`innerHeight` is frozen until the gesture settles. Rec 3:
+`visualViewport.height` animates late and slow, out of phase with the
+visual snap. **Nothing a page can read tracks the compositor in real
+time, so ANY page-side compensation lands out of phase and adds a second
+visible motion.** Build 36 retires the centring: js/nav.js no longer adds
+`html.sky-center` (the block is replaced by the retirement record); the
+`.sky-center` rules in star-bg.css / deep-field-bg.css and the
+clouds-sky.js branch are DORMANT, kept and labelled as the record. The
+?skydiag panel keeps its `cen` row (reads `off` now) and the live-build
+title. Verified in the pane: b36/df17 computed, panel titles `b36`, no
+class, `body::before` top 0px, zero console errors.
+
+**The only true kill left is architectural:** move scrolling off the root
+scroller into an inner container so Brave's bars never animate at all. It
+costs the collapsing-chrome immersion, touches every scroll-linked
+behaviour on the site (snare detector, scroll listeners, anchors), and is
+the OWNER's call — presented, not built. The honest alternative is
+accepting the coherent ride, which every fixed-background site on
+Chromium-Android exhibits.
+
 ## Verified vs. asserted — and the honest gap
 
 **Verified:** everything above, locally. **Asserted / NOT verified:** the
@@ -207,17 +243,17 @@ and `localStorage.getItem('ks.skyLock')` on the device before touching code.
 
 ## Still open
 
-1. **Build 35 on the owner's phone** — build 35 (`88ee5aa`) was RELEASED
-   on the owner's "sync main" and confirmed live on kundalinispines.com
-   (`--star-build: 35` served) the same evening; awaiting the on-device
-   verdict. The panel title now proves the build
-   (it reads `--star-build`), and the `cen` row must be seen CHANGING
-   during a swipe (0 ↔ ~−60) for the mechanism to be live. If the sky
-   still rides with cen visibly moving, the residual is the vv-event
-   latency and the next lever is unknown; if cen sits frozen, find out why
-   before touching the mechanism. Frame-track any new recording
-   (track_nav.py pattern) — and mind that starry IN-FLOW artwork polluted
-   the star tracker once already; pick sky patches by hand.
+1. **Release build 36 (the retirement) and close the sky saga.** Build 35
+   (`88ee5aa`) WAS released and measured on-device — verdict above: worse,
+   mechanism retired. Build 36 is on the branch awaiting the owner's
+   "sync main". After it deploys, the phone should be back to the
+   build-33 coherent state (single ride with the bars, no crawl). If the
+   owner wants the ride truly gone, the inner-scroller architecture
+   decision is the only door left — do not re-attempt page-side
+   compensation. Frame-track any new recording (track3.py pattern in the
+   session scratchpad) — and mind that starry IN-FLOW artwork polluted
+   the star tracker in ALL THREE recordings; the nav wordmark and the
+   panel's own numbers are the reliable instruments.
 2. **The listen test at coinc 110** (52's item 1, unchanged).
 3. **The fulfilment Worker** — waits on the owner's go.
 4. **Live Stripe link swap** — the real domain now exists; still waits on

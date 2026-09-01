@@ -67,66 +67,31 @@
     window.addEventListener('resize', setSkyLock);
   }
 
-  /* ---- html.sky-center: the Android center-anchor (star-builds 34/35) ----
-     The build-33 measurement (V2HANDOFF 53): the sky layers are pixel-still
-     in page space, and what the owner sees is the BROWSER translating the
-     whole rendered surface as its toolbars animate — top bar ~56 CSS px of
-     screen shift, invisible to every DOM metric. Page code cannot stop it;
-     it can only choose an anchor whose screen drift is smallest. For an
-     anchor at fraction f of the viewport, drift = -topBarΔ + f·totalΔ;
-     centring (f = 0.5) turns Brave's 56 px ride into ~4 px (measured bars:
-     top 56, bottom 63) and halves top-bar-only Chrome. ANDROID-GATED, not
-     coarse-gated: bottom-bar-only browsers (iOS Safari) have topBarΔ = 0,
-     the top anchor is already perfect there, and centring would ADD ~25 px
-     of drift. css/star-bg.css and css/deep-field-bg.css carry the matching
-     rules; js/clouds-sky.js pins its stage the same way.
-
-     BUILD 35 — THE ANCHOR RUNS ON visualViewport, NOT ON A CSS PERCENTAGE.
-     Build 34 wrote the centring as top: calc(50% - lock/2), and 50%
-     resolves against innerHeight — which the owner's second recording
-     proved Brave leaves STALE until a gesture settles (panel read
-     `in x 790` with the bars fully returned while `vv h 734` was still
-     animating). So the CSS anchor could only correct after each
-     transition: full ride during, snap after. visualViewport.height is
-     the one metric that animates WITH the bars, so this block writes
-     --sky-cen = (vv.height - lock) / 2 on every change and the CSS reads
-     top: var(--sky-cen, <the calc fallback>). GUARDS, both load-bearing:
-     scale must be 1 (pinch-zoom shrinks vv.height and would fling the
-     sky), and the chrome delta is capped at 220 CSS px (the soft keyboard
-     takes 300+ and must not recentre the sky under a form). Fallback
-     paths: no visualViewport -> the class still lands and the CSS calc
-     does what build 34 did; not Android -> neither, and the top anchor
-     stands. */
-  if (/Android/i.test(navigator.userAgent) &&
-      window.matchMedia('(pointer: coarse)').matches &&
-      window.CSS && CSS.supports && CSS.supports('height', '100lvh')) {
-    document.documentElement.classList.add('sky-center');
-    const vvp = window.visualViewport;
-    if (vvp) {
-      let lastCen = '';
-      const applyCen = () => {
-        if (vvp.scale !== 1) return;
-        /* The lock may not be published yet on the first call; fall back
-           to the current viewport so the write is a no-op (cen 0). */
-        const lockPx = parseFloat(
-          getComputedStyle(document.documentElement).getPropertyValue('--sky-lock')) ||
-          window.innerHeight;
-        const chrome = lockPx - vvp.height;
-        if (chrome < -2 || chrome > 220) return;
-        const cen = ((vvp.height - lockPx) / 2).toFixed(1) + 'px';
-        if (cen !== lastCen) {
-          lastCen = cen;
-          document.documentElement.style.setProperty('--sky-cen', cen);
-        }
-      };
-      applyCen();
-      vvp.addEventListener('resize', applyCen);
-      /* The bars only ever move during scroll gestures, and scroll fires
-         throughout them — the interval is a safety net, not the engine. */
-      window.addEventListener('scroll', applyCen, { passive: true });
-      setInterval(applyCen, 250);
-    }
-  }
+  /* ---- html.sky-center: RETIRED (star-build 36) --------------------------
+     Builds 34/35 tried to cancel Brave's toolbar-animation surface ride by
+     centring the sky anchor — 34 with a CSS 50% (resolves against
+     innerHeight), 35 by writing --sky-cen from visualViewport.height. The
+     owner's three recordings closed every door, one clock each:
+       rec 1 (b33): all sky boxes pixel-still in page space while the whole
+         fixed stack rides ~56 CSS px — the ride is the COMPOSITOR
+         translating the rendered surface, invisible to DOM metrics.
+       rec 2 (b34): innerHeight is FROZEN until the gesture settles, so a
+         CSS 50% anchor corrects only after each transition.
+       rec 3 (b35): visualViewport.height does not track the bars either —
+         the visual snap finishes in ~200 ms while vv.height glides for
+         ~1 s AFTERWARD (panel: nav ride done, vv h 790->781->734->671
+         over the following second). Driving the anchor from it turned one
+         coherent motion into two: the untouched compositor ride, then a
+         slow ~60 px crawl of the sky alone. The owner: "oh god its worse".
+     Conclusion: no metric a page can read tracks the compositor in real
+     time, so ANY compensation arrives out of phase and ADDS visible
+     motion. The least-bad page-side state is the coherent top-anchored
+     ride (build 33), restored here: the class is never added, so the
+     .sky-center rules in css/star-bg.css, css/deep-field-bg.css and
+     js/clouds-sky.js are dormant. Do not re-attempt JS/CSS compensation;
+     the only true kill is not letting the bars animate at all (an inner
+     scroll container instead of the root scroller — an architectural
+     decision that is the owner's to make). */
 
   /* ---- ?skydiag: on-device sky diagnostics (star-build 33) ----------------
      The build-32 lock verified locally and the owner STILL sees the sky

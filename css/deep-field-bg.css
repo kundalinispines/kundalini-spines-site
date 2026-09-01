@@ -1,5 +1,5 @@
 /* deep-field-bg.css — the home page's background clip.
-   --df-build: 16;
+   --df-build: 17;
 
    WHAT THIS IS
    The 12.042s deep-field-2 clip painted full-bleed behind the whole home
@@ -33,7 +33,7 @@
      meant the one check the convention exists for - "is the browser running the
      file I just edited, or a cached copy?" - could not be run against the deep
      field at all. Declared Aug 26 2026. Keep it in step with the header. */
-  --df-build: 16;
+  --df-build: 17;
 
   /* 0 = sky fully suppressed and the clip is the only background.
      1 = the real star field at its normal strength.
@@ -354,9 +354,10 @@
     bottom: auto;
     height: var(--sky-lock, 100lvh);
   }
-  /* Android center-anchor, same mechanism and same gate as the star layers
-     (star-bg.css build 34; the reasoning is in js/nav.js). Reaches only
-     Android tablets — this layer is display:none at <=768px. */
+  /* DORMANT SINCE df-build 17 — js/nav.js no longer adds html.sky-center
+     (the builds 34/35 centring was measured on-device and RETIRED at
+     star-build 36; the reasoning is in star-bg.css's ledger and js/nav.js).
+     Kept as the record; do not re-arm without new evidence. */
   .sky-center .df-bg {
     top: var(--sky-cen, calc(50% - var(--sky-lock, 100lvh) / 2));
   }

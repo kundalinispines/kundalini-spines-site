@@ -154,8 +154,13 @@
       if (lock !== lastLock) { if (lastLock) lockWrites++; lastLock = lock; }
       const bb = parseFloat(getComputedStyle(document.body, '::before').height) || 0;
       const vvT = vv ? vv.offsetTop : 0;
+      /* The build in the title is READ, not written: a hardcoded label
+         shipped saying b33 on the build-34 deploy and cost a round of
+         "still stale?" — the computed --star-build cannot lie. */
+      const starBuild =
+        getComputedStyle(document.documentElement).getPropertyValue('--star-build').trim() || '?';
       panel.textContent =
-        'SKY DIAG b33 (tap=reset)\n' +
+        'SKY DIAG b' + starBuild + ' (tap=reset)\n' +
         'in  ' + fmt('iw', track('iw', innerWidth)) + ' x ' + fmt('ih', track('ih', innerHeight)) + '\n' +
         'lvh ' + fmt('lvh', track('lvh', dprobe.offsetHeight)) + '\n' +
         'lock ' + lock + '  writes ' + lockWrites + '\n' +

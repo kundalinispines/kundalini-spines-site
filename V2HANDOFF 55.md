@@ -21,6 +21,9 @@ its own query string; **a refunded buyer would have kept downloading for 72
 hours while a comment claimed that was impossible**, found and fixed before
 anyone hit it; and the live Payment Link went in, was bought with real money,
 downloaded both files, survived a refresh, and closed cleanly on refund.
+Then a copy sweep, because going live made four separate sentences on the site
+false at once — including one on the HOME page telling every visitor the album
+could not be bought, directly above a working buy button.
 
 ---
 
@@ -157,6 +160,45 @@ happened afterwards.
 
 ---
 
+## Copy that outlived its facts — four instances in two days
+
+This is the session's real pattern and it deserves its own heading. Every one
+of these was a sentence hardcoding a claim about **site-wide state**, written
+when it was true, in a file nobody thinks to open when that state changes.
+Every one was found by a person reading. None by tooling.
+
+1. **`purchase-success.html`'s STANDBY** — "nothing has been charged and no
+   order exists", printed under a live order reference. Caught by 54.
+2. **`purchase-cancelled.html`'s STANDBY** — "no payment processor is
+   connected, so no checkout could have been started or cancelled." Every
+   clause false. Caught by reading the page this session.
+3. **"nothing here can be lost — you can close this and come back to the same
+   link"** on the success page, which contradicted the download note added
+   beside it the same hour. Coming back needs the link; the link is emailed
+   nowhere.
+4. **The home carousel's track panel** — "The album editions are a preview;
+   purchasing is not open yet", live on the home page while the Digital
+   Edition took real money. **Reported by the owner, not found by the
+   session.** The worst of the four by reach.
+
+The sweep that followed #4 found two more visitor-facing instances and four
+stale comments, listed in `57e1391`. Notably `start()`'s not-configured
+message opened "Purchasing is not open yet" — a claim about the whole site
+that now fires for **Deluxe only**, so a Deluxe clicker was told the record
+could not be bought at all.
+
+**What was deliberately NOT changed**, because it is still true: `merch.html`'s
+objects-line STANDBY, and "Coming soon — inventory not yet configured" on the
+Artifact card of both `purchase.html` and `merch.html`. A sweep that flattens
+those would be its own defect.
+
+**The lesson for the next session:** when a `checkoutUrl` or a `status` flips,
+grep the whole deployed surface for prose about it before releasing. Item 6 in
+Still open is the tooling version of this, and after four instances it should
+be read as a real gap rather than a nice-to-have.
+
+---
+
 ## Verified vs. asserted
 
 **Verified, on the live domain, with real money:**
@@ -182,7 +224,14 @@ happened afterwards.
   through to the `payment_status` gate rather than being treated as suspicious.
 - All six success-page states rendered and were looked at (paid, unpaid,
   not-found, no-session, network failure, JS disabled), desktop and mobile, no
-  page errors, no horizontal scroll.
+  page errors, no horizontal scroll — and re-run unchanged after the copy work.
+- The home carousel's track panel was opened in Chromium and its note read
+  back; Deluxe and Artifact each show their own message, scoped to their own
+  card. A comments-stripped sweep of all seven public pages, run against the
+  LIVE domain after release, finds no visitor-facing "purchasing is not open"
+  anywhere.
+- The download note's expiry falls back correctly on a malformed timestamp —
+  tested by feeding it one.
 
 **Asserted, not verified:**
 
@@ -265,18 +314,25 @@ happened afterwards.
 
 ## Git state
 
-- Branch `feature/spine-ui-v2`. Session start `a07b51c`; end **`86dae63`**.
+- Branch `feature/spine-ui-v2`. Session start `a07b51c`; end **`57e1391`**.
 - Nine commits, all pushed: `fca5651` (the functions and the rebuilt success
   page), `1078761` (the R2 wizard), `92db064` (two files, and rclone),
   `760a763` / `5a80eed` / `366ddbd` (three wizard corrections from its first
   live run), `0cd2f75` (the wizard's bad diagnosis), `5d74541` (the refund
   gate), `86dae63` (the live Payment Link).
-- **Two releases on the owner's explicit word.** `a07b51c..366ddbd` shipped the
-  functions and return pages with the buy button still on the test link — a
-  deliberately low-risk release so the whole path could be probed with nothing
-  at stake. `366ddbd..86dae63` opened sales.
-- **`main` and `feature/spine-ui-v2` are in sync at `86dae63`.** Working tree
+- Two more after the handoff was first written: `8949e6c` (the keep-this-link
+  note on the success page) and `57e1391` (the copy sweep).
+- **Four releases, each on the owner's explicit word.** `a07b51c..366ddbd`
+  shipped the functions and return pages with the buy button still on the test
+  link — a deliberately low-risk release so the whole path could be probed with
+  nothing at stake. `366ddbd..86dae63` opened sales. `86dae63..8949e6c` and
+  `8949e6c..57e1391` shipped the two copy fixes.
+- **`main` and `feature/spine-ui-v2` are in sync at `57e1391`.** Working tree
   clean.
+- **Deploy propagation is variable: 8 seconds to 90.** Two checks this session
+  looked like failed deploys and were only early. Wait two minutes before
+  diagnosing — and check the EXECUTABLE string, not a raw grep, because the
+  comments in these files quote the old copy on purpose and a grep finds both.
 - Leak-checked before every release: the only `sk_`/`whsec_` matches in the
   diffs are the `sk_live_...` placeholders in `STRIPE-SETUP.md`'s own table.
   No account ID, price ID, bucket URL or key material is in the repo.
@@ -309,6 +365,17 @@ Variables `STRIPE_SECRET_KEY` (Secret), `DOWNLOAD_SIGNING_KEY` (Secret),
    for anyone who buys on a phone meaning to download on a laptop later. Their
    only recourse is emailing the owner, who has no automated way to reissue.
    **Decide this before promoting the album.** The remainder of 54's item 2.
+
+   **A copy-only mitigation SHIPPED (`8949e6c`) and it does not close this.**
+   The confirmed panel now says, above the buttons: *"Download now if you can.
+   This page is the only link to your files — it is not emailed to you, and
+   Stripe's receipt does not contain it. The link stays open until [date]. If
+   you lose it, write to kundalinispines@gmail.com quoting your order reference
+   and it will be reissued."* That warns the buyer before they close the tab,
+   which is most of the protection for none of the work — but "it will be
+   reissued" is a **promise the owner currently keeps by hand**, and there is
+   no order record to look the buyer up in (item 2). Do not read the shipped
+   note as this item being handled.
 2. **No order storage, and no webhook.** `checkout.session.completed` is still
    not implemented (§5 of `STRIPE-SETUP.md`, unchanged). The only record of a
    sale is in Stripe. Related to item 1: any reissue flow needs somewhere to
@@ -326,10 +393,16 @@ Variables `STRIPE_SECRET_KEY` (Secret), `DOWNLOAD_SIGNING_KEY` (Secret),
    going to be shipped by hand. Artifact is additionally
    `status: 'coming-soon'` — the production run does not exist, so it needs a
    `status` flip as well as a URL.
-6. **Nothing tests any page's copy against its own query string.** The class of
-   bug that produced 54's STANDBY near-miss and this session's cancelled-page
-   lie is still untested. Three copy-vs-reality defects in two sessions, all
-   found by reading.
+6. **Nothing tests any page's copy against its own state — query string OR
+   config.** Now **four** instances in two days, listed in full in the
+   "Copy that outlived its facts" section above, the last of which was live on
+   the HOME page and was reported by the owner rather than found by the
+   session. Every one is a sentence hardcoding a claim about site-wide state,
+   in a file nobody opens when that state changes. After four, this should be
+   read as a real gap. The cheap version is a check that greps the deployed
+   surface for prose like "not open" / "not connected" / "preview" and fails if
+   it disagrees with `EDITIONS` in `js/purchase-checkout.js` — the config is
+   already the single source of truth, so the comparison exists to be made.
 7. **`STRIPE-SETUP.md` GitHub-Pages sweep** — §1 and others still describe the
    retired host. Deliberately deferred (53's item 5). This session narrowed it
    but did not close it.

@@ -207,7 +207,10 @@ and `localStorage.getItem('ks.skyLock')` on the device before touching code.
 
 ## Still open
 
-1. **Build 35 on the owner's phone** — the panel title now proves the build
+1. **Build 35 on the owner's phone** — build 35 (`88ee5aa`) was RELEASED
+   on the owner's "sync main" and confirmed live on kundalinispines.com
+   (`--star-build: 35` served) the same evening; awaiting the on-device
+   verdict. The panel title now proves the build
    (it reads `--star-build`), and the `cen` row must be seen CHANGING
    during a swipe (0 ↔ ~−60) for the mechanism to be live. If the sky
    still rides with cen visibly moving, the residual is the vv-event

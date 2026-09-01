@@ -236,16 +236,20 @@ same edit that gives it a link, or the link will be ignored.
 > silent fallback.
 
 Set these in the Cloudflare dashboard: **Workers & Pages → kundalini-spines →
-Settings → Variables and Secrets → Add**. Mark the two secret ones as
-**Encrypt** — once encrypted a value cannot be read back out of the dashboard,
-which is the point.
+Settings → Variables and Secrets → Add**. Each row has a **Type** dropdown
+reading **Text** or **Secret**; set it to Secret for the two secret ones
+*before* pasting the value. A Secret cannot be read back out of the dashboard
+afterwards — that is the point, and it also means a typo in one is invisible.
+If `/api/verify` later answers `server_misconfigured`, re-enter rather than
+trying to inspect.
 
 > **Dashboard paths corrected Aug 31 2026, on the first real run.** This said
 > *Settings → Environment variables*, and the R2 binding step said *Settings →
 > Functions → R2 bucket bindings*. Cloudflare has retired both: there is no
 > **Functions** section any more, bindings are at **Settings → Bindings**, and
 > variables and secrets share one screen at **Settings → Variables and
-> Secrets**. Expect these labels to drift again — when they do, trust the
+> Secrets**, where a per-row **Type** dropdown (Text / Secret) has replaced the
+> old **Encrypt** button. Expect these labels to drift again — when they do, trust the
 > product over this document. **Never in this repo**, and never in a variable
 whose name lacks the encryption; the deploy workflow's leak guard greps the
 diff for `sk_`/`whsec_` but it cannot see the Cloudflare dashboard.

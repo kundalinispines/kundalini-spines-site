@@ -227,26 +227,47 @@ than by editing and redeploying code.
 
 ## 4. The return URLs
 
-> **CORRECTION, Aug 27 2026 — these pages are BUILT but NOT LIVE.** This section
-> said "live in the repo root" from the day it was written, and that has never
-> been true. `.github/workflows/deploy-pages.yml` builds GitHub Pages from
-> **`main`**, and `main` contains no `purchase.html`, no `purchase-success.html`,
-> no `purchase-cancelled.html` and no `merch.html` — the entire purchase surface
-> exists only on `feature/spine-ui-v2`, which is 169 commits ahead of it.
+> **CORRECTED AGAIN, Aug 31 2026 — the pages ARE live now. Set the redirect.**
+> The Aug 27 warning below was true when the site was GitHub Pages built from
+> `main`. Two things changed since: the site deploys to **Cloudflare Pages**
+> (Aug 30), and `main` now carries the whole purchase surface — all three pages
+> sit in the deploy allowlist in `.github/workflows/deploy-cloudflare.yml`,
+> added Aug 28.
 >
-> **So do not set a Payment Link redirect to either URL yet.** A paying customer
-> would land on a 404, which is the one failure the `null` in `checkoutUrl`
-> exists to prevent — arriving through the Dashboard, where no code guard can
-> see it. Leave the link on Stripe's own confirmation page until V2 ships.
+> Measured against the live domain, Aug 31 2026:
 >
-> This costs nothing later: **After the payment** is editable on an existing
-> link, so the same link gains the branded page the day the pages deploy. No new
-> link and no code change.
+> ```
+> curl -sIL -o /dev/null -w "%{http_code} %{url_effective}\n" \
+>   "https://kundalinispines.com/purchase-success.html?session_id=cs_test_123"
+> → 200 https://kundalinispines.com/purchase-success?session_id=cs_test_123
+> ```
+>
+> Two things that readout proves, both of which matter here: Cloudflare Pages
+> answers the `.html` name with a **308 to the extensionless path**, and it
+> **carries the query string through the hop** — so Stripe's
+> `{CHECKOUT_SESSION_ID}` token survives either form. **Give Stripe the clean
+> URL anyway** (no `.html`), so a paying customer does not spend a redirect on
+> the way to their own receipt.
+>
+> The `null` in `checkoutUrl` for Deluxe and Artifact still stands, but for
+> section 6's reason now — nothing fulfils an order — not because a redirect
+> would 404.
 
-Two pages are built and sit in the repo root:
+> **The Aug 27 2026 warning, kept for the record.** It said: these pages are
+> BUILT but NOT LIVE; `.github/workflows/deploy-pages.yml` builds GitHub Pages
+> from `main`, and `main` contains no `purchase.html`, no
+> `purchase-success.html`, no `purchase-cancelled.html` and no `merch.html` —
+> the entire purchase surface exists only on `feature/spine-ui-v2`, 169 commits
+> ahead of it. So do not set a Payment Link redirect yet; a paying customer
+> would land on a 404, arriving through the Dashboard where no code guard can
+> see it. **Its conclusion no longer applies** — but its reasoning is why this
+> section now measures the live URL instead of asserting it. This document has
+> been wrong about deployment twice; measure before you trust it a third time.
 
-- `https://<your-domain>/purchase-success.html`
-- `https://<your-domain>/purchase-cancelled.html`
+Two pages are built, and live since Aug 30 2026:
+
+- `https://kundalinispines.com/purchase-success`
+- `https://kundalinispines.com/purchase-cancelled`
 
 Both are branded to the site — the site's nav, footer, starfield and type, not a
 generic Stripe confirmation. Both are marked `noindex` so a confirmation page
@@ -259,7 +280,7 @@ this document was wrong.) To get the order reference to display, append Stripe's
 token:
 
 ```
-https://<your-domain>/purchase-success.html?session_id={CHECKOUT_SESSION_ID}
+https://kundalinispines.com/purchase-success?session_id={CHECKOUT_SESSION_ID}
 ```
 
 Stripe substitutes that literal token for the real Session ID. The success page
@@ -328,12 +349,36 @@ discount code makes the amount ambiguous.
 
 ---
 
-## 6. What is still completely outstanding
+## 6. What is still outstanding
 
-None of the following exists in any form. This is the honest list.
+The honest list. Everything here is missing unless its entry says otherwise —
+items 1 and 8 have moved since this section was written, the rest have not.
 
-1. **A Stripe account connected to this project.** No account, no keys, no
-   products, no prices, no links.
+1. ~~**A Stripe account connected to this project.**~~ **Partly done.**
+   **Sandbox (test mode)** holds one Product — Digital Edition — with one $20
+   Price and one Payment Link,
+   `https://buy.stripe.com/test_5kQbIT7b6gYhfc8aQBaIM00`, which is the URL
+   sitting in `js/purchase-checkout.js` today. Deluxe and Artifact were never
+   created there; their `checkoutUrl` is still `null`.
+
+   **A live account exists as of Aug 31 2026** — the owner began activation
+   that day and, asked whether to copy the sandbox across, deliberately
+   **declined and started live clean**. That was the right call and is worth
+   not second-guessing later: test and live mint different `prod_`/`price_`
+   IDs, a copied Payment Link gets a **new `buy.stripe.com` URL** regardless,
+   so copying saves no code change — it only carries experimentation debris
+   into the account that takes real money.
+
+   **Still missing:** three live Products, three live Prices, three live
+   Payment Links, and the swap of the `test_` URL above for the live one in
+   `js/purchase-checkout.js`. Until that swap the buy button is wired to test
+   mode and **takes no real money** — which is a safe failure, not a broken
+   one. No `sk_`/`whsec_` key exists anywhere, and by section 1 the Payment
+   Link path never needs one.
+
+   > The sandbox contents were read from this repo. The live account's state
+   > is **the owner's report, not measured** — no session has authenticated
+   > against the Dashboard.
 2. **Secure download issuance.** Nothing generates an expiring, per-buyer,
    download-capped link. This needs a signed-URL service (S3, R2, Cloudflare) and
    a server to sign with.

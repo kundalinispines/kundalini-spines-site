@@ -67,6 +67,25 @@
     window.addEventListener('resize', setSkyLock);
   }
 
+  /* ---- html.sky-center: the Android center-anchor (star-build 34) --------
+     The build-33 measurement (V2HANDOFF 53): the sky layers are pixel-still
+     in page space, and what the owner sees is the BROWSER translating the
+     whole rendered surface as its toolbars animate — top bar ~56 CSS px of
+     screen shift, invisible to every DOM metric. Page code cannot stop it;
+     it can only choose an anchor whose screen drift is smallest. For an
+     anchor at fraction f of the viewport, drift = -topBarΔ + f·totalΔ;
+     centring (f = 0.5) turns Brave's 56 px ride into ~4 px (measured bars:
+     top 56, bottom 63) and halves top-bar-only Chrome. ANDROID-GATED, not
+     coarse-gated: bottom-bar-only browsers (iOS Safari) have topBarΔ = 0,
+     the top anchor is already perfect there, and centring would ADD ~25 px
+     of drift. css/star-bg.css and css/deep-field-bg.css carry the matching
+     rules; js/clouds-sky.js pins its stage the same way. */
+  if (/Android/i.test(navigator.userAgent) &&
+      window.matchMedia('(pointer: coarse)').matches &&
+      window.CSS && CSS.supports && CSS.supports('height', '100lvh')) {
+    document.documentElement.classList.add('sky-center');
+  }
+
   /* ---- ?skydiag: on-device sky diagnostics (star-build 33) ----------------
      The build-32 lock verified locally and the owner STILL sees the sky
      move on-device — continuously, while swiping. Every hypothesis left

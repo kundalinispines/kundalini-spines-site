@@ -185,6 +185,12 @@
       /* --sky-lock (js/nav.js) overrides lvh on touch devices for Brave's
          bottom toolbar, same as the CSS layers — see star-bg.css build 31. */
       stage.style.height = 'var(--sky-lock, 100lvh)';
+      /* Android center-anchor, matching the CSS layers (star-bg.css build
+         34; the gate's reasoning is in js/nav.js, which runs before this
+         file and publishes the class). */
+      if (document.documentElement.classList.contains('sky-center')) {
+        stage.style.top = 'calc(50% - var(--sky-lock, 100lvh) / 2)';
+      }
     }
 
     var src = document.createElement('canvas');

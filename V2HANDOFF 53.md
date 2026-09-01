@@ -124,15 +124,20 @@ motion. This is standard Android-browser behaviour; every fixed element on
 every site rides it. **It cannot be removed by page code. Do not attempt
 another sizing/locking fix for it — the locks are done and proven.**
 
-**The one real mitigation, if the owner wants it (NOT shipped):**
-center-anchor the pinned layers on coarse-pointer devices —
-`top: calc(50% - var(--sky-lock, 100lvh) / 2)` in place of `top: 0`, same
-`height`. A percentage top re-resolves as the viewport height animates, so
-the layer's screen drift becomes |−Δtop + Δh/2|: ~3.7 CSS px on Brave
-(both bars, 16× better), ~28 px on top-bar-only Chrome (2× better), but
-INTRODUCES ~25 px of new drift on bottom-bar-only browsers (iOS Safari)
-where the current top anchor is already perfect. It is a trade, and the
-owner decides it.
+**The one real mitigation — SHIPPED as star-build 34 / df-build 15 on the
+owner's pick ("Ship it, Android-only"):** `html.sky-center` (published by
+js/nav.js on Android + coarse + lvh) re-anchors every pinned layer to the
+viewport centre — `top: calc(50% - var(--sky-lock, 100lvh) / 2)` — in
+css/star-bg.css, css/deep-field-bg.css and the cloud stage in
+js/clouds-sky.js. A percentage top re-resolves as the viewport height
+animates, so the screen drift becomes |−Δtop + Δh/2|: ~3.7 CSS px on Brave
+(both bars, 16× better) and ~28 px on top-bar-only Chrome (2× better).
+Android-gated rather than coarse-gated because bottom-bar-only browsers
+(iOS Safari) have Δtop = 0 — the top anchor is already perfect there and
+centring would ADD ~25 px. Verified in the pane at an emulated Android
+390px viewport: lock 844 at innerHeight 700 computes top −72 on every
+layer including the cloud stage, html::after keeps its overscan centred
+(−97.31 → centre exactly 50%), desktop shows no class and top 0.
 
 ## Verified vs. asserted — and the honest gap
 
@@ -181,10 +186,12 @@ and `localStorage.getItem('ks.skyLock')` on the device before touching code.
 
 ## Still open
 
-1. **Build 32 on the owner's phone** — the check that decides this thread.
-   Brave, live site (build 32 IS live), scroll up and down, change pages,
-   watch the sky. Expect one possible shift on the very first scroll at a
-   given width (empty store), then stillness.
+1. **Build 34 on the owner's phone** — the ride should drop from ~56 CSS px
+   to ~4. If it still reads as moving, re-record over `?skydiag` and
+   frame-track the recording again (scripts: scratchpad's track_nav.py
+   pattern, template-match the nav wordmark) BEFORE touching code — and
+   mind that a residual ride-then-snap would mean Brave resolves % tops
+   only at animation end, which would be a finding, not a bug in the CSS.
 2. **The listen test at coinc 110** (52's item 1, unchanged).
 3. **The fulfilment Worker** — waits on the owner's go.
 4. **Live Stripe link swap** — the real domain now exists; still waits on

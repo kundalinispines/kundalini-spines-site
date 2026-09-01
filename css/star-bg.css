@@ -41,6 +41,14 @@
 :root {
   /* Bumped on every change, same reason as --spine-build: a browser sitting on
      a cached stylesheet is indistinguishable from a change that did not work.
+     34 = the Android center-anchor. Build 33's on-device measurement
+     (V2HANDOFF 53) proved the layer boxes pixel-still and the remaining
+     motion to be the BROWSER translating the whole surface with its
+     toolbars (~56 CSS px, invisible to every DOM metric). html.sky-center
+     (js/nav.js, Android+coarse+lvh only) re-anchors every pinned layer to
+     the viewport centre, which cancels the ride down to ~4 CSS px on
+     both-bars Brave and halves top-bar-only Chrome; iOS keeps the perfect
+     top anchor. The rule block sits at the bottom of the @supports block.
      33 = ?skydiag, measurement only. Build 32's lock verified locally and
      the owner still saw continuous movement while swiping on-device. The
      surviving hypotheses differ in WHERE the motion lives — the layer box,
@@ -133,7 +141,7 @@
      as worth 63 -> 88 fps; that figure was taken on a software renderer and is
      corrected under html::after below). 6 was the single lockstep cores
      layer. */
-  --star-build: 33;
+  --star-build: 34;
 
   /* Brightness of the whole field. 0 is off — the layer still exists but adds
      no light, and under screen blending (see below) that is exactly the same
@@ -991,6 +999,27 @@ html::after {
   html::after {
     top: calc(var(--sky-lock, 100lvh) * -0.03);
     height: calc(var(--sky-lock, 100lvh) * 1.06);
+  }
+  /* BUILD 34, ANDROID ONLY (html.sky-center, published by js/nav.js — the
+     gate's reasoning lives there): the box sizes above are proven still;
+     what remains is the browser sliding the whole surface with its
+     toolbars. A percentage top re-resolves as the viewport height animates,
+     so centring the layer cancels most of that slide: with chrome hidden
+     top computes to 0 (identical framing to the top anchor), with chrome up
+     the layer sits higher by half the chrome — which is where the surface
+     shift puts the screen anyway. All layers share the formula, so the
+     same-aspect registration holds; html::after keeps its ±3% overscan
+     symmetric about the same centre. */
+  .sky-center body::before,
+  .sky-center body::after,
+  html.sky-center::before,
+  .sky-center main::before,
+  .sky-center main::after,
+  .sky-center .star-bolt {
+    top: calc(50% - var(--sky-lock, 100lvh) / 2);
+  }
+  html.sky-center::after {
+    top: calc(50% - var(--sky-lock, 100lvh) * 0.53);
   }
 }
 

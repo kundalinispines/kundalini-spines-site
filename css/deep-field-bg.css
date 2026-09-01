@@ -1,5 +1,5 @@
 /* deep-field-bg.css — the home page's background clip.
-   --df-build: 12;
+   --df-build: 13;
 
    WHAT THIS IS
    The 12.042s deep-field-2 clip painted full-bleed behind the whole home
@@ -33,7 +33,7 @@
      meant the one check the convention exists for - "is the browser running the
      file I just edited, or a cached copy?" - could not be run against the deep
      field at all. Declared Aug 26 2026. Keep it in step with the header. */
-  --df-build: 12;
+  --df-build: 13;
 
   /* 0 = sky fully suppressed and the clip is the only background.
      1 = the real star field at its normal strength.
@@ -340,6 +340,20 @@
      read in this file now defaults to 1 for the same reason: unresolved must
      mean sky, never clip. */
   opacity: calc(var(--df-on, 1) * (1 - var(--df-sky, 1)));
+}
+
+/* Pinned to the large viewport, same mechanism and same guard as every sky
+   layer (the full story is the @supports block below .star-bolt in
+   css/star-bg.css): a collapsing URL bar resizes an inset:0 fixed box
+   mid-scroll and object-fit:cover re-crops the footage with it. This layer is
+   display:none at <=768px, so phones never see it — the pin is for the
+   dynamic-chrome browsers above that width (tablets). The video and scrim
+   are 100%-of-wrapper and follow. */
+@supports (height: 100lvh) {
+  .df-bg {
+    bottom: auto;
+    height: 100lvh;
+  }
 }
 
 .df-bg__video {

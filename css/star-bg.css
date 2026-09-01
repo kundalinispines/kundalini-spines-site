@@ -41,6 +41,12 @@
 :root {
   /* Bumped on every change, same reason as --spine-build: a browser sitting on
      a cached stylesheet is indistinguishable from a change that did not work.
+     30 = every fixed sky layer pinned to 100lvh so a phone's collapsing URL
+     bar stops resizing it mid-scroll (owner: "the bg image moves slightly").
+     The @supports block below .star-bolt carries the mechanism and the
+     old-browser trap. Desktop is a no-op — lvh equals vh there, verified by
+     identical computed boxes and screenshots at 1440x900 before/after.
+     (29 shipped without a ledger entry; nothing in this file documents it.)
      28 = the FIRST non-empty page block in this file — html.page-home gets
      --star-desync 1 and --star-cloud-bright 2.1. Every page block before this
      one was a hook with nothing in it; this is the first time index.html has
@@ -102,7 +108,7 @@
      as worth 63 -> 88 fps; that figure was taken on a software renderer and is
      corrected under html::after below). 6 was the single lockstep cores
      layer. */
-  --star-build: 29;
+  --star-build: 30;
 
   /* Brightness of the whole field. 0 is off — the layer still exists but adds
      no light, and under screen blending (see below) that is exactly the same
@@ -909,6 +915,52 @@ html::after {
   filter: brightness(var(--star-bolt-bright));
   mix-blend-mode: screen;
   opacity: 0;
+}
+
+/* PHONES: THE SKY MUST NOT BREATHE WITH THE URL BAR — owner, 1 Sep 2026: on a
+   phone the background image shifts slightly during scroll. The mechanism:
+   every sky layer in this file is position:fixed with inset: 0, and a phone
+   browser RESIZES the layout viewport as its chrome collapses and expands
+   mid-scroll. The layers track that resize, `cover` re-crops the photograph a
+   few dozen pixels at a time, and the sky creeps. The same-aspect rule above
+   (3840x2144, "the filaments cannot slide against the nebula") keeps the
+   layers registered to EACH OTHER through it — but they all breathe together,
+   which is exactly what the owner saw.
+
+   The fix pins every viewport layer to the LARGE viewport height. bottom:auto
+   releases the bottom anchor; height:100lvh is the viewport with the chrome
+   already collapsed, so the box never changes while the chrome moves — the
+   collapse just reveals the last ~60px of an already-painted layer. Desktop
+   is untouched: lvh == vh there (verified 1 Sep 2026, identical computed
+   boxes and screenshots at 1440x900 and at a static 390x844 before/after).
+
+   THE @supports GUARD IS LOAD-BEARING, not politeness. Without it a browser
+   too old for lvh (pre-2022) drops the height declaration but KEEPS
+   bottom:auto — top-anchored, height auto, content "": a zero-height sky on
+   every page. Guarded, an old browser keeps today's inset behaviour instead.
+
+   html::after keeps its overscan in static units: top -3lvh + height 106lvh
+   reproduce inset -3%'s vertical geometry at the large viewport. Its
+   horizontal -3% stays as-is — left/right resolve against viewport WIDTH,
+   which does not change when chrome collapses.
+
+   js/clouds-sky.js applies the same pin to its canvas stage (inline style,
+   same guard via CSS.supports); .df-bg gets it in css/deep-field-bg.css. */
+@supports (height: 100lvh) {
+  body::before,
+  body::after,
+  html::before,
+  html::after,
+  main::before,
+  main::after,
+  .star-bolt {
+    bottom: auto;
+    height: 100lvh;
+  }
+  html::after {
+    top: -3lvh;
+    height: 106lvh;
+  }
 }
 
 /* FIVE STRIKE PATTERNS since build 20 — js/spine-bg.js injects five divs

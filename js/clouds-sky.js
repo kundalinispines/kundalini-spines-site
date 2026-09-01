@@ -171,6 +171,19 @@
     stage.className = 'ks-cloud-sky';
     stage.setAttribute('aria-hidden', 'true');
     stage.style.cssText = 'position:fixed;inset:0;z-index:-1;pointer-events:none';
+    /* Pinned to the large viewport for the same reason as every layer in
+       css/star-bg.css (see the @supports block below .star-bolt there): a
+       phone's collapsing URL bar resizes the layout viewport mid-scroll, and
+       an inset:0 stage would resize the canvas with it — the field re-crops
+       and the clouds creep against the nebula they are glued to. 100lvh is
+       the collapsed-chrome height, so the box holds still and clientWidth/
+       clientHeight (which size the canvas below) stop moving during scroll.
+       Guarded exactly like the CSS: unguarded, an lvh-less browser would drop
+       the height but keep bottom:auto and collapse the stage to zero. */
+    if (window.CSS && CSS.supports && CSS.supports('height', '100lvh')) {
+      stage.style.bottom = 'auto';
+      stage.style.height = '100lvh';
+    }
 
     var src = document.createElement('canvas');
     src.style.display = 'none';

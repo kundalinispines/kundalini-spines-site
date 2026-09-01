@@ -303,8 +303,15 @@
     <p>
       Your edition has been filed against your order. A digital edition is downloaded from this page once your payment is confirmed with Stripe; a physical edition is confirmed by email and then packed, numbered and shipped.
     </p>
+    <!-- WAS "nothing here can be lost — you can close this and come back to
+         the same link", and it directly contradicted the download note added
+         below on Sept 1. Coming back needs the link, and the link is not
+         emailed anywhere, so it CAN be lost — which is the whole reason that
+         note exists. Two sentences on one page telling a buyer opposite
+         things about whether they can safely close the tab is worse than
+         either sentence alone. -->
     <p>
-      Your receipt goes to the email address on the order, not to this page, so nothing here can be lost &mdash; you can close this and come back to the same link. If a physical confirmation has not arrived within a day, write to the address below and quote your order reference.
+      Your receipt goes to the email address on the order. This page is separate from that: it is where a digital edition is collected, and coming back to it means keeping the link. If a physical confirmation has not arrived within a day, write to the address below and quote your order reference.
     </p>
 
     <!-- ====================================================================
@@ -391,6 +398,31 @@
         </p>
         <p class="readout" style="margin: var(--space-4) 0 0; opacity: 0.7;">
           MP3 &middot; 271&nbsp;MB &nbsp;&mdash;&nbsp; WAV &middot; 1.4&nbsp;GB
+        </p>
+
+        <!-- THE "KEEP THIS LINK" NOTE. Sept 1 2026, and it exists because of a
+             gap the buyer would otherwise discover alone.
+
+             NOTHING EMAILS THIS PAGE'S ADDRESS TO ANYBODY. Stripe's receipt
+             shows what was bought; it does NOT carry the success URL, because
+             that URL is a redirect Stripe performs, not a thing it sends. So
+             this page is the buyer's ONLY route back to their files. Someone
+             who buys on a phone meaning to download on a laptop later, and
+             closes the tab, has no way back — they paid, the window is still
+             open, and they are stuck writing an email.
+
+             The real fix is a confirmation email and an order record, and it
+             is item 1 in V2HANDOFF 55. This is the copy-only mitigation, and
+             it is most of the protection for none of the work: it tells the
+             buyer the two things they need to know BEFORE they close the tab,
+             at the moment they are looking at the page.
+
+             THE SENTENCE IS IN THE MARKUP, NOT BUILT BY SCRIPT. Only the date
+             is injected. The warning has to survive a script that half-runs;
+             a fallback of "for a limited time" is vague but true, and vague
+             and true beats a blank where the deadline should be. -->
+        <p style="margin: var(--space-6) 0 0;">
+          <strong>Download now if you can.</strong> This page is the only link to your files &mdash; it is not emailed to you, and Stripe&rsquo;s receipt does not contain it. The link stays open <span data-ks-expiry>for a limited time</span>. If you lose it, write to <a href="mailto:kundalinispines@gmail.com">kundalinispines@gmail.com</a> quoting your order reference and it will be reissued.
         </p>
       </div>
 
@@ -662,16 +694,31 @@
            has no use for them. */
         var note = region.querySelector('[data-ks-delivery-note]');
         if (note) {
-          var when = '';
-          if (r.body.expiresAt) {
-            try {
-              when = ' This download link stays open until ' +
-                new Date(r.body.expiresAt).toLocaleString() + '.';
-            } catch (e) { when = ''; }
-          }
-          note.textContent = (r.body.email
+          note.textContent = r.body.email
             ? 'Your receipt has gone to ' + r.body.email + '.'
-            : 'Your receipt has gone to the email address on the order.') + when;
+            : 'Your receipt has gone to the email address on the order.';
+        }
+
+        /* The deadline, written into the keep-this-link note below the
+           buttons. The element ships reading "for a limited time", so a
+           failure here — a malformed timestamp, a locale that throws — leaves
+           a sentence that is vaguer but still true, rather than a gap where
+           the date should be. toLocaleString() renders in the BUYER's
+           timezone, which is the only one they can act on. */
+        var expiry = region.querySelector('[data-ks-expiry]');
+        if (expiry && r.body.expiresAt) {
+          /* isNaN(getTime()), NOT try/catch. `new Date('garbage')` does not
+             throw — it returns an Invalid Date whose toLocaleString() is the
+             literal string "Invalid Date", so a try/catch here catches
+             nothing and the buyer is told the link stays open "until Invalid
+             Date". That is exactly what the first version of this block did,
+             and it was caught by feeding the test a malformed timestamp
+             rather than by reading it. Validate the date, do not guard the
+             call. */
+          var when = new Date(r.body.expiresAt);
+          if (!isNaN(when.getTime())) {
+            expiry.textContent = 'until ' + when.toLocaleString();
+          }
         }
 
         show('ok');

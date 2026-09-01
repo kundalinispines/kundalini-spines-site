@@ -638,6 +638,20 @@ per request rather than per byte, so the cost is not the worry — the worry is
 a buyer on a phone tapping the wrong button. That is why MP3 is the primary
 button, WAV is a ghost button, and both sizes are printed next to them.
 
+**Refunds and disputes close the download — but only because the CHARGE is
+checked, not the session.** This was wrong when it shipped on Aug 31 and was
+corrected Sept 1. A Checkout Session's `payment_status` is one of exactly three
+values (`paid`, `unpaid`, `no_payment_required`) and the session object carries
+no refund information at all — refunding an order leaves it reading `paid`
+forever. Both functions therefore expand `payment_intent.latest_charge` and
+check `refunded`, `amount_refunded` and `disputed`. Verified against mocked
+Stripe responses: full refund, partial refund and dispute each return 403 and
+mint no download token. **A partial refund also closes it** — that is a
+deliberate choice, since there is no partial album, and it is the safer
+direction if the owner ever refunds a few dollars as a goodwill gesture. If
+that becomes a real case, the fix is to compare `amount_refunded` against
+`amount_total` rather than against zero.
+
 **A Stripe outage blocks downloads.** `/api/download` re-asks Stripe on every
 request rather than trusting its own token, so that a refund or dispute landing
 between verification and download is honoured. The cost is that Stripe being

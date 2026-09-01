@@ -124,7 +124,8 @@ export async function onRequestGet(context) {
   try {
     const res = await fetch(
       'https://api.stripe.com/v1/checkout/sessions/' +
-        encodeURIComponent(sessionId) + '?expand[]=line_items',
+        encodeURIComponent(sessionId) +
+          '?expand[]=line_items&expand[]=payment_intent.latest_charge',
       { headers: { Authorization: 'Bearer ' + env.STRIPE_SECRET_KEY } }
     );
 
@@ -159,6 +160,24 @@ export async function onRequestGet(context) {
      session on the account unlocks the album — a $42 Deluxe order, a future
      $5 sticker, anything. "The session is paid" and "the session is paid FOR
      THIS" are different questions and only the second one matters here. */
+
+  /* THE REFUND / DISPUTE GATE. See the banner: the session never learns that
+     money went back, the charge does. `latest_charge` is null for a session
+     whose payment settled asynchronously and has not produced a charge yet —
+     that case is already excluded by the payment_status check above, so a
+     missing charge here is not treated as suspicious and simply falls
+     through. Only an affirmative refund or dispute closes the door. */
+  const pi = session.payment_intent;
+  var charge = pi && typeof pi === 'object' ? pi.latest_charge : null;
+  if (charge && typeof charge === 'object') {
+    if (charge.refunded === true || (charge.amount_refunded || 0) > 0) {
+      return json({ ok: false, error: 'refunded' }, 403);
+    }
+    if (charge.disputed === true) {
+      return json({ ok: false, error: 'disputed' }, 403);
+    }
+  }
+
   const items = (session.line_items && session.line_items.data) || [];
   const isAlbum = items.some(function (li) {
     return li.price && li.price.id === env.PRICE_ID_DIGITAL;

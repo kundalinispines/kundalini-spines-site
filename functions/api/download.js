@@ -26,11 +26,28 @@
 
    IT RE-VERIFIES WITH STRIPE RATHER THAN TRUSTING THE TOKEN. The token from
    /api/verify is signed and short-lived, so trusting it would be defensible
-   and one API call cheaper. It is not trusted because a refund, a dispute or
-   a fraud cancellation can land between minting and download, and the whole
-   argument for this file is that Stripe is the authority. The consequence,
-   stated plainly so nobody is surprised by it: a Stripe outage blocks
-   downloads. That is the correct failure direction here.
+   and one API call cheaper. It is not trusted because a refund or a dispute
+   can land between minting and download, and the whole argument for this file
+   is that Stripe is the authority. The consequence, stated plainly so nobody
+   is surprised by it: a Stripe outage blocks downloads. That is the correct
+   failure direction here.
+
+   >> A CORRECTION, Sept 1 2026, and the reason the CHARGE is fetched at all.
+   The paragraph above originally claimed the re-verification caught refunds.
+   IT DID NOT, and the claim was checked only after it shipped. A Checkout
+   Session's `payment_status` is one of exactly three values — `paid`,
+   `unpaid`, `no_payment_required` — and Stripe's session object carries no
+   refund information whatsoever. Refunding an order leaves `payment_status`
+   reading `paid` forever. So re-asking about the SESSION, however many times,
+   can never learn that the money went back.
+
+   The refund lives on the Charge, which is why the request below expands
+   `payment_intent.latest_charge` and checks `refunded` / `amount_refunded` /
+   `disputed`. Without that expansion this endpoint would have kept serving
+   the album to someone who had been fully refunded, for the whole download
+   window, while a comment three lines up insisted it could not happen. That
+   is the worst shape a bug can have and it is why the check is here rather
+   than on a list somewhere.
    ========================================================================== */
 
 const REQUIRED_ENV = ['STRIPE_SECRET_KEY', 'PRICE_ID_DIGITAL', 'DOWNLOAD_SIGNING_KEY'];
@@ -119,9 +136,9 @@ export async function onRequestGet(context) {
     return fail('server_misconfigured', 500);
   }
   /* The binding is checked separately from the string vars: it is configured
-     in a different place in the dashboard (Settings -> Functions -> R2
-     bindings, not Environment variables) and is the one most likely to be
-     forgotten. Naming it in the log saves the next person the hunt. */
+     on its own dashboard screen (Settings -> Bindings -> Add -> R2 bucket,
+     not Variables and Secrets) and is the one most likely to be forgotten.
+     Naming it in the log saves the next person the hunt. */
   if (!env.ALBUM_BUCKET) {
     console.error('Misconfigured: R2 binding ALBUM_BUCKET is not bound');
     return fail('server_misconfigured', 500);
@@ -156,7 +173,8 @@ export async function onRequestGet(context) {
   try {
     const res = await fetch(
       'https://api.stripe.com/v1/checkout/sessions/' +
-        encodeURIComponent(sessionId) + '?expand[]=line_items',
+        encodeURIComponent(sessionId) +
+          '?expand[]=line_items&expand[]=payment_intent.latest_charge',
       { headers: { Authorization: 'Bearer ' + env.STRIPE_SECRET_KEY } }
     );
     if (res.status === 404) return fail('not_found', 404);
@@ -172,6 +190,24 @@ export async function onRequestGet(context) {
 
   if (session.status !== 'complete' || session.payment_status !== 'paid') {
     return fail('unpaid', 402);
+  }
+
+
+  /* THE REFUND / DISPUTE GATE. See the banner: the session never learns that
+     money went back, the charge does. `latest_charge` is null for a session
+     whose payment settled asynchronously and has not produced a charge yet —
+     that case is already excluded by the payment_status check above, so a
+     missing charge here is not treated as suspicious and simply falls
+     through. Only an affirmative refund or dispute closes the door. */
+  const pi = session.payment_intent;
+  var charge = pi && typeof pi === 'object' ? pi.latest_charge : null;
+  if (charge && typeof charge === 'object') {
+    if (charge.refunded === true || (charge.amount_refunded || 0) > 0) {
+      return fail('refunded', 403);
+    }
+    if (charge.disputed === true) {
+      return fail('disputed', 403);
+    }
   }
 
   const items = (session.line_items && session.line_items.data) || [];

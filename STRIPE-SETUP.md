@@ -548,7 +548,8 @@ Before flipping anything to live mode:
 | `css/purchase.css` | Their styling. |
 | `purchase-success.html` | Branded return page for a completed purchase. |
 | `purchase-cancelled.html` | Branded return page for an abandoned one. |
-| `scripts/stripe-payment-link.sh` | The wizard. Walks the Dashboard steps, writes the URL into the config, runs the test-card checklist. |
+| `scripts/stripe-payment-link.sh` | The Payment Link wizard. Walks the Dashboard steps, writes the URL into the config, runs the test-card checklist. |
+| `scripts/r2-album-download.sh` | The R2 wizard. Nine stages: private bucket, ZIP upload, `ALBUM_BUCKET` binding, live price ID, generated signing key, the environment variables, and a live check of `/api/verify` that proves the wiring without spending a cent. Walks §3a below. Writes nothing to disk — every secret goes straight into the Cloudflare dashboard. |
 | `functions/api/verify.js` | **Server-side.** Asks Stripe whether a session is paid, checks it is for the digital album, mints the signed download token. |
 | `functions/api/download.js` | **Server-side.** Re-verifies, then streams the ZIP out of the private R2 bucket. The only route to the file. |
 | `STRIPE-SETUP.md` | This document. |

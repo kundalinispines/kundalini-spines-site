@@ -238,22 +238,30 @@ and `localStorage.getItem('ks.skyLock')` on the device before touching code.
 - Commits: `3d927df` (build 32, `js/nav.js` + `css/star-bg.css`) and this
   handoff's own — pushed, **and released**: `main` fast-forwarded to the
   branch head on the owner's explicit "sync main and ill test".
+- Session end state: FOUR releases this session, each on the owner's
+  explicit word — build 32/diag 33 (`b04edb0`), build 34 (`6e4d90e`),
+  build 35 (`88ee5aa`), build 36 (`902bfac`, the retirement).
+  `origin/main` = `902bfac` = the branch head at close; live site
+  confirmed serving star-build 36. Working tree clean.
 
 ---
 
 ## Still open
 
-1. **Release build 36 (the retirement) and close the sky saga.** Build 35
-   (`88ee5aa`) WAS released and measured on-device — verdict above: worse,
-   mechanism retired. Build 36 is on the branch awaiting the owner's
-   "sync main". After it deploys, the phone should be back to the
-   build-33 coherent state (single ride with the bars, no crawl). If the
-   owner wants the ride truly gone, the inner-scroller architecture
-   decision is the only door left — do not re-attempt page-side
-   compensation. Frame-track any new recording (track3.py pattern in the
-   session scratchpad) — and mind that starry IN-FLOW artwork polluted
-   the star tracker in ALL THREE recordings; the nav wordmark and the
-   panel's own numbers are the reliable instruments.
+1. **The sky saga is CLOSED by the owner's word.** Build 36 (`902bfac`)
+   was released on their "sync main", confirmed live
+   (`--star-build: 36` served), and the owner ended it: "ok this is fine
+   for now we can stop messing with it". The site is at the build-33
+   coherent state (single ride with the bars, no crawl). Nothing here is
+   open — but the ground rules stand for whoever reads this next: do NOT
+   re-attempt page-side compensation (the three-clocks proof above); the
+   inner-scroller architecture is the only remaining door and it was
+   presented to the owner, not built. Frame-track any new recording
+   (track3.py pattern in the session scratchpad) — and mind that starry
+   IN-FLOW artwork polluted the star tracker in ALL THREE recordings; the
+   nav wordmark and the panel's own numbers are the reliable instruments.
+   (Note: build 36's on-device look was NOT screenshotted — the owner
+   judged it live and accepted it; taken on their word.)
 2. **The listen test at coinc 110** (52's item 1, unchanged).
 3. **The fulfilment Worker** — waits on the owner's go.
 4. **Live Stripe link swap** — the real domain now exists; still waits on

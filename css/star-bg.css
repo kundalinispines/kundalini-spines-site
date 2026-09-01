@@ -41,6 +41,14 @@
 :root {
   /* Bumped on every change, same reason as --spine-build: a browser sitting on
      a cached stylesheet is indistinguishable from a change that did not work.
+     33 = ?skydiag, measurement only. Build 32's lock verified locally and
+     the owner still saw continuous movement while swiping on-device. The
+     surviving hypotheses differ in WHERE the motion lives — the layer box,
+     the layout viewport translating against the screen, or a non-sky layer
+     — and only the phone can separate them. js/nav.js gains a ?skydiag
+     overlay (min–max of viewport, lvh, --sky-lock, visualViewport and the
+     sky box, live while swiping; tap to reset, then screenshot). Zero
+     visual change without the query flag.
      32 = the sky lock survives navigation. Build 31 held within a page, but
      every page LOAD reset the lock to zero — a page opened with Brave's
      chrome up published the shrunken height, and the first scroll-down grew

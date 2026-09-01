@@ -67,6 +67,98 @@
     window.addEventListener('resize', setSkyLock);
   }
 
+  /* ---- ?skydiag: on-device sky diagnostics (star-build 33) ----------------
+     The build-32 lock verified locally and the owner STILL sees the sky
+     move on-device — continuously, while swiping. Every hypothesis left
+     standing is about what Brave does with the layout viewport mid-gesture,
+     which no desktop harness reproduces (the browser pane cannot even fire
+     a real emulated resize — see V2HANDOFF 53). So: measure on the phone.
+     Open any page with ?skydiag and swipe; every row shows
+     current [min–max since reset]; TAP THE PANEL to reset the ranges after
+     the load settles, swipe up and down a few times, screenshot.
+
+     HOW TO READ IT:
+     - `sky h` / `bb h` ranges widen while swiping -> the layer BOX is still
+       changing; the lock is being rewritten or overridden — look at `lock`
+       and `writes`.
+     - boxes hold but `scr t` ranges -> the layout viewport itself is
+       translating against the screen during chrome animation and the fixed
+       stack rides it; no sizing fix can help — the answer is visualViewport
+       compensation.
+     - everything holds and the sky still visibly moves -> what moves is not
+       these layers; suspect the cloud canvas contents or a non-sky layer.
+     Costs nothing without the query flag; removal is this one block. */
+  if (/[?&]skydiag\b/.test(location.search)) {
+    const mm = {};
+    const track = (k, v) => {
+      if (!isFinite(v)) return 0;
+      const s = mm[k] || (mm[k] = { min: v, max: v });
+      if (v < s.min) s.min = v;
+      if (v > s.max) s.max = v;
+      return v;
+    };
+    const fmt = (k, v, d) => {
+      d = d || 0;
+      const s = mm[k];
+      return v.toFixed(d) + (s ? ' [' + s.min.toFixed(d) + '–' + s.max.toFixed(d) + ']' : '');
+    };
+    const dprobe = document.createElement('div');
+    dprobe.style.cssText =
+      'position:absolute;top:0;left:0;width:0;height:100lvh;visibility:hidden;pointer-events:none';
+    /* The sentinel copies the sky layers' exact geometry so its rect IS the
+       sky box, readable where a pseudo-element's is not. */
+    const sky = document.createElement('div');
+    sky.style.cssText =
+      'position:fixed;top:0;left:0;width:2px;height:100lvh;visibility:hidden;pointer-events:none';
+    if (window.CSS && CSS.supports && CSS.supports('height', '100lvh')) {
+      sky.style.height = 'var(--sky-lock, 100lvh)';
+    }
+    const panel = document.createElement('pre');
+    panel.style.cssText =
+      'position:fixed;top:72px;left:8px;z-index:2147483647;margin:0;padding:6px 8px;' +
+      'font:10px/1.5 monospace;color:#8f8;background:rgba(0,0,0,.75);border-radius:4px;white-space:pre';
+    let evR = 0, evS = 0, lockWrites = 0, lastLock = '';
+    panel.addEventListener('click', () => {
+      for (const k in mm) delete mm[k];
+      evR = 0; evS = 0; lockWrites = 0;
+    });
+    document.body.appendChild(dprobe);
+    document.body.appendChild(sky);
+    document.body.appendChild(panel);
+    window.addEventListener('resize', () => { evR++; }, { passive: true });
+    window.addEventListener('scroll', () => { evS++; }, { passive: true });
+    const vv = window.visualViewport;
+    const draw = () => {
+      const rect = sky.getBoundingClientRect();
+      const lock =
+        getComputedStyle(document.documentElement).getPropertyValue('--sky-lock').trim() || '(unset)';
+      if (lock !== lastLock) { if (lastLock) lockWrites++; lastLock = lock; }
+      const bb = parseFloat(getComputedStyle(document.body, '::before').height) || 0;
+      const vvT = vv ? vv.offsetTop : 0;
+      panel.textContent =
+        'SKY DIAG b33 (tap=reset)\n' +
+        'in  ' + fmt('iw', track('iw', innerWidth)) + ' x ' + fmt('ih', track('ih', innerHeight)) + '\n' +
+        'lvh ' + fmt('lvh', track('lvh', dprobe.offsetHeight)) + '\n' +
+        'lock ' + lock + '  writes ' + lockWrites + '\n' +
+        (vv
+          ? 'vv h ' + fmt('vvh', track('vvh', vv.height)) + ' top ' + fmt('vvt', track('vvt', vvT)) +
+            ' sc ' + fmt('vvs', track('vvs', vv.scale), 2) + '\n'
+          : 'vv (none)\n') +
+        'sky t ' + fmt('st', track('st', rect.top)) + ' h ' + fmt('sh', track('sh', rect.height)) + '\n' +
+        'scr t ' + fmt('sct', track('sct', rect.top - vvT)) + '\n' +
+        'bb h ' + fmt('bb', track('bb', bb)) + '\n' +
+        'ev r' + evR + ' s' + evS + '  y ' + Math.round(window.scrollY);
+    };
+    /* rAF for smoothness while swiping, but never rAF ALONE: a hidden or
+       throttled tab freezes rAF entirely (measured in the browser pane —
+       the panel stayed empty until an interval was added), so a slow
+       interval keeps the readout truthful everywhere. draw() is one
+       idempotent render; only loop() re-queues. */
+    const loop = () => { draw(); requestAnimationFrame(loop); };
+    loop();
+    setInterval(draw, 500);
+  }
+
   const nav = document.querySelector('.nav');
   const toggle = document.querySelector('.nav__toggle');
   const links = document.querySelector('.nav__links');

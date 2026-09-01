@@ -100,6 +100,40 @@ NOT fire a real `resize` event, so the mid-page growth step needed a manual
 device it fires (build 31's one-time jump was that listener running). Do not
 diagnose the listener as broken from an emulated-resize non-response.
 
+## RESOLVED ON-DEVICE, later the same session: the sky is still — BRAVE moves the PAGE
+
+Build 32's on-device verdict arrived as a 15 s screen recording of
+`?skydiag` (star-build 33's overlay, shipped for exactly this). Two
+independent measurements, one conclusion:
+
+1. **The overlay, through the whole gesture:** `lock 790px, writes 0`;
+   `sky t 0 [0–0] h 790 [790–790]`; `scr t [0–0]`; `bb h [790–790]` — while
+   `innerHeight` swung 671→790 as chrome collapsed. Every sky layer box is
+   perfectly still in page space. Builds 30–32 WORK.
+2. **Frame-tracking the recording** (15 fps, template-matching the fixed
+   nav wordmark, which shares the sky's fixed positioning): the whole
+   fixed stack slides between two screen positions, Δ = 157 device px
+   ≈ 56 CSS px, in exact sync with Brave's URL-bar visibility — nine
+   cycles in 15 s, one per swipe-direction change, ~150–250 ms each.
+
+**The mechanism:** Brave's compositor translates the entire rendered web
+surface as its toolbars hide/show. The layout viewport top loses ~56 CSS px
+(top bar) while the viewport height gains ~119 (top 56 + bottom 63). No DOM
+metric sees it — which is why the overlay reads stable while the eye sees
+motion. This is standard Android-browser behaviour; every fixed element on
+every site rides it. **It cannot be removed by page code. Do not attempt
+another sizing/locking fix for it — the locks are done and proven.**
+
+**The one real mitigation, if the owner wants it (NOT shipped):**
+center-anchor the pinned layers on coarse-pointer devices —
+`top: calc(50% - var(--sky-lock, 100lvh) / 2)` in place of `top: 0`, same
+`height`. A percentage top re-resolves as the viewport height animates, so
+the layer's screen drift becomes |−Δtop + Δh/2|: ~3.7 CSS px on Brave
+(both bars, 16× better), ~28 px on top-bar-only Chrome (2× better), but
+INTRODUCES ~25 px of new drift on bottom-bar-only browsers (iOS Safari)
+where the current top anchor is already perfect. It is a trade, and the
+owner decides it.
+
 ## Verified vs. asserted — and the honest gap
 
 **Verified:** everything above, locally. **Asserted / NOT verified:** the

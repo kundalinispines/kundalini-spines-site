@@ -33,6 +33,16 @@
 
   "entries": [
     {
+      "id": "005",
+      "channel": "filed",
+      "date": "2026-09-01",
+      "title": "Rise Up is open",
+      "body": "The Digital Edition is available. Twenty-eight tracks, delivered twice — as MP3s to listen to and as the WAV masters to keep — and both download from the confirmation page the moment the payment clears. Nothing waits on a person. The Deluxe and Artifact editions stay filed: they are physical objects, and they go out when they exist rather than when they are announced.",
+      "media": "assets/music/rise-up-cover.webp",
+      "mediaAlt": "Rise Up album cover — two hooded figures rising out of a cracked graveyard beneath a glowing spinal column and a sigil-marked moon.",
+      "internal": "purchase.html"
+    },
+    {
       "id": "004",
       "seed": true,
       "channel": "filed",

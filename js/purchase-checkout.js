@@ -1,22 +1,29 @@
 /* ==========================================================================
    PURCHASE — THE CHECKOUT INTERFACE, AND NOTHING BEHIND IT.
 
-   Aug 20 2026. This file is a ROUGH-IN. It is the seam a payment provider gets
-   dropped into later; today it takes no money, calls no API, and loads no
-   third-party script. That is the whole design, and it is deliberate — the
-   owner's words for this pass were "nothing has to be linked up yet or really
-   wired ... the site is not live". Read STRIPE-SETUP.md before you change a
-   line of this; it carries the reasoning about the host that the code below can
-   only gesture at.
+   Aug 20 2026, and NO LONGER A ROUGH-IN as of Sept 1 2026. This banner used
+   to say the file "takes no money, calls no API, and loads no third-party
+   script", quoting the owner's "the site is not live". The Digital Edition now
+   redirects to a live Stripe Payment Link and takes real money. Deluxe and
+   Artifact are still unwired. Read STRIPE-SETUP.md before you change a line of
+   this.
 
-   THE ARCHITECTURAL FACT THIS FILE IS SHAPED AROUND. Kundalini Spines is a
-   static site served by GitHub Pages from `main`. There is no server, no
-   serverless runtime, and no environment-variable mechanism anywhere in the
-   repo. A real Stripe Checkout Session is created with the SECRET key, which
-   means it is created server-side — so it cannot be created from this file,
-   ever, on this host as configured. Anyone who "fixes" that by putting a key in
-   here has published it to the world: this file is fetched verbatim by every
-   visitor, and GitHub Pages serves the whole repo.
+   THE ARCHITECTURAL FACT THIS FILE IS SHAPED AROUND, RESTATED. This paragraph
+   used to read: "Kundalini Spines is a static site served by GitHub Pages from
+   `main`. There is no server, no serverless runtime, and no environment-
+   variable mechanism anywhere in the repo." Both halves are now wrong — the
+   host is Cloudflare Pages (since Aug 30 2026), and there IS a server:
+   functions/api/verify.js and functions/api/download.js, which hold the secret
+   key and confirm payments.
+
+   WHAT HAS NOT CHANGED, AND IS THE POINT OF THE PARAGRAPH. A Stripe Checkout
+   Session is created with the SECRET key, so it is created server-side — never
+   from this file, which is fetched verbatim by every visitor. The secret lives
+   in the Cloudflare environment and is read only by the Functions. If a
+   server-side checkout is ever wanted, it belongs in functions/api/, not here.
+
+     >> THE EXISTENCE OF A SERVER IS NOT PERMISSION TO PUT A KEY IN THIS FILE.
+        It is the opposite: there is now somewhere correct to put one. <<
 
      >> NO SECRET KEY, NO WEBHOOK SIGNING SECRET, NO PRIVATE CREDENTIAL, EVER,
         IN THIS FILE OR ANY OTHER FILE IN THIS REPO. <<
@@ -45,11 +52,16 @@
      file resolves through it, and a future provider gets wired in by filling in
      `checkoutUrl` here and nowhere else.
 
-     ALL THREE `checkoutUrl` ARE null AND MUST STAY null UNTIL A REAL URL
-     EXISTS. null is not a placeholder to be tidied away — it is the flag
-     `start()` reads to decide between "redirect" and "say honestly that this is
-     not open yet". A '#' or an '' in that slot would send a paying visitor to a
-     dead page, which is the exact failure this shape exists to prevent.
+     `checkoutUrl` IS null UNTIL A REAL URL EXISTS, AND null IS NOT A
+     PLACEHOLDER TO BE TIDIED AWAY. It is the flag `start()` reads to decide
+     between "redirect" and "say honestly that this is not open yet". A '#' or
+     an '' in that slot would send a paying visitor to a dead page, which is
+     the exact failure this shape exists to prevent.
+
+     SEPT 1 2026: this paragraph used to open "ALL THREE `checkoutUrl` ARE
+     null". Digital now carries a live Stripe Payment Link and takes real
+     money; Deluxe and Artifact are still null. The rule is unchanged — it was
+     only ever the count that was true-for-now.
 
      THE PRICES BELOW WERE SET BY THE OWNER ON AUG 27 2026 AND ARE REAL. They
      were placeholders until that day: 12 / 25 / 45, taken from purchase.html
@@ -321,12 +333,22 @@
     }
 
     if (!edition.checkoutUrl) {
-      /* THE HONEST BRANCH, AND THE ONE THAT RUNS TODAY FOR ALL THREE EDITIONS.
-         No fake spinner, no "redirecting...", no mailto fallback pretending to
-         be a checkout. checkout_started is NOT fired here; see §3. */
+      /* THE HONEST BRANCH. It ran for all three editions until Sept 1 2026;
+         it now runs for DELUXE ONLY — Digital redirects to a live Payment
+         Link, and Artifact is caught by the coming-soon branch above before
+         it ever reaches here. No fake spinner, no "redirecting...", no mailto
+         fallback pretending to be a checkout. checkout_started is NOT fired
+         here; see §3. */
       message(sourceEl, edition,
-        'Purchasing is not open yet. ' + edition.name + ' is filed and priced, and the checkout behind this ' +
-        'button has not been connected. Nothing has been charged and nothing has been sent.');
+        /* NOT "Purchasing is not open yet" any more — that was a claim about
+           the whole SITE, and it stopped being true on Sept 1 2026 when the
+           Digital Edition went live. Told to someone clicking Deluxe, it would
+           now send them away believing they could not buy the record at all.
+           The sentence is about THIS edition, and it points at the one that
+           does work. */
+        edition.name + ' is not open yet. It is filed and priced, but the checkout behind this ' +
+        'button has not been connected. The Digital Edition is available now. ' +
+        'Nothing has been charged and nothing has been sent.');
       return { ok: false, reason: 'not-configured', edition: edition };
     }
 

@@ -851,11 +851,25 @@
       actions.className = 'track-focus-panel__actions';
       const note = document.createElement('p');
       note.className = 'track-focus-panel__actions-note';
-      // Second sentence rewritten with the button above it (Aug 20 2026): it
-      // used to say "Downloads open once payment is set up", which described
-      // the per-track dollar download that no longer exists. It must not imply
-      // the editions page can take money yet — it cannot.
-      note.textContent = 'Streaming links go live once each platform is connected. The album editions are a preview; purchasing is not open yet.';
+      // THE SECOND SENTENCE HAS NOW BEEN WRONG TWICE, IN OPPOSITE DIRECTIONS.
+      // It first said "Downloads open once payment is set up", describing the
+      // per-track dollar download that no longer exists. Aug 20 2026 replaced
+      // that with "The album editions are a preview; purchasing is not open
+      // yet" — correct then, and false from Sept 1 2026, when the Digital
+      // Edition went live and started taking real money. This note is on the
+      // HOME page carousel, so for the whole of that window every visitor was
+      // told the album could not be bought while the buy button worked.
+      //
+      // The first sentence is still true and was checked, not assumed: all 28
+      // tracks in data/tracks.json carry null for spotify, appleMusic,
+      // youtubeMusic, stream and download, so no streaming link is wired.
+      // If that changes, this sentence is the one to revisit — not the second.
+      //
+      // "the other editions" rather than naming them: Deluxe has no
+      // checkoutUrl and Artifact is status coming-soon, and those two facts
+      // move independently. A sentence that names them goes stale the moment
+      // either one flips.
+      note.textContent = 'Streaming links go live once each platform is connected. The Digital Edition is available now; the other editions are not open yet.';
       const anchor = focusPanel.querySelector('.track-focus-panel__close');
       focusPanel.insertBefore(actions, anchor);
       focusPanel.insertBefore(note, anchor);

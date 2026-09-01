@@ -2,12 +2,19 @@
 <!-- ==========================================================================
      PURCHASE — RETURN PAGE (SUCCESS). Aug 20 2026.
 
-     THIS PAGE IS A ROUGH-IN AND NOTHING BEHIND IT IS CONNECTED. It is the
-     address a payment provider would be told to return a buyer to. No provider
-     is configured, so today nobody arrives here from a payment — they arrive by
-     typing the URL, or from the link on purchase-cancelled.html. The copy below
-     is written to be true in BOTH worlds, which is the only reason it can ship
-     before the checkout exists. Read STRIPE-SETUP.md first.
+     NO LONGER A ROUGH-IN, Sept 1 2026. This paragraph used to read: "THIS PAGE
+     IS A ROUGH-IN AND NOTHING BEHIND IT IS CONNECTED ... No provider is
+     configured, so today nobody arrives here from a payment — they arrive by
+     typing the URL." All of that is now false. A live Stripe Payment Link
+     redirects real buyers here with a `session_id`, `functions/api/verify.js`
+     confirms the payment against Stripe's API server-side, and the page serves
+     a real download. Proven with a real purchase and a real refund.
+
+     WHAT SURVIVES FROM THE ROUGH-IN, AND IS STILL THE RULE: the copy is
+     written to be true for someone who arrives WITHOUT a valid payment as well
+     as for someone who arrives with one, because the URL is typed-in-able and
+     the query string is not evidence. That is what the four-state verification
+     region below is for. Read STRIPE-SETUP.md first.
 
      WHY A FLAT FILE AT THE ROOT AND NOT /purchase/success. The owner's note
      asked for /purchase/success and /purchase/cancelled. GitHub Pages serves

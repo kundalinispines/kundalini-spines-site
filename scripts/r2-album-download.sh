@@ -340,11 +340,9 @@ esac
 
 # ──────────────────────────────────────────────────────────────────────────
 stage "Bind the bucket to the Pages project"
-say "This is the step people skip, because it is on a different screen from"
-say "the environment variables and looks like it belongs with them."
-open_url "https://dash.cloudflare.com/?to=/:account/pages/view/kundalini-spines"
-step "Settings → Functions → scroll to 'R2 bucket bindings'."
-step "Under Production, click 'Add binding'."
+open_url "https://dash.cloudflare.com/?to=/:account/workers-and-pages"
+step "Open the kundalini-spines project."
+step "Settings → Bindings → Add → R2 bucket."
 step "Variable name:  ALBUM_BUCKET"
 step "R2 bucket:      kundalini-spines-album"
 step "Save."
@@ -352,6 +350,13 @@ printf '\n'
 note "The variable name is case-sensitive and must be exactly ALBUM_BUCKET —"
 note "functions/api/download.js looks it up by that name and logs"
 note "'R2 binding ALBUM_BUCKET is not bound' when it is missing."
+printf '\n'
+warn "IF YOU CANNOT FIND 'Functions' IN THE SETTINGS — you are not lost, the"
+warn "dashboard moved. Bindings used to live under Settings → Functions →"
+warn "R2 bucket bindings, and that section no longer exists; it is now just"
+warn "Settings → Bindings. Corrected Aug 31 2026 on the owner's first real"
+warn "run of this wizard, which sent them hunting for a screen Cloudflare"
+warn "had already retired."
 pause "Binding saved?"
 
 # ──────────────────────────────────────────────────────────────────────────
@@ -408,9 +413,13 @@ pause "Copied?"
 
 # ──────────────────────────────────────────────────────────────────────────
 stage "Set the environment variables"
-open_url "https://dash.cloudflare.com/?to=/:account/pages/view/kundalini-spines/settings/environment-variables"
-say "Settings → Environment variables → Production → 'Add variable'."
+open_url "https://dash.cloudflare.com/?to=/:account/workers-and-pages"
+say "Same project, same Settings page as the binding you just saved:"
+say "Settings → Variables and Secrets → Add."
 say "Three of them. Encrypt the first two."
+note "Also renamed by Cloudflare — this was 'Environment variables' when"
+note "this wizard was written. Secrets and plain variables now share one"
+note "screen, and Encrypt is what separates them."
 printf '\n'
 step "1.  STRIPE_SECRET_KEY   = your LIVE secret key (sk_live_...)"
 say "        Get it from https://dashboard.stripe.com/apikeys — live mode,"

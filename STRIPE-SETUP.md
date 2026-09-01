@@ -2,12 +2,19 @@
 
 Written Aug 20 2026, during the purchase rough-in.
 
-**Nothing on this site can take money today, and nothing in this repo pretends it
-can.** The purchase page, the checkout interface and the two return pages are
-built. No Stripe account is connected, no price IDs exist, no payment links
-exist, and no payment has ever been processed. This document is the list of what
-would have to happen for that to change, written for you rather than for a
-developer.
+> **This opening is out of date and is kept for the record.** It said: "Nothing
+> on this site can take money today, and nothing in this repo pretends it can.
+> No Stripe account is connected, no price IDs exist, no payment links exist,
+> and no payment has ever been processed." A live Stripe account, a live
+> Payment Link, and the R2-backed download all exist as of Aug 31 2026.
+
+**Where it actually stands.** The purchase page, the checkout interface and the
+two return pages are built and live. Payment verification and the album
+download run server-side in `functions/api/` (§3). **The Digital Edition's buy
+button still points at the TEST Payment Link, so no real money can move yet** —
+swapping it is one line and is deliberately the last step of §3a. This document
+is the list of what has to happen for that swap to be safe, written for you
+rather than for a developer.
 
 Read the first section before anything else. It is the reason the rest of the
 document is shaped the way it is, and it is a decision only you can make.
@@ -229,9 +236,17 @@ same edit that gives it a link, or the link will be ignored.
 > silent fallback.
 
 Set these in the Cloudflare dashboard: **Workers & Pages → kundalini-spines →
-Settings → Environment variables**, Production scope. Mark the two secret ones
-as **Encrypt** — once encrypted a value cannot be read back out of the
-dashboard, which is the point. **Never in this repo**, and never in a variable
+Settings → Variables and Secrets → Add**. Mark the two secret ones as
+**Encrypt** — once encrypted a value cannot be read back out of the dashboard,
+which is the point.
+
+> **Dashboard paths corrected Aug 31 2026, on the first real run.** This said
+> *Settings → Environment variables*, and the R2 binding step said *Settings →
+> Functions → R2 bucket bindings*. Cloudflare has retired both: there is no
+> **Functions** section any more, bindings are at **Settings → Bindings**, and
+> variables and secrets share one screen at **Settings → Variables and
+> Secrets**. Expect these labels to drift again — when they do, trust the
+> product over this document. **Never in this repo**, and never in a variable
 whose name lacks the encryption; the deploy workflow's leak guard greps the
 diff for `sk_`/`whsec_` but it cannot see the Cloudflare dashboard.
 
@@ -244,11 +259,10 @@ diff for `sk_`/`whsec_` but it cannot see the Cloudflare dashboard.
 | `ALBUM_OBJECT_KEY_WAV` | Key of the WAV zip. Optional; defaults to `KundaliniSpines_RiseUp_WAV.zip`. | No |
 | `DOWNLOAD_WINDOW_HOURS` | How long after purchase the download stays open. Optional; defaults to `72`. | No |
 
-**Plus one binding, which is configured somewhere else in the dashboard and is
-the thing most likely to be forgotten:** Settings → **Functions** → **R2 bucket
-bindings** → variable name **`ALBUM_BUCKET`**, bound to the private bucket
-holding the ZIP. It is not an environment variable and does not appear on the
-Environment variables screen. `/api/download` checks for it separately and logs
+**Plus one binding, which is a separate step and the thing most likely to be
+forgotten:** Settings → **Bindings** → **Add** → **R2 bucket** → variable name
+**`ALBUM_BUCKET`**, bound to the private bucket holding the two ZIPs. It is not
+a variable and does not appear on the Variables and Secrets screen. `/api/download` checks for it separately and logs
 `R2 binding ALBUM_BUCKET is not bound` when it is missing, precisely because
 this is the step people skip.
 

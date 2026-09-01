@@ -216,23 +216,32 @@
   <!-- ======================================================================
        THE COPY HAS TO BE TRUE ON A PAGE NOBODY CAN LEGITIMATELY REACH YET.
 
-       That constraint drove every sentence below. The headline and the "Rise
-       Up is now yours" line are the owner's, and they stay. What is NOT
-       written anywhere on this page:
-         - "your download is ready" / any download link or button. There is no
-           file to link, and per §5 of js/purchase-checkout.js the album ZIP URL
-           must never appear in public HTML at all — not even later.
-         - "check your email". No email is sent, by anything, today.
-         - a receipt, an amount, or a payment method. Nothing was charged.
-       What IS written: what will happen, in future tense, plus a STANDBY panel
-       stating plainly that the checkout is not connected. STANDBY is the site's
-       own word for a channel that is not open — js/site-footer.js prints it
-       beside a link rather than rendering a dead one, and merch.html borrowed
-       it for the objects line. Same word, same reason, third use.
+       That constraint drove every sentence below, and it was written when the
+       page was unreachable by any real buyer. THE CONSTRAINT IS NOW LIFTED —
+       Aug 31 2026, when /api/verify made it possible to know whether the
+       person reading this actually paid. The paragraph that follows is kept
+       because it explains the shape of the page, but read it as history.
 
-       WHEN THE CHECKOUT IS CONNECTED, the STANDBY panel is the thing to delete,
-       and the future-tense paragraph becomes present tense. Nothing else on the
-       page needs to change. That is why they are separated.
+       WHAT IT SAID, AND WHAT IS NOW TRUE INSTEAD:
+         - "no download link or button, there is no file to link" — there is
+           now, but it is written by script from a server-signed token and only
+           after Stripe confirms payment. §5 of js/purchase-checkout.js still
+           holds and is unweakened: the album ZIP's own address appears nowhere
+           in this repo. /api/download is an endpoint that checks a payment,
+           not the file's address.
+         - "no receipt, amount, or payment method. Nothing was charged." Money
+           is real now. The page shows the email the receipt went to and
+           nothing else about the customer — no name, address, amount or card.
+           /api/verify does not return them, deliberately.
+         - "check your email" is still not said to a digital buyer, because
+           their file is here rather than in a message.
+         - The STANDBY panel is GONE. It said the checkout was not connected,
+           which is now false. Its replacement is the four-state verification
+           region below; that block's own banner records what it replaced.
+
+       THE HEADLINE AND "RISE UP IS NOW YOURS" ARE THE OWNER'S AND THEY STAY.
+       The words "Purchase Confirmed" appear as the confirmed panel's label
+       rather than as a second headline competing with TRANSMISSION RECEIVED.
        ====================================================================== -->
   <section class="section container ks-result" style="padding-top: calc(var(--space-24) + 3rem);">
     <!-- THE COVER STANDS BESIDE "RISE UP IS NOW YOURS", which is the one line
@@ -292,36 +301,87 @@
     <p class="ks-result__ref" data-ks-session-ref hidden></p>
 
     <p>
-      Your edition has been filed against your order. What happens next depends on which one you took: a digital edition arrives as a private, expiring download link sent to the email address on the order, and a physical edition is confirmed by email and then packed, numbered and shipped.
+      Your edition has been filed against your order. A digital edition is downloaded from this page once your payment is confirmed with Stripe; a physical edition is confirmed by email and then packed, numbered and shipped.
     </p>
     <p>
-      Nothing is delivered from this page, and nothing on it can be lost &mdash; the confirmation is sent to your email address, not held here. If it has not arrived within a day, write to the address below and quote your order reference if you have one.
+      Your receipt goes to the email address on the order, not to this page, so nothing here can be lost &mdash; you can close this and come back to the same link. If a physical confirmation has not arrived within a day, write to the address below and quote your order reference.
     </p>
 
-    <!-- The STANDBY panel. .empty-state is the site's existing dashed-border
-         "nothing filed here yet" treatment, used unchanged so this reads as
-         part of the page rather than as an error state.
+    <!-- ====================================================================
+         THE VERIFICATION REGION. Replaced the STANDBY panel on Aug 31 2026,
+         when /api/verify made it possible to know rather than assume.
 
-         IT MUST NOT BE SHOWN TO SOMEONE WHO JUST PAID. Until Aug 31 2026 this
-         panel was unconditional markup, so the day a live Payment Link gained
-         a redirect here, a paying customer would have been told "nothing has
-         been charged and no order exists" directly underneath their own order
-         reference. Caught by reading the page, not by any tooling — nothing
-         tests this page's copy against its own query string.
+         WHAT WAS HERE BEFORE, AND WHY IT IS GONE. A single .empty-state panel
+         reading "STANDBY. Purchasing is not open yet — no payment processor is
+         connected to this site, so nothing has been charged and no order
+         exists." It was unconditional markup until Aug 31, when a script was
+         added to hide it whenever `session_id` was present. Both versions are
+         now wrong: a processor IS connected, so the sentence is false on its
+         face, and the query string is not evidence of anything — which was
+         always true and only became dangerous when a download hung off it.
+         STRIPE-SETUP.md's pre-live checklist has an item for exactly this
+         ("the STANDBY panels on both return pages are removed in the same
+         change that connects a real checkout"); this is that change.
 
-         The script at the foot of the page hides it whenever `session_id` is
-         present, which is the same signal that reveals the order reference:
-         one arrival is a buyer returning from a processor, the other is
-         someone who typed the URL. Default-visible on purpose — with JS off,
-         or with no query string, STANDBY is the truthful state of the site.
-         A buyer with JS off therefore still sees it, and still sees no order
-         reference; that pair is the honest failure and is preferable to
-         hiding the status for everyone before the checkout exists. -->
-    <div class="empty-state" data-ks-standby style="margin-top: var(--space-8); max-width: 68ch;">
-      <span class="label">Status</span>
-      <p style="margin: 0;">
-        STANDBY. Purchasing is not open yet &mdash; no payment processor is connected to this site, so nothing has been charged and no order exists. If you have reached this page, you reached it directly. It is the address a completed purchase will return to once the checkout is built.
-      </p>
+         FOUR STATES, AND THE DEFAULT IS THE ONE THAT NEEDS NO JAVASCRIPT.
+         The markup ships showing `nojs`, and the script's first act is to hide
+         it and show `loading`. That ordering is deliberate and is the same
+         principle the old panel used: whatever renders without scripting has
+         to be true on its own. A buyer with JS off cannot have their payment
+         verified — verification is a network call — so they are told that
+         plainly and given the email address, rather than being shown a
+         download button that cannot work or a spinner that never resolves.
+
+         THE DOWNLOAD BUTTON IS NOT IN THIS MARKUP. Its href is written by the
+         script from the signed token /api/verify returns, and only after that
+         call succeeds. §5 of js/purchase-checkout.js forbids the album's
+         address appearing in public HTML; /api/download is an endpoint rather
+         than the file's address, but the button still must not exist before
+         the payment is confirmed, because a button that is present and
+         disabled is a button somebody will re-enable in devtools.
+         ==================================================================== -->
+    <div data-ks-verify style="margin-top: var(--space-8); max-width: 68ch;">
+
+      <div class="empty-state" data-ks-state="nojs">
+        <span class="label">Status</span>
+        <p style="margin: 0;">
+          Confirming a payment needs JavaScript, which is switched off in this browser. Your order is unaffected &mdash; the payment and your receipt are handled by Stripe, not by this page. To collect a digital download, either enable JavaScript and reload, or write to the address below quoting your order reference.
+        </p>
+      </div>
+
+      <div class="empty-state" data-ks-state="loading" hidden>
+        <span class="label">Status</span>
+        <p style="margin: 0;">
+          Confirming your payment with Stripe&hellip;
+        </p>
+      </div>
+
+      <!-- The error panel's <p> is written by the script: the copy differs per
+           failure and the cases are not interchangeable. An unpaid session, a
+           session for a different product, a link that has aged out and a
+           Stripe outage all land here and only the last one is worth
+           retrying, so the retry button is shown per-case rather than always.
+           A permanent "try again" on an unpaid order is an invitation to
+           refresh forever. -->
+      <div class="empty-state" data-ks-state="error" hidden>
+        <span class="label">Status</span>
+        <p style="margin: 0;" data-ks-error-copy></p>
+        <p style="margin: var(--space-4) 0 0;" data-ks-retry-wrap hidden>
+          <button type="button" class="btn btn--ghost" data-ks-retry>Try Again</button>
+        </p>
+      </div>
+
+      <div class="empty-state" data-ks-state="ok" hidden>
+        <span class="label">Purchase Confirmed</span>
+        <p style="margin: 0 0 var(--space-4);">
+          <strong>Rise Up &mdash; Digital Album.</strong> Payment confirmed with Stripe. Thank you for supporting Kundalini Spines &mdash; this is what pays for the next one.
+        </p>
+        <p style="margin: 0 0 var(--space-6);" data-ks-delivery-note></p>
+        <p style="margin: 0;">
+          <a class="btn btn--primary" data-ks-download href="#" download>Download Rise Up</a>
+        </p>
+      </div>
+
     </div>
 
     <div class="ks-result__actions">
@@ -347,7 +407,14 @@
     <div class="grid grid--3">
       <article class="empty-state">
         <span class="label">01 &middot; Digital</span>
-        <p style="margin: 0;">The full record, downloadable. Delivered by a private link that expires, sent to the order&rsquo;s email address.</p>
+        <!-- WAS "Delivered by a private link that expires, sent to the order's
+             email address" — written when delivery was going to be an email
+             and stale from the moment /api/verify landed. The download is on
+             this page, behind the payment check, and no link is emailed by
+             anything. purchase.html carries its own wording for the same
+             edition; if that page is ever changed to promise an email, these
+             two disagree and the buyer believes whichever they read last. -->
+        <p style="margin: 0;">The full record, downloadable from your confirmation page once payment clears. The link stays open for a limited window.</p>
       </article>
       <article class="empty-state">
         <span class="label">02 &middot; Deluxe</span>
@@ -434,26 +501,163 @@
   var edition   = params ? params.get('edition') : null;
 
   var ref = document.querySelector('[data-ks-session-ref]');
-  if (ref && sessionId) {
-    /* Truncated for display at 64 chars — a Stripe Session ID is ~66 and
-       nothing longer than that is a real one. The cap is a belt-and-braces
-       guard against a pasted essay, not a Stripe limit. */
-    ref.textContent = 'Order reference — ' + sessionId.slice(0, 64);
-    ref.hidden = false;
+
+  /* ------------------------------------------------------------------------
+     THE VERIFICATION EXCHANGE.
+
+     WHAT CHANGED ON Aug 31 2026, AND WHY IT IS THE WHOLE POINT OF THIS BLOCK.
+     This script used to reveal the order reference on ANY non-empty
+     `session_id` and hide the STANDBY panel on the same signal, with a comment
+     saying validation was deliberately skipped because "no harm worth the
+     code" — true while the page delivered nothing. It stopped being true the
+     moment a download hung off this page. The query string is now treated as
+     an unverified claim and nothing is revealed until /api/verify — which
+     holds the Stripe secret key and asks Stripe directly — says the payment
+     settled. The reference is printed from the SERVER's answer, not from the
+     URL, so a typed-in id shows nothing at all.
+
+     REFRESH IS FREE AND ALWAYS WORKS. Verification is stateless: there is no
+     one-shot token consumed here, no sessionStorage flag, nothing to get out
+     of step. Reloading re-asks Stripe and re-mints a download token. A buyer
+     can close the tab and come back to the same URL for as long as the
+     download window is open, which is what makes this survivable when someone
+     hits the button twice or their download dies at 90%.
+     ------------------------------------------------------------------------ */
+  var region   = document.querySelector('[data-ks-verify]');
+  var panels   = {};
+  if (region) {
+    ['nojs', 'loading', 'error', 'ok'].forEach(function (name) {
+      panels[name] = region.querySelector('[data-ks-state="' + name + '"]');
+    });
   }
 
-  /* The mirror of the block above: a session_id means a processor sent this
-     visitor here, so the STANDBY panel's "nothing has been charged" is false
-     for them and is removed. See the panel's own comment for why it defaults
-     to visible. `hidden` rather than a class because the panel carries inline
-     styles and no stylesheet rule of its own; the attribute needs neither.
+  function show(state) {
+    Object.keys(panels).forEach(function (name) {
+      if (panels[name]) panels[name].hidden = (name !== state);
+    });
+  }
 
-     Deliberately not validating the value. A fabricated ?session_id=x hides a
-     status note and reveals a meaningless reference to the person who typed
-     it — no harm worth the code. The authority on whether an order exists is
-     the webhook (§5 of js/purchase-checkout.js), never this page. */
-  var standby = document.querySelector('[data-ks-standby]');
-  if (standby && sessionId) { standby.hidden = true; }
+  /* Per-failure copy. `retry` marks the cases where trying again could
+     plausibly produce a different answer — a transient upstream fault or a
+     network drop. Everything else is a settled fact and offering a retry
+     would only invite someone to refresh at a wall. */
+  var FAILURES = {
+    missing_session: {
+      retry: false,
+      copy: 'This page was opened without an order reference, so there is nothing to confirm. If you have just paid, use the link Stripe returned you to; if you were only looking, the editions are linked below.'
+    },
+    not_found: {
+      retry: false,
+      copy: 'Stripe does not recognise this order reference. It may have been mistyped or truncated in copying. Open the link exactly as Stripe returned it, or write to the address below.'
+    },
+    unpaid: {
+      retry: true,
+      copy: 'Stripe has this order but has not confirmed payment for it. Some payment methods settle a few minutes after checkout. Wait a moment and try again; if it does not clear, nothing has been taken from you.'
+    },
+    expired: {
+      retry: false,
+      copy: 'This checkout expired before it completed, so no payment was taken. You can start again from the editions below.'
+    },
+    wrong_product: {
+      retry: false,
+      copy: 'This order is not for the digital album, so there is nothing to download here. A physical edition is confirmed by email and shipped — write to the address below if you need to check on one.'
+    },
+    window_closed: {
+      retry: false,
+      copy: 'The download window on this order has closed. This is a limit on the link, not on what you bought — write to the address below quoting your order reference and it will be reissued.'
+    },
+    server_misconfigured: {
+      retry: true,
+      copy: 'The download service is not answering correctly. Your payment is unaffected. Please try again shortly, or write to the address below quoting your order reference.'
+    },
+    upstream: {
+      retry: true,
+      copy: 'Stripe could not be reached to confirm this order. Your payment is unaffected and nothing has been lost. Please try again in a moment.'
+    },
+    network: {
+      retry: true,
+      copy: 'This page could not reach the site to confirm your order — the connection may have dropped. Your payment is unaffected. Please try again.'
+    }
+  };
+
+  function showError(code) {
+    var known = FAILURES[code] || FAILURES.upstream;
+    var copyEl  = region && region.querySelector('[data-ks-error-copy]');
+    var retryEl = region && region.querySelector('[data-ks-retry-wrap]');
+    if (copyEl)  copyEl.textContent = known.copy;
+    if (retryEl) retryEl.hidden = !known.retry;
+    show('error');
+  }
+
+  function verify() {
+    if (!region) return;
+
+    if (!sessionId) { showError('missing_session'); return; }
+
+    show('loading');
+
+    /* `cache: 'no-store'` on top of the endpoint's own no-store header. The
+       header governs shared caches; this governs the browser's, and a
+       confirmation answer being replayed from a back/forward cache to a
+       different person on a shared machine is the failure worth two lines. */
+    fetch('/api/verify?session_id=' + encodeURIComponent(sessionId), {
+      cache: 'no-store',
+      credentials: 'omit',
+      headers: { accept: 'application/json' }
+    })
+      .then(function (res) {
+        return res.json().then(function (body) { return { status: res.status, body: body }; });
+      })
+      .then(function (r) {
+        if (!r.body || r.body.ok !== true) {
+          showError((r.body && r.body.error) || 'upstream');
+          return;
+        }
+
+        /* The reference comes from the server's echo of Stripe's own session
+           id, never from the URL. textContent, not innerHTML — the value is
+           server-supplied and well-formed today, and it will still be text
+           tomorrow when someone changes where it comes from. */
+        if (ref && r.body.reference) {
+          ref.textContent = 'Order reference — ' + String(r.body.reference).slice(0, 64);
+          ref.hidden = false;
+        }
+
+        var link = region.querySelector('[data-ks-download]');
+        if (link && r.body.token) {
+          link.setAttribute('href', '/api/download?token=' + encodeURIComponent(r.body.token));
+        }
+
+        /* The email is shown only to confirm WHERE the receipt went, which is
+           the one question it answers for the buyer. No name, no address, no
+           amount, no card — /api/verify does not return them and this page
+           has no use for them. */
+        var note = region.querySelector('[data-ks-delivery-note]');
+        if (note) {
+          var when = '';
+          if (r.body.expiresAt) {
+            try {
+              when = ' This download link stays open until ' +
+                new Date(r.body.expiresAt).toLocaleString() + '.';
+            } catch (e) { when = ''; }
+          }
+          note.textContent = (r.body.email
+            ? 'Your receipt has gone to ' + r.body.email + '.'
+            : 'Your receipt has gone to the email address on the order.') + when;
+        }
+
+        show('ok');
+      })
+      .catch(function () { showError('network'); });
+  }
+
+  /* The script's first act: retire the no-JavaScript panel. Everything after
+     this point assumes scripting, which is safe because this line proves it. */
+  if (region) {
+    var retryBtn = region.querySelector('[data-ks-retry]');
+    if (retryBtn) retryBtn.addEventListener('click', verify);
+    verify();
+  }
 
   if (window.KSPurchase && typeof window.KSPurchase.track === 'function') {
     var known = edition && window.KSPurchase.find(edition);
@@ -466,7 +670,10 @@
       price: known ? known.price : null,
       currency: known ? known.currency : null,
       product_id: known ? window.KSPurchase.productId(known) : null,
-      /* Whether a provider sent us here at all. Today: always false. */
+      /* Whether a provider sent us here at all. NOT whether they paid — this
+         fires on page load, before /api/verify has answered, and it stays a
+         funnel marker rather than a payment record. The authority is the
+         webhook; see §5 of js/purchase-checkout.js. */
       has_session_id: !!sessionId
     });
   }

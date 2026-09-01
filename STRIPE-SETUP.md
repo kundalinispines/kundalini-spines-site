@@ -16,10 +16,26 @@ document is shaped the way it is, and it is a decision only you can make.
 
 ## 1. The blocking fact: this site has no server
 
-Kundalini Spines is a **static site**. Plain HTML, CSS and JavaScript, deployed
-to GitHub Pages from the `main` branch. There is no build step, no npm, no
-framework, no backend, and — the part that matters here — **no server that runs
-code, and no environment-variable mechanism anywhere in the project.**
+> **SUPERSEDED Aug 31 2026, and twice over.** Two of this section's load-bearing
+> claims are now false, and it is kept because the reasoning downstream of it
+> still explains why the design is shaped as it is.
+>
+> - **"deployed to GitHub Pages from the `main` branch"** — retired Aug 30 2026.
+>   The site is on **Cloudflare Pages**, direct upload from CI. A GitHub-Pages
+>   sweep of this whole document is still outstanding (§6); this paragraph is
+>   one of the places that needs it.
+> - **"no server that runs code, and no environment-variable mechanism"** — no
+>   longer true as of Aug 31 2026. `functions/api/verify.js` and
+>   `functions/api/download.js` are Cloudflare Pages Functions and they run on
+>   every purchase. The static-site constraint that drove option (a) below was
+>   real and the reasoning is worth keeping, but **the blocking fact is no
+>   longer blocking.** §3 documents what exists; the option (b) discussion
+>   below is what got built.
+
+Kundalini Spines is a **static site** for everything a visitor reads. Plain HTML,
+CSS and JavaScript, no build step, no npm, no framework — and, until Aug 31 2026,
+no server that runs code and no environment-variable mechanism anywhere in the
+project.
 
 Stripe has two kinds of credential:
 
@@ -200,28 +216,90 @@ same edit that gives it a link, or the link will be ignored.
 
 ---
 
-## 3. Environment variables a future backend would need
+## 3. Environment variables — the set the code actually reads
 
-**This repo has no environment-variable mechanism today.** There is no `.env`, no
-build step to read one, and no runtime to inject one. The names below are the
-shopping list for option (b), to be set in the hosting provider's dashboard
-(Netlify/Vercel/Cloudflare), **never in this repo**:
+> **This section changed on Aug 31 2026 and the change is not cosmetic.** It used
+> to open "This repo has no environment-variable mechanism today. There is no
+> `.env`, no build step to read one, and no runtime to inject one," and the table
+> under it was a shopping list for a backend nobody had written. **There is a
+> runtime now** — `functions/api/verify.js` and `functions/api/download.js`,
+> Cloudflare Pages Functions, deployed by the same workflow that ships the site.
+> The table below is no longer a wish. Every name in it is read by name in the
+> code, and a missing one produces a 500 with `server_misconfigured`, not a
+> silent fallback.
+
+Set these in the Cloudflare dashboard: **Workers & Pages → kundalini-spines →
+Settings → Environment variables**, Production scope. Mark the two secret ones
+as **Encrypt** — once encrypted a value cannot be read back out of the
+dashboard, which is the point. **Never in this repo**, and never in a variable
+whose name lacks the encryption; the deploy workflow's leak guard greps the
+diff for `sk_`/`whsec_` but it cannot see the Cloudflare dashboard.
 
 | Name | What it is | Secret? |
 |---|---|---|
-| `STRIPE_SECRET_KEY` | `sk_live_...` / `sk_test_...`. Creates Checkout Sessions. | **Yes — never public** |
-| `STRIPE_WEBHOOK_SECRET` | `whsec_...`. Verifies webhook signatures. | **Yes — never public** |
-| `STRIPE_PUBLISHABLE_KEY` | `pk_...`. Safe in client code if ever needed. | No |
-| `PRICE_ID_DIGITAL` | `price_...` for edition 01 | No, but keep it out of the repo anyway |
-| `PRICE_ID_DELUXE` | `price_...` for edition 02 | No |
-| `PRICE_ID_ARTIFACT` | `price_...` for edition 03 | No |
-| `DOWNLOAD_BUCKET_URL` | Where the album files actually live | Path is not a secret; access must be |
-| `DOWNLOAD_SIGNING_KEY` | Signs the expiring download URLs | **Yes** |
-| `EMAIL_API_KEY` | Whatever sends the confirmation email | **Yes** |
+| `STRIPE_SECRET_KEY` | `sk_live_...` / `sk_test_...`. Reads Checkout Sessions to confirm payment. | **Yes — Encrypt** |
+| `DOWNLOAD_SIGNING_KEY` | HMAC key signing the short-lived download token. Any long random string; 32+ bytes. Rotating it invalidates outstanding download tokens and nothing else — buyers just re-verify. | **Yes — Encrypt** |
+| `PRICE_ID_DIGITAL` | `price_...` for edition 01. Checked against the session's line items so that a paid order for something else cannot unlock the album. | No, but keep it out of the repo |
+| `ALBUM_OBJECT_KEY` | Key of the ZIP inside the bucket. Optional; defaults to `rise-up-digital.zip`. | No |
+| `ALBUM_FILENAME` | The name the buyer's browser saves. Optional; defaults to `Kundalini Spines - Rise Up (Digital Edition).zip`. | No |
+| `DOWNLOAD_WINDOW_HOURS` | How long after purchase the download stays open. Optional; defaults to `72`. | No |
 
-Price IDs are not secret, but keeping them with the keys rather than in the repo
-means the test and live sets can be swapped by changing the environment rather
-than by editing and redeploying code.
+**Plus one binding, which is configured somewhere else in the dashboard and is
+the thing most likely to be forgotten:** Settings → **Functions** → **R2 bucket
+bindings** → variable name **`ALBUM_BUCKET`**, bound to the private bucket
+holding the ZIP. It is not an environment variable and does not appear on the
+Environment variables screen. `/api/download` checks for it separately and logs
+`R2 binding ALBUM_BUCKET is not bound` when it is missing, precisely because
+this is the step people skip.
+
+**Not needed yet, and deliberately absent from the code:** `STRIPE_WEBHOOK_SECRET`
+(no webhook is implemented — see §5, still true), `STRIPE_PUBLISHABLE_KEY`
+(nothing client-side talks to Stripe; the buy button is a plain link to a Payment
+Link), `PRICE_ID_DELUXE` / `PRICE_ID_ARTIFACT` (nothing verifies those editions
+because nothing delivers them automatically), and `EMAIL_API_KEY` (nothing sends
+mail). Do not add them speculatively — an unused secret is a liability with no
+offsetting benefit.
+
+---
+
+## 3a. Provisioning, in the order it has to happen
+
+None of this can be done from a code session — it is dashboard and CLI work on
+the owner's account, and the site cannot verify a payment until all of it is
+done. **Until every step here is complete, leave the Digital edition on the test
+Payment Link.** A live link in front of an unprovisioned backend takes real money
+and hands back an error panel.
+
+1. **Create the R2 bucket.** R2 → Create bucket, e.g. `kundalini-spines-album`.
+   **Do not enable a public r2.dev URL and do not attach a custom domain to it.**
+   A public bucket URL is exactly the unsigned, unrevocable address §5 of
+   `js/purchase-checkout.js` has forbidden since Aug 20. The binding is the only
+   access path this design wants.
+2. **Upload the album ZIP** into that bucket, keyed `rise-up-digital.zip` (or
+   set `ALBUM_OBJECT_KEY` to whatever you name it).
+3. **Create the live product and price** — $20 USD, one-time — and copy the
+   `price_...` id into `PRICE_ID_DIGITAL`. §2 covers the Dashboard steps.
+4. **Set the environment variables and the R2 binding** per the table above.
+5. **Set the Payment Link's redirect** to
+   `https://kundalinispines.com/purchase-success?session_id={CHECKOUT_SESSION_ID}`
+   (§4 has the exact Dashboard labels). Without the `session_id` token the
+   success page has nothing to verify and every buyer sees the
+   "opened without an order reference" panel.
+6. **Deploy**, then **swap the checkout URL** in `js/purchase-checkout.js` —
+   one line, `EDITIONS[0].checkoutUrl`. This is the step that opens real sales
+   and it is deliberately last.
+
+### The first deploy is the test of the Functions wiring
+
+This repo has never deployed a Pages Function before, and the owner's machine
+has no Node, so `wrangler` cannot be run locally to rehearse it. The first CI
+run is the rehearsal. **This is a loud failure, not a silent one:** if
+Cloudflare does not pick up `functions/`, `/api/verify` returns the SPA-less
+404 of a missing static file and the success page shows its retry panel. It
+cannot fail by quietly serving the album to the wrong person. If it does 404,
+check that `functions/` is at the repo root — Cloudflare requires it there, not
+inside the build output — and that the deploy step's working directory is the
+repo root, which it is today.
 
 ---
 
@@ -424,7 +502,16 @@ Before flipping anything to live mode:
       is not open. Nothing lands on a blank page or a 404.
 - [ ] Pay with `4242 4242 4242 4242` → lands on `purchase-success.html`, branded,
       with the order reference showing.
-- [ ] Cancel out of the Stripe page → lands on `purchase-cancelled.html`.
+- [ ] ~~Cancel out of the Stripe page → lands on `purchase-cancelled.html`.~~
+      **NOT TESTABLE WHILE THE SITE SELLS THROUGH A PAYMENT LINK — verified
+      against Stripe's API reference Aug 31 2026.** A Payment Link's only
+      redirect is `after_completion`, which fires on success; there is no
+      `cancel_url` field on a Payment Link at all. `cancel_url` belongs to
+      API-created Checkout Sessions. So nothing routes to
+      `purchase-cancelled.html` automatically today — a buyer who backs out
+      goes wherever their back button takes them. The page is not dead code;
+      it is the destination the day this moves to Checkout Sessions. Re-enable
+      this line then.
 - [ ] The prices on `purchase.html` match the prices in Stripe **and** the
       `EDITIONS` config in `js/purchase-checkout.js`.
 - [ ] Both return pages render correctly on a phone, with nav and footer intact
@@ -433,9 +520,14 @@ Before flipping anything to live mode:
       `purchase-cancelled.html`.
 - [ ] With JavaScript disabled, `purchase.html` still reads honestly — the
       coming-soon state is the default in the HTML, not something JS adds.
-- [ ] The STANDBY panels on both return pages are removed in the same change
-      that connects a real checkout. They say purchasing is not open; leaving
-      them up after it opens would be the new lie.
+- [x] ~~The STANDBY panels on both return pages are removed in the same change
+      that connects a real checkout.~~ **DONE Aug 31 2026.** The success page's
+      panel became the four-state verification region; the cancelled page's
+      became copy that is true whether the visitor cancelled a checkout or
+      typed the URL. Both files' banners record what they replaced. This item
+      was written as a prediction and it was the right one — the success
+      page's panel had already been caught printing "nothing has been charged"
+      under a live order reference.
 
 **Live mode**
 
@@ -457,4 +549,57 @@ Before flipping anything to live mode:
 | `purchase-success.html` | Branded return page for a completed purchase. |
 | `purchase-cancelled.html` | Branded return page for an abandoned one. |
 | `scripts/stripe-payment-link.sh` | The wizard. Walks the Dashboard steps, writes the URL into the config, runs the test-card checklist. |
+| `functions/api/verify.js` | **Server-side.** Asks Stripe whether a session is paid, checks it is for the digital album, mints the signed download token. |
+| `functions/api/download.js` | **Server-side.** Re-verifies, then streams the ZIP out of the private R2 bucket. The only route to the file. |
 | `STRIPE-SETUP.md` | This document. |
+
+`functions/` is at the **repo root and must stay there** — Cloudflare requires
+the Functions directory outside the static output. It is deliberately *not* in
+the deploy workflow's `PUBLIC` allowlist: if it were copied into `_site` its
+source would be served at a public URL. Neither the allowlist nor the leak guard
+needed changing for this feature, and neither should be changed for it.
+
+---
+
+## 8. What this does NOT protect against, stated plainly
+
+Written Aug 31 2026 alongside the implementation, because the gap between "the
+download is protected" and what is actually true is exactly where the next
+wrong assumption gets made.
+
+**The session id is a bearer token.** There are no accounts on this site, so the
+only thing distinguishing a buyer from anyone else is possession of
+`?session_id=cs_live_...`. Whoever holds the success URL can download the album.
+Verification stops *fabricated* and *unpaid* ids cold — that is real, and it is
+what the old page could not do — but it cannot tell a buyer from a friend the
+buyer sent the link to.
+
+What bounds it today:
+
+- **The window.** `DOWNLOAD_WINDOW_HOURS`, 72 by default, measured from Stripe's
+  own `created` timestamp. A posted link goes dead.
+- **The signed token.** The URL the Download button points at expires in 15
+  minutes, so the *download link* is not a durable, postable thing. The session
+  id behind it is still re-mintable, which is why the window above matters.
+- **The product check.** A paid order for a different edition does not unlock
+  the album.
+
+**What is NOT implemented, and what it would take.** A download *count* cap —
+"this order may download three times" — needs somewhere to record the count,
+which means a KV namespace or D1 binding and a write on every download. That is
+the single highest-value addition if sharing ever becomes a real problem, and it
+is a contained change: one binding, one read, one write, in `download.js`. It
+was left out because it adds a storage dependency to a launch that does not yet
+have one sale, not because it was judged unnecessary.
+
+**"Yours permanently" on `purchase.html` and the 72-hour window are in tension.**
+The record is theirs permanently; the *link* is not. The `window_closed` copy on
+the success page resolves it honestly — it says the limit is on the link, not on
+what they bought, and to write in for a reissue. If reissues become frequent,
+raise `DOWNLOAD_WINDOW_HOURS` rather than editing the promise.
+
+**A Stripe outage blocks downloads.** `/api/download` re-asks Stripe on every
+request rather than trusting its own token, so that a refund or dispute landing
+between verification and download is honoured. The cost is that Stripe being
+down means buyers cannot collect. This is the correct direction to fail and it
+is a deliberate trade, not an oversight.

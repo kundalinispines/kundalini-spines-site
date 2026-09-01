@@ -147,10 +147,43 @@
       The editions are where you left them. Rise Up is not going anywhere, and neither is the archive around it.
     </p>
 
+    <!-- ====================================================================
+         WHAT THIS PANEL USED TO SAY, AND WHY IT HAD TO CHANGE. Aug 31 2026.
+
+         Until today: "STANDBY. Purchasing is not open on this site yet — no
+         payment processor is connected, so no checkout could have been started
+         or cancelled." Every clause of that is now false: Stripe is connected
+         and a checkout can be both started and abandoned. It was the same
+         defect the success page's STANDBY panel had — copy asserting a fact
+         about the site that the site had since outgrown — and it was found the
+         same way, by reading the page rather than by any test.
+
+         THE SUCCESS PAGE'S FIX DOES NOT PORT HERE, AND THAT IS THE INTERESTING
+         PART. There it is a script that hides the panel when `session_id` is
+         present. This page loads no script at all — deliberately, see the note
+         above </body> — and Stripe sends no parameter with a cancellation, so
+         there is nothing to key off even if it did. The fix therefore has to
+         be copy that is true unconditionally, for the buyer who backed out and
+         for the person who typed the URL, with no way to tell them apart.
+         That is what is written below. Resist adding a script to distinguish
+         them: it would buy one sentence and cost this page its only
+         no-JavaScript guarantee.
+
+         A ROUTE NOTE, RECORDED BECAUSE IT SURPRISED THIS SESSION. A Stripe
+         PAYMENT LINK has no cancel URL — its only redirect is
+         `after_completion`, which fires on success. `cancel_url` belongs to
+         API-created Checkout Sessions. So while the site sells through a
+         Payment Link, NOTHING ROUTES HERE automatically; a buyer who backs out
+         goes wherever their back button takes them. This page is not dead
+         code — it is the destination the moment the site moves to Checkout
+         Sessions — but STRIPE-SETUP.md's test line "Cancel out of the Stripe
+         page → lands on purchase-cancelled.html" cannot pass until then, and
+         that document now says so.
+         ==================================================================== -->
     <div class="empty-state" style="margin-top: var(--space-8); max-width: 68ch;">
       <span class="label">Status</span>
       <p style="margin: 0;">
-        STANDBY. Purchasing is not open on this site yet &mdash; no payment processor is connected, so no checkout could have been started or cancelled. This page is the address an abandoned checkout will return to once the checkout is built.
+        A cancelled checkout leaves nothing behind &mdash; no charge, no order, no record to clear. If you did not cancel anything and simply arrived at this address, there is nothing here to act on either. Either way, the editions are open whenever you want them.
       </p>
     </div>
 

@@ -452,8 +452,14 @@ say "The code itself is on feature/spine-ui-v2 and has not been released"
 say "either. One release does both."
 printf '\n'
 warn "A release DEPLOYS. This is the owner's call and this wizard will not"
-warn "make it for you. Run it yourself when you are ready:"
-printf '\n      %sgit push origin feature/spine-ui-v2:main%s\n\n' "$BOLD" "$RESET"
+warn "make it for you. Run it yourself when you are ready — FROM THE REPO,"
+warn "not from wherever this wizard was launched:"
+printf '\n      %scd "$HOME\\Desktop\\kundalini-spines-spine-ui"%s\n' "$BOLD" "$RESET"
+printf '      %sgit push origin feature/spine-ui-v2:main%s\n\n' "$BOLD" "$RESET"
+warn "DO NOT PRESS ENTER PAST THIS STAGE WITHOUT RUNNING IT. The next stage"
+warn "calls the live endpoint, and if the release has not happened it gets"
+warn "the homepage back and looks like a broken deploy. That is exactly how"
+warn "this wizard's first real run went."
 say "This is a low-risk release: it ships the new success page and the two"
 say "functions, but the buy button still points at the TEST Payment Link,"
 say "so no real money can move yet."
@@ -489,9 +495,21 @@ if command -v curl >/dev/null 2>&1; then
       warn "No response. Either the deploy has not finished, or the site is"
       warn "unreachable from here." ;;
     *"<!DOCTYPE"*|*"<html"*)
-      warn "Got an HTML page instead of JSON — Cloudflare did not pick up"
-      warn "the functions/ directory. Check that functions/ is at the REPO"
-      warn "ROOT (not inside _site) and that the deploy actually ran." ;;
+      warn "Got an HTML page instead of JSON. TWO THINGS CAUSE THIS AND THE"
+      warn "LIKELY ONE IS THE BORING ONE:"
+      printf '\n'
+      warn "1. THE RELEASE NEVER RAN. If /api/verify does not exist yet,"
+      warn "   Cloudflare falls back to serving the site, so you get the"
+      warn "   homepage. Check first — this is what happened on the wizard's"
+      warn "   first real run, where the previous stage was skipped past:"
+      printf '\n'
+      printf '      %sgit log --oneline origin/main -1%s\n\n' "$BOLD" "$RESET"
+      warn "   If that is not the same commit as your branch head, go back a"
+      warn "   stage and push. Nothing is wrong."
+      printf '\n'
+      warn "2. Only if main IS up to date: Cloudflare did not pick up the"
+      warn "   functions/ directory. Check it is at the REPO ROOT and not"
+      warn "   inside _site, and that the Actions run went green." ;;
     *)
       warn "Unexpected response above. Nothing is broken on the buyer's"
       warn "side — the buy button is still on the test link." ;;

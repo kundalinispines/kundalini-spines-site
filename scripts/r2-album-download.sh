@@ -290,7 +290,18 @@ step "   Storage:  s3        Provider:  Cloudflare"
 step "   access_key_id / secret_access_key: the two you just copied"
 step "   region:  auto"
 step "   endpoint:  https://<ACCOUNT_ID>.r2.cloudflarestorage.com"
-step "   Leave the rest blank, then q to quit."
+step "   bucket_object_lock_enabled: press Enter (leave it false)"
+printf '\n'
+say "Then three prompts in a row that people get wrong, because the answer"
+say "changes at each one:"
+printf '\n'
+printf '      %sEdit advanced config?%s        y/n>  →  %sn%s\n' "$DIM" "$RESET" "$BOLD" "$RESET"
+printf '      %sKeep this "r2" remote?%s      y/e/d> →  %sy%s\n' "$DIM" "$RESET" "$BOLD" "$RESET"
+printf '      %sthe main menu%s          e/n/d/r/c/s/q> →  %sq%s\n\n' "$DIM" "$RESET" "$BOLD" "$RESET"
+warn "q ONLY works on that last one. An earlier draft of this wizard said"
+warn "'leave the rest blank, then q to quit', which reads as though q ends"
+warn "the whole thing at any point. It does not — the sub-prompts accept"
+warn "only the letters they list, and q there just re-asks the question."
 printf '\n'
 pause "Remote 'r2' configured?"
 

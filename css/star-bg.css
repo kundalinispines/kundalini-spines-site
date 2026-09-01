@@ -41,6 +41,13 @@
 :root {
   /* Bumped on every change, same reason as --spine-build: a browser sitting on
      a cached stylesheet is indistinguishable from a change that did not work.
+     31 = the sky layers read var(--sky-lock, 100lvh). Build 30 held on the
+     owner's phone except under Brave's bottom toolbar, which moves lvh
+     itself; js/nav.js now publishes the largest observed viewport height as
+     --sky-lock on touch devices, and honest-lvh browsers see the identical
+     number. Measured headless: at an emulated 390x844 touch viewport shrunk
+     to 390x780, build 30's layers followed the viewport down; build 31's
+     held 844px.
      30 = every fixed sky layer pinned to 100lvh so a phone's collapsing URL
      bar stops resizing it mid-scroll (owner: "the bg image moves slightly").
      The @supports block below .star-bolt carries the mechanism and the
@@ -108,7 +115,7 @@
      as worth 63 -> 88 fps; that figure was taken on a software renderer and is
      corrected under html::after below). 6 was the single lockstep cores
      layer. */
-  --star-build: 30;
+  --star-build: 31;
 
   /* Brightness of the whole field. 0 is off — the layer still exists but adds
      no light, and under screen blending (see below) that is exactly the same
@@ -955,11 +962,17 @@ html::after {
   main::after,
   .star-bolt {
     bottom: auto;
-    height: 100lvh;
+    height: var(--sky-lock, 100lvh);
   }
+  /* var(--sky-lock, 100lvh) rather than bare lvh since build 31: Brave for
+     Android recomputes the large viewport when its BOTTOM toolbar appears, so
+     lvh alone still breathed there (owner, on-device, 1 Sep 2026). js/nav.js
+     publishes --sky-lock on touch devices — the largest viewport height seen
+     at the current width; where lvh is honest the two are equal by
+     construction, so nothing changes anywhere else. */
   html::after {
-    top: -3lvh;
-    height: 106lvh;
+    top: calc(var(--sky-lock, 100lvh) * -0.03);
+    height: calc(var(--sky-lock, 100lvh) * 1.06);
   }
 }
 

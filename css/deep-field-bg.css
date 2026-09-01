@@ -1,5 +1,5 @@
 /* deep-field-bg.css — the home page's background clip.
-   --df-build: 13;
+   --df-build: 14;
 
    WHAT THIS IS
    The 12.042s deep-field-2 clip painted full-bleed behind the whole home
@@ -33,7 +33,7 @@
      meant the one check the convention exists for - "is the browser running the
      file I just edited, or a cached copy?" - could not be run against the deep
      field at all. Declared Aug 26 2026. Keep it in step with the header. */
-  --df-build: 13;
+  --df-build: 14;
 
   /* 0 = sky fully suppressed and the clip is the only background.
      1 = the real star field at its normal strength.
@@ -352,7 +352,7 @@
 @supports (height: 100lvh) {
   .df-bg {
     bottom: auto;
-    height: 100lvh;
+    height: var(--sky-lock, 100lvh);
   }
 }
 

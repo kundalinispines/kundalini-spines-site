@@ -182,7 +182,9 @@
        the height but keep bottom:auto and collapse the stage to zero. */
     if (window.CSS && CSS.supports && CSS.supports('height', '100lvh')) {
       stage.style.bottom = 'auto';
-      stage.style.height = '100lvh';
+      /* --sky-lock (js/nav.js) overrides lvh on touch devices for Brave's
+         bottom toolbar, same as the CSS layers — see star-bg.css build 31. */
+      stage.style.height = 'var(--sky-lock, 100lvh)';
     }
 
     var src = document.createElement('canvas');

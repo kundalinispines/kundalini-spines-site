@@ -4,8 +4,9 @@
   "fps": 24,
   "frames": 289,
   "duration": 12.041667,
-  "_model": "play-and-park. The clip plays cue to cue at 1.0x and stops on a cue, where that section's reveal fires. BOUNDARIES DO NOT DRIVE THE VIDEO under this model - they are scroll landings only, kept here for provenance. cueFrame is the authoritative number.",
+  "_model": "play-and-park. The clip plays cue to cue at --df-rate (1.2x since Sept 2 2026; 1.0x before) and stops on a cue, where that section's reveal fires. Going back up is a cut to the cue. BOUNDARIES DO NOT DRIVE THE VIDEO under this model - they are scroll landings only, kept here for provenance. cueFrame is the authoritative number.",
   "_moves": [
+    "Sept 2 2026, owner's call: EVERY LEG THE SAME LENGTH. Cues re-spaced on a 41-frame grid across the whole clip with Music pinned at 83 (the artwork match that brings the reactive background in): About 21 -> 41, Music 83, Merch 153 -> 124, Transmissions 216 -> 165, Archive 252 -> 206, Stay Connected 272 -> 247, Foot 288. Legs are 41/42/41/41/41/41/41 frames = 1.42-1.46s at 1.2x; before they ran 21/62/70/63/36/20/16, which read as a quick opening and a steppy 0.42x tail. Costs, accepted: About leaves the flattest horizon (f41 is the same horizon a little later), Merch parks on the flash's rise (f124, lum 0.7) instead of its peak (f153), Archive leaves the last structural event. The startFrame/endFrame boundaries below were NOT moved - they never drove the clip.",
     "About cue 25 -> 21: flattest horizon in the clip (edge-row spread 0.8px vs 2.4px at f25, rank 1 of 289).",
     "Music cue 82 -> 83: measured best structural match to starfield-deep-4k.webp, r=0.907 (the old clip's best was f134 at r=0.720).",
     "Archive cue 272 -> 252: f252 is the clip's last measured structural event; f272 was unanchored.",
@@ -24,8 +25,8 @@
       "name": "About",
       "startFrame": 0,
       "endFrame": 48,
-      "cueFrame": 21,
-      "cueTime": 0.8958
+      "cueFrame": 41,
+      "cueTime": 1.7292
     },
     {
       "name": "Music",
@@ -38,28 +39,28 @@
       "name": "Merch",
       "startFrame": 126,
       "endFrame": 190,
-      "cueFrame": 153,
-      "cueTime": 6.3958
+      "cueFrame": 124,
+      "cueTime": 5.1875
     },
     {
       "name": "Transmissions",
       "startFrame": 190,
       "endFrame": 243,
-      "cueFrame": 216,
-      "cueTime": 9.0208
+      "cueFrame": 165,
+      "cueTime": 6.8958
     },
     {
       "name": "Archive",
       "startFrame": 243,
       "endFrame": 278,
-      "cueFrame": 252,
-      "cueTime": 10.5208
+      "cueFrame": 206,
+      "cueTime": 8.6042
     }
   ],
   "tailCue": {
     "name": "Stay Connected",
-    "cueFrame": 272,
-    "cueTime": 11.3542
+    "cueFrame": 247,
+    "cueTime": 10.3125
   },
   "footCue": {
     "name": "Foot",

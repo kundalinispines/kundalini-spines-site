@@ -683,28 +683,33 @@
     if (cb) cb();
   }
 
-  /* THE SPEED OF A LEG (owner's call, Sept 2 2026). Every forward leg runs at
-     --df-rate, 1.2x - "about twenty percent" faster than the 1.0x the brief
-     held from Aug 18 until today. EXCEPT the leg into Stay Connected, which
-     at 20 frames was already the shortest thing on the page (the marks file
-     rebalanced it once for the same reason) and would have fallen to 0.69s at
-     1.2x. The owner asked for the math that makes it match the others, so it
-     takes the mean duration of the visible legs at --df-rate and runs as slow
-     as it must to fill that:
+  /* THE SPEED OF A LEG (owner's calls, Sept 2 2026, two of them the same day).
 
-         leg                 frames   at 1.2x
-         About -> Music        62      2.15s
-         Music -> Merch        70      2.43s
-         Merch -> Transm.      63      2.19s
-         Transm. -> Archive    36      1.25s      mean 57.75 frames = 2.005s
-         Archive -> Stay C.    20      0.69s  ->  20 / (24 x 2.005s) = 0.416x
+     FIRST: every forward leg runs at --df-rate, 1.2x - "about twenty percent"
+     faster than the 1.0x the brief held from Aug 18. The leg into Stay
+     Connected was the exception: at 20 frames it was the shortest on the page
+     and would have fallen to 0.69s, so this function derives its rate to make
+     it LAST the mean of the visible legs (62/70/63/36 frames -> 57.75 = 2.005s
+     at 1.2x -> 20 / (24 x 2.005) = 0.416x).
 
-     Home -> About is left out of the mean: it is 21 frames, mostly hidden
-     behind the hero, and would drag the target down. It is DERIVED from the
-     cues, not typed, so moving a cue in the marks file moves the answer with
-     it; --df-rate-tail above 0 overrides the derivation for the tuner. At
-     0.42x the footage shows each frame for ~100ms - a slow drift, judged by
-     eye when it shipped, and the dial is there if it reads as steppy. */
+     SECOND, an hour later, watching that: 0.42x read as steppy (each frame
+     held ~100ms) and the opening read as quick. So the CUES moved instead -
+     see the Sept 2 entry in assets/lab/deep-field-2-marks.json. Every leg is
+     now 41 or 42 frames on a grid across the whole clip, Music pinned at 83:
+
+         Home -> About          0 ->  41     41 frames   1.42s at 1.2x
+         About -> Music        41 ->  83     42          1.46s
+         Music -> Merch        83 -> 124     41          1.42s
+         Merch -> Transm.     124 -> 165     41          1.42s
+         Transm. -> Archive   165 -> 206     41          1.42s
+         Archive -> Stay C.   206 -> 247     41          1.42s
+         Stay C. -> Foot      247 -> 288     41          1.42s
+
+     With the legs equal the derivation below returns 1.2 x 41 / 41.25 = 1.19,
+     which is the same thing; it is kept because it is what makes the tail
+     leg self-correcting if a cue ever moves again, and --df-rate-tail above 0
+     still overrides it for the tuner. Home -> About stays out of the mean for
+     the reason it always was: mostly hidden behind the hero. */
   function legRate(i) {
     var s = stops[i];
     var isTail = !!(s && !s.seg && s.cue === TAIL_CUE);
@@ -1679,7 +1684,7 @@
       { k: '--df-rate', g: 'step', label: 'rate', min: 0.5, max: 2, step: 0.05,
         tip: 'Playback rate of every forward leg. 1.2 is the Sept 2 2026 call, about twenty percent up from the 1.0 the clip shipped at. The leg into Stay Connected does not use this directly - see tail rate' },
       { k: '--df-rate-tail', g: 'step', label: 'tail rate', min: 0, max: 2, step: 0.01,
-        tip: 'Rate of the Archive to Stay Connected leg alone. 0 derives it: that leg is 20 frames, so it runs as slow as it must to last the mean of the visible legs at the rate above - 0.42 with the shipped cues. Any value above 0 replaces the derivation' },
+        tip: 'Rate of the Archive to Stay Connected leg alone. 0 derives it so that leg lasts the mean of the visible legs at the rate above - with the Sept 2 2026 cues every leg is 41 frames, so that comes out at 1.19, the same thing. It mattered when the tail leg was 20 frames and came out at 0.42. Any value above 0 replaces the derivation' },
       { k: '--df-gap', g: 'step', label: 'gap', min: 0, max: 600, step: 10,
         tip: 'Wheel silence that ends a gesture. A trackpad throws inertia for about a second after your fingers lift; raise this if one flick still walks two sections, lower it if a deliberate second scroll feels ignored' },
 

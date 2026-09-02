@@ -225,10 +225,11 @@
   --df-step: 1;
   /* THE SPEED OF A LEG (owner's call, Sept 2 2026). Every forward leg plays at
      --df-rate; the clip shipped at 1.0 and the owner asked for about twenty
-     percent more. The leg into Stay Connected is the exception - 20 frames,
-     the shortest on the page - and js/deep-field-bg.js legRate() derives its
-     rate so it LASTS as long as the mean of the visible legs (0.42 with the
-     shipped cues; the table and the arithmetic are in that comment).
+     percent more. js/deep-field-bg.js legRate() derives the Stay Connected
+     leg's rate so it LASTS as long as the mean of the visible legs; that was
+     0.42 while the tail leg was 20 frames, and since the cues were re-spaced
+     on a 41-frame grid the same day (assets/lab/deep-field-2-marks.json,
+     Sept 2 entry) it comes out at 1.19 - every leg is now ~1.4s.
      --df-rate-tail 0 means "derive it"; any positive value is used instead. */
   --df-rate: 1.2;
   --df-rate-tail: 0;

@@ -33,6 +33,14 @@
 
   "entries": [
     {
+      "id": "006",
+      "channel": "filed",
+      "date": "2026-09-01",
+      "title": "The download link now comes to you",
+      "body": "Every purchase now emails the buyer their download link the moment the payment clears. Until today the confirmation page was the only way back to the files, and a Stripe receipt shows the purchase rather than that page — so a tab closed on a phone took the whole entitlement with it. The email opens the same seventy-two hour window the page does, not a longer one. Orders are recorded now as well, which they were not before, so a buyer who runs past the window can be looked up instead of lost.",
+      "internal": "purchase.html"
+    },
+    {
       "id": "005",
       "channel": "filed",
       "date": "2026-09-01",

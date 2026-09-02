@@ -201,17 +201,52 @@ export async function onRequestGet(context) {
   const payload = sessionId + '.' + exp;
   const token = payload + '.' + (await sign(payload, env.DOWNLOAD_SIGNING_KEY));
 
+  /* HAS THE CONFIRMATION EMAIL ALREADY GONE OUT? Sept 1 2026.
+
+     READ ONLY. /api/stripe-webhook owns this record and is the only writer;
+     this endpoint just asks. The answer exists so the note under the download
+     buttons can be true in BOTH states instead of hardcoding one of them —
+     the page shipped a sentence reading "it is not emailed to you", which the
+     webhook makes false the moment it is provisioned. V2HANDOFF 55 item 6
+     counts four sentences that outlived their facts in two days; this is the
+     same failure waiting to be the fifth, so the page asks rather than
+     assumes.
+
+     SOFT-FAILS TO false, DELIBERATELY, AND THAT IS WHY IT IS SAFE TO ADD
+     HERE. The ORDERS binding belongs to the webhook. This function must keep
+     issuing downloads on a deployment where the webhook has not been set up
+     yet — an unbound namespace, a KV error, anything — so every failure path
+     lands on `false`, which renders the older and stricter "this page is your
+     only link" wording. Under-promising is the safe direction: a buyer told
+     to keep the page who also got an email has lost nothing. Nothing in this
+     block may be allowed to fail the verification. */
+  let emailed = false;
+  if (env.ORDERS) {
+    try {
+      const record = await env.ORDERS.get('order:' + sessionId, { type: 'json' });
+      emailed = !!(record && record.emailedAt);
+    } catch (err) {
+      console.error('ORDERS read failed for ' + sessionId + ': ' + (err && err.message));
+    }
+  }
+
   /* WHAT LEAVES THIS FUNCTION IS WHAT THE PAGE RENDERS, AND NOTHING MORE.
      Stripe's session object carries the whole customer_details block — name,
      address, phone, tax ids — plus payment intent ids and amounts. The page
      shows an email and an order reference, so an email and an order reference
      are what leave. Do not widen this because the data "is already there": it
-     is already there on the server, which is the entire point of the server. */
+     is already there on the server, which is the entire point of the server.
+
+     `emailed` is a boolean about OUR OWN delivery, not a fact about the
+     buyer, which is why it is allowed through a rule that keeps
+     customer_details out. It answers one question the page has to render and
+     reveals nothing that was not already on the screen. */
   return json({
     ok: true,
     email: (session.customer_details && session.customer_details.email) || null,
     reference: session.id,
     token: token,
-    expiresAt: expiresAt
+    expiresAt: expiresAt,
+    emailed: emailed
   });
 }

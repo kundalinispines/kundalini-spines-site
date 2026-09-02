@@ -398,38 +398,69 @@
              most people want the listenable files, and the masters are the
              deliberate second choice rather than the accidental first click.
              Both hrefs are written by the script from the same token — one
-             purchase, both files, no second entitlement. -->
+             purchase, both files, no second entitlement.
+
+             THERE IS NO THIRD BUTTON FOR THE BOOKLET, AND THERE SHOULD NOT
+             BE. Sept 1 2026: one was added and removed within the hour. The
+             deluxe digital booklet ships INSIDE both zips, so a button for it
+             would download a second copy of a file the buyer already has,
+             while adding a third thing to choose between at the exact moment
+             the page is trying to make one choice obvious. The readout below
+             says the booklet is in there; that is the whole job. -->
         <p style="margin: 0; display: flex; flex-wrap: wrap; gap: var(--space-4);">
           <a class="btn btn--primary" data-ks-download="mp3" href="#" download>Download &middot; MP3</a>
           <a class="btn btn--ghost" data-ks-download="wav" href="#" download>Download &middot; WAV masters</a>
         </p>
         <p class="readout" style="margin: var(--space-4) 0 0; opacity: 0.7;">
-          MP3 &middot; 271&nbsp;MB &nbsp;&mdash;&nbsp; WAV &middot; 1.4&nbsp;GB
+          MP3 &middot; 271&nbsp;MB &nbsp;&mdash;&nbsp; WAV &middot; 1.4&nbsp;GB &nbsp;&mdash;&nbsp; booklet included in both
         </p>
 
-        <!-- THE "KEEP THIS LINK" NOTE. Sept 1 2026, and it exists because of a
-             gap the buyer would otherwise discover alone.
+        <!-- THE "KEEP THIS LINK" NOTE. Sept 1 2026, revised hours later on the
+             day the confirmation email landed.
 
-             NOTHING EMAILS THIS PAGE'S ADDRESS TO ANYBODY. Stripe's receipt
-             shows what was bought; it does NOT carry the success URL, because
-             that URL is a redirect Stripe performs, not a thing it sends. So
-             this page is the buyer's ONLY route back to their files. Someone
-             who buys on a phone meaning to download on a laptop later, and
-             closes the tab, has no way back — they paid, the window is still
-             open, and they are stuck writing an email.
+             WHY IT EXISTS. Stripe's receipt shows what was bought; it does NOT
+             carry the success URL, because that URL is a redirect Stripe
+             performs, not a thing it sends. Before /api/stripe-webhook this
+             page was the buyer's ONLY route back to their files, and someone
+             who bought on a phone meaning to download on a laptop later, and
+             closed the tab, had no way back — they paid, the window was still
+             open, and they were stuck writing an email.
 
-             The real fix is a confirmation email and an order record, and it
-             is item 1 in V2HANDOFF 55. This is the copy-only mitigation, and
-             it is most of the protection for none of the work: it tells the
-             buyer the two things they need to know BEFORE they close the tab,
-             at the moment they are looking at the page.
+             WHY THE SENTENCE IS NOT SIMPLY FLIPPED NOW THAT MAIL GOES OUT.
+             This paragraph shipped reading "it is not emailed to you", which
+             stopped being true the moment the webhook was provisioned. But
+             the email depends on provisioning this repo cannot see — a Resend
+             key and a KV binding — so a deployment can legitimately be
+             without it, and a flipped constant would be false in the OTHER
+             direction. That is V2HANDOFF 55 item 6 exactly: a sentence
+             hardcoding a claim about site-wide state, in a file nobody opens
+             when that state changes. Four of those in two days is why this
+             one asks instead.
 
-             THE SENTENCE IS IN THE MARKUP, NOT BUILT BY SCRIPT. Only the date
-             is injected. The warning has to survive a script that half-runs;
-             a fallback of "for a limited time" is vague but true, and vague
-             and true beats a blank where the deadline should be. -->
+             SO THE PAGE ASKS. /api/verify reports `emailed`, read from the
+             record the webhook writes, and the clause below is upgraded ONLY
+             when the server confirms mail actually went for THIS order.
+
+             THE DEFAULT IS WRITTEN TO BE TRUE IN BOTH STATES, WHICH IS NOT
+             THE SAME AS BEING THE STRICTER ONE. The first draft of this
+             defaulted to "it is not emailed to you", on the reasoning that
+             under-promising is safe. It is not safe if it is false: the
+             webhook fires a beat AFTER Stripe's redirect, so there is a
+             window — usually a second or two, longer if Stripe queues — where
+             a buyer is looking at this page and the mail is genuinely on its
+             way. Defaulting to a denial would print a lie during exactly that
+             window, and on any reload where the KV read hiccuped. So the
+             default asserts only what is always true: this page is a link
+             Stripe's receipt does not carry, therefore keep it. The email is
+             ADDITIONAL news, and it is only ever announced on the server's
+             word.
+
+             Only the clause and the date are injected. The warning's shape
+             survives a script that never finishes, and a fallback of "for a
+             limited time" is vague but true, which beats a blank where the
+             deadline should be. -->
         <p style="margin: var(--space-6) 0 0;">
-          <strong>Download now if you can.</strong> This page is the only link to your files &mdash; it is not emailed to you, and Stripe&rsquo;s receipt does not contain it. The link stays open <span data-ks-expiry>for a limited time</span>. If you lose it, write to <a href="mailto:kundalinispines@gmail.com">kundalinispines@gmail.com</a> quoting your order reference and it will be reissued.
+          <strong>Download now if you can.</strong> <span data-ks-mail-note>This page is your link to the files, and Stripe&rsquo;s receipt does not contain it &mdash; so keep it.</span> The link stays open <span data-ks-expiry>for a limited time</span>. If you lose it, write to <a href="mailto:kundalinispines@gmail.com">kundalinispines@gmail.com</a> quoting your order reference and it will be reissued.
         </p>
       </div>
 
@@ -704,6 +735,24 @@
           note.textContent = r.body.email
             ? 'Your receipt has gone to ' + r.body.email + '.'
             : 'Your receipt has gone to the email address on the order.';
+        }
+
+        /* THE KEEP-THIS-LINK CLAUSE, upgraded only on the server's word. See
+           the long note beside it in the markup: what ships in the HTML is
+           true whether or not mail went out, and this adds the email ONLY
+           when /api/verify reports the webhook recorded one sent for THIS
+           order. Every other case — a webhook not provisioned, a KV read that
+           failed, a page opened in the second before the webhook fired, an
+           order placed before any of this existed — leaves the markup's
+           wording alone, and that wording is still true.
+
+           `=== true`, not truthy: an older /api/verify that does not know
+           about this field returns undefined, and undefined must read as "no,
+           say nothing", never as "yes". textContent, not innerHTML: this is
+           prose, and it stays prose. */
+        var mailNote = region.querySelector('[data-ks-mail-note]');
+        if (mailNote && r.body.emailed === true) {
+          mailNote.textContent = 'A copy of this link has been emailed to you — keep it, because Stripe’s receipt does not contain it.';
         }
 
         /* The deadline, written into the keep-this-link note below the

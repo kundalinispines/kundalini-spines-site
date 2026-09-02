@@ -66,6 +66,21 @@ const DEFAULT_WINDOW_HOURS = 72;
    for the masters in download time, and a dropped connection restarts all of
    it. Two objects, two buttons, one entitlement.
 
+   THE DELUXE DIGITAL BOOKLET IS NOT A THIRD ENTRY, AND THAT IS NOT AN
+   OVERSIGHT. Sept 1 2026: a `booklet` format was added here and removed the
+   same day, because the booklet PDF is already packed INSIDE both zips. A
+   third object would have been a second copy of a file the buyer already has,
+   plus a third button on the success page arguing for attention it does not
+   need. purchase.html lists the booklet under tier 01 because the buyer does
+   receive it — inside the download, not beside it.
+
+   IF A NON-ZIP FORMAT IS EVER ADDED HERE, content type and filename extension
+   must become per-format first. Both are hardcoded below to `application/zip`
+   and `.zip`, which is correct while every object is a zip and silently wrong
+   the moment one is not — a PDF served as an archive. This is written down
+   because the booklet attempt above hit exactly that and fixed it, and the
+   fix was then reverted along with the feature.
+
    THE FORMAT IS NOT PART OF THE SIGNED TOKEN, DELIBERATELY. Someone holding a
    valid token can fetch either file — which is correct, because they bought
    the album and both files ARE the album. Signing the format would imply the

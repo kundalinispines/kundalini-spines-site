@@ -229,7 +229,22 @@
           <li>High-quality MP3 files</li>
           <li>Lossless FLAC or WAV files</li>
           <li>Full-resolution album cover</li>
-          <li>Digital credits</li>
+          <!-- THE BOOKLET MOVED DOWN A TIER, Sept 1 2026, on the owner's call.
+               It was listed under 02 / Deluxe until today. It replaced
+               "Digital credits", which named nothing in the delivery folder.
+
+               IT IS DELIVERED INSIDE THE ZIPS, not as its own download. Both
+               KundaliniSpines_RiseUp_MP3.zip and _WAV.zip already contain the
+               booklet PDF, which is why /api/download has no `booklet` format
+               and purchase-success.html has no third button — a separate one
+               was built and removed the same day. The confirmation email says
+               the same thing this line does, so a buyer reading either knows
+               where to find it.
+
+               DELUXE DOES NOT LOSE IT: tier 02 opens with "Everything in the
+               Digital Album", so moving the line down carries the booklet with
+               it rather than taking it away. -->
+          <li>Deluxe digital booklet</li>
           <li>Immediate download after purchase</li>
         </ul>
 
@@ -261,7 +276,10 @@
         <span class="label ks-edition__contents-label">Contents</span>
         <ul class="ks-edition__contents">
           <li>Everything in the Digital Album</li>
-          <li>Deluxe digital booklet</li>
+          <!-- "Deluxe digital booklet" was here until Sept 1 2026 and is NOT
+               missing: it moved into tier 01, and the line above carries it
+               back into this tier. Listing it in both places would read as two
+               booklets. -->
           <li>Full lyric archive</li>
           <li>Expanded album artwork</li>
           <li>Alternate artwork / visual assets</li>

@@ -262,21 +262,41 @@ diff for `sk_`/`whsec_` but it cannot see the Cloudflare dashboard.
 | `ALBUM_OBJECT_KEY_MP3` | Key of the MP3 zip. Optional; defaults to `KundaliniSpines_RiseUp_MP3.zip`. | No |
 | `ALBUM_OBJECT_KEY_WAV` | Key of the WAV zip. Optional; defaults to `KundaliniSpines_RiseUp_WAV.zip`. | No |
 | `DOWNLOAD_WINDOW_HOURS` | How long after purchase the download stays open. Optional; defaults to `72`. | No |
+| `STRIPE_WEBHOOK_SECRET` | `whsec_...`, shown once when the endpoint is created in the Stripe Dashboard. The only thing separating a real Stripe delivery from a stranger's POST. | **Yes — Secret** |
+| `RESEND_API_KEY` | `re_...`. Sends the confirmation email. | **Yes — Secret** |
+| `SITE_ORIGIN` | Origin used to build the download link in the email. Optional; defaults to `https://kundalinispines.com`. Only set it if that stops being the public address. | No |
+| `FROM_EMAIL` | Sender of the confirmation email. Optional; defaults to `Kundalini Spines <orders@kundalinispines.com>`. **Must be on a domain verified in Resend** — gmail.com cannot be. | No |
+| `REPLY_TO_EMAIL` | Where a buyer's reply lands. Optional; defaults to `kundalinispines@gmail.com`. | No |
 
-**Plus one binding, which is a separate step and the thing most likely to be
-forgotten:** Settings → **Bindings** → **Add** → **R2 bucket** → variable name
-**`ALBUM_BUCKET`**, bound to the private bucket holding the two ZIPs. It is not
-a variable and does not appear on the Variables and Secrets screen. `/api/download` checks for it separately and logs
-`R2 binding ALBUM_BUCKET is not bound` when it is missing, precisely because
-this is the step people skip.
+**Plus TWO bindings, each a separate step, and between them the thing most
+likely to be forgotten.** Bindings are not variables and do not appear on the
+Variables and Secrets screen:
 
-**Not needed yet, and deliberately absent from the code:** `STRIPE_WEBHOOK_SECRET`
-(no webhook is implemented — see §5, still true), `STRIPE_PUBLISHABLE_KEY`
-(nothing client-side talks to Stripe; the buy button is a plain link to a Payment
-Link), `PRICE_ID_DELUXE` / `PRICE_ID_ARTIFACT` (nothing verifies those editions
-because nothing delivers them automatically), and `EMAIL_API_KEY` (nothing sends
-mail). Do not add them speculatively — an unused secret is a liability with no
+- Settings → **Bindings** → **Add** → **R2 bucket** → variable name
+  **`ALBUM_BUCKET`**, bound to the private bucket holding the two ZIPs (the
+  booklet is inside each of them, not a third object). `/api/download` checks
+  for it separately and logs `R2 binding
+  ALBUM_BUCKET is not bound` when it is missing, precisely because this is the
+  step people skip.
+- Settings → **Bindings** → **Add** → **KV namespace** → variable name
+  **`ORDERS`**, bound to a namespace created under Storage & Databases → KV
+  (any name; `kundalini-spines-orders` is the obvious one). `/api/stripe-webhook`
+  refuses to run without it and logs `KV binding ORDERS is not bound`.
+  `/api/verify` reads it too, but **soft-fails on purpose**: without it,
+  downloads keep working and the success page simply falls back to its
+  stricter "this page is the only link" wording.
+
+**Not needed yet, and deliberately absent from the code:**
+`STRIPE_PUBLISHABLE_KEY` (nothing client-side talks to Stripe; the buy button
+is a plain link to a Payment Link) and `PRICE_ID_DELUXE` / `PRICE_ID_ARTIFACT`
+(nothing verifies those editions because nothing delivers them automatically).
+Do not add them speculatively — an unused secret is a liability with no
 offsetting benefit.
+
+> **`STRIPE_WEBHOOK_SECRET` and `EMAIL_API_KEY` were on that list until Sept 1
+> 2026.** The first is now required and named above. The second never arrived
+> under that name: the sender is Resend and the variable is `RESEND_API_KEY`.
+> If you are reading an older copy of this file, that is the discrepancy.
 
 ---
 
@@ -414,10 +434,78 @@ added as redirects without moving these files.
 
 ## 5. The webhook, and why it is the authority
 
-**Required for option (b). Not available under option (a).**
+> **BUILT, Sept 1 2026.** This section described something planned until today.
+> It is now `functions/api/stripe-webhook.js`, and the line that used to open
+> it — "Required for option (b). Not available under option (a)." — was wrong
+> in a way worth naming: the site runs on Payment Links, which this file calls
+> option (a), and the webhook works fine with them. `checkout.session.completed`
+> fires for a Payment Link checkout exactly as it does for a bespoke one.
 
-Endpoint: `POST https://<your-backend>/api/stripe-webhook`
-Event to subscribe to: **`checkout.session.completed`**
+Endpoint: `POST https://kundalinispines.com/api/stripe-webhook`
+Events to subscribe to: **`checkout.session.completed`** and
+**`checkout.session.async_payment_succeeded`**.
+
+**Why the second event as well.** For a card, the first fires the moment the
+money settles. For an asynchronous method it fires with `payment_status` still
+`unpaid`, and the money lands later under the second. Subscribing only to the
+first would email nothing to exactly the buyers who waited longest. The handler
+answers `200 not_paid_yet` to the premature one and does the work when the
+second arrives.
+
+### What it does, in order
+
+1. Verifies the `Stripe-Signature` header before reading anything else — HMAC
+   SHA-256 over `timestamp.rawBody`, inside a five-minute tolerance, accepting
+   **any** of the `v1` values so a secret rotation does not break deliveries.
+2. Re-asks Stripe about the session with `expand[]=line_items`, because the
+   Session inside the event carries no line items and "is this the Digital
+   Edition" cannot be answered without them.
+3. Writes an order record to KV **before** sending, so a sale leaves a trace
+   even if the mail fails.
+4. Sends the confirmation email through Resend.
+5. Stamps `emailedAt` on the record. A redelivery of the same event sees the
+   stamp and returns `already_sent` without sending twice.
+
+### Setting it up
+
+> **There is a wizard, and it is the shorter path.** From the repo root:
+>
+> ```bash
+> bash scripts/email-webhook-setup.sh
+> ```
+>
+> Eight stages: it opens each dashboard page, says exactly what to click, and
+> then **probes the live endpoints to prove the result** rather than trusting
+> it. It captures nothing — every secret goes into Cloudflare by hand, because
+> this repo is public and §3's rule is absolute. Safe to Ctrl-C and re-run;
+> every stage can be skipped if it is already done. The steps below are the
+> same procedure written out, for reading rather than running.
+
+1. **Resend:** create the account, add the DNS records it gives you for
+   `kundalinispines.com` (they go in Cloudflare DNS), then create an API key
+   and paste it as `RESEND_API_KEY` (Secret). Until the domain verifies,
+   sending fails with a 422 and the webhook answers 500 — which Stripe retries,
+   so orders placed during setup are not lost.
+2. **KV:** Storage & Databases → KV → create a namespace, then bind it as
+   `ORDERS` (see §3).
+3. **Stripe:** Developers → Webhooks → Add endpoint → the URL above → select
+   the two events. Copy the signing secret it shows **once** and paste it as
+   `STRIPE_WEBHOOK_SECRET` (Secret).
+4. **Test it without spending money:** the Stripe Dashboard's webhook page has
+   a **Send test event** button. A test event names a session the live key
+   cannot read, so the expected healthy answer is `200 not_found`, not `200 ok`
+   — that still proves the URL resolves, the signature verifies, and the
+   secrets are readable. A real send is only proved by a real purchase.
+
+### The response codes, and why they are what they are
+
+Stripe retries any non-2xx for up to three days. So everything this endpoint
+declines on purpose — an event type it does not handle, an order for a
+different product, a session that has not been paid yet — answers **200**, and
+everything that is worth trying again — a Stripe outage, a KV error, a failed
+send, missing configuration — answers **500**. Answering 500 to an event that
+will never succeed manufactures three days of retries; answering 200 to a
+failed send silently loses a customer's album.
 
 ### Why this event and not the success page
 

@@ -74,14 +74,33 @@
    real lever is deciding what is allowed to start, so the film rows ship as
    preload="none" and are released here.
 
-   Released on whichever comes first: the hero reporting canplaythrough, the
-   first meaningful scroll, or a 4s backstop. The backstop is not decoration —
-   without it a page where the hero fails to load would never release them. */
+   Released on whichever comes first: the hero saying it has what it needs,
+   the first meaningful scroll, or an 8s backstop.
+
+   THE HERO'S WORD IS `ks:hero-ready`, NOT canplaythrough (Sept 1 2026).
+   canplaythrough was the trigger until then and it was the wrong one twice
+   over. MEASURED on a live cold load throttled to 8Mbps: the 4s backstop
+   fired at 4.8s while the hero still had nine seconds of download left, so the
+   rows joined the fight anyway and the hero stalled three times on its first
+   pass. And now that js/hero-video.js streams the hero through a MediaSource,
+   canplaythrough means "a few seconds are buffered", not "the file is here" —
+   it would open the pipe with most of the hero still in flight. The hero
+   script fires ks:hero-ready when its fetch completes (or, on the fallback
+   path, on canplaythrough), and on EVERY failure path too, so the rows can
+   never be stranded by a hero that will not load. data-hero-ready is checked
+   first in case the event went before this ran.
+
+   THE DEEP-FIELD CLIP WAITS HERE TOO. It used to attach its sources the
+   moment the module started, which put 4.75MB beside the hero from t=0 — the
+   single largest reason the hero starved. The gated module below listens for
+   ks:pipe-open (or the df-pipe-open class if it arrives late) and only then
+   attaches. The backstop went 4s → 8s: its only job now is a hero script that
+   never ran at all, since every path through that script signals. */
 (function () {
   'use strict';
 
+  var root = document.documentElement;
   var rows = document.querySelectorAll('.ksd-filmrow__media video, .ksd-merch__video video');
-  if (!rows.length) return;
 
   var released = false;
   function release() {
@@ -91,17 +110,21 @@
       rows[i].preload = 'auto';
       rows[i].load();
     }
+    /* Both forms on purpose: the class for a listener that arrives after the
+       event, the event for one that is already waiting. */
+    root.classList.add('df-pipe-open');
+    document.dispatchEvent(new Event('ks:pipe-open'));
   }
 
   var hero = document.getElementById('hero-video');
-  if (hero && hero.readyState >= 4) release();
-  else if (hero) hero.addEventListener('canplaythrough', release, { once: true });
+  if (!hero || hero.dataset.heroReady) release();
+  else hero.addEventListener('ks:hero-ready', release, { once: true });
 
   window.addEventListener('scroll', function () {
     if (window.scrollY > window.innerHeight * 0.4) release();
   }, { passive: true });
 
-  setTimeout(release, 4000);
+  setTimeout(release, 8000);
 })();
 
 (function () {
@@ -192,9 +215,11 @@
     for (var i = 0; i < els.length; i++) els[i].classList.remove('df-cued');
   }
   vid.addEventListener('error', stripAllCues);
-  /* If the clip has not produced a frame in 8s it is not going to drive
-     anything, so hand every reveal back to the observer. */
-  setTimeout(function () { if (vid.readyState < 2) stripAllCues(); }, 8000);
+  /* The 8s "no frame yet, hand the reveals back" timer lives next to
+     attachSources() at the foot of this module now: it must count from the
+     moment the clip is asked for, and since Sept 1 2026 that moment waits on
+     the hero's pipe (see the PIPE PRIORITY block above). Counted from here it
+     would have fired while the clip had not been allowed to start. */
 
   /* Scrolled clean past a section that never got its cue — reveal it. Covers
      any route this file does not model, and costs one rect per cued section
@@ -1736,7 +1761,24 @@
 
   /* ------------------------------------------------------------------ start */
 
-  attachSources();
+  /* THE CLIP IS FETCHED WHEN THE PIPE OPENS, NOT WHEN THE MODULE STARTS (Sept 1
+     2026). See PIPE PRIORITY at the top of the file for the measurement; the
+     short form is that this 4.75MB clip downloading beside the hero from t=0
+     was what made the hero stall on an ordinary connection. The clip is not
+     needed until the reader leaves the hero, the first scroll opens the pipe
+     at once, and the legs already cope with a partial buffer (see STALL in
+     playTo). Home holds f0 meanwhile, and the poster IS f0. */
+  function whenPipeOpen(fn) {
+    if (root.classList.contains('df-pipe-open')) fn();
+    else document.addEventListener('ks:pipe-open', fn, { once: true });
+  }
+  whenPipeOpen(function () {
+    attachSources();
+    /* If the clip has not produced a frame in 8s of being asked for, it is
+       not going to drive anything, so hand every reveal back to the observer.
+       (Moved here from the module head — see the note there.) */
+    setTimeout(function () { if (vid.readyState < 2) stripAllCues(); }, 8000);
+  });
 
   Promise.all([
     fetch('assets/lab/deep-field-2-marks.json').then(function (r) { return r.json(); }),

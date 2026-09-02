@@ -233,8 +233,24 @@
            plays to it. -->
       <section class="ksd-section ksd-hero">
         <div class="ksd-hero__media">
+          <!-- THE LOOP IS PLAYED BY js/hero-video.js THROUGH A MediaSource, not by
+               the loop attribute (Sept 1 2026): the attribute's wrap is a
+               ~150ms hold every 8.8s, measured live in Chrome and Brave, and
+               that hold was the reported "chug". data-loop-src is the shipped
+               mp4's VIDEO TRACK ONLY, remuxed fragmented (same pixels): an
+               audio track inside the stream measured a 208ms seam of its own,
+               so the sound toggle plays the mp4's audio through a separate
+               element (see the script). data-loop-dur is the video stream's
+               length from ffprobe, used to keep that audio in phase. The
+               webm/mp4 pair below stays as the fallback for browsers without
+               MediaSource (iPhone Safari), and `loop` stays for that path; the
+               script removes it on its own.
+               preload="none", not auto: the parser would otherwise start
+               fetching the webm before the script can choose the loop file,
+               and both paths set what they need themselves. -->
           <video id="hero-video" poster="assets/hero/messengers-hero-video-poster.jpg"
-                 muted loop playsinline preload="auto" aria-hidden="true">
+                 muted loop playsinline preload="none" aria-hidden="true"
+                 data-loop-src="assets/hero/messengers-hero-loop.mp4" data-loop-dur="8.75">
             <source src="assets/hero/messengers-hero-video.webm" type="video/webm">
             <source src="assets/hero/messengers-hero-video.mp4" type="video/mp4">
           </video>

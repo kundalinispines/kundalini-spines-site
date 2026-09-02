@@ -97,8 +97,21 @@
   fill: rgba(214, 213, 208, 0.20);
 }
 .footer.is-upgraded .sf__seed-name { font-size: 8px; letter-spacing: 0.16em; }
+/* THE SAME MISSING TOKEN, AND HERE IT WAS PRINTING BLACK. Without a fallback
+   this `fill` is invalid at computed-value time on the five pages that never
+   load css/spine-doc.css, and an invalid custom-property value does NOT fall
+   back to the valid `fill` two rules up -- it computes to unset, `fill`
+   inherits, the parent <g> sets none, and the initial value is BLACK. Measured
+   on the live site Sep 1 2026: all seven frequency labels came back
+   rgb(0, 0, 0) on merch, and rgba(228, 232, 235, 0.24) on index. Seven black
+   words on a night sky, invisible since this footer shipped.
+   This is the third time this exact trap has been sprung in this footer -- see
+   the ACCENT note in js/site-footer.js, where the wordmark's brightest stop
+   rendered pure black for the same reason. Any `var(--node-color)` in this file
+   needs the literal after it. */
 .footer.is-upgraded .sf__seed-hz {
-  font-size: 7px; letter-spacing: 0.12em; fill: rgba(var(--node-color), 0.24);
+  font-size: 7px; letter-spacing: 0.12em;
+  fill: rgba(var(--node-color, 228, 232, 235), 0.24);
 }
 
 /* ==========================================================================
@@ -171,22 +184,42 @@
   font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.18em;
   padding: 2px 6px; border: 1px solid transparent; white-space: nowrap;
 }
+/* THE FALLBACK IS NOT DECORATION, IT IS THE ONLY COLOUR FIVE OF THE SIX PAGES
+   EVER SAW. --node-color is defined at :root in css/spine-doc.css, and index
+   is the ONLY page that links that file -- checked link tag by link tag, not
+   inferred from the name: about, merch, transmissions, archive and connect all
+   mention spine-doc.css in their comments and none of them load it. On those
+   five the property is missing, `rgba(var(--node-color), 0.75)` is an INVALID
+   VALUE, and the whole declaration is dropped. The chip then inherits the
+   link's --text-secondary and `border-color` falls through to currentColor --
+   which looked fine, and is why nobody noticed: the OPEN chip wore #9DB2C0 on
+   five pages and the intended cold white on one, and neither of those was a
+   decision anyone made. Found Sep 1 2026 reading computed styles on the live
+   site, after the chip became part of the link and its hover mattered.
+   The literal is --node-color's own value from css/spine-doc.css, and it is
+   the same fallback js/site-footer.js already applies to the same property for
+   the wordmark gradient -- see the ACCENT note there. Two places now say the
+   triplet; both say it because the property can genuinely be absent. */
 .footer.is-upgraded .sf-row__state--open {
-  color: rgba(var(--node-color), 0.75); border-color: rgba(var(--node-color), 0.28);
+  color: rgba(var(--node-color, 228, 232, 235), 0.75);
+  border-color: rgba(var(--node-color, 228, 232, 235), 0.28);
   transition: color var(--motion-fast), border-color var(--motion-fast);
 }
 /* The chip lights with the row it belongs to, so the part a reader is most
    likely to aim at also answers when it is hovered. */
 .footer.is-upgraded .sf-row__link:hover .sf-row__state--open,
 .footer.is-upgraded .sf-row__link:focus-visible .sf-row__state--open {
-  color: rgb(var(--node-color)); border-color: rgba(var(--node-color), 0.55);
+  color: rgb(var(--node-color, 228, 232, 235));
+  border-color: rgba(var(--node-color, 228, 232, 235), 0.55);
 }
 /* MEASURED 1.2:1 AGAINST THE REAL SKY, in the link tier -- the part this file
    calls the footer's only job. gray-500 here was settled against flat page
    black; over the lit nebula the word is an empty bordered box. Bone plus the
    site's two-pass shadow measures ~8.5:1 on the same pixels.
-   Note --open has NOT been judged: it is rgba(var(--node-color), 0.75) and its
-   contrast depends on which node colour the row carries. */
+   Note --open has still NOT been judged against the sky. It is now the same
+   rgba(228, 232, 235, 0.75) on all six pages rather than one colour on index
+   and another on the other five by accident (see the fallback note above), but
+   pinning a colour is not measuring it, and no one has measured this one. */
 .footer.is-upgraded .sf-row__state--standby {
   color: var(--color-bone);
   text-shadow: 0 0 3px rgba(3, 4, 15, 0.98), 0 1px 2px rgba(3, 4, 15, 0.92);

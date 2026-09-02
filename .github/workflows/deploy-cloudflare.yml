@@ -139,6 +139,18 @@ jobs:
             'css'
             'data'
             'js'
+            # Pages Functions. NOT an asset the pages load - this is the
+            # /api/* server surface, and it ships because `wrangler pages
+            # deploy` compiles whatever is in <dir>/functions and nothing
+            # else. It was missing from this list until 1 Sept 2026, which
+            # was not a dormant bug: a Pages direct upload is a COMPLETE
+            # deployment, so a _site without functions/ does not leave the
+            # existing endpoints alone - it publishes a site that has none.
+            # /api/verify and /api/download were live only because they had
+            # been deployed by hand and no run of this workflow had yet
+            # succeeded in replacing them. The first one that did would have
+            # taken album delivery offline. Removing this entry re-arms that.
+            'functions'
             # Root files served directly.
             'favicon.ico'
             'robots.txt'

@@ -243,8 +243,6 @@ that session) · `bad_signature` (Cloudflare's secret does not match Stripe's) �
    `55` item 6, and still the recurring defect class on this project. Six
    instances now, counting `STRIPE-SETUP.md`'s three wrong dashboard
    instructions found this session — a doc is copy too.
-7. **The Stripe destination's description is truncated** at `STRIPE_WE` in the
-   dashboard. Cosmetic. **Edit destination** takes a shorter version.
 
 ---
 

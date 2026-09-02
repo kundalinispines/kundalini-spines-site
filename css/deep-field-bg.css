@@ -1,5 +1,5 @@
 /* deep-field-bg.css — the home page's background clip.
-   --df-build: 20;
+   --df-build: 21;
 
    WHAT THIS IS
    The 12.042s deep-field-2 clip painted full-bleed behind the whole home
@@ -33,7 +33,7 @@
      meant the one check the convention exists for - "is the browser running the
      file I just edited, or a cached copy?" - could not be run against the deep
      field at all. Declared Aug 26 2026. Keep it in step with the header. */
-  --df-build: 20;
+  --df-build: 21;
 
   /* 0 = sky fully suppressed and the clip is the only background.
      1 = the real star field at its normal strength.
@@ -242,16 +242,6 @@
      "derive it"; any positive value is used instead. */
   --df-rate: 1.65;
   --df-rate-tail: 0;
-  /* THE CUT IS A DISSOLVE (owner's call, Sept 2 2026, the evening of the day
-     going-back became a cut). Milliseconds for the outgoing frame to fade off
-     the incoming one when a backward landing cuts between two bare frames of
-     the clip - Merch to Music, Transmissions to Merch, Archive to
-     Transmissions. js/deep-field-bg.js cutTo() paints the outgoing frame onto
-     .df-bg__ghost, cuts the clip underneath, and fades the ghost over this.
-     Legs that leave or arrive under the full nebula already dissolve through
-     the sky (that is the Music-to-About fade the owner liked) and skip the
-     ghost, so nothing dissolves twice. 0 restores the hard cut. */
-  --df-cut-ms: 700;
   --df-step-ms: 620;  /* the glide between two ordinary landings. Slower than
                          the 520 the Music settle uses, because a step crosses
                          a whole section rather than correcting inside one. */
@@ -401,23 +391,6 @@
   /* No object-position shift. The clip is composed full-frame and its
      movements are centre-weighted; the hero's "center 20%" was about keeping
      two faces out of the bottom crop and does not apply here. */
-}
-
-/* THE GHOST: a canvas js/deep-field-bg.js creates between the clip and the
-   scrim, sized to the clip's native frame and given the SAME box and the SAME
-   object-fit as the clip, so a frame drawn into it lands pixel-for-pixel over
-   the frame it was copied from. It is transparent except during a backward
-   cut (see --df-cut-ms), when the script paints the outgoing frame into it,
-   cuts the clip, and fades it out - the transition is set inline for the
-   duration so a stale transition can never slow the paint of the next one. */
-.df-bg__ghost {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  opacity: 0;
-  pointer-events: none;
 }
 
 /* The scrim sits over the footage and under everything else, including the

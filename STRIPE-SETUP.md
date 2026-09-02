@@ -319,7 +319,7 @@ and hands back an error panel.
    means nothing to configure.
 
    **The dashboard cannot take the WAV.** A browser upload is a single PUT,
-   and at ~1,395 MB the WAV set is past what that carries; the 271 MB MP3 goes
+   and at ~1,395 MB the WAV set is past what that carries; the 373 MB MP3 goes
    through fine. This is a limit of the upload *method*, not of R2, which
    holds objects up to 5 TB. Large files need a multipart upload, and
    Cloudflare's own recommendation is **rclone** — a single Windows `.exe`,

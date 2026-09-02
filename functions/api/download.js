@@ -58,7 +58,7 @@ const DEFAULT_WINDOW_HOURS = 72;
    `rise-up-digital.zip`, corrected the same day when the actual delivery
    folder turned out to hold an MP3 set and a WAV set:
 
-     KundaliniSpines_RiseUp_MP3.zip    271 MB
+     KundaliniSpines_RiseUp_MP3.zip    373 MB
      KundaliniSpines_RiseUp_WAV.zip  1,395 MB
 
    Combining them into one 1.7 GB archive was the obvious alternative and it

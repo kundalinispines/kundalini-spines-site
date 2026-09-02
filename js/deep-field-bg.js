@@ -624,9 +624,7 @@
     skyTo: 0,          /* sky level it must reach on arrival  */
     skyIn: false,      /* bring the nebula up once parked     */
     raf: 0,
-    timer: 0,          /* the replay seek deadline; see replayLeg */
     done: null,        /* fires once, on arrival              */
-    replaying: false   /* mid backward seek, before the forward leg starts */
   };
 
   /* THE CROSSFADE HAPPENS AT THE PARK, NOT ACROSS THE LEG (owner's call,
@@ -658,7 +656,6 @@
 
   function stopWatch() {
     if (play.raf) { cancelAnimationFrame(play.raf); play.raf = 0; }
-    if (play.timer) { clearTimeout(play.timer); play.timer = 0; }
   }
 
   /* Land exactly, then tell whoever asked. */
@@ -666,7 +663,6 @@
     stopWatch();
     play.to = -1;
     play.stop = -1;
-    play.replaying = false;
     vid.pause();
     var t = frameToTime(f);
     if (Math.abs(vid.currentTime - t) > 1 / (FPS * 4)) vid.currentTime = t;
@@ -683,7 +679,7 @@
   }
 
   /* Forward, at 1.0x, to `f`. Since Aug 23 2026 this is the ONLY way the clip
-     ever advances, in either direction of travel - see replayLeg. */
+     ever advances; going back is a cut - see GOING BACK IS A CUT. */
   function playTo(f, cb) {
     stopWatch();
     play.to = f;
@@ -778,104 +774,39 @@
     arrive(f, cb);
   }
 
-  /* GOING BACK: REPLAY THE LEG FORWARD (owner's call, Aug 23 2026).
+  /* GOING BACK IS A CUT (owner's call, Sept 2 2026).
 
-     WHAT THIS REPLACES. From Aug 18 2026 until today, travelling back ran a
-     hand-rolled backward seek loop paced to 24fps, because Chrome refuses a
-     negative playbackRate outright - setting one throws NotSupportedError - so
-     backwards could only ever be a seek loop. It worked, and the owner liked
-     how it looked, but it was expensive and it degraded exactly where the clip
-     is busiest. The measurements are kept because they are why it is gone:
+     A backward landing seeks straight to the destination's cue and parks
+     there: no footage plays on the way up. Scrolling down again plays forward
+     from that parked frame, as every forward leg always has. jumpTo() is the
+     same landing the skip-ahead uses.
 
-       f96-f144, calm footage      27.7ms mean, 33.2ms median, 49.5ms worst.
-                                   About 36fps achievable.
-       f83-f157, crossing the      30.1ms median, but 13 of 40 frames over
-       hard cut at f126            budget and a 449.9ms worst case: a backward
-                                   step has to rebuild far larger residuals on
-                                   the bright plateau.
+     THE TWO THINGS THIS REPLACES, kept so nobody rebuilds them:
 
-     So reverse held on calm footage and gave up on busy footage, and the thing
-     it gave up TO was a straight seek - a cut, with no motion at all. The
-     owner reported the whole gesture as sluggish. The call: stop asking the
-     decoder to do the one thing it is not built for.
+       Aug 18-23 2026   a hand-rolled BACKWARD seek loop paced to 24fps, because
+                        Chrome throws NotSupportedError on a negative
+                        playbackRate. It held on calm footage (33ms median,
+                        f96-f144) and fell apart on busy footage (13 of 40
+                        frames over budget crossing the hard cut at f126, 450ms
+                        worst) — a backward step rebuilds far larger residuals.
+                        The owner reported the gesture as sluggish.
+       Aug 23-Sept 2    REPLAY THE LEG FORWARD: cut back to the frame the leg
+                        begins on (the previous stop's cue) and play forward to
+                        the destination at 1.0x. Smooth, but on the way up the
+                        reader is navigating, not watching, and sat through a
+                        leg of footage to reach a frame they had already seen.
+                        Owner's example: Stay Connected back to Archive should
+                        just be Archive.
 
-     WHAT HAPPENS INSTEAD. A backward leg seeks instantly to the frame the leg
-     BEGINS on - the cue of the stop before it - and then plays FORWARD to the
-     destination cue at 1.0x. Same footage, same direction, same speed as
-     coming down. One seek, then ordinary forward decode, which is what the
-     encode is cut for: -g 4 keyframes make that seek cheap, and no frame is
-     ever rebuilt backwards again.
+     WHY A HARD CUT AND NOT A DISSOLVE. Offered and declined: a dissolve between
+     two frames of the same clip would compete with the sky crossfade at Music,
+     which already owns the park, and it would add work to a gesture whose
+     point is to be instant.
 
-     WHY THE JUMP IS NOT HIDDEN. It cuts backwards PAST the destination and
-     that is meant to be seen: the reader is navigating, not watching, and a
-     cut followed by real motion reads as rewind-and-replay. Covering it would
-     mean crossfading two frames of the same clip, and the sky crossfade
-     already owns the park - doing both muddies both.
-
-     THE BRIEF IS UNCHANGED. One speed, the whole way, in both directions.
-     Nothing here touches playbackRate, and every leg still ends parked exactly
-     on its cue. */
-  function legStart(i) {
-    /* A leg begins on the cue of the stop before it. The first stop has none,
-       so its leg begins at the head of the clip - which is f0, the frame Home
-       and About already share. */
-    return i > 0 ? cueOf(i - 1) : 0;
-  }
-
-  /* The backward seek gets a deadline for the same reason playTo() has a stall
-     watcher: A LEG MUST ALWAYS END. If `seeked` never arrives - a cold buffer,
-     a range request that does not come back - the cue never fires and the
-     section stays held down, with nothing in the console to say why. On the
-     deadline it lands the old way, as a cut. */
-  var SEEK_GIVE = 700;
-
-  function replayLeg(i, f, cb) {
-    stopWatch();
-    play.to = f;
-    play.done = cb || null;
-    play.replaying = true;
-
-    var start = legStart(i);
-    if (start >= f) {                    /* cues not ascending; nothing to replay */
-      play.replaying = false;
-      arrive(f, cb);
-      return;
-    }
-
-    var t = frameToTime(start);
-    play.from = start;
-    paintScrim(t);                       /* the scrim belongs to the frame we cut to */
-    vid.pause();
-
-    /* ALREADY THERE. A currentTime write that changes nothing may never fire
-       `seeked`, and waiting on one that cannot come is how a leg hangs. */
-    if (Math.abs(vid.currentTime - t) <= 1 / (FPS * 4)) {
-      play.replaying = false;
-      playWhenVisible(f, play.done);
-      return;
-    }
-
-    function landed() {
-      vid.removeEventListener('seeked', landed);
-      if (play.timer) { clearTimeout(play.timer); play.timer = 0; }
-      if (play.to !== f) return;                        /* superseded */
-      play.replaying = false;
-      playWhenVisible(f, play.done);
-    }
-    vid.addEventListener('seeked', landed);
-
-    /* Held on play.timer so stopWatch() cancels it: a second gesture during the
-       seek must not leave this deadline armed behind the leg that supersedes it. */
-    play.timer = setTimeout(function () {
-      play.timer = 0;
-      vid.removeEventListener('seeked', landed);
-      if (play.to !== f) return;                        /* superseded */
-      play.replaying = false;
-      jumpTo(f, play.done);
-    }, SEEK_GIVE);
-
-    vid.currentTime = t;
-  }
+     THE BRIEF IS UNCHANGED for forward travel: one speed, the whole way, every
+     leg parked exactly on its cue. Nothing here touches playbackRate. The
+     nebula still belongs to the arrival, not the leg — arrive() raises it over
+     the settled frame at Music whichever way the reader came. */
 
   /* THE SKY FOLLOWS THE CLIP, NOT THE SCROLL (Aug 18 2026).
 
@@ -1211,10 +1142,10 @@
     if (cue >= cur) {
       playWhenVisible(cue, function () { fireCue(i); });
     } else {
-      /* Going back. replayLeg cuts to the frame this leg begins on and plays
-         it forward; either way the reveal is already showing on a section the
-         reader has seen, so nothing waits on it. */
-      replayLeg(i, cue, function () { fireCue(i); });
+      /* Going back: a cut to the cue, no footage (owner's call, Sept 2 2026 —
+         see GOING BACK IS A CUT). The reveal is already showing on a section
+         the reader has seen, so nothing waits on it. */
+      jumpTo(cue, function () { fireCue(i); });
     }
   }
 
@@ -1919,7 +1850,6 @@
       frame: Math.round(vid.currentTime * FPS - 0.5),
       time: vid.currentTime,
       playingTo: play.to,
-      replaying: play.replaying,
       paused: vid.paused,
       rate: vid.playbackRate,
       cues: stops.map(function (st, i) { return { name: st.name, cue: cueOf(i) }; }),

@@ -200,26 +200,50 @@
    the same fallback js/site-footer.js already applies to the same property for
    the wordmark gradient -- see the ACCENT note there. Two places now say the
    triplet; both say it because the property can genuinely be absent. */
+/* NOW MEASURED, AND IT HAD BEEN FAILING. 0.75 alpha and no shadow put this
+   word at 3.42:1 against the real sky -- home page at 834x1112, over the lit
+   nebula the NAVIGATE column lands on, where every fully-inked pixel of the
+   glyphs was under 4.5:1. Not a corner: 4.40 at 1024x768, 4.57 at 1440x900,
+   4.66 at 1920x1080, 4.09 at 390x844 where a star sat under the ink. Over
+   dark sky the same chip measures 7.9:1, which is why looking at one page at
+   one size had said it was fine for as long as this footer has existed.
+   Measured Sep 1 2026, 228 chip samples over 6 pages x 6 viewports: two
+   screenshots per chip, the second with the chip hidden to expose the sky
+   that was behind the glyphs, then per-pixel WCAG between them. STANDBY was
+   run through the same code as a control and came back 9.36:1 worst, the
+   same order as the ~8.5:1 recorded for it below.
+   THE REMEDY IS THE ONE STANDBY ALREADY USES, and it needed both halves: the
+   two-pass shadow alone only reached 3.91:1, still short. Full alpha with the
+   shadow measures 6.42:1 worst and 9.1-9.2 at desktop widths. Full alpha is
+   affordable here precisely BECAUSE of the shadow -- it is what stops cold
+   white on a bright nebula from being the flat, shadowless wash it was.
+   The border stays at 0.28 and has NOT been judged. It is decoration; the
+   word carries the meaning, and over the bright nebula the box is faint. If
+   the box is ever made to mean something, it needs its own measurement. */
 .footer.is-upgraded .sf-row__state--open {
-  color: rgba(var(--node-color, 228, 232, 235), 0.75);
+  color: rgb(var(--node-color, 228, 232, 235));
+  text-shadow: 0 0 3px rgba(3, 4, 15, 0.98), 0 1px 2px rgba(3, 4, 15, 0.92);
   border-color: rgba(var(--node-color, 228, 232, 235), 0.28);
-  transition: color var(--motion-fast), border-color var(--motion-fast);
+  transition: border-color var(--motion-fast);
 }
-/* The chip lights with the row it belongs to, so the part a reader is most
-   likely to aim at also answers when it is hovered. */
+/* The chip answers the row it belongs to, so the part a reader is most likely
+   to aim at reacts when it is hovered. THE BORDER CARRIES THIS ALONE now that
+   the ink is already at full alpha for contrast -- there is no brighter to go,
+   and dimming the resting word to make room for a hover state would trade a
+   measured 6.42:1 for an animation nobody asked for. The label beside it still
+   lifts to --text-primary, so the row as a whole answers. */
 .footer.is-upgraded .sf-row__link:hover .sf-row__state--open,
 .footer.is-upgraded .sf-row__link:focus-visible .sf-row__state--open {
-  color: rgb(var(--node-color, 228, 232, 235));
   border-color: rgba(var(--node-color, 228, 232, 235), 0.55);
 }
 /* MEASURED 1.2:1 AGAINST THE REAL SKY, in the link tier -- the part this file
    calls the footer's only job. gray-500 here was settled against flat page
    black; over the lit nebula the word is an empty bordered box. Bone plus the
    site's two-pass shadow measures ~8.5:1 on the same pixels.
-   Note --open has still NOT been judged against the sky. It is now the same
-   rgba(228, 232, 235, 0.75) on all six pages rather than one colour on index
-   and another on the other five by accident (see the fallback note above), but
-   pinning a colour is not measuring it, and no one has measured this one. */
+   --open has since been judged the same way and needed the same two-pass
+   shadow to pass; its numbers are above. Both chips in this column now earn
+   their contrast from bone-or-brighter ink over a shadow, which is why they
+   read as a pair. */
 .footer.is-upgraded .sf-row__state--standby {
   color: var(--color-bone);
   text-shadow: 0 0 3px rgba(3, 4, 15, 0.98), 0 1px 2px rgba(3, 4, 15, 0.92);

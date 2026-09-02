@@ -287,7 +287,7 @@
   var T = { tail: 1, stagger: 90, snap: 1,
             step: 1, stepMs: 620, gap: 180,
             skyIn: 0.055, skyOut: 0.10, titleMs: 1000, holdPlay: 1,
-            rate: 1.2, rateTail: 0 };   /* see legRate() */
+            rate: 1.65, rateTail: 0 };   /* see legRate() */
   var lastRead = 0;
   function syncTunables(now) {
     if (now - lastRead < 200) return;
@@ -705,7 +705,12 @@
          Archive -> Stay C.   206 -> 247     41          1.42s
          Stay C. -> Foot      247 -> 288     41          1.42s
 
-     With the legs equal the derivation below returns 1.2 x 41 / 41.25 = 1.19,
+     THIRD, watching that: 1.46s at the longest was still too long to wait.
+     The owner asked for 1.0-1.1s, so --df-rate went 1.2 -> 1.65: 41 frames
+     take 1.04s and 42 take 1.06s. (1.6 would give 1.07/1.09; 1.7 gives
+     1.00/1.03; 1.65 sits in the middle of the window on both.)
+
+     With the legs equal the derivation below returns --df-rate x 41 / 41.25,
      which is the same thing; it is kept because it is what makes the tail
      leg self-correcting if a cue ever moves again, and --df-rate-tail above 0
      still overrides it for the tuner. Home -> About stays out of the mean for
@@ -1682,9 +1687,9 @@
       { k: '--df-step-ms', g: 'step', label: 'glide', min: 200, max: 1600, step: 20,
         tip: 'Milliseconds to cross from one section to the next. The clip is not tied to this - a leg takes as long as its footage takes at the rate below' },
       { k: '--df-rate', g: 'step', label: 'rate', min: 0.5, max: 2, step: 0.05,
-        tip: 'Playback rate of every forward leg. 1.2 is the Sept 2 2026 call, about twenty percent up from the 1.0 the clip shipped at. The leg into Stay Connected does not use this directly - see tail rate' },
+        tip: 'Playback rate of every forward leg. 1.65 is the Sept 2 2026 call: with every leg 41 frames it makes each one 1.04s, inside the 1.0-1.1s the owner asked for. The clip shipped at 1.0 and spent an hour at 1.2. The leg into Stay Connected does not use this directly - see tail rate' },
       { k: '--df-rate-tail', g: 'step', label: 'tail rate', min: 0, max: 2, step: 0.01,
-        tip: 'Rate of the Archive to Stay Connected leg alone. 0 derives it so that leg lasts the mean of the visible legs at the rate above - with the Sept 2 2026 cues every leg is 41 frames, so that comes out at 1.19, the same thing. It mattered when the tail leg was 20 frames and came out at 0.42. Any value above 0 replaces the derivation' },
+        tip: 'Rate of the Archive to Stay Connected leg alone. 0 derives it so that leg lasts the mean of the visible legs at the rate above - with the Sept 2 2026 cues every leg is 41 frames, so that comes out a hair under the rate above, the same thing. It mattered when the tail leg was 20 frames and came out at 0.42. Any value above 0 replaces the derivation' },
       { k: '--df-gap', g: 'step', label: 'gap', min: 0, max: 600, step: 10,
         tip: 'Wheel silence that ends a gesture. A trackpad throws inertia for about a second after your fingers lift; raise this if one flick still walks two sections, lower it if a deliberate second scroll feels ignored' },
 

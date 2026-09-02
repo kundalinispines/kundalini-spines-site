@@ -1,5 +1,5 @@
 /* deep-field-bg.css — the home page's background clip.
-   --df-build: 17;
+   --df-build: 18;
 
    WHAT THIS IS
    The 12.042s deep-field-2 clip painted full-bleed behind the whole home
@@ -33,7 +33,7 @@
      meant the one check the convention exists for - "is the browser running the
      file I just edited, or a cached copy?" - could not be run against the deep
      field at all. Declared Aug 26 2026. Keep it in step with the header. */
-  --df-build: 17;
+  --df-build: 18;
 
   /* 0 = sky fully suppressed and the clip is the only background.
      1 = the real star field at its normal strength.
@@ -223,6 +223,15 @@
      not come to rest on Archive, and escaping it downward was swallowed. The
      seam is gone rather than patched. */
   --df-step: 1;
+  /* THE SPEED OF A LEG (owner's call, Sept 2 2026). Every forward leg plays at
+     --df-rate; the clip shipped at 1.0 and the owner asked for about twenty
+     percent more. The leg into Stay Connected is the exception - 20 frames,
+     the shortest on the page - and js/deep-field-bg.js legRate() derives its
+     rate so it LASTS as long as the mean of the visible legs (0.42 with the
+     shipped cues; the table and the arithmetic are in that comment).
+     --df-rate-tail 0 means "derive it"; any positive value is used instead. */
+  --df-rate: 1.2;
+  --df-rate-tail: 0;
   --df-step-ms: 620;  /* the glide between two ordinary landings. Slower than
                          the 520 the Music settle uses, because a step crosses
                          a whole section rather than correcting inside one. */

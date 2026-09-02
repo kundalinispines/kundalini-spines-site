@@ -22,9 +22,11 @@
      home-deepfield-lab.html, which had carried it since Aug 17.
 
      THE CLIP BEHIND THIS DOCUMENT IS NOT SCRUBBED. Landing on a section plays
-     it forward at 1.0x to that section's cue frame and stops it there, and the
+     it forward to that section's cue frame and stops it there, and the
      section's held-back content is released as the clip parks. It plays cue to
-     cue and nothing ever changes playbackRate. js/deep-field-bg.js owns the
+     cue at --df-rate (1.2x since Sept 2 2026; the leg into Stay Connected is
+     slowed to last as long as the others - legRate() in the script has the
+     table), and going back up is a cut. js/deep-field-bg.js owns the
      sequence, css/deep-field-bg.css owns the layers and the scrim, and
      assets/lab/deep-field-2-marks.json is the source of truth for every frame.
 

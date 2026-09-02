@@ -286,7 +286,8 @@
      that turn nothing, which this project has been bitten by before. */
   var T = { tail: 1, stagger: 90, snap: 1,
             step: 1, stepMs: 620, gap: 180,
-            skyIn: 0.055, skyOut: 0.10, titleMs: 1000, holdPlay: 1 };
+            skyIn: 0.055, skyOut: 0.10, titleMs: 1000, holdPlay: 1,
+            rate: 1.2, rateTail: 0 };   /* see legRate() */
   var lastRead = 0;
   function syncTunables(now) {
     if (now - lastRead < 200) return;
@@ -312,6 +313,10 @@
     if (isFinite(st)) T.step = st;
     if (isFinite(sm) && sm > 0) T.stepMs = sm;
     if (isFinite(gp) && gp >= 0) T.gap = gp;
+    var rt = parseFloat(cs.getPropertyValue('--df-rate'));
+    var rtt = parseFloat(cs.getPropertyValue('--df-rate-tail'));
+    if (isFinite(rt) && rt > 0) T.rate = rt;
+    if (isFinite(rtt) && rtt >= 0) T.rateTail = rtt;
   }
 
   /* ---------------------------------------------------------------- sources
@@ -678,9 +683,46 @@
     if (cb) cb();
   }
 
-  /* Forward, at 1.0x, to `f`. Since Aug 23 2026 this is the ONLY way the clip
-     ever advances; going back is a cut - see GOING BACK IS A CUT. */
-  function playTo(f, cb) {
+  /* THE SPEED OF A LEG (owner's call, Sept 2 2026). Every forward leg runs at
+     --df-rate, 1.2x - "about twenty percent" faster than the 1.0x the brief
+     held from Aug 18 until today. EXCEPT the leg into Stay Connected, which
+     at 20 frames was already the shortest thing on the page (the marks file
+     rebalanced it once for the same reason) and would have fallen to 0.69s at
+     1.2x. The owner asked for the math that makes it match the others, so it
+     takes the mean duration of the visible legs at --df-rate and runs as slow
+     as it must to fill that:
+
+         leg                 frames   at 1.2x
+         About -> Music        62      2.15s
+         Music -> Merch        70      2.43s
+         Merch -> Transm.      63      2.19s
+         Transm. -> Archive    36      1.25s      mean 57.75 frames = 2.005s
+         Archive -> Stay C.    20      0.69s  ->  20 / (24 x 2.005s) = 0.416x
+
+     Home -> About is left out of the mean: it is 21 frames, mostly hidden
+     behind the hero, and would drag the target down. It is DERIVED from the
+     cues, not typed, so moving a cue in the marks file moves the answer with
+     it; --df-rate-tail above 0 overrides the derivation for the tuner. At
+     0.42x the footage shows each frame for ~100ms - a slow drift, judged by
+     eye when it shipped, and the dial is there if it reads as steppy. */
+  function legRate(i) {
+    var s = stops[i];
+    var isTail = !!(s && !s.seg && s.cue === TAIL_CUE);
+    if (!isTail) return T.rate;
+    if (T.rateTail > 0) return T.rateTail;
+    var sum = 0, n = 0;
+    for (var j = 2; j < i; j++) {
+      var len = cueOf(j) - cueOf(j - 1);
+      if (len > 0) { sum += len; n++; }
+    }
+    var mine = cueOf(i) - cueOf(i - 1);
+    if (!n || mine <= 0) return T.rate;
+    return T.rate * mine / (sum / n);
+  }
+
+  /* Forward, at legRate(), to `f`. Since Aug 23 2026 this is the ONLY way the
+     clip ever advances; going back is a cut - see GOING BACK IS A CUT. */
+  function playTo(f, cb, rate) {
     stopWatch();
     play.to = f;
     play.done = cb || null;
@@ -689,7 +731,7 @@
       arrive(f, cb);
       return;
     }
-    vid.playbackRate = 1;          /* the brief: one speed, the whole way */
+    vid.playbackRate = (rate > 0) ? rate : T.rate;   /* see legRate() */
     var p = vid.play();
     if (p && p.catch) p.catch(function () { arrive(f, cb); });
 
@@ -755,15 +797,15 @@
     return !!h && h.getBoundingClientRect().bottom > 0;
   }
 
-  function playWhenVisible(f, cb) {
-    if (!heroCovering()) { playTo(f, cb); return; }
+  function playWhenVisible(f, cb, rate) {
+    if (!heroCovering()) { playTo(f, cb, rate); return; }
     stopWatch();
     play.to = f;                 /* claim it, so a new gesture supersedes this */
     play.done = cb || null;
     var give = performance.now() + 1400;
     (function wait() {
       if (play.to !== f) return;                       /* superseded */
-      if (!heroCovering() || performance.now() > give) { playTo(f, cb); return; }
+      if (!heroCovering() || performance.now() > give) { playTo(f, cb, rate); return; }
       play.raf = requestAnimationFrame(wait);
     })();
   }
@@ -803,10 +845,10 @@
      which already owns the park, and it would add work to a gesture whose
      point is to be instant.
 
-     THE BRIEF IS UNCHANGED for forward travel: one speed, the whole way, every
-     leg parked exactly on its cue. Nothing here touches playbackRate. The
-     nebula still belongs to the arrival, not the leg — arrive() raises it over
-     the settled frame at Music whichever way the reader came. */
+     Forward travel still parks every leg exactly on its cue; its speed is
+     legRate()'s business since the same day. The nebula still belongs to the
+     arrival, not the leg — arrive() raises it over the settled frame at Music
+     whichever way the reader came. */
 
   /* THE SKY FOLLOWS THE CLIP, NOT THE SCROLL (Aug 18 2026).
 
@@ -1140,7 +1182,7 @@
     if (!raf) raf = requestAnimationFrame(tick);
 
     if (cue >= cur) {
-      playWhenVisible(cue, function () { fireCue(i); });
+      playWhenVisible(cue, function () { fireCue(i); }, legRate(i));
     } else {
       /* Going back: a cut to the cue, no footage (owner's call, Sept 2 2026 —
          see GOING BACK IS A CUT). The reveal is already showing on a section
@@ -1355,7 +1397,7 @@
     if (best >= 0 && bd <= 8 && vid.readyState >= 2 && play.to < 0) {
       var cue = cueOf(best), cur = vid.currentTime * FPS - 0.5;
       if (Math.abs(cue - cur) > 0.75) {
-        if (cue > cur && cue - cur <= 80) playWhenVisible(cue, function () { fireCue(best); });
+        if (cue > cur && cue - cur <= 80) playWhenVisible(cue, function () { fireCue(best); }, legRate(best));
         else jumpTo(cue, function () { fireCue(best); });
       } else {
         fireCue(best);
@@ -1633,7 +1675,11 @@
       { k: '--df-step', g: 'step', label: 'step', min: 0, max: 1, step: 1,
         tip: 'One wheel gesture moves one section. 0 hands the page back to scroll weight entirely, which is how everything before build 4 scrolled' },
       { k: '--df-step-ms', g: 'step', label: 'glide', min: 200, max: 1600, step: 20,
-        tip: 'Milliseconds to cross from one section to the next. The clip is not tied to this - a leg takes as long as its footage takes, at 1.0x' },
+        tip: 'Milliseconds to cross from one section to the next. The clip is not tied to this - a leg takes as long as its footage takes at the rate below' },
+      { k: '--df-rate', g: 'step', label: 'rate', min: 0.5, max: 2, step: 0.05,
+        tip: 'Playback rate of every forward leg. 1.2 is the Sept 2 2026 call, about twenty percent up from the 1.0 the clip shipped at. The leg into Stay Connected does not use this directly - see tail rate' },
+      { k: '--df-rate-tail', g: 'step', label: 'tail rate', min: 0, max: 2, step: 0.01,
+        tip: 'Rate of the Archive to Stay Connected leg alone. 0 derives it: that leg is 20 frames, so it runs as slow as it must to last the mean of the visible legs at the rate above - 0.42 with the shipped cues. Any value above 0 replaces the derivation' },
       { k: '--df-gap', g: 'step', label: 'gap', min: 0, max: 600, step: 10,
         tip: 'Wheel silence that ends a gesture. A trackpad throws inertia for about a second after your fingers lift; raise this if one flick still walks two sections, lower it if a deliberate second scroll feels ignored' },
 

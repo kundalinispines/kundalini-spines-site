@@ -262,7 +262,7 @@ diff for `sk_`/`whsec_` but it cannot see the Cloudflare dashboard.
 | `ALBUM_OBJECT_KEY_MP3` | Key of the MP3 zip. Optional; defaults to `KundaliniSpines_RiseUp_MP3.zip`. | No |
 | `ALBUM_OBJECT_KEY_WAV` | Key of the WAV zip. Optional; defaults to `KundaliniSpines_RiseUp_WAV.zip`. | No |
 | `DOWNLOAD_WINDOW_HOURS` | How long after purchase the download stays open. Optional; defaults to `72`. | No |
-| `STRIPE_WEBHOOK_SECRET` | `whsec_...`, shown once when the endpoint is created in the Stripe Dashboard. The only thing separating a real Stripe delivery from a stranger's POST. | **Yes — Secret** |
+| `STRIPE_WEBHOOK_SECRET` | `whsec_...`, from the event destination's page in the Stripe Dashboard. The only thing separating a real Stripe delivery from a stranger's POST. It is **not** shown only once — the destination page has an eye icon that reveals it and a circular arrow that rolls it, so a lost copy is re-readable rather than fatal. | **Yes — Secret** |
 | `RESEND_API_KEY` | `re_...`. Sends the confirmation email. | **Yes — Secret** |
 | `SITE_ORIGIN` | Origin used to build the download link in the email. Optional; defaults to `https://kundalinispines.com`. Only set it if that stops being the public address. | No |
 | `FROM_EMAIL` | Sender of the confirmation email. Optional; defaults to `Kundalini Spines <orders@kundalinispines.com>`. **Must be on a domain verified in Resend** — gmail.com cannot be. | No |
@@ -488,14 +488,56 @@ second arrives.
    so orders placed during setup are not lost.
 2. **KV:** Storage & Databases → KV → create a namespace, then bind it as
    `ORDERS` (see §3).
-3. **Stripe:** Developers → Webhooks → Add endpoint → the URL above → select
-   the two events. Copy the signing secret it shows **once** and paste it as
-   `STRIPE_WEBHOOK_SECRET` (Secret).
-4. **Test it without spending money:** the Stripe Dashboard's webhook page has
-   a **Send test event** button. A test event names a session the live key
-   cannot read, so the expected healthy answer is `200 not_found`, not `200 ok`
-   — that still proves the URL resolves, the signature verifies, and the
-   secrets are readable. A real send is only proved by a real purchase.
+3. **Stripe:** Workbench → Webhooks → **Add destination** → pick the two
+   events → destination type **Webhook endpoint** → the URL above. Stripe
+   renamed webhook endpoints to *event destinations*; "Add endpoint" is the
+   old name for this button, and older writing here (and in
+   `scripts/email-webhook-setup.sh`) still uses it. Leave the scope on **Your
+   account** and take the default API version — the handler reads only
+   `type`, `data.object.id` and `livemode`, and re-asks Stripe for the rest,
+   so the payload's shape is not load-bearing. Then reveal the signing secret
+   and paste it as `STRIPE_WEBHOOK_SECRET` (Secret). **Check the mode toggle
+   says Live**: a test-mode destination verifies signatures happily and then
+   finds nothing, because the site's Payment Links are live.
+4. **Redeploy.** Variables and bindings only reach the Function on a *new*
+   deployment. Saving them changes nothing on its own.
+
+### Proving it works without spending money
+
+Written 1 Sept 2026, after the three shorter routes turned out not to exist.
+
+**What does not work, so nobody spends an hour rediscovering it:**
+
+- **"Send test event"** is not offered on a live-mode destination. This
+  document recommended it for months; it is a test-mode affordance.
+- **Resending a past event** (Workbench → Events → the event → Resend) cannot
+  target a destination that did not exist when the event fired. There is no
+  delivery record to retry, so the new destination is not among the choices.
+- **The Workbench Shell** runs `stripe events resend --webhook-endpoint=we_…`,
+  which is exactly the right command, but the shell only permits writes in a
+  sandbox — and a sandbox session id is unreadable by the live key in
+  Cloudflare, so it proves the signature check and nothing past it.
+
+**What does work: sign a POST locally and send it with a real session id.**
+The signature scheme is HMAC-SHA256 over `<timestamp>.<raw body>` with the
+secret used verbatim as the key, so it is reproducible in a few lines. The
+handler reads only `type`, `data.object.id` and `livemode`, so a minimal body
+carrying a genuine `cs_live_…` is not a weaker test — it is the same test, and
+it exercises every link at once: the secret, the live key's read of the
+session, the product check, the KV write, and Resend actually delivering.
+A `200 ok` means the email really was sent. Use a session from one of your own
+past purchases; a redelivery is safe because the `emailedAt` stamp answers
+`already_sent` rather than sending twice.
+
+> **A `cs_…` id is a capability, not just an identifier.** `/api/verify` mints
+> download tokens from a session id alone. Use your own; never paste a
+> customer's anywhere.
+
+**If the probe returns `403` with Cloudflare `error code: 1010`**, it never
+reached the Function — the edge refused it on user agent alone. A default
+`Python-urllib` UA is enough to trigger it. Stripe sends a real UA so its
+deliveries pass, but if Event deliveries ever shows 403s, this is the cause
+and the handler is innocent.
 
 ### The response codes, and why they are what they are
 

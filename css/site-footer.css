@@ -142,6 +142,17 @@
 .footer.is-upgraded .sf-row__link:hover,
 .footer.is-upgraded .sf-row__link:focus-visible { color: var(--text-primary); }
 
+/* THE OPEN LINK IS THE WHOLE ROW. js/site-footer.js puts the OPEN chip inside
+   the anchor, so the anchor takes over the space-between the row was doing --
+   the label at the left edge, the word OPEN at the right, and every pixel
+   between them part of the same link. A STANDBY row keeps its chip outside
+   and the row's own space-between still places it. */
+.footer.is-upgraded .sf-row__link {
+  display: flex; flex: 1 1 auto; min-width: 0;
+  align-items: baseline; justify-content: space-between;
+  gap: var(--space-4, 16px);
+}
+
 /* STANDBY IS NOT A DISABLED LINK, IT IS A STATEMENT ABOUT A CHANNEL.
    TikTok and Spotify have shipped as href="#" for the whole life of this
    footer: they look live, they do nothing, and clicking one teaches the reader
@@ -162,6 +173,13 @@
 }
 .footer.is-upgraded .sf-row__state--open {
   color: rgba(var(--node-color), 0.75); border-color: rgba(var(--node-color), 0.28);
+  transition: color var(--motion-fast), border-color var(--motion-fast);
+}
+/* The chip lights with the row it belongs to, so the part a reader is most
+   likely to aim at also answers when it is hovered. */
+.footer.is-upgraded .sf-row__link:hover .sf-row__state--open,
+.footer.is-upgraded .sf-row__link:focus-visible .sf-row__state--open {
+  color: rgb(var(--node-color)); border-color: rgba(var(--node-color), 0.55);
 }
 /* MEASURED 1.2:1 AGAINST THE REAL SKY, in the link tier -- the part this file
    calls the footer's only job. gray-500 here was settled against flat page

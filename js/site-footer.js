@@ -141,6 +141,7 @@
   function row(a) {
     var li = el('li', 'sf-row');
     var st = stateOf(a);
+    var chip = el('span', 'sf-row__state sf-row__state--' + st.toLowerCase(), st);
     if (st === 'STANDBY') {
       /* Not a link any more. An anchor that cannot go anywhere should not be
          focusable, should not be announced as a link, and should not offer a
@@ -148,11 +149,31 @@
       var span = el('span', 'sf-row__dead', a.textContent.trim());
       a.parentNode && a.parentNode.removeChild(a);
       li.appendChild(span);
+      li.appendChild(chip);
     } else {
+      /* OPEN GOES INSIDE THE ANCHOR, not beside it. Owner call, Sep 1 2026:
+         the word states that this row leads somewhere, and a reader who aims
+         at the thing that says OPEN and hits dead footer learns the opposite.
+         Putting the chip inside the one anchor makes the whole row -- label,
+         gutter and word -- the same link, which is also why this is not a
+         click handler on the span: a real anchor keeps the keyboard, the
+         middle click, the status bar and the copy-link menu that a
+         script-driven span would quietly drop.
+
+         STANDBY keeps the chip OUTSIDE, because there is nothing to click and
+         a link that goes nowhere is the lie this footer already refuses.
+
+         The label is wrapped so the anchor can lay the two out with the same
+         space-between the row used to do itself. Wrapped by MOVING the
+         anchor's own child nodes rather than by reading textContent, so a
+         link that ever carries an icon or a <b> keeps it. */
       a.classList.add('sf-row__link');
+      var label = el('span', 'sf-row__label');
+      while (a.firstChild) label.appendChild(a.firstChild);
+      a.appendChild(label);
+      a.appendChild(chip);
       li.appendChild(a);
     }
-    li.appendChild(el('span', 'sf-row__state sf-row__state--' + st.toLowerCase(), st));
     return li;
   }
 

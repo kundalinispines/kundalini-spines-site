@@ -287,7 +287,9 @@
   var T = { tail: 1, stagger: 90, snap: 1,
             step: 1, stepMs: 620, gap: 180,
             skyIn: 0.055, skyOut: 0.10, titleMs: 1000, holdPlay: 1,
-            rate: 1.65, rateTail: 0 };   /* see legRate() */
+            rate: 1.65, rateTail: 0,     /* see legRate() */
+            cutMs: 700,                  /* see cutTo()   */
+            skyOutFwd: 0.12 };           /* forward legs leaving the sky; see stepTo */
   var lastRead = 0;
   function syncTunables(now) {
     if (now - lastRead < 200) return;
@@ -317,6 +319,10 @@
     var rtt = parseFloat(cs.getPropertyValue('--df-rate-tail'));
     if (isFinite(rt) && rt > 0) T.rate = rt;
     if (isFinite(rtt) && rtt >= 0) T.rateTail = rtt;
+    var cm = parseFloat(cs.getPropertyValue('--df-cut-ms'));
+    if (isFinite(cm) && cm >= 0) T.cutMs = cm;
+    var sof = parseFloat(cs.getPropertyValue('--df-sky-out-fwd'));
+    if (isFinite(sof) && sof > 0) T.skyOutFwd = sof;
   }
 
   /* ---------------------------------------------------------------- sources
@@ -820,10 +826,91 @@
     })();
   }
 
-  /* Straight there, no playback. Used by the skip-ahead, and by a replay leg
-     whose backward seek does not land inside its deadline. */
+  /* Straight there, no playback. Used by the skip-ahead, and by cutTo() once
+     it has the outgoing frame in hand. */
   function jumpTo(f, cb) {
     arrive(f, cb);
+  }
+
+  /* THE CUT IS A DISSOLVE (owner's call, Sept 2 2026, that evening).
+
+     Watching the hard cut land, the owner picked out Music-to-About as the one
+     that "has a nice fade" and asked for it on Merch-to-Music,
+     Transmissions-to-Merch and Archive-to-Transmissions. That fade is the sky:
+     leaving Music, the clip is at opacity 0 under a full nebula, the cut
+     happens unseen, and the nebula dissolves off the new frame at --df-sky-out.
+     The three legs the owner named cut between two BARE frames, where nothing
+     covers the seam - and one <video> cannot dissolve into itself.
+
+     So the outgoing frame is copied onto a canvas laid exactly over the clip
+     (.df-bg__ghost, same box, same object-fit, sized to the clip's native
+     frame so drawImage is a 1:1 copy), the clip cuts underneath it, and the
+     canvas fades out over --df-cut-ms once the new frame is actually painted
+     (`seeked`, with a 400ms backstop in case it never fires). The scrim eases
+     over the same span, because its opacity tracks the frame's luminance and
+     would otherwise step at the cut while the picture is still dissolving:
+     Merch (lum 0.7) to Music (0.2) is a 0.15 jump in darkening.
+
+     WHEN IT STEPS ASIDE. If the nebula is up (skySh >= 0.9) the clip is not
+     visible and the sky owns the dissolve - Music-to-About and Stay
+     Connected-to-Archive keep the fade the owner already liked, and nothing
+     dissolves twice. No frame yet (readyState < 2), a cut that changes
+     nothing, a zero --df-cut-ms, or a canvas that will not draw all fall back
+     to the plain jump.
+
+     ARRIVING UNDER THE SKY (Merch-to-Music) DOES NOT USE IT EITHER. The first
+     cut of build 20 did, on the theory that the sky rising at --df-sky-in and
+     the ghost fading were two dissolves of different things. Watched on the
+     page they were a flash: the ghost held the bright Merch frame (lum 0.7)
+     while the scrim eased toward the LIGHTER value paintScrim had set for the
+     dark Music frame (0.55 -> 0.40), and the sky's screen-blend layers came up
+     on top of that. Owner, Sept 2 2026, watching it: "you're not going to need
+     that from Music back to About or from Music to Merch, the reactive
+     background already does its own fade." So stepTo() sends every backward
+     leg whose destination rests under the sky to jumpTo() and lets the nebula
+     be the fade. The ghost is only for a cut between two bare frames. */
+  var ghost = document.createElement('canvas');
+  ghost.className = 'df-bg__ghost';
+  ghost.setAttribute('aria-hidden', 'true');
+  vid.parentNode.insertBefore(ghost, vid.nextSibling);
+  var ghostScrim = wrap.querySelector('.df-bg__scrim');
+  var ghostTimer = 0;
+
+  function cutTo(f, cb) {
+    var t = frameToTime(f);
+    var ms = T.cutMs;
+    var w = vid.videoWidth, h = vid.videoHeight;
+    var canFade = ms > 0 && skySh < 0.9 && vid.readyState >= 2 && w > 0 && h > 0 &&
+      Math.abs(vid.currentTime - t) > 1 / (FPS * 4);
+    if (canFade) {
+      if (ghost.width !== w || ghost.height !== h) { ghost.width = w; ghost.height = h; }
+      try { ghost.getContext('2d').drawImage(vid, 0, 0, w, h); } catch (e) { canFade = false; }
+    }
+    if (!canFade) { jumpTo(f, cb); return; }
+
+    if (ghostTimer) { clearTimeout(ghostTimer); ghostTimer = 0; }
+    ghost.style.transition = 'none';
+    ghost.style.opacity = '1';
+    if (ghostScrim) ghostScrim.style.transition = 'opacity ' + ms + 'ms ease';
+
+    var faded = false;
+    function fade() {
+      if (faded) return;
+      faded = true;
+      vid.removeEventListener('seeked', fade);
+      void getComputedStyle(ghost).opacity;          /* commit the 1 before transitioning */
+      ghost.style.transition = 'opacity ' + ms + 'ms ease';
+      ghost.style.opacity = '0';
+      ghostTimer = setTimeout(function () {
+        ghostTimer = 0;
+        ghost.style.transition = 'none';
+        if (ghostScrim) ghostScrim.style.transition = '';
+      }, ms + 60);
+    }
+    vid.addEventListener('seeked', fade);
+    setTimeout(fade, 400);
+
+    jumpTo(f, cb);        /* arrive(): pause, exact seek, scrim to the new frame */
   }
 
   /* GOING BACK IS A CUT (owner's call, Sept 2 2026).
@@ -850,10 +937,11 @@
                         Owner's example: Stay Connected back to Archive should
                         just be Archive.
 
-     WHY A HARD CUT AND NOT A DISSOLVE. Offered and declined: a dissolve between
-     two frames of the same clip would compete with the sky crossfade at Music,
-     which already owns the park, and it would add work to a gesture whose
-     point is to be instant.
+     HARD CUT FIRST, DISSOLVE BY EVENING. A dissolve was offered with the cut
+     and declined that morning; by evening the owner had watched the sky
+     dissolve on Music-to-About and asked for the same on the legs that cut
+     between bare frames. cutTo() below is that dissolve; the cut itself is
+     unchanged underneath it.
 
      Forward travel still parks every leg exactly on its cue; its speed is
      legRate()'s business since the same day. The nebula still belongs to the
@@ -1184,7 +1272,10 @@
 
     if (play.skyTo < 0.5 && skySh > 0.01) {
       /* Leaving the sky: drop it now so the footage is clear for the leg. */
-      skyT = 0; skyRate = T.skyOut; skyLock = true;
+      /* Leaving the sky. Forward (Music to Merch) clears at its own, faster
+         rate; backward (Music to About) keeps --df-sky-out — owner's call,
+         Sept 2 2026, see the CSS note on --df-sky-out-fwd. */
+      skyT = 0; skyRate = (cue >= cur) ? T.skyOutFwd : T.skyOut; skyLock = true;
     } else if (play.skyTo > 0.5 && skySh < 0.99) {
       /* Arriving under it: hold it OFF the whole way, raise it on arrival. */
       skyT = 0; skyRate = T.skyOut; skyLock = true; play.skyIn = true;
@@ -1193,11 +1284,17 @@
 
     if (cue >= cur) {
       playWhenVisible(cue, function () { fireCue(i); }, legRate(i));
+    } else if (play.skyTo > 0.5) {
+      /* Going back UNDER the sky (Merch to Music): a plain cut, and the nebula
+         rising over the settled frame is the only fade. A ghost dissolve here
+         read as a flash - see ARRIVING UNDER THE SKY on cutTo(). */
+      jumpTo(cue, function () { fireCue(i); });
     } else {
       /* Going back: a cut to the cue, no footage (owner's call, Sept 2 2026 —
-         see GOING BACK IS A CUT). The reveal is already showing on a section
+         see GOING BACK IS A CUT), dissolved through the ghost where two bare
+         frames meet (see cutTo). The reveal is already showing on a section
          the reader has seen, so nothing waits on it. */
-      jumpTo(cue, function () { fireCue(i); });
+      cutTo(cue, function () { fireCue(i); });
     }
   }
 
@@ -1673,6 +1770,10 @@
          and asked in the same breath that the slider be left in the panel in case
          they change their mind. It is a settled value with a live escape hatch,
          not a dead knob to prune on a tidy-up pass. */
+      { k: '--df-sky-out-fwd', g: 'handoff', label: 'sky out fwd', min: 0.02, max: 0.4, step: 0.01,
+        tip: 'How fast the nebula clears when a FORWARD leg leaves Music - the Music to Merch leg. Split from sky out on Sept 2 2026 so this could be roughly halved (0.12) while the backward fade out of Music kept the 0.06 the owner liked' },
+      { k: '--df-cut-ms', g: 'handoff', label: 'cut fade', min: 0, max: 1500, step: 50,
+        tip: 'Milliseconds the outgoing frame takes to dissolve off the incoming one when a backward landing cuts between two bare frames of the clip. Legs under the full nebula dissolve through the sky instead and ignore this. 0 is a hard cut, which is how going back shipped on the morning of Sept 2 2026' },
       { k: '--df-hold-play', g: 'handoff', label: 'hold', min: 0, max: 1, step: 1,
         tip: 'Whether a playing sample holds the sky up wherever you scroll to. 1 keeps the stars and the lightning with the track until it stops. 0 is the behaviour before build 12, where the sky followed scroll position alone and dropped the moment you left Music - while the kick and snare detector kept running into nothing, because the home page turns the reactive column off and the sky layers are the only things left reading those envelopes' },
 

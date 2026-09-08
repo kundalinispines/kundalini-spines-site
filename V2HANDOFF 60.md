@@ -11,8 +11,10 @@ beside Stripe — invoice creation, settlement webhook, success-page
 verification, download gate — with a browser-driven test suite, a written
 validation record, **release to `main` on the owner's word (commit
 `5d17be6`)**, live smoke checks, and **an on-chain Bitcoin purchase made by
-the owner on the live site, reported working.** No transmission filed yet —
-see Still open item 1.
+the owner on the live site, reported working.** Transmission 007 ("Bitcoin
+is accepted") was filed afterwards on the owner's word and verified in the
+browser; it sits on the feature branch and reaches the live log only with
+the next release to `main` — see Still open item 1.
 
 ---
 
@@ -304,11 +306,15 @@ Earlier lists still stand. New this session:
 
 ## Still open
 
-1. **No transmission for Bitcoin checkout going live.** It shipped, a buyer
-   can see it, and the owner has used it. `kundalini-transmission` owns the
-   filing; a transmission is its own commit and reaching `main` is a deploy,
-   so it waits for the owner's word. Suggested line: Bitcoin and Lightning
-   accepted for the Digital Edition through BTCPay Server, Sept 8 2026.
+1. **Transmission 007 is filed but not yet released.** "Bitcoin is
+   accepted", dated 2026-09-08, channel `filed`, at the top of
+   `data/transmissions.json` — verified in Playwright at 1440 and 390: row
+   first, readout at 07 on its own, body opens, link to `purchase.html`
+   present, no errors, no overflow. It says on-chain counts at one
+   confirmation and that Lightning is *not* switched on yet, so it stays
+   true until Lightning ships — at which point a new entry is due, not an
+   edit to this one. It reaches the live terminal only when `main` is
+   fast-forwarded, on the owner's word.
 2. **Lightning — tomorrow's session (owner's plan).** The code already
    offers every payment method the store enables (`checkout.paymentMethods`
    is not set). What needs doing is on the node and in the store, not in the

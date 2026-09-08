@@ -31,6 +31,16 @@
    Only a Payment Link URL or a publishable key may live client-side. See
    STRIPE-SETUP.md for the two honest routes forward.
 
+   BITCOIN, Sept 8 2026. The Digital Edition can now also be paid through
+   BTCPay Server at pay.kundalinispines.com. That path DOES call the site's
+   own server from this file — §6b posts an edition id and an email address
+   to functions/api/btcpay-create-invoice.js and navigates to the checkout
+   link it returns — and it is still true that no key lives here: the API key
+   that creates the invoice, the price, the currency and the redirect are all
+   decided in that Function. This file sends two strings and follows one URL.
+   BTCPAY-SETUP.md is the owner's document for that path, as STRIPE-SETUP.md
+   is for cards.
+
    NO DEPENDENCIES, ON PURPOSE. No Stripe.js, no analytics vendor, no bundler,
    no npm. `track()` below is a shim over nothing — see its banner. The project
    has never carried an analytics dependency and this rough-in is not the place
@@ -42,6 +52,9 @@
      purchase-success.html    the return page a provider would redirect to
      purchase-cancelled.html  the abandon page
      STRIPE-SETUP.md          what the owner has to do by hand, and why
+     functions/api/btcpay-create-invoice.js
+                              the server side of §6b (Bitcoin)
+     BTCPAY-SETUP.md          the owner's document for the Bitcoin path
    ========================================================================== */
 (function () {
   'use strict';
@@ -663,6 +676,7 @@
 
   function init() {
     bindButtons(document);
+    bindBitcoin(document);
     syncStatus(document);
     watchSection();
   }
@@ -673,6 +687,201 @@
     /* Already parsed — this file was loaded late or async. Run now, or nothing
        on the page is ever wired and there is no error to say why. */
     init();
+  }
+
+  /* ---- 6b. BITCOIN — BTCPAY SERVER. Sept 8 2026. -------------------------
+
+     THE SECOND WAY TO PAY FOR THE DIGITAL EDITION, beside the Stripe Payment
+     Link, and the first thing in this file that talks to the site's own
+     server before navigating. The shape is deliberately different from
+     start(): Stripe's link already knows the price, so start() only has to
+     navigate; a BTCPay invoice has to be CREATED, with an amount and an API
+     key, and that happens in functions/api/btcpay-create-invoice.js. This
+     block collects an email address, posts it with the edition id, and
+     navigates to the checkout link the server returns. Nothing else crosses
+     the wire from here — not a price, not a currency, not a redirect URL.
+     The server decides all of that and ignores anything else in the body.
+
+     WHY AN EMAIL IS ASKED FOR AT ALL. Stripe collects it on its hosted page
+     and the webhook reads it back. A BTCPay invoice has no buyer field we
+     can rely on the checkout to fill, so the address the download link goes
+     to is taken here, before the invoice exists, and stamped on it as
+     metadata. The form says exactly what it is for and nothing else is sent
+     to it.
+
+     MARKUP CONTRACT, supplied by purchase.html on the Digital card only:
+       [data-ks-purchase-btc="<id>"]    the toggle <button>; carries
+                                        aria-expanded / aria-controls
+       [data-ks-btcpay-form="<id>"]     the <form>, shipped `hidden`
+       input[name="email"]              inside the form
+       [data-ks-btcpay-status]          inside the form; where errors go
+       button[type="submit"]            inside the form
+
+     ONE SUBMISSION AT A TIME. The submit button is disabled and aria-busy
+     the moment a request leaves, and stays that way while the navigation
+     happens. A second press during the round trip does nothing; a second
+     invoice for one purchase is the failure this guards against, and the
+     server's rate ceiling is the backstop, not the mechanism.
+
+     ERRORS ARE COPY, NOT CODES. The server answers with short error keys and
+     never with detail; the sentences live here. Every one says whether the
+     buyer has been charged (never — no invoice means no payment) and what
+     to do instead, and card payment is always the fallback named. */
+  var BTC_ENDPOINT = '/api/btcpay-create-invoice';
+
+  var BTC_ERRORS = {
+    bad_email: 'That email address does not look deliverable. Check it and try again — the download link is sent there.',
+    bad_product: 'This edition cannot be paid for in Bitcoin yet. Card payment is available.',
+    bad_origin: 'This page could not be verified as the Kundalini Spines site. Reload it and try again.',
+    rate_limited: 'Too many Bitcoin invoices have been started from this connection. Wait ten minutes and try again, or pay by card.',
+    server_misconfigured: 'Bitcoin checkout is not available right now. Nothing has been charged. Card payment still works, or write to kundalinispines@gmail.com.',
+    upstream: 'The Bitcoin payment server could not be reached. Nothing has been charged. Try again in a moment, or pay by card.',
+    network: 'The connection dropped before an invoice could be created. Nothing has been charged. Try again.',
+    unknown: 'Something went wrong creating the invoice. Nothing has been charged. Try again, or pay by card.'
+  };
+
+  /* Looser than the server's test on purpose: this one exists to catch a
+     typo before a round trip, the server's exists to be right. */
+  var BTC_EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
+  function btcStatus(form, text) {
+    var el = form.querySelector('[data-ks-btcpay-status]');
+    if (!el) return;
+    if (!text) { el.textContent = ''; el.hidden = true; return; }
+    el.textContent = text;
+    el.hidden = false;
+  }
+
+  /* The label is swapped rather than a spinner added: the site has no
+     spinner and a button that says what it is doing is the same information
+     with no new furniture. The original label is stashed on the element so
+     the swap is reversible. */
+  function setBusy(form, busy) {
+    var submit = form.querySelector('button[type="submit"]');
+    if (!submit) return;
+    submit.disabled = !!busy;
+    if (busy) {
+      submit.setAttribute('aria-busy', 'true');
+      if (!submit.getAttribute('data-ks-label')) submit.setAttribute('data-ks-label', submit.textContent);
+      submit.textContent = 'Creating your invoice…';
+    } else {
+      submit.removeAttribute('aria-busy');
+      var label = submit.getAttribute('data-ks-label');
+      if (label) submit.textContent = label;
+    }
+  }
+
+  /* The programmatic entry, mirrored on the public API. Resolves to a result
+     in the shape start() returns, and NEVER rejects — it is wired to a submit
+     handler and a rejected promise there is a silent failure. */
+  function startBitcoin(editionId, email, form) {
+    var edition = find(editionId);
+    if (!edition) return Promise.resolve({ ok: false, reason: 'unknown-edition', edition: null });
+
+    var address = String(email || '').trim();
+    if (!address || address.length > 254 || !BTC_EMAIL_RE.test(address)) {
+      if (form) btcStatus(form, BTC_ERRORS.bad_email);
+      return Promise.resolve({ ok: false, reason: 'bad-email', edition: edition });
+    }
+
+    if (form) { btcStatus(form, ''); setBusy(form, true); }
+
+    var body = null;
+    try { body = JSON.stringify({ product: edition.id, email: address }); }
+    catch (e) { body = null; }
+    if (!body || typeof window.fetch !== 'function') {
+      if (form) { setBusy(form, false); btcStatus(form, BTC_ERRORS.unknown); }
+      return Promise.resolve({ ok: false, reason: 'unsupported', edition: edition });
+    }
+
+    return window.fetch(BTC_ENDPOINT, {
+      method: 'POST',
+      mode: 'same-origin',
+      credentials: 'omit',
+      cache: 'no-store',
+      headers: { 'content-type': 'application/json', accept: 'application/json' },
+      body: body
+    })
+      .then(function (res) {
+        return res.json().catch(function () { return null; }).then(function (data) {
+          return { status: res.status, body: data };
+        });
+      })
+      .then(function (r) {
+        if (!r.body || r.body.ok !== true || typeof r.body.checkoutLink !== 'string') {
+          var code = (r.body && r.body.error) || 'unknown';
+          if (form) { setBusy(form, false); btcStatus(form, BTC_ERRORS[code] || BTC_ERRORS.unknown); }
+          return { ok: false, reason: 'refused', code: code, edition: edition };
+        }
+        /* Followed only if it is https and on a host that is not this page.
+           The server already checked it points at the BTCPay host; this is
+           the browser refusing to be sent to itself or to a plain-http
+           address by a bug in either. */
+        var link = r.body.checkoutLink;
+        var host = hostOf(link);
+        if (link.indexOf('https://') !== 0 || !host || host === window.location.host) {
+          if (form) { setBusy(form, false); btcStatus(form, BTC_ERRORS.unknown); }
+          return { ok: false, reason: 'bad-link', edition: edition };
+        }
+        track('checkout_started', payloadFor(edition, { provider: 'btcpay', checkout_url_host: host }));
+        try {
+          window.location.assign(link);
+          return { ok: true, reason: 'redirect', edition: edition, url: link, reference: r.body.reference };
+        } catch (err) {
+          if (form) { setBusy(form, false); btcStatus(form, BTC_ERRORS.unknown); }
+          return { ok: false, reason: 'redirect-failed', edition: edition };
+        }
+      })
+      .catch(function () {
+        if (form) { setBusy(form, false); btcStatus(form, BTC_ERRORS.network); }
+        return { ok: false, reason: 'network', edition: edition };
+      });
+  }
+
+  /* Idempotent, like bindButtons(): the same bound-marker attribute, so a
+     second call finds nothing to do. */
+  function bindBitcoin(root) {
+    var scope = root || document;
+    var count = 0;
+    Array.prototype.forEach.call(scope.querySelectorAll('[data-ks-purchase-btc]'), function (toggle) {
+      if (toggle.getAttribute('data-ks-purchase-bound') === '1') return;
+      toggle.setAttribute('data-ks-purchase-bound', '1');
+
+      var id = toggle.getAttribute('data-ks-purchase-btc');
+      var edition = find(id);
+      var card = cardFor(toggle);
+      var form = (card || scope).querySelector('[data-ks-btcpay-form="' + id + '"]');
+      if (!edition || !form) {
+        if (window.console && console.warn) {
+          console.warn('[KSPurchase] Bitcoin control for "' + id + '" has no edition or no form; not bound.');
+        }
+        return;
+      }
+      count++;
+
+      toggle.addEventListener('click', function (ev) {
+        if (ev && typeof ev.preventDefault === 'function') ev.preventDefault();
+        var opening = form.hidden;
+        form.hidden = !opening;
+        toggle.setAttribute('aria-expanded', opening ? 'true' : 'false');
+        if (opening) {
+          track('album_package_selected', payloadFor(edition, { provider: 'btcpay' }));
+          var field = form.querySelector('input[name="email"]');
+          if (field && typeof field.focus === 'function') field.focus();
+        } else {
+          btcStatus(form, '');
+        }
+      });
+
+      form.addEventListener('submit', function (ev) {
+        if (ev && typeof ev.preventDefault === 'function') ev.preventDefault();
+        var submit = form.querySelector('button[type="submit"]');
+        if (submit && submit.disabled) return;   /* already in flight */
+        var field = form.querySelector('input[name="email"]');
+        startBitcoin(id, field ? field.value : '', form);
+      });
+    });
+    return count;
   }
 
   /* ---- 7. PUBLIC API ----------------------------------------------------- */
@@ -688,6 +897,10 @@
        binding without reloading the file. Both are idempotent. */
     bind: bindButtons,
     syncStatus: syncStatus,
+    /* §6b. startBitcoin(editionId, email[, form]) resolves to a result object
+       and navigates on success; bindBitcoin(root) is idempotent. */
+    startBitcoin: startBitcoin,
+    bindBitcoin: bindBitcoin,
     /* Whether ANY edition can currently be bought. Today: false, for all three.
        A page can ask this rather than reaching into EDITIONS itself. */
     isConfigured: function () {

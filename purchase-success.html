@@ -10,6 +10,12 @@
      confirms the payment against Stripe's API server-side, and the page serves
      a real download. Proven with a real purchase and a real refund.
 
+     BITCOIN, Sept 8 2026. BTCPay Server redirects here too, with
+     `?order=ksbtc_…` instead of `?session_id=`. The script asks
+     /api/btcpay-verify for those and /api/verify for the rest; both answer
+     with the same token shape and the same panel renders. A fifth state,
+     `pending`, exists for the Bitcoin path only — see its markup below.
+
      WHAT SURVIVES FROM THE ROUGH-IN, AND IS STILL THE RULE: the copy is
      written to be true for someone who arrives WITHOUT a valid payment as well
      as for someone who arrives with one, because the URL is typed-in-able and
@@ -359,14 +365,36 @@
       <div class="empty-state" data-ks-state="nojs">
         <span class="label">Status</span>
         <p style="margin: 0;">
-          Confirming a payment needs JavaScript, which is switched off in this browser. Your order is unaffected &mdash; the payment and your receipt are handled by Stripe, not by this page. To collect a digital download, either enable JavaScript and reload, or write to the address below quoting your order reference.
+          Confirming a payment needs JavaScript, which is switched off in this browser. Your order is unaffected &mdash; the payment and your receipt are handled by the payment provider, Stripe or BTCPay Server, not by this page. To collect a digital download, either enable JavaScript and reload, or write to the address below quoting your order reference.
         </p>
       </div>
 
       <div class="empty-state" data-ks-state="loading" hidden>
         <span class="label">Status</span>
         <p style="margin: 0;">
-          Confirming your payment with Stripe&hellip;
+          Confirming your payment with <span data-ks-provider-name>Stripe</span>&hellip;
+        </p>
+      </div>
+
+      <!-- THE FIFTH STATE, Sept 8 2026, AND IT EXISTS FOR BITCOIN ONLY.
+           A Stripe session is paid or it is not by the time the redirect
+           lands. A BTCPay invoice has two honest in-between states: `New`
+           (the buyer came back without paying, or closed the invoice) and
+           `Processing` (a payment is on the network and the store is waiting
+           for its confirmation policy). Neither is an error and neither is a
+           download, so they get their own panel, copy written per state by
+           the script, a way back to the SAME invoice while it is still open,
+           and a check button. The script also re-asks on a timer while this
+           panel is showing, so a buyer who waits sees the download appear
+           without touching anything. Nothing here can release a file: the
+           download buttons live in the `ok` panel and are written only from
+           /api/btcpay-verify's settled answer. -->
+      <div class="empty-state" data-ks-state="pending" hidden>
+        <span class="label">Status</span>
+        <p style="margin: 0;" data-ks-pending-copy></p>
+        <p style="margin: var(--space-4) 0 0; display: flex; flex-wrap: wrap; gap: var(--space-4);">
+          <a class="btn btn--primary" data-ks-resume href="#" hidden>Return to the Bitcoin Invoice</a>
+          <button type="button" class="btn btn--ghost" data-ks-recheck>Check Again</button>
         </p>
       </div>
 
@@ -388,7 +416,7 @@
       <div class="empty-state" data-ks-state="ok" hidden>
         <span class="label">Purchase Confirmed</span>
         <p style="margin: 0 0 var(--space-4);">
-          <strong>Rise Up &mdash; Digital Album.</strong> Payment confirmed with Stripe. Thank you for supporting Kundalini Spines &mdash; this is what pays for the next one.
+          <strong>Rise Up &mdash; Digital Album.</strong> Payment confirmed with <span data-ks-provider-name>Stripe</span>. Thank you for supporting Kundalini Spines &mdash; this is what pays for the next one.
         </p>
         <p style="margin: 0 0 var(--space-6);" data-ks-delivery-note></p>
         <!-- TWO DOWNLOADS, MP3 FIRST AND PRIMARY. The delivery is an MP3 set
@@ -582,6 +610,17 @@
   var sessionId = params ? params.get('session_id') : null;
   var edition   = params ? params.get('edition') : null;
 
+  /* BITCOIN, Sept 8 2026. BTCPay redirects here with `?order=ksbtc_…`, the
+     reference /api/btcpay-create-invoice minted. It is a typed-in-able
+     string exactly as the session id is, and it is treated the same way:
+     asked about, never believed. Which provider a page load is about is
+     decided here, once, and only from the SHAPE of the parameter — a Stripe
+     id can never match this pattern and a Bitcoin one can never match the
+     `cs_` test in /api/verify. */
+  var order     = params ? params.get('order') : null;
+  var isBitcoin = !!(order && /^ksbtc_[0-9a-f]{32}$/.test(order));
+  var providerName = isBitcoin ? 'BTCPay Server' : 'Stripe';
+
   var ref = document.querySelector('[data-ks-session-ref]');
 
   /* ------------------------------------------------------------------------
@@ -608,7 +647,7 @@
   var region   = document.querySelector('[data-ks-verify]');
   var panels   = {};
   if (region) {
-    ['nojs', 'loading', 'error', 'ok'].forEach(function (name) {
+    ['nojs', 'loading', 'pending', 'error', 'ok'].forEach(function (name) {
       panels[name] = region.querySelector('[data-ks-state="' + name + '"]');
     });
   }
@@ -630,7 +669,13 @@
     },
     not_found: {
       retry: false,
-      copy: 'Stripe does not recognise this order reference. It may have been mistyped or truncated in copying. Open the link exactly as Stripe returned it, or write to the address below.'
+      /* Built from providerName so the Stripe sentence is byte-identical to
+         what it was, and the Bitcoin one names the right receipt. */
+      copy: providerName + ' does not recognise this order reference. It may have been mistyped or truncated in copying. Open the link exactly as ' + providerName + ' returned it, or write to the address below.'
+    },
+    invalid: {
+      retry: false,
+      copy: 'BTCPay Server marked this invoice invalid, which usually means a payment arrived after the invoice expired or fell short of the amount. Nothing has been delivered and nothing is lost: write to the address below quoting your order reference and it will be looked at by hand.'
     },
     unpaid: {
       retry: true,
@@ -679,8 +724,162 @@
     show('error');
   }
 
+  /* THE CONFIRMED RENDERING, SHARED. Sept 8 2026: this used to be the body
+     of the Stripe .then() below and was lifted out unchanged so the Bitcoin
+     path renders the identical panel from /api/btcpay-verify's answer —
+     same reference line, same two buttons from the same token shape, same
+     deadline logic. One rendering, two authorities. */
+  function renderOk(body) {
+    /* The reference comes from the server's echo of Stripe's own session
+       id, never from the URL. textContent, not innerHTML — the value is
+       server-supplied and well-formed today, and it will still be text
+       tomorrow when someone changes where it comes from. */
+    if (ref && body.reference) {
+      ref.textContent = 'Order reference — ' + String(body.reference).slice(0, 64);
+      ref.hidden = false;
+    }
+
+    /* Both buttons, one token. The format rides in the query string
+       rather than in the token because it is not an entitlement —
+       see the FORMATS note in functions/api/download.js. */
+    if (body.token) {
+      var qs = '/api/download?token=' + encodeURIComponent(body.token) + '&format=';
+      Array.prototype.forEach.call(
+        region.querySelectorAll('[data-ks-download]'),
+        function (link) {
+          link.setAttribute('href', qs + encodeURIComponent(link.getAttribute('data-ks-download')));
+        }
+      );
+    }
+
+    /* The email is shown only to confirm WHERE the receipt went, which is
+       the one question it answers for the buyer. No name, no address, no
+       amount, no card — /api/verify does not return them and this page
+       has no use for them. */
+    var note = region.querySelector('[data-ks-delivery-note]');
+    if (note) {
+      note.textContent = body.email
+        ? 'Your receipt has gone to ' + body.email + '.'
+        : 'Your receipt has gone to the email address on the order.';
+    }
+
+    /* THE KEEP-THIS-LINK CLAUSE, upgraded only on the server's word. See
+       the long note beside it in the markup: what ships in the HTML is
+       true whether or not mail went out, and this adds the email ONLY
+       when /api/verify reports the webhook recorded one sent for THIS
+       order. Every other case — a webhook not provisioned, a KV read that
+       failed, a page opened in the second before the webhook fired, an
+       order placed before any of this existed — leaves the markup's
+       wording alone, and that wording is still true.
+
+       `=== true`, not truthy: an older /api/verify that does not know
+       about this field returns undefined, and undefined must read as "no,
+       say nothing", never as "yes". textContent, not innerHTML: this is
+       prose, and it stays prose. */
+    var mailNote = region.querySelector('[data-ks-mail-note]');
+    if (mailNote && body.emailed === true) {
+      mailNote.textContent = isBitcoin
+        ? 'A copy of this link has been emailed to you — keep it, because the BTCPay receipt does not contain it.'
+        : 'A copy of this link has been emailed to you — keep it, because Stripe’s receipt does not contain it.';
+    }
+
+    /* The deadline, written into the keep-this-link note below the
+       buttons. The element ships reading "for a limited time", so a
+       failure here — a malformed timestamp, a locale that throws — leaves
+       a sentence that is vaguer but still true, rather than a gap where
+       the date should be. toLocaleString() renders in the BUYER's
+       timezone, which is the only one they can act on. */
+    var expiry = region.querySelector('[data-ks-expiry]');
+    if (expiry && body.expiresAt) {
+      /* isNaN(getTime()), NOT try/catch. `new Date('garbage')` does not
+         throw — it returns an Invalid Date whose toLocaleString() is the
+         literal string "Invalid Date", so a try/catch here catches
+         nothing and the buyer is told the link stays open "until Invalid
+         Date". That is exactly what the first version of this block did,
+         and it was caught by feeding the test a malformed timestamp
+         rather than by reading it. Validate the date, do not guard the
+         call. */
+      var when = new Date(body.expiresAt);
+      if (!isNaN(when.getTime())) {
+        expiry.textContent = 'until ' + when.toLocaleString();
+      }
+    }
+
+    show('ok');
+  }
+
+  /* ---- THE BITCOIN VERIFIER. --------------------------------------------
+     Same exchange as verify() below, against /api/btcpay-verify, with one
+     more answer to handle: `pending`. While the invoice is New or Processing
+     this re-asks every eight seconds for up to twelve minutes, then stops
+     and leaves the Check Again button — an on-chain payment under a slow
+     confirmation policy can take longer than any page should poll for, and
+     the email carries the same link for when it does clear. Polling pauses
+     while the tab is hidden; there is nobody to show the answer to. */
+  var PENDING = {
+    fresh: 'No payment has reached this invoice yet. If you closed the BTCPay page before paying, you can return to the same invoice below while it is still open. Nothing has been charged.',
+    processing: 'Your payment has been seen on the network and is waiting for confirmation. Lightning usually clears in seconds; an on-chain payment can take some minutes depending on the store\u2019s settings. This page checks again on its own, and the download link is also emailed to you when it confirms.',
+    stalled: 'This page has stopped checking automatically. Your payment, if you made one, is unaffected: press Check Again, or watch for the email carrying your download link.'
+  };
+  var BTC_POLL_MS = 8000;
+  var BTC_POLL_MAX = 90;
+  var btcPolls = 0;
+  var btcTimer = null;
+
+  function showPending(state, checkoutLink, stalled) {
+    var copyEl = region && region.querySelector('[data-ks-pending-copy]');
+    var resume = region && region.querySelector('[data-ks-resume]');
+    if (copyEl) {
+      copyEl.textContent = stalled ? PENDING.stalled : (state === 'processing' ? PENDING.processing : PENDING.fresh);
+    }
+    if (resume) {
+      /* Only an https link, and only the one our own server stored at
+         creation — the page never follows a URL it cannot vouch for. */
+      var usable = typeof checkoutLink === 'string' && checkoutLink.indexOf('https://') === 0;
+      if (usable) resume.setAttribute('href', checkoutLink); else resume.setAttribute('href', '#');
+      resume.hidden = !usable;
+    }
+    show('pending');
+  }
+
+  function verifyBitcoin() {
+    if (btcTimer) { clearTimeout(btcTimer); btcTimer = null; }
+    if (document.hidden && btcPolls > 0) {
+      btcTimer = setTimeout(verifyBitcoin, BTC_POLL_MS);
+      return;
+    }
+    if (btcPolls === 0) show('loading');
+
+    fetch('/api/btcpay-verify?order=' + encodeURIComponent(order), {
+      cache: 'no-store',
+      credentials: 'omit',
+      headers: { accept: 'application/json' }
+    })
+      .then(function (res) {
+        return res.json().then(function (body) { return { status: res.status, body: body }; });
+      })
+      .then(function (r) {
+        if (r.body && r.body.ok === true) { renderOk(r.body); return; }
+        var code = (r.body && r.body.error) || 'upstream';
+        if (code === 'pending') {
+          btcPolls++;
+          if (btcPolls < BTC_POLL_MAX) {
+            showPending(r.body.state, r.body.checkoutLink, false);
+            btcTimer = setTimeout(verifyBitcoin, BTC_POLL_MS);
+          } else {
+            showPending(r.body.state, r.body.checkoutLink, true);
+          }
+          return;
+        }
+        showError(code);
+      })
+      .catch(function () { showError('network'); });
+  }
+
   function verify() {
     if (!region) return;
+
+    if (isBitcoin) { btcPolls = 0; verifyBitcoin(); return; }
 
     if (!sessionId) { showError('missing_session'); return; }
 
@@ -704,80 +903,7 @@
           return;
         }
 
-        /* The reference comes from the server's echo of Stripe's own session
-           id, never from the URL. textContent, not innerHTML — the value is
-           server-supplied and well-formed today, and it will still be text
-           tomorrow when someone changes where it comes from. */
-        if (ref && r.body.reference) {
-          ref.textContent = 'Order reference — ' + String(r.body.reference).slice(0, 64);
-          ref.hidden = false;
-        }
-
-        /* Both buttons, one token. The format rides in the query string
-           rather than in the token because it is not an entitlement —
-           see the FORMATS note in functions/api/download.js. */
-        if (r.body.token) {
-          var qs = '/api/download?token=' + encodeURIComponent(r.body.token) + '&format=';
-          Array.prototype.forEach.call(
-            region.querySelectorAll('[data-ks-download]'),
-            function (link) {
-              link.setAttribute('href', qs + encodeURIComponent(link.getAttribute('data-ks-download')));
-            }
-          );
-        }
-
-        /* The email is shown only to confirm WHERE the receipt went, which is
-           the one question it answers for the buyer. No name, no address, no
-           amount, no card — /api/verify does not return them and this page
-           has no use for them. */
-        var note = region.querySelector('[data-ks-delivery-note]');
-        if (note) {
-          note.textContent = r.body.email
-            ? 'Your receipt has gone to ' + r.body.email + '.'
-            : 'Your receipt has gone to the email address on the order.';
-        }
-
-        /* THE KEEP-THIS-LINK CLAUSE, upgraded only on the server's word. See
-           the long note beside it in the markup: what ships in the HTML is
-           true whether or not mail went out, and this adds the email ONLY
-           when /api/verify reports the webhook recorded one sent for THIS
-           order. Every other case — a webhook not provisioned, a KV read that
-           failed, a page opened in the second before the webhook fired, an
-           order placed before any of this existed — leaves the markup's
-           wording alone, and that wording is still true.
-
-           `=== true`, not truthy: an older /api/verify that does not know
-           about this field returns undefined, and undefined must read as "no,
-           say nothing", never as "yes". textContent, not innerHTML: this is
-           prose, and it stays prose. */
-        var mailNote = region.querySelector('[data-ks-mail-note]');
-        if (mailNote && r.body.emailed === true) {
-          mailNote.textContent = 'A copy of this link has been emailed to you — keep it, because Stripe’s receipt does not contain it.';
-        }
-
-        /* The deadline, written into the keep-this-link note below the
-           buttons. The element ships reading "for a limited time", so a
-           failure here — a malformed timestamp, a locale that throws — leaves
-           a sentence that is vaguer but still true, rather than a gap where
-           the date should be. toLocaleString() renders in the BUYER's
-           timezone, which is the only one they can act on. */
-        var expiry = region.querySelector('[data-ks-expiry]');
-        if (expiry && r.body.expiresAt) {
-          /* isNaN(getTime()), NOT try/catch. `new Date('garbage')` does not
-             throw — it returns an Invalid Date whose toLocaleString() is the
-             literal string "Invalid Date", so a try/catch here catches
-             nothing and the buyer is told the link stays open "until Invalid
-             Date". That is exactly what the first version of this block did,
-             and it was caught by feeding the test a malformed timestamp
-             rather than by reading it. Validate the date, do not guard the
-             call. */
-          var when = new Date(r.body.expiresAt);
-          if (!isNaN(when.getTime())) {
-            expiry.textContent = 'until ' + when.toLocaleString();
-          }
-        }
-
-        show('ok');
+        renderOk(r.body);
       })
       .catch(function () { showError('network'); });
   }
@@ -785,8 +911,25 @@
   /* The script's first act: retire the no-JavaScript panel. Everything after
      this point assumes scripting, which is safe because this line proves it. */
   if (region) {
+    /* The provider's name, written into the two sentences that say it. For
+       a Stripe load this writes the word the markup already carries. */
+    Array.prototype.forEach.call(region.querySelectorAll('[data-ks-provider-name]'), function (el) {
+      el.textContent = providerName;
+    });
+    /* The keep-this-link default names the receipt the buyer actually has.
+       Same sentence, different receipt; still true whether or not the email
+       went out (see the note beside it in the markup). */
+    if (isBitcoin) {
+      var defaultMailNote = region.querySelector('[data-ks-mail-note]');
+      if (defaultMailNote) {
+        defaultMailNote.textContent = 'This page is your link to the files, and the BTCPay receipt does not contain it — so keep it.';
+      }
+    }
+
     var retryBtn = region.querySelector('[data-ks-retry]');
     if (retryBtn) retryBtn.addEventListener('click', verify);
+    var recheckBtn = region.querySelector('[data-ks-recheck]');
+    if (recheckBtn) recheckBtn.addEventListener('click', function () { btcPolls = 0; verifyBitcoin(); });
     verify();
   }
 
@@ -805,7 +948,10 @@
          fires on page load, before /api/verify has answered, and it stays a
          funnel marker rather than a payment record. The authority is the
          webhook; see §5 of js/purchase-checkout.js. */
-      has_session_id: !!sessionId
+      has_session_id: !!sessionId,
+      /* Which provider redirected here, from the parameter's SHAPE only. Not
+         proof of payment, for the same reason has_session_id is not. */
+      provider: isBitcoin ? 'btcpay' : (sessionId ? 'stripe' : null)
     });
   }
 })();

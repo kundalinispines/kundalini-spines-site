@@ -48,11 +48,35 @@
    window, while a comment three lines up insisted it could not happen. That
    is the worst shape a bug can have and it is why the check is here rather
    than on a list somewhere.
+
+   >> BITCOIN, Sept 8 2026. A second reference shape is accepted here:
+   `ksbtc_<32 hex>`, the order id /api/btcpay-create-invoice mints. It is
+   verified against a different authority — the order record in KV plus
+   BTCPay's own store-scoped invoice read — and then falls into the SAME
+   step 3 below, so the R2 stream, the range handling and the two-format
+   rule are shared rather than copied. THE STRIPE BRANCH IS UNCHANGED IN
+   EVERY LINE; it is only indented one level deeper, inside an `else`
+   (`git diff -w` shows the wrapper and nothing else). The two references
+   cannot be confused: the Stripe regex demands `cs_`, the Bitcoin regex
+   demands `ksbtc_`, and a token matching neither is refused before either
+   authority is consulted. There is no refund gate on the Bitcoin branch,
+   and that is not an omission: an on-chain payment has nothing to pull
+   back, and the owner's only refund route is a manual pull-payment that
+   this key cannot see. If one is ever issued, the owner closes the order
+   by hand — BTCPAY-SETUP.md says how.
    ========================================================================== */
 
 const REQUIRED_ENV = ['STRIPE_SECRET_KEY', 'PRICE_ID_DIGITAL', 'DOWNLOAD_SIGNING_KEY'];
 
 const DEFAULT_WINDOW_HOURS = 72;
+
+/* The Bitcoin branch's own configuration. STRIPE_* stay in REQUIRED_ENV above
+   for the Stripe branch; these are checked only when a ksbtc_ token arrives,
+   so a deployment with BTCPay unconfigured still serves Stripe downloads
+   exactly as before. */
+const BTCPAY_REQUIRED_ENV = ['BTCPAY_BASE_URL', 'BTCPAY_STORE_ID', 'BTCPAY_API_KEY'];
+const BTCPAY_ORDER_RE = /^ksbtc_[0-9a-f]{32}$/;
+const BTCPAY_TIMEOUT_MS = 15000;
 
 /* TWO FILES, NOT ONE. Written Aug 31 2026 against a single
    `rise-up-digital.zip`, corrected the same day when the actual delivery
@@ -142,6 +166,90 @@ function safeEqual(a, b) {
   return diff === 0;
 }
 
+/* THE BITCOIN GATE. Returns a refusal Response, or null when the bytes may
+   flow. Mirrors /api/btcpay-verify step for step, and re-runs on EVERY
+   download rather than trusting the token, for the reason the banner gives
+   for re-asking Stripe. The record is the expectation our own create
+   endpoint wrote; the invoice is BTCPay's word; both have to agree. */
+async function verifyBtcpayOrder(env, orderId) {
+  const missing = BTCPAY_REQUIRED_ENV.filter(function (k) { return !env[k]; });
+  if (missing.length) {
+    console.error('Misconfigured: missing env ' + missing.join(', '));
+    return fail('server_misconfigured', 500);
+  }
+  if (!env.ORDERS) {
+    console.error('Misconfigured: KV binding ORDERS is not bound');
+    return fail('server_misconfigured', 500);
+  }
+  let origin;
+  try {
+    const u = new URL(String(env.BTCPAY_BASE_URL));
+    if (u.protocol !== 'https:') throw new Error('not https');
+    origin = u.origin;
+  } catch (err) {
+    console.error('Misconfigured: BTCPAY_BASE_URL is not an https URL');
+    return fail('server_misconfigured', 500);
+  }
+
+  let record;
+  try {
+    record = await env.ORDERS.get('btcpay:order:' + orderId, { type: 'json' });
+  } catch (err) {
+    console.error('KV read threw for ' + orderId + ': ' + (err && err.message));
+    return fail('storage_error', 502);
+  }
+  if (!record || !record.invoiceId) return fail('not_found', 404);
+
+  let invoice;
+  const controller = new AbortController();
+  const timer = setTimeout(function () { controller.abort(); }, BTCPAY_TIMEOUT_MS);
+  try {
+    const res = await fetch(
+      origin + '/api/v1/stores/' + encodeURIComponent(env.BTCPAY_STORE_ID) +
+        '/invoices/' + encodeURIComponent(record.invoiceId),
+      { headers: { Authorization: 'token ' + env.BTCPAY_API_KEY, accept: 'application/json' }, signal: controller.signal }
+    );
+    if (res.status === 404) return fail('not_found', 404);
+    if (!res.ok) {
+      console.error('BTCPay returned ' + res.status + ' for ' + orderId);
+      return fail('upstream', 502);
+    }
+    invoice = await res.json();
+  } catch (err) {
+    console.error('BTCPay fetch threw: ' + (err && err.name === 'AbortError' ? 'timeout' : (err && err.message)));
+    return fail('upstream', 502);
+  } finally {
+    clearTimeout(timer);
+  }
+
+  /* `Settled` and nothing short of it. Processing is money seen but not
+     confirmed by the store's policy; New is nothing seen at all. */
+  if (invoice.status !== 'Settled') {
+    return fail(invoice.status === 'Expired' ? 'expired' : 'unpaid', 402);
+  }
+  const meta = invoice.metadata || {};
+  const matches =
+    invoice.id === record.invoiceId &&
+    invoice.storeId === env.BTCPAY_STORE_ID &&
+    invoice.type !== 'TopUp' &&
+    Number(invoice.amount) === Number(record.amount) &&
+    String(invoice.currency).toUpperCase() === String(record.currency).toUpperCase() &&
+    meta.orderId === orderId &&
+    meta.itemCode === record.itemCode &&
+    meta.buyerEmail === record.email;
+  if (!matches) return fail('wrong_product', 403);
+
+  /* The window from BTCPay's createdTime, the same field the webhook's email
+     and btcpay-verify use, so the three agree on the deadline. */
+  const windowHours = Number(env.DOWNLOAD_WINDOW_HOURS) || DEFAULT_WINDOW_HOURS;
+  const createdTime = typeof invoice.createdTime === 'number' ? invoice.createdTime : record.invoiceCreatedTime;
+  if (typeof createdTime !== 'number') return fail('upstream', 502);
+  if (Date.now() > (createdTime + windowHours * 3600) * 1000) {
+    return fail('window_closed', 410);
+  }
+  return null;
+}
+
 export async function onRequestGet(context) {
   const { request, env } = context;
 
@@ -172,7 +280,10 @@ export async function onRequestGet(context) {
   const exp = Number(parts[1]);
   const givenSig = parts[2];
 
-  if (!/^cs_(test|live)_[A-Za-z0-9]+$/.test(sessionId)) return fail('bad_token', 400);
+  /* Two reference shapes, one token format. Which authority is consulted
+     below is decided here and nowhere else. */
+  const isBtcpay = BTCPAY_ORDER_RE.test(sessionId);
+  if (!isBtcpay && !/^cs_(test|live)_[A-Za-z0-9]+$/.test(sessionId)) return fail('bad_token', 400);
   if (!Number.isFinite(exp)) return fail('bad_token', 400);
 
   const expectedSig = await sign(sessionId + '.' + exp, env.DOWNLOAD_SIGNING_KEY);
@@ -183,57 +294,67 @@ export async function onRequestGet(context) {
      forgery got that far. */
   if (Math.floor(Date.now() / 1000) > exp) return fail('token_expired', 401);
 
-  /* ---- 2. Stripe, again. See the banner. -------------------------------- */
-  let session;
-  try {
-    const res = await fetch(
-      'https://api.stripe.com/v1/checkout/sessions/' +
-        encodeURIComponent(sessionId) +
-          '?expand[]=line_items&expand[]=payment_intent.latest_charge',
-      { headers: { Authorization: 'Bearer ' + env.STRIPE_SECRET_KEY } }
-    );
-    if (res.status === 404) return fail('not_found', 404);
-    if (!res.ok) {
-      console.error('Stripe returned ' + res.status + ' for ' + sessionId);
+  if (isBtcpay) {
+    /* ---- 2b. BTCPay, again. ---------------------------------------------
+       The order record says what was sold and to whom; BTCPay says whether
+       it settled. Both are re-read on every download for the reason the
+       banner gives for re-asking Stripe: the token proves this page minted
+       it within the last fifteen minutes, not that the sale is still good. */
+    const refusal = await verifyBtcpayOrder(env, sessionId);
+    if (refusal) return refusal;
+  } else {
+    /* ---- 2. Stripe, again. See the banner. -------------------------------- */
+    let session;
+    try {
+      const res = await fetch(
+        'https://api.stripe.com/v1/checkout/sessions/' +
+          encodeURIComponent(sessionId) +
+            '?expand[]=line_items&expand[]=payment_intent.latest_charge',
+        { headers: { Authorization: 'Bearer ' + env.STRIPE_SECRET_KEY } }
+      );
+      if (res.status === 404) return fail('not_found', 404);
+      if (!res.ok) {
+        console.error('Stripe returned ' + res.status + ' for ' + sessionId);
+        return fail('upstream', 502);
+      }
+      session = await res.json();
+    } catch (err) {
+      console.error('Stripe fetch threw: ' + (err && err.message));
       return fail('upstream', 502);
     }
-    session = await res.json();
-  } catch (err) {
-    console.error('Stripe fetch threw: ' + (err && err.message));
-    return fail('upstream', 502);
-  }
 
-  if (session.status !== 'complete' || session.payment_status !== 'paid') {
-    return fail('unpaid', 402);
-  }
-
-
-  /* THE REFUND / DISPUTE GATE. See the banner: the session never learns that
-     money went back, the charge does. `latest_charge` is null for a session
-     whose payment settled asynchronously and has not produced a charge yet —
-     that case is already excluded by the payment_status check above, so a
-     missing charge here is not treated as suspicious and simply falls
-     through. Only an affirmative refund or dispute closes the door. */
-  const pi = session.payment_intent;
-  var charge = pi && typeof pi === 'object' ? pi.latest_charge : null;
-  if (charge && typeof charge === 'object') {
-    if (charge.refunded === true || (charge.amount_refunded || 0) > 0) {
-      return fail('refunded', 403);
+    if (session.status !== 'complete' || session.payment_status !== 'paid') {
+      return fail('unpaid', 402);
     }
-    if (charge.disputed === true) {
-      return fail('disputed', 403);
+
+
+    /* THE REFUND / DISPUTE GATE. See the banner: the session never learns that
+       money went back, the charge does. `latest_charge` is null for a session
+       whose payment settled asynchronously and has not produced a charge yet —
+       that case is already excluded by the payment_status check above, so a
+       missing charge here is not treated as suspicious and simply falls
+       through. Only an affirmative refund or dispute closes the door. */
+    const pi = session.payment_intent;
+    var charge = pi && typeof pi === 'object' ? pi.latest_charge : null;
+    if (charge && typeof charge === 'object') {
+      if (charge.refunded === true || (charge.amount_refunded || 0) > 0) {
+        return fail('refunded', 403);
+      }
+      if (charge.disputed === true) {
+        return fail('disputed', 403);
+      }
     }
-  }
 
-  const items = (session.line_items && session.line_items.data) || [];
-  const isAlbum = items.some(function (li) {
-    return li.price && li.price.id === env.PRICE_ID_DIGITAL;
-  });
-  if (!isAlbum) return fail('wrong_product', 403);
+    const items = (session.line_items && session.line_items.data) || [];
+    const isAlbum = items.some(function (li) {
+      return li.price && li.price.id === env.PRICE_ID_DIGITAL;
+    });
+    if (!isAlbum) return fail('wrong_product', 403);
 
-  const windowHours = Number(env.DOWNLOAD_WINDOW_HOURS) || DEFAULT_WINDOW_HOURS;
-  if (Date.now() > (session.created + windowHours * 3600) * 1000) {
-    return fail('window_closed', 410);
+    const windowHours = Number(env.DOWNLOAD_WINDOW_HOURS) || DEFAULT_WINDOW_HOURS;
+    if (Date.now() > (session.created + windowHours * 3600) * 1000) {
+      return fail('window_closed', 410);
+    }
   }
 
   /* ---- 3. The bytes. ---------------------------------------------------

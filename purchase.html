@@ -251,7 +251,52 @@
         <div class="ks-edition__foot">
           <button type="button" class="btn btn--ghost ks-edition__cta" data-ks-purchase="digital">Own the Digital Album</button>
           <p class="ks-edition__message" data-ks-purchase-message="digital" role="status" hidden></p>
-          <p class="ks-edition__note">Direct download &middot; Yours permanently</p>
+
+          <!-- THE SECOND CONTROL, Sept 8 2026: BITCOIN THROUGH BTCPAY SERVER.
+               The card note above says tier 01 must not acquire furniture,
+               and this is the one exception, argued rather than assumed: a
+               second WAY TO PAY for the same thing is not a second thing on
+               offer, so it sits under the card CTA at the same width, the same
+               ghost weight, and the card's own hairline between them. Nothing
+               is filled, nothing is coloured, no Bitcoin glyph — the label says
+               the word.
+
+               THE EMAIL FORM SHIPS HIDDEN AND OPENS ON THE BUTTON. Stripe's
+               hosted page collects the buyer's email; a BTCPay invoice has no
+               reliable buyer field, so the address the download link goes to
+               is asked for HERE, before the invoice exists, and the help line
+               says exactly what it is for. The toggle carries aria-expanded /
+               aria-controls; the field is labelled, described, and focused on
+               open; the status line is role=status so a refusal is read out
+               where the keyboard already is.
+
+               MARKUP CONTRACT WITH §6b OF js/purchase-checkout.js:
+                 [data-ks-purchase-btc="digital"]   the toggle
+                 [data-ks-btcpay-form="digital"]    the form (hidden)
+                 input[name="email"]                the one field
+                 [data-ks-btcpay-status]            where errors are written
+                 button[type="submit"]              disabled while in flight
+
+               NOTHING HERE CARRIES A PRICE, A CURRENCY, OR A URL. The form
+               posts an edition id and an email to /api/btcpay-create-invoice;
+               the server owns everything else. `novalidate` because the
+               module writes its own message into the status line instead of
+               letting the browser's tooltip appear over the card. With JS off
+               the toggle does nothing, exactly as the card CTA does nothing —
+               the two are honest in the same way. -->
+          <button type="button" class="btn btn--ghost ks-edition__cta ks-edition__cta--btc" data-ks-purchase-btc="digital" aria-expanded="false" aria-controls="ks-btcpay-digital">Pay with Bitcoin</button>
+          <form class="ks-btcpay" id="ks-btcpay-digital" data-ks-btcpay-form="digital" hidden novalidate>
+            <label class="ks-btcpay__label" for="ks-btcpay-email-digital">Email for your download link</label>
+            <p class="ks-btcpay__help" id="ks-btcpay-help-digital">Your download link is sent here once the Bitcoin payment confirms. Nothing else is sent to it.</p>
+            <div class="ks-btcpay__row">
+              <input class="ks-btcpay__field" type="email" id="ks-btcpay-email-digital" name="email" autocomplete="email" inputmode="email" required maxlength="254" placeholder="you@email.com" aria-describedby="ks-btcpay-help-digital">
+              <button type="submit" class="btn btn--primary ks-btcpay__submit">Continue to Bitcoin Checkout</button>
+            </div>
+            <p class="ks-btcpay__status" data-ks-btcpay-status role="status" aria-live="polite" hidden></p>
+            <p class="ks-btcpay__note">On-chain or Lightning &middot; BTCPay Server at pay.kundalinispines.com</p>
+          </form>
+
+          <p class="ks-edition__note">Card or Bitcoin &middot; Direct download &middot; Yours permanently</p>
         </div>
       </article>
 

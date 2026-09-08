@@ -615,6 +615,108 @@
   color: var(--text-secondary);
 }
 
+/* ---- Bitcoin: the second control on tier 01. Sept 8 2026. -----------------
+   purchase.html argues the exception in its own comment; this is only the
+   dressing. The toggle is a .ks-edition__cta like the card CTA, so it is
+   already full-width, centred and 44px — the one rule it needs is the gap
+   above it. The form opens BELOW it and inside the card, separated by the
+   same 0.14 hairline the card frame uses, so the three things (card button,
+   Bitcoin button, form) read as one column and not as a panel inside a
+   panel.
+
+   THE FIELD IS DRAWN, NOT BORROWED. .newsletter-form__field in
+   components.css is the site's one text input and it sits on --bg-surface,
+   an opaque grey. Inside a translucent card over the star field that reads
+   as a grey slab, so this field uses the card's own scrim value and a
+   hairline a step brighter than the frame — enough edge to find with a
+   pointer, not enough to compete with the button under it. Same padding and
+   face as the newsletter field so the two inputs on the site agree in hand.
+   44px minimum for the same reason .btn carries it.
+
+   COLUMN, NOT ROW. At the card's width (measured ~370px in the 3-up grid at
+   1440) a side-by-side field and button would leave the field ~150px wide,
+   which is narrower than an ordinary address. Stacked at every width is the
+   honest layout; there is no breakpoint to get wrong.
+
+   NO MOTION ON OPEN. The form appears; it does not slide. The card already
+   has a hover lift and a catalogue-number nudge, and a third movement inside
+   it at the moment the buyer is reading a form label is one too many. This
+   also means the reduced-motion block below needs nothing from here. */
+.ks-edition__cta--btc { margin-top: var(--space-3); }
+
+.ks-btcpay {
+  margin-top: var(--space-4);
+  padding-top: var(--space-4);
+  border-top: 1px solid rgba(214, 213, 208, 0.14);
+}
+.ks-btcpay__label {
+  display: block;
+  margin-bottom: var(--space-2);
+  font-family: var(--font-label);
+  font-weight: 600;
+  font-size: var(--fs-label);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--text-primary);
+}
+.ks-btcpay__help {
+  margin: 0 0 var(--space-3);
+  font-size: var(--fs-caption);
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+.ks-btcpay__row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.ks-btcpay__field {
+  width: 100%;
+  min-height: 44px;
+  background: rgba(3, 4, 15, 0.62);
+  border: 1px solid rgba(214, 213, 208, 0.30);
+  border-radius: var(--radius-sharp);
+  color: var(--text-primary);
+  padding: var(--space-3) var(--space-4);
+  font-family: var(--font-body);
+  font-size: var(--fs-body);
+}
+.ks-btcpay__field::placeholder { color: var(--text-muted); }
+.ks-btcpay__field:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+.ks-btcpay__submit {
+  width: 100%;
+  justify-content: center;
+  text-align: center;
+}
+/* In flight: dimmed but still readable, and the cursor says "wait" rather
+   than "no" — this is a request in progress, not a refused control. .btn's
+   own :disabled rule (0.4) is too faint for a label the buyer is meant to
+   read ("Creating your invoice…"). */
+.ks-btcpay__submit[aria-busy="true"] { opacity: 0.6; cursor: progress; }
+/* Same left-rule treatment as .ks-edition__message: a response to the thing
+   just pressed, not a framed panel. */
+.ks-btcpay__status {
+  margin: var(--space-3) 0 0;
+  padding-left: var(--space-3);
+  border-left: 1px solid rgba(161, 51, 62, 0.55);
+  font-size: var(--fs-caption);
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+.ks-btcpay__note {
+  margin: var(--space-3) 0 0;
+  font-family: var(--font-mono);
+  font-size: var(--fs-mono);
+  letter-spacing: var(--tracking-mono);
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+@media (forced-colors: active) {
+  .ks-btcpay { border-top-color: CanvasText; }
+  .ks-btcpay__field { background: Field; color: FieldText; border-color: ButtonBorder; }
+  .ks-btcpay__status { border-left-color: CanvasText; }
+}
+
 /* ---- Section foot --------------------------------------------------------
    THIS BLOCK CARRIES A SCRIM AND THE FIRST DRAFT DID NOT. It sits directly over
    the brightest part of the nebula — at 1440x900 the band's core lands between

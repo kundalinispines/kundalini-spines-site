@@ -713,6 +713,7 @@ Before flipping anything to live mode:
 | `functions/api/verify.js` | **Server-side.** Asks Stripe whether a session is paid, checks it is for the digital album, mints the signed download token. |
 | `functions/api/download.js` | **Server-side.** Re-verifies, then streams the ZIP out of the private R2 bucket. The only route to the file. |
 | `STRIPE-SETUP.md` | This document. |
+| `functions/api/btcpay-create-invoice.js`, `btcpay-webhook.js`, `btcpay-verify.js` | **Server-side, Bitcoin.** Added Sept 8 2026. The BTCPay Server path beside this one: invoice creation, settlement webhook, success-page verification. `download.js` accepts their `ksbtc_` token alongside the Stripe one. **See `BTCPAY-SETUP.md`** — that document owns the Bitcoin path the way this one owns cards. |
 
 `functions/` is at the **repo root and must stay there** — Cloudflare requires
 the Functions directory outside the static output. It is deliberately *not* in

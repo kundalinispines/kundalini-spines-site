@@ -360,7 +360,11 @@
 .track-sample-player__btn:hover:not(:disabled) { background: var(--track-accent, var(--color-white)); color: var(--color-black); }
 .track-sample-player__btn:disabled { opacity: 0.4; cursor: not-allowed; }
 .track-sample-player__bar { flex: 1; height: 3px; background: var(--color-gray-600); position: relative; }
-.track-sample-player__bar-fill { position: absolute; inset: 0; width: 0%; background: var(--track-accent, var(--color-white)); transition: width 0.15s linear; }
+/* No width transition (Sept 9 2026). The fill is now written every frame by
+   js/track-experience.js from the audio clock; a transition on top of a
+   per-frame value only adds lag, and the 0.15s one this had was half of what
+   made the old four-updates-a-second fill look like it was stuttering. */
+.track-sample-player__bar-fill { position: absolute; inset: 0; width: 0%; background: var(--track-accent, var(--color-white)); }
 /* THE SPARK AT THE TIP (owner's call, Sept 8 2026: "a little bit of a spark or
    glow to the tip of the fill bar so it is a little more present"). A 7px
    white core sitting on the fill's leading edge, with two accent-coloured

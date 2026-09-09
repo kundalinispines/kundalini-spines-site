@@ -1058,11 +1058,27 @@
     const audio = new Audio(track.sampleUrl);
     audio.preload = 'none';
 
+    /* THE FILL IS PAINTED EVERY FRAME, NOT ON timeupdate (owner, Sept 9 2026:
+       "it fills shaky and jitters"). timeupdate fires about four times a
+       second, and the old 0.15s width transition then eased each jump — so the
+       fill moved for 150 ms, stood still for 100, and moved again, four times
+       a second. Once the spark sat on the tip that stepping was impossible to
+       miss. Reading audio.currentTime in a requestAnimationFrame loop gives
+       one small, even step per frame; the loop runs only while the sample is
+       audible and stops itself on pause or end. timeupdate keeps the one job
+       only it should do: the 20-second cap. */
+    let paintFrame = 0;
+    const paintFill = () => {
+      paintFrame = 0;
+      fill.style.width = Math.min(100, (audio.currentTime / cap) * 100) + '%';
+      if (!audio.paused && !audio.ended) paintFrame = requestAnimationFrame(paintFill);
+    };
     audio.addEventListener('play', () => {
       icon.innerHTML = '&#10074;&#10074;';
       btn.setAttribute('aria-label', `Pause sample of ${track.title}`);
       section.classList.add('is-playing');
       setSamplePlaying(true);
+      if (!paintFrame) paintFrame = requestAnimationFrame(paintFill);
     });
     audio.addEventListener('pause', () => {
       icon.innerHTML = '&#9654;';
@@ -1070,9 +1086,10 @@
       status.textContent = 'Play Sample';
       section.classList.remove('is-playing');
       setSamplePlaying(false);
+      cancelAnimationFrame(paintFrame); paintFrame = 0;
+      paintFill();   // land on the exact frame it stopped at
     });
     audio.addEventListener('timeupdate', () => {
-      fill.style.width = Math.min(100, (audio.currentTime / cap) * 100) + '%';
       if (audio.currentTime >= cap) { audio.pause(); audio.currentTime = 0; fill.style.width = '0%'; }
     });
     audio.addEventListener('ended', () => { fill.style.width = '0%'; status.textContent = 'Play Sample'; });

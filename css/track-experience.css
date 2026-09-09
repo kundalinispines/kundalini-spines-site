@@ -131,6 +131,53 @@
   cursor: pointer;
   padding: 0;
   transition: filter 0.4s ease;
+  /* Clips the edge-blur copy below, which is deliberately oversized. The
+     focus ring is an outline and outlines are not clipped by overflow. */
+  overflow: hidden;
+}
+
+/* ---- Edge blur on the outer cards (owner's call, Sept 8 2026) ----
+   The outermost visible cards used to be blurred whole (4.7px at ring 2, see
+   the ramp in render()). Now only their OUTER third softens: this pseudo
+   element paints a second copy of the same still, blurred by --edge-blur (the
+   value render() used to put in the card's filter), and a gradient mask keeps
+   it solid at the card's outer edge and fades it out by about a third of the
+   way in, so the sharp still shows through the rest.
+
+   WHY IT IS OVERSIZED. A blurred element goes transparent at its own edges
+   over roughly its blur radius, so at inset: 0 a rim of the sharp image would
+   show through right at the outer edge — the one place the blur is meant to
+   be solid. The copy therefore extends 2x the radius beyond the card on every
+   side and the card clips it (overflow: hidden above). The background is
+   sized back down by the same 4x radius so the copy lands pixel-for-pixel on
+   the <img> beneath it: both are centred squares of the same size.
+
+   The mask percentages are of this oversized box; at a 4.7px radius that is
+   ~2% wider than the card, which "roughly one third" absorbs. The card's own
+   brightness() filter applies to this copy too, so the dim ramp is unchanged.
+   Hidden unless one of the edge classes is on, which render() only sets while
+   the computed blur is above 0.05px — so the hero and its neighbours, which
+   carry a video, never have a still painted over it. Same transition as the
+   card's filter so the blur eases in over the same 0.4s as it always did. */
+.track-card::after {
+  content: '';
+  position: absolute;
+  inset: calc(-2 * var(--edge-blur, 0px));
+  background: var(--card-art) center / calc(100% - 4 * var(--edge-blur, 0px)) no-repeat;
+  filter: blur(var(--edge-blur, 0px));
+  opacity: 0;
+  pointer-events: none;
+  transition: filter 0.4s ease;
+}
+.track-card.is-edge-left::after,
+.track-card.is-edge-right::after { opacity: 1; }
+.track-card.is-edge-left::after {
+  -webkit-mask-image: linear-gradient(to right, #000 0, #000 14%, transparent 36%);
+          mask-image: linear-gradient(to right, #000 0, #000 14%, transparent 36%);
+}
+.track-card.is-edge-right::after {
+  -webkit-mask-image: linear-gradient(to left, #000 0, #000 14%, transparent 36%);
+          mask-image: linear-gradient(to left, #000 0, #000 14%, transparent 36%);
 }
 
 /* will-change is applied ONLY while the carousel is actually moving.
@@ -145,7 +192,8 @@
 
 /* First paint only: cards would otherwise flash at full brightness and then
    visibly dim over 0.4s as their filters transition in from nothing. */
-.track-arc.is-priming .track-card { transition: none; }
+.track-arc.is-priming .track-card,
+.track-arc.is-priming .track-card::after { transition: none; }
 .track-card__media {
   position: absolute;
   inset: 0;
@@ -313,6 +361,34 @@
 .track-sample-player__btn:disabled { opacity: 0.4; cursor: not-allowed; }
 .track-sample-player__bar { flex: 1; height: 3px; background: var(--color-gray-600); position: relative; }
 .track-sample-player__bar-fill { position: absolute; inset: 0; width: 0%; background: var(--track-accent, var(--color-white)); transition: width 0.15s linear; }
+/* THE SPARK AT THE TIP (owner's call, Sept 8 2026: "a little bit of a spark or
+   glow to the tip of the fill bar so it is a little more present"). A 7px
+   white core sitting on the fill's leading edge, with two accent-coloured
+   halos — one tight, one wide — so it reads as light rather than a dot. It
+   rides the fill's width transition for free because it is positioned off the
+   fill's right edge. Only while a sample is audible: the section's is-playing
+   class gates it, so a fill parked at 0% after a pause shows no spark sitting
+   on the bar's start. The bar keeps overflow: visible for exactly this. */
+.track-sample-player__bar-fill::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: 0;
+  width: 7px;
+  height: 7px;
+  margin: -3.5px -3.5px 0 0;
+  border-radius: 50%;
+  background: var(--color-white);
+  box-shadow:
+    0 0 4px 1px var(--track-accent, var(--color-white)),
+    0 0 14px 3px var(--track-accent, var(--color-white));
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+.track-experience.is-playing .track-sample-player__bar-fill::after { opacity: 1; }
+@media (forced-colors: active) {
+  .track-sample-player__bar-fill::after { box-shadow: none; background: Highlight; }
+}
 .track-sample-player__status { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 .track-focus-panel__actions { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-2); margin-bottom: var(--space-2); }
@@ -455,7 +531,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .track-card { transition: none; }
+  .track-card, .track-card::after { transition: none; }
   .track-experience__intro,
   .track-focus-panel { transition: none; }
 }

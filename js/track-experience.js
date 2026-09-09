@@ -174,6 +174,17 @@
       // overlay collided with it. The title lives in the focus panel; screen
       // readers still get it from the aria-label above.
       li.innerHTML = cardMedia(t);
+      // The still's URL as a custom property, for the edge-blur copy that
+      // .track-card::after paints on the outer cards (css/track-experience.css).
+      // ABSOLUTE, NOT AS WRITTEN IN tracks.json. A relative url() inside a
+      // custom property is resolved when the variable is SUBSTITUTED, and
+      // Chrome resolves it against the stylesheet doing the substituting —
+      // measured: css/assets/music/kabal-cover.webp, 404, re-requested on
+      // every frame the blur changed (1,494 requests in four seconds). Firefox
+      // resolves against the document instead. An absolute URL is the same
+      // in both, and the same bytes the <img> already fetched, so it is a
+      // cache hit rather than a second download.
+      li.style.setProperty('--card-art', `url("${new URL(t.artwork, document.baseURI).href}")`);
       li.dataset.i = i;
       row.appendChild(li);
     });
@@ -592,9 +603,22 @@
       // That also walks back some of the "side-card blur is too heavy" note in
       // the handoffs, but it was not the goal here — if the far cards now read
       // as too soft, raise the /220, not the base.
+      //
+      // THE BLUR IS NO LONGER ON THE WHOLE CARD (owner's call, Sept 8 2026):
+      // "take that blur on cards one and four and only apply it to the
+      // outermost edge of each card, roughly one third." The radius below is
+      // computed exactly as before, but instead of going into the card's
+      // filter it is written to --edge-blur, and css/track-experience.css
+      // paints it through .track-card::after — a blurred copy of the same
+      // still, masked so it is solid at the card's OUTER edge and gone by
+      // about a third of the way in. The outer edge is the left edge of a
+      // card left of centre and the right edge of one to the right, hence
+      // the two classes. The card's own filter keeps only the brightness,
+      // which the copy inherits, so the dim ramp is unchanged.
       const ringGate = Math.min(1, Math.max(0, (Math.abs(stepUnits) - 1.5) / 0.5));
       const blurAbs = Math.max(0, abs - 1.5 * step);
       const blur = isHero ? 0 : ringGate * Math.min(6, 2 + blurAbs / 220) * BOX_K;
+      const edgeBlur = blur > 0.05;
       // NO CARD SHADOWS. This was two rounds of wrong before it was right, so
       // the reasoning is here in full — do not reinstate them without reading it.
       //
@@ -674,7 +698,10 @@
       // Chrome composites in sRGB, which both costs a rasterisation step and
       // slightly shifts colour on wide-gamut displays. Omitting it keeps the
       // centred card on the plain, colour-managed paint path.
-      card.style.filter = isHero ? 'none' : `brightness(${brightness}) blur(${blur}px)`;
+      card.style.filter = isHero ? 'none' : `brightness(${brightness})`;
+      card.style.setProperty('--edge-blur', edgeBlur ? blur.toFixed(2) + 'px' : '0px');
+      card.classList.toggle('is-edge-left', edgeBlur && sign < 0);
+      card.classList.toggle('is-edge-right', edgeBlur && sign > 0);
       // The lifted hero is held at 0 by showHeroLayer; don't fight it.
       card.style.opacity = (card === heroLayerCard) ? '0' : String(sideOpacity);
       card.style.boxShadow = shadow;

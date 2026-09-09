@@ -1498,7 +1498,17 @@
   function paintScrim(t) {
     if (!lum) return;
     var i = Math.max(0, Math.min(FRAMES - 1, Math.round(t * FPS - 0.5)));
-    root.style.setProperty('--df-lum', lum[i]);
+    /* ON THE WRAPPER, NOT ON <html> (Sept 8 2026, measured in Firefox). The
+       only reader of --df-lum is .df-bg__scrim, a child of `wrap`, and this
+       fires once per video frame for as long as the clip plays. On the root
+       each write restyled the whole document in Gecko — a changed inherited
+       custom property on <html> is a change to every element there, ~1,000 on
+       this page, where Chromium only touches the elements that use it. That
+       is 24–30 whole-document restyles a second while a visitor sits on Music
+       doing nothing. Same value, one level down, no visual change; the same
+       reasoning moved --charge in js/spine-bg.js. `root` stays as the fallback
+       for a page that has no wrapper. */
+    (wrap || root).style.setProperty('--df-lum', lum[i]);
   }
 
   /* TWO THRESHOLDS, AND THE SECOND ONE IS THE WHOLE POINT OF THIS BUILD.
@@ -1579,7 +1589,16 @@
       if (Math.abs(skyGoal - skySh) < 0.002) { skySh = skyGoal; booting = false; }
       skyDone = (skySh === skyGoal);
     }
-    root.style.setProperty('--df-sky', skySh.toFixed(4));
+    /* TWO DECIMALS, NOT FOUR (Sept 8 2026). --df-sky is read by the sky, the
+       stars and the clouds — it is genuinely a root variable and it stays one,
+       so each distinct value it takes costs a whole-document restyle in
+       Firefox (see paintScrim above for why). It is an exponential approach,
+       so most of its frames are the tail, where the change per frame is
+       under 0.005 and a fourth decimal made every one of them a new value.
+       At two decimals Gecko sees an unchanged string and skips the write
+       (it does early-out on identical values — tested). 0.01 of opacity is
+       under a level of 8-bit alpha; nothing visible changes. */
+    root.style.setProperty('--df-sky', skySh.toFixed(2));
 
     if (!skyDone) raf = requestAnimationFrame(tick);
   }

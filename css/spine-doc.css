@@ -425,15 +425,25 @@ html.page-home {
    segment snapping on. The old .is-active rules (hard ±26px window, two lit
    ticks) are gone — a binary class cannot express a falloff.
 
-   The transition is 200ms, down from the binary era's 520ms: --vt retargets
-   every scroll frame, so the transition acts as a low-pass filter on a moving
-   value. At 520ms the wave trailed the scroll by half a second and read as
-   lag; 200ms keeps a soft settle without the disconnect. The endpoints match
-   the old states exactly: idle .16 → full .82, arm +5px, descender 3.5→5px. */
+   NO TRANSITION ON THESE VALUES ANY MORE (Sept 8 2026, measured in Firefox).
+   There was one — background 200ms, and for a while width too — and it was
+   described here as a low-pass filter on a value that retargets every scroll
+   frame. That description was right and it is why it had to go: a CSS
+   transition retargeted every frame is cancelled and restarted every frame,
+   ~40 times a frame across the ticks in the field, 43,000 times in a
+   six-second scroll by the Gecko profiler's count, and every tick still in
+   flight is restyled by the animation machinery on every frame besides.
+   Firefox paid ~1.2 ms a frame for that at 1440x900 (scroll frames at a
+   10 ms mean against Chromium's 4.2 before this and the --charge move in
+   css/spine-bg.css; 5.1 with both). The filter itself survives: js/spine-doc.js
+   now approaches the target exponentially (τ 70 ms, 95% in ~210 ms — the same
+   reach as the 200 ms ease) and writes --vt on the way, so the wave still
+   settles softly. Endpoints unchanged: idle .16 → full .82, arm +5px,
+   descender 3.5→5px. Do not put a transition back on anything that reads
+   --vt; the settle is upstream now. */
 .ksd-vert i { position: absolute; top: 0; height: 1px;
   width: calc(var(--ksd-arm) + var(--vt, 0) * 5px);
-  background: rgba(228,232,235, calc(0.16 + var(--vt, 0) * 0.66));
-  transition: background 200ms var(--ease-standard), width 200ms var(--ease-standard); }
+  background: rgba(228,232,235, calc(0.16 + var(--vt, 0) * 0.66)); }
 .ksd-vert i.l { left: 0; transform: translateX(calc(-100% - 1.5px)); }
 .ksd-vert i.r { left: 1.5px; }
 /* the descender at the outer end of each arm — the ┤ and ├ of the segment */
@@ -455,8 +465,7 @@ html.page-home {
   background: rgba(228,232,235, calc(0.42 + var(--vt, 0) * 0.48)); }
 .ksd-vert.is-anchor b { position: absolute; top: 0; left: 0; width: 3px; height: 3px;
   transform: translate(-50%,-50%) rotate(45deg);
-  background: rgba(228,232,235, calc(0.5 + var(--vt, 0) * 0.45));
-  transition: background 200ms var(--ease-standard); }
+  background: rgba(228,232,235, calc(0.5 + var(--vt, 0) * 0.45)); }
 
 /* Labels are hover-only, as on the navigator: the axis stays an instrument,
    not a menu. */

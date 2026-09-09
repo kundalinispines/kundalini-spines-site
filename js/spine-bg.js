@@ -137,7 +137,23 @@
     var end = Math.max(start + 1, top + height - vh);
     var p = (y - start) / (end - start);
     if (p < 0) p = 0; else if (p > 1) p = 1;
-    document.documentElement.style.setProperty('--charge', p.toFixed(4));
+    /* WRITTEN ON THE LAYER, NOT ON <html> (Sept 8 2026, measured in Firefox).
+       Every consumer of --charge is inside .spine-bg — the art masks, the
+       bloom, the scan — so the layer is the only element that needs to see
+       it. Writing it on the root instead cost a whole-document restyle per
+       scroll frame in Firefox: Stylo treats a changed inherited custom
+       property on <html> as a change to every element, and this page has
+       ~1,000 of them. Gecko profiler, 6 s scripted scroll at 1440x900:
+       ~500 style flushes of 600–1,700 elements each, 2.6 s of main-thread
+       time, scroll frames at a 10 ms mean against Chromium's 4.2 (Chromium
+       only restyles elements that reference the variable, which is why it
+       never showed there). Moving the write here took the mean to 7.3 ms
+       alone and to 6.3 with the rail fix in css/spine-doc.css. The two
+       :root variables derived from --charge (--band-t0/--band-t1) moved onto
+       .spine-bg in css/spine-bg.css for the same reason: a var() resolves
+       where it is declared, so they had to follow it down. Nothing outside
+       the layer reads --charge — checked every page, lab and script. */
+    layer.style.setProperty('--charge', p.toFixed(4));
   }
 
   var ticking = false;

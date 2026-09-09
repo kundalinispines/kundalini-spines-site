@@ -53,3 +53,8 @@ node_modules/
 # raster-test.html and raster-test-2.html are the sharpness harness.
 # transmissions-options.html and transmissions-option5-v2.html are design
 # mockups, noindex and unlinked. All are tracked intentionally.
+
+# Output of scripts/perf-scroll.py (frame-time results and Gecko profiles). The
+# profiles are ~90 MB each and are measurements of one run on one machine, not
+# source. Re-run the script rather than keeping them.
+perf-out/

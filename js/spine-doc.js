@@ -256,11 +256,62 @@
         const a = Math.abs(d);
         let t = a >= fieldR ? 0 : 1 - a / fieldR;
         t = t * t * (3 - 2 * t);
-        const q = Math.round(t * 100) / 100;
-        if (el._vt !== q) { el.style.setProperty('--vt', q); el._vt = q; }
+        el._target = t;
         el.classList.toggle('is-passed', d < -26);
       });
+      settle();
     });
+  }
+
+  /* THE LOW-PASS FILTER LIVES HERE NOW, NOT IN A CSS TRANSITION (Sept 8 2026,
+     measured in Firefox). css/spine-doc.css used to ease `background` on every
+     tick over 200ms, and the comment there called it what it is: a low-pass
+     filter on a value that retargets every scroll frame. That is exactly the
+     case a CSS transition is worst at. Each retarget cancels the running
+     transition and starts a new one — the Gecko profiler counted ~40 restarts
+     a frame, 43,000 in a six-second scroll — and every tick still in flight
+     is restyled again on every frame by the animation machinery. Firefox paid
+     about 1.2 ms a frame for that at 1440x900; Chromium hid it.
+
+     So the filter is computed here instead: each tick carries a target (the
+     smoothstepped field value above) and a current value that approaches it
+     exponentially, τ = 70 ms, which reaches 95% in ~210 ms — the same reach
+     as the 200 ms ease it replaces. Only the rounded value is written, the
+     same 0.01 quantum as before, so a settled page still costs zero style
+     writes; the loop runs only while some tick is still moving and stops on
+     its own. Reduced motion snaps to the target in one step, which the CSS
+     transition never did — this is the first time the rail honoured it.
+
+     The `.is-passed` flip is not eased either way and never visibly was: the
+     two brightness formulas in the stylesheet meet at the same value where
+     the threshold sits (0.77 vs 0.78 at 26px from centre), by design. */
+  const SETTLE_TAU_MS = 70;
+  const settleStill = window.matchMedia('(prefers-reduced-motion: reduce)');
+  let settleFrame = 0;
+  let settleLast = 0;
+  function settle() {
+    if (settleFrame) return;
+    settleLast = performance.now();
+    settleFrame = requestAnimationFrame(settleStep);
+  }
+  function settleStep(now) {
+    settleFrame = 0;
+    const dt = Math.min(100, Math.max(0, now - settleLast));
+    settleLast = now;
+    const k = settleStill.matches ? 1 : 1 - Math.exp(-dt / SETTLE_TAU_MS);
+    let moving = false;
+    vertEls.forEach(function (el) {
+      const tgt = el._target || 0;
+      let cur = el._cur || 0;
+      if (cur !== tgt) {
+        cur += (tgt - cur) * k;
+        if (Math.abs(tgt - cur) < 0.004) cur = tgt; else moving = true;
+        el._cur = cur;
+      }
+      const q = Math.round(cur * 100) / 100;
+      if (el._vt !== q) { el.style.setProperty('--vt', q); el._vt = q; }
+    });
+    if (moving) settleFrame = requestAnimationFrame(settleStep);
   }
 
   /* Headlines reveal once, on the way past.

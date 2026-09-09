@@ -33,10 +33,22 @@
 
   "entries": [
     {
+      "id": "008",
+      "channel": "filed",
+      "date": "2026-09-08",
+      "title": "Lightning is on",
+      "media": "assets/transmissions/lightning-on.webp",
+      "mediaAlt": "Bitcoin Lightning — a burning bitcoin sign fused to a glowing spinal column, lightning arcing from it down onto a night-side Earth threaded with lit payment routes, four masked figures watching from the edges.",
+      "body": "The Digital Edition can now be paid over the Lightning Network. The same Bitcoin button on the purchase page leads to the same invoice; the invoice now offers Lightning beside the on-chain address, and a Lightning payment settles in seconds rather than waiting on a block. From there the delivery is the one every purchase gets — the same two files, the same seventy-two hour window, the same link emailed to you. On-chain still counts at one confirmation. Bitcoin, either way, buys the Digital Edition only; the Deluxe and Artifact editions remain filed.",
+      "internal": "purchase.html"
+    },
+    {
       "id": "007",
       "channel": "filed",
       "date": "2026-09-08",
       "title": "Bitcoin is accepted",
+      "media": "assets/transmissions/bitcoin-accepted.webp",
+      "mediaAlt": "Now Accepting Bitcoin — the two masked Messengers at a console beneath a spinal column of orange lightning, a bitcoin sign at its heart, screens and stacked books around them.",
       "body": "The Digital Edition can now be paid for in bitcoin. The purchase page carries a second button beside the card one; it asks for the address your download link should go to, then hands you to the band’s own BTCPay Server — no processor in between, no account to make. An on-chain payment counts once it has one confirmation, and from there it is the same delivery as a card purchase: the same two files, the same seventy-two hour window, the same link emailed to you. Lightning is not switched on yet. It is next, and it will be logged here when it works rather than before.",
       "internal": "purchase.html"
     },

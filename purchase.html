@@ -249,7 +249,23 @@
         </ul>
 
         <div class="ks-edition__foot">
-          <button type="button" class="btn btn--ghost ks-edition__cta" data-ks-purchase="digital">Own the Digital Album</button>
+          <!-- THE LABEL PAIR (owner's call, Sept 8 2026). This read "Own the Digital
+               Album" until the Bitcoin button arrived beneath it saying "Pay
+               with Bitcoin", and the two did not answer each other: one named
+               the thing, the other named the way to pay for it. Both now name
+               the way to pay — the heading above the grid already says "Own
+               the Album", so nothing is lost. merch.html's "Own the Digital
+               Album" stays as it is: that is a LINK to this page, not a choice
+               between two ways of paying on it.
+
+               THE CARD GLYPH mirrors the Bitcoin one — same class, same size,
+               same seat left of the label — so the pair reads as two of a
+               kind. It does NOT change colour on hover: the Bitcoin mark has a
+               colour that belongs to it, a card outline does not, and the
+               ghost's own white-on-hover inversion is all the state it needs.
+               Inline SVG for the same reason as its sibling; aria-hidden
+               because the label says the word. -->
+          <button type="button" class="btn btn--ghost ks-edition__cta" data-ks-purchase="digital"><svg class="ks-cta-glyph" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2.2" y="5.2" width="19.6" height="13.6" rx="2.2"/><path d="M2.2 9.8h19.6"/><path d="M6 15.2h4"/></svg>Pay with Card</button>
           <p class="ks-edition__message" data-ks-purchase-message="digital" role="status" hidden></p>
 
           <!-- THE SECOND CONTROL, Sept 8 2026: BITCOIN THROUGH BTCPAY SERVER.
@@ -263,7 +279,8 @@
                THE GLYPH (owner's call, Sept 8 2026 — it shipped without one).
                An inline SVG outline of the Bitcoin mark sits left of the label,
                stroke = currentColor, so at rest it is the same grey as the word
-               and reads as type rather than a badge. On hover, focus-visible,
+               and reads as type rather than a badge (the card button above
+               carries its own on the same class). On hover, focus-visible,
                and while the form is open it turns Bitcoin orange (#F7931A) —
                the only hue on the card, argued in css/purchase.css. Inline
                rather than an <img> because an image cannot take the button's
@@ -294,7 +311,7 @@
                letting the browser's tooltip appear over the card. With JS off
                the toggle does nothing, exactly as the card CTA does nothing —
                the two are honest in the same way. -->
-          <button type="button" class="btn btn--ghost ks-edition__cta ks-edition__cta--btc" data-ks-purchase-btc="digital" aria-expanded="false" aria-controls="ks-btcpay-digital"><svg class="ks-btc-glyph" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.6"/><g transform="rotate(12 12 12)"><path d="M9.4 6.6v10.8"/><path d="M9.4 6.6h3.4a2.45 2.45 0 0 1 0 4.9H9.4"/><path d="M9.4 11.5h4a2.95 2.95 0 0 1 0 5.9h-4"/><path d="M10.9 4.6v2M13.3 4.6v2M10.9 17.4v2M13.3 17.4v2"/></g></svg>Pay with Bitcoin</button>
+          <button type="button" class="btn btn--ghost ks-edition__cta ks-edition__cta--btc" data-ks-purchase-btc="digital" aria-expanded="false" aria-controls="ks-btcpay-digital"><svg class="ks-cta-glyph ks-cta-glyph--btc" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.6"/><g transform="rotate(12 12 12)"><path d="M9.4 6.6v10.8"/><path d="M9.4 6.6h3.4a2.45 2.45 0 0 1 0 4.9H9.4"/><path d="M9.4 11.5h4a2.95 2.95 0 0 1 0 5.9h-4"/><path d="M10.9 4.6v2M13.3 4.6v2M10.9 17.4v2M13.3 17.4v2"/></g></svg>Pay with Bitcoin</button>
           <form class="ks-btcpay" id="ks-btcpay-digital" data-ks-btcpay-form="digital" hidden novalidate>
             <label class="ks-btcpay__label" for="ks-btcpay-email-digital">Email for your download link</label>
             <p class="ks-btcpay__help" id="ks-btcpay-help-digital">Your download link is sent here once the Bitcoin payment confirms. Nothing else is sent to it.</p>

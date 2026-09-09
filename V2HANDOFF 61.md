@@ -337,3 +337,17 @@ should confirm it is on `feature/spine-ui-v2`, and should run
 `python scripts/test-btcpay-functions.py` before touching anything under
 `functions/`. **Every push to `main` is a deploy** and happens only on the
 owner's word.
+
+---
+
+## The release (written after the push)
+
+- `feature/spine-ui-v2` pushed `2838141..8fb43f1`; `main` fast-forwarded
+  `2838141..8fb43f1` by `git push origin feature/spine-ui-v2:main` on the
+  owner's word, Sept 9 2026 ~10:24 UTC. `8fb43f1` is "Add V2HANDOFF 61".
+- Deploy run **34340047937** ("Deploy site to Cloudflare Pages") completed
+  **success** at 10:25:07 UTC.
+- Live smoke checks and screenshots are recorded in the closing message of
+  the session that wrote this; the amendment commit that adds this section
+  sits on the feature branch only, so `main` lags it by one doc-only commit.
+  Normal.

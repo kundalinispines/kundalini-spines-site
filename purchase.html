@@ -258,8 +258,18 @@
                second WAY TO PAY for the same thing is not a second thing on
                offer, so it sits under the card CTA at the same width, the same
                ghost weight, and the card's own hairline between them. Nothing
-               is filled, nothing is coloured, no Bitcoin glyph — the label says
-               the word.
+               is filled and nothing is coloured at rest.
+
+               THE GLYPH (owner's call, Sept 8 2026 — it shipped without one).
+               An inline SVG outline of the Bitcoin mark sits left of the label,
+               stroke = currentColor, so at rest it is the same grey as the word
+               and reads as type rather than a badge. On hover, focus-visible,
+               and while the form is open it turns Bitcoin orange (#F7931A) —
+               the only hue on the card, argued in css/purchase.css. Inline
+               rather than an <img> because an image cannot take the button's
+               colour or change it on hover; aria-hidden because the label
+               already says the word. §6b never rewrites this button's text, so
+               the SVG survives every state the module puts it through.
 
                THE EMAIL FORM SHIPS HIDDEN AND OPENS ON THE BUTTON. Stripe's
                hosted page collects the buyer's email; a BTCPay invoice has no
@@ -284,7 +294,7 @@
                letting the browser's tooltip appear over the card. With JS off
                the toggle does nothing, exactly as the card CTA does nothing —
                the two are honest in the same way. -->
-          <button type="button" class="btn btn--ghost ks-edition__cta ks-edition__cta--btc" data-ks-purchase-btc="digital" aria-expanded="false" aria-controls="ks-btcpay-digital">Pay with Bitcoin</button>
+          <button type="button" class="btn btn--ghost ks-edition__cta ks-edition__cta--btc" data-ks-purchase-btc="digital" aria-expanded="false" aria-controls="ks-btcpay-digital"><svg class="ks-btc-glyph" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.6"/><g transform="rotate(12 12 12)"><path d="M9.4 6.6v10.8"/><path d="M9.4 6.6h3.4a2.45 2.45 0 0 1 0 4.9H9.4"/><path d="M9.4 11.5h4a2.95 2.95 0 0 1 0 5.9h-4"/><path d="M10.9 4.6v2M13.3 4.6v2M10.9 17.4v2M13.3 17.4v2"/></g></svg>Pay with Bitcoin</button>
           <form class="ks-btcpay" id="ks-btcpay-digital" data-ks-btcpay-form="digital" hidden novalidate>
             <label class="ks-btcpay__label" for="ks-btcpay-email-digital">Email for your download link</label>
             <p class="ks-btcpay__help" id="ks-btcpay-help-digital">Your download link is sent here once the Bitcoin payment confirms. Nothing else is sent to it.</p>

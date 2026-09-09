@@ -642,7 +642,42 @@
    has a hover lift and a catalogue-number nudge, and a third movement inside
    it at the moment the buyer is reading a form label is one too many. This
    also means the reduced-motion block below needs nothing from here. */
-.ks-edition__cta--btc { margin-top: var(--space-3); }
+.ks-edition__cta--btc {
+  margin-top: var(--space-3);
+  /* BITCOIN ORANGE, DEFINED HERE AND NOWHERE ELSE (owner's call, Sept 8 2026).
+     tokens.css has no orange and should not grow one for a single glyph: this
+     is Bitcoin's own colour, not the palette's, and it lights exactly one
+     16px outline on one button. Kept as a local custom property so the hover
+     and the glow below agree without repeating the hex. */
+  --ks-btc-orange: #F7931A;
+}
+/* THE GLYPH. Sized in em so it tracks --fs-label the way the letters do; flex:
+   none so the label never squeezes it at 390. `color` (not `stroke`) is what
+   changes, because the SVG's stroke is currentColor — that keeps the rest
+   state the button's own text colour in every theme, including the ghost's
+   black-on-white hover, where the orange has to read on white.
+
+   IT LIGHTS ON HOVER, ON FOCUS-VISIBLE, AND WHILE THE FORM IS OPEN. The third
+   is the one the brief did not name: the pointer leaves the button the moment
+   the field takes focus, and a glyph that went dark right then would read as
+   the path switching off while its form is up. aria-expanded is already the
+   module's truth for "open", so the style hangs off it rather than a class.
+   The drop-shadow is the "lights up": a 5px orange halo at .55, small enough
+   not to bleed into the label. Transitions ride --motion-fast, which
+   tokens.css collapses to 0ms under prefers-reduced-motion. */
+.ks-btc-glyph {
+  width: 1.15em;
+  height: 1.15em;
+  flex: none;
+  color: inherit;
+  transition: color var(--motion-fast) ease, filter var(--motion-fast) ease;
+}
+.ks-edition__cta--btc:hover .ks-btc-glyph,
+.ks-edition__cta--btc:focus-visible .ks-btc-glyph,
+.ks-edition__cta--btc[aria-expanded="true"] .ks-btc-glyph {
+  color: var(--ks-btc-orange);
+  filter: drop-shadow(0 0 5px rgba(247, 147, 26, 0.55));
+}
 
 .ks-btcpay {
   margin-top: var(--space-4);
@@ -712,6 +747,10 @@
   color: var(--text-muted);
 }
 @media (forced-colors: active) {
+  /* The glyph's stroke is currentColor, so it follows ButtonText on its own;
+     the orange is overridden by the UA and the halo would be the one thing
+     left over — a grey smear under a system-coloured icon. Drop it. */
+  .ks-btc-glyph { filter: none; }
   .ks-btcpay { border-top-color: CanvasText; }
   .ks-btcpay__field { background: Field; color: FieldText; border-color: ButtonBorder; }
   .ks-btcpay__status { border-left-color: CanvasText; }

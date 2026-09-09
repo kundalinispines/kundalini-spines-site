@@ -79,6 +79,12 @@
   let snapping = false;
   let samplePlaying = false;// card video only rolls while the track is audible
   let flattenHero = false;  // settled: hero drops its 3D transform (see render)
+  // The glide (see startGlide / tick): where it left from, where it is going,
+  // when it started and how long it has. Time-based, not per-frame.
+  let glideFrom = 0, glideTo = 0, glideStart = 0, glideDur = 0;
+  // The overlay's still: the src it has finished decoding, or null. Read by
+  // showHeroLayer(), written by primeHeroLayerImage().
+  let heroLayerImgDecoded = null;
 
   const counterIndex = focusPanel.querySelector('.track-focus-nav__index');
   const counterTotal = focusPanel.querySelector('.track-focus-nav__total');
@@ -92,6 +98,25 @@
   const HERO_SCALE = 1;
   const DRAG_THRESHOLD = 6;    // px before a press counts as a drag, not a click
   const VIDEO_FADE_MS = 350;   // must match .track-card__video's opacity transition
+  /* THE GLIDE IS TIMED, NOT LERPED (Sept 8 2026, owner: "it settles very
+     slowly, it should be more snappy"). It used to be
+     `current += (target - current) * 0.12` per frame, which has two problems
+     that were both measured before this was written. First, it is an
+     exponential approach: it covers 95% of the distance quickly and then
+     creeps through the last few pixels for as long again, and the settled
+     hero overlay (and with it the sharp artwork and the video handover) waits
+     for the last 0.05px. Second, it is per FRAME, so its speed is the
+     display's refresh rate: a one-card click measured 500 ms to settle on this
+     240 Hz display and would take ~1.2 s on a 60 Hz laptop — the visitors
+     who said it felt slow were probably describing the 60 Hz number.
+     A fixed duration with an ease-out lands at the same moment on every
+     display and has no tail: one card in GLIDE_MS_BASE, each further card
+     adds GLIDE_MS_PER_STEP, capped at GLIDE_MS_MAX; a sub-step settle after a
+     drag is shorter still (see startGlide). Ease-out cubic — fast off the
+     mark, gentle into the slot — reads as decisive without a bounce. */
+  const GLIDE_MS_BASE = 340;
+  const GLIDE_MS_PER_STEP = 40;
+  const GLIDE_MS_MAX = 520;
   const PERSPECTIVE = 1800;    // must match .track-arc-viewport's perspective
   const HERO_Z = 100;          // hero's translateZ
   // translateZ under perspective is a uniform scale about the perspective
@@ -342,12 +367,29 @@
   // the card that drifted under the center during a drag.
   function setFocus(i, snap) {
     const idx = Math.max(0, Math.min(tracks.length - 1, i));
-    if (snap) { target = centeredFor(idx); snapping = true; kick(); }
+    if (snap) { target = centeredFor(idx); startGlide(); snapping = true; kick(); }
+    // The destination is known now, so the overlay's still can load and decode
+    // during the glide instead of at the settle — see primeHeroLayerImage().
+    primeHeroLayerImage(row.querySelector(`.track-card[data-i="${idx}"]`));
     if (idx === focusedIndex && panelIndex === idx) return;
     focusedIndex = idx;
     updatePanel(idx);
   }
   function settleToNearest() { setFocus(nearestIndexForTranslate(current), true); }
+
+  // Arm the glide from wherever the carousel is right now to `target`.
+  function startGlide() {
+    glideFrom = current;
+    glideTo = target;
+    glideStart = performance.now();
+    const steps = Math.abs(glideTo - glideFrom) / (stepSize().step || 1);
+    // Under one step (a drag released near a slot) the distance is short and a
+    // full-length ease would read as hesitation; scale the time with the root of
+    // the distance so a tiny correction is quick and a near-full step is not.
+    glideDur = steps < 1
+      ? Math.max(120, GLIDE_MS_BASE * Math.sqrt(steps))
+      : Math.min(GLIDE_MS_MAX, GLIDE_MS_BASE + GLIDE_MS_PER_STEP * (steps - 1));
+  }
 
   function heroCard() { return row.querySelector('.track-card[aria-selected="true"]'); }
 
@@ -365,7 +407,32 @@
     if (!cr.width || !cr.height) { hideHeroLayer(); return; }
 
     const src = still.currentSrc || still.getAttribute('src');
-    if (heroLayerImg.getAttribute('src') !== src) heroLayerImg.setAttribute('src', src);
+    /* NOT UNTIL THE STILL HAS DECODED (Sept 8 2026 — the "card flash" the owner
+       reported, measured). This used to set the src and show the overlay in the
+       same breath. The overlay has an opaque surface-coloured background and the
+       card beneath it is dropped to opacity 0 in the same frame, so for as long
+       as the new still is not yet decoded the visitor sees a flat dark square
+       where the artwork was. img.decode() timed from the moment of showing
+       resolved in ~50 ms every time the hero changed on this machine (Chromium,
+       1440x900) — three frames at 60 Hz, twelve at 240 — and on a throttled
+       connection the image was not even LOADED when the overlay came up. It did
+       not flash when the same still had been decoded recently, which is why it
+       read as intermittent, and why it came back: a fresh decode is exactly what
+       the deep-field clip and the other footage now compete with.
+       So: prime (load + decode) first, show when ready. Whoever calls this is
+       called back once the decode lands, if the same card is still the settled
+       hero and nothing has started moving. Until then the real card stays at
+       opacity 1 in its flattened 2D pose — the same picture, 0.95x as sharp,
+       for a few frames — and the swap to the overlay is invisible because it is
+       the same image in the same rectangle. setFocus() primes the destination
+       at the start of the glide, so in the normal case the decode is long
+       finished by the time the carousel settles and this shows immediately. */
+    if (heroLayerImgDecoded !== src || heroLayerImg.getAttribute('src') !== src) {
+      primeHeroLayerImage(card, () => {
+        if (!running && !dragging && heroCard() === card && flattenHero) showHeroLayer(card);
+      });
+      return;
+    }
     heroLayer.style.left = Math.round(cr.left - hr.left) + 'px';
     heroLayer.style.top = Math.round(cr.top - hr.top) + 'px';
     heroLayer.style.width = Math.round(cr.width) + 'px';
@@ -376,6 +443,34 @@
     heroLayerCard = card;
     card.style.opacity = '0';
     syncLayerVideo(card);
+  }
+
+  // Load and decode a card's still into the overlay's <img> while the overlay
+  // is hidden, so showHeroLayer() has nothing to wait for. Safe to call for
+  // every candidate hero during a drag: the element is invisible until
+  // is-showing, and a src that changes again before its decode lands simply
+  // rejects that decode, which is ignored. `then` runs only if the src is
+  // still the one it was called for. A decode that fails outright (a broken
+  // image) counts as ready — the row card would show the same nothing.
+  function primeHeroLayerImage(card, then) {
+    const still = card && card.querySelector('.track-card__still');
+    const src = still && (still.currentSrc || still.getAttribute('src'));
+    if (!src) return;
+    if (heroLayerImg.getAttribute('src') !== src) {
+      heroLayerImgDecoded = null;
+      heroLayerImg.setAttribute('src', src);
+    } else if (heroLayerImgDecoded === src) {
+      if (then) then();
+      return;
+    }
+    const settle = () => {
+      if (heroLayerImg.getAttribute('src') !== src) return;   // superseded
+      heroLayerImgDecoded = src;
+      if (then) then();
+    };
+    if (heroLayerImg.decode) heroLayerImg.decode().then(settle, settle);
+    else if (heroLayerImg.complete) settle();
+    else heroLayerImg.addEventListener('load', settle, { once: true });
   }
 
   // Move hero playback onto the overlay and off the card, or wind it back down.
@@ -418,6 +513,24 @@
         try { cv.currentTime = heroLayerVideo.currentTime; } catch (e) { /* not seekable yet */ }
         const pr = cv.play();
         if (pr && pr.catch) pr.catch(() => {});
+      } else if (cv && !card.classList.contains('is-rolling')) {
+        /* THE SAMPLE HAS JUST STOPPED AND THE CAROUSEL IS MOVING OFF (Sept 8
+           2026, measured): clicking another card mid-sample stops the sample
+           first, which starts the card video's 350 ms fade-out, and then the
+           first moving frame brings this overlay down. The card's own video
+           was paused when the overlay took playback over — at 0.34 s in the
+           trace, while the overlay had reached 2.5 s — so the card came back
+           showing that stale frame, mid-fade: the footage jumped to its wide
+           opening framing for a third of a second and then dissolved. It read
+           as the card flashing. The card is leaving the centre in 3D anyway,
+           so it cuts to its still now, with the transition suppressed for one
+           frame so the class-driven fade does not run from 1. Seeking the
+           card to the overlay's frame instead was tried in thought and
+           rejected: the seek itself takes 20–45 ms, which is the same flicker
+           shortened, not removed. */
+        cv.style.transition = 'none';
+        cv.style.opacity = '0';
+        requestAnimationFrame(() => { cv.style.transition = ''; cv.style.opacity = ''; });
       }
     }
     if (!heroLayerVideo.paused) heroLayerVideo.pause();
@@ -596,7 +709,13 @@
     // Cleared when the glide settles (see tick) and on pointerdown, so a drag
     // that interrupts a snap goes straight back to following the cards.
     if (!snapping && nearestIdx !== focusedIndex) setFocus(nearestIdx, false);
-    if (nearestIdx !== heroIndex) { heroIndex = nearestIdx; updateCardVideos(nearestIdx); }
+    if (nearestIdx !== heroIndex) {
+      heroIndex = nearestIdx;
+      updateCardVideos(nearestIdx);
+      // A drag has no destination until release; warm the overlay's still for
+      // whatever is under the centre so the settle that follows is instant.
+      primeHeroLayerImage(row.querySelector(`.track-card[data-i="${nearestIdx}"]`));
+    }
   }
 
   // Promote data-src -> src once, so the file is only ever fetched on demand.
@@ -674,7 +793,15 @@
       if (heroLayerCard) hideHeroLayer();
       flattenHero = false;    // back into 3D space while anything is moving
     }
-    if (!dragging) current += (target - current) * (reducedMotion ? 1 : 0.12);
+    if (!dragging) {
+      if (reducedMotion || glideDur <= 0) {
+        current = target;
+      } else {
+        const p = Math.min(1, (performance.now() - glideStart) / glideDur);
+        const eased = 1 - Math.pow(1 - p, 3);      // ease-out cubic
+        current = p >= 1 ? target : glideFrom + (glideTo - glideFrom) * eased;
+      }
+    }
     render();
 
     const settled = !dragging && Math.abs(target - current) < 0.05;

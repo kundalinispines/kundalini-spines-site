@@ -265,7 +265,12 @@ prints.
 - **A settled-by-hand invoice fulfils.** That is a feature — it is how you
   deliver to someone who paid late — but it means dashboard access is
   fulfilment access.
-- **The live BTCPay version was not read.** The code follows the current
-  official schema; both API routes it uses exist on the live instance. If
-  the instance is very old, the Greenfield webhook shape may differ — the
-  first delivery in §7 step 6 is the check.
+- **The live BTCPay version: v2.4.4** (`2d5a0d8077bb`), read by the owner from
+  Server Settings → About on Sept 10 2026 — the same release the schema above
+  was read against, so the Greenfield shapes this code follows are the
+  installed ones. Confirmed by the first real delivery: the owner pasted the
+  `InvoiceSettled` delivery for the Lightning sale (invoice
+  `9ZBsQf18yuFCy8XGWxcsN4`, delivery `SyTUdMP5UXGzGjS3bUutdu`, not a
+  redelivery) and its `type`, `invoiceId` and `metadata` were exactly the
+  fields the webhook handler reads; 91 s from invoice creation to the
+  settled event.

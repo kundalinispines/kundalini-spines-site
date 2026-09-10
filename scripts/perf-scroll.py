@@ -33,7 +33,13 @@ it kills only the instances it started, by pid):
 Environment knobs for the Firefox run: FFPROFILE=0 (no profiler), FFHEADLESS=1, STRIP=a.js,b.css
 (drop matching <script src>/<link> lines from the temporary copy — the bisection that found the two
 scripts), SHIM=path.js (inject a script at the top of <head>, before any site script — how each fix was
-tested before it was written into the repo).
+tested before it was written into the repo), WINPOS=x,y (both browsers: put the window's top-left at
+that point of the Windows virtual screen, which is how a run lands on a secondary display — the
+frame floor for CHROMIUM is the refresh rate of whichever display the window sits on — Firefox on
+Windows paces from the primary display wherever its window is, so for a 60 Hz Firefox run use
+FFRATE=60 as well, or set the primary display to 60 Hz. The box's own display is 240 Hz. Read the
+positions off EnumDisplayDevices/EnumDisplaySettings; a negative x is a display left of the primary).
+FFRATE=60 (Firefox only: cap the refresh driver at that rate; see the comment where it is applied).
 
 Output goes to perf-out/ (gitignored is NOT set up — do not commit it; the profiles are ~90 MB each).
 The temporary page copy is _perf-probe.html in the repo root and is deleted on exit, even on failure.
@@ -117,6 +123,7 @@ def firefox_pids():
 
 def run(browser, label, page):
     os.makedirs(OUT, exist_ok=True)
+    winpos = [int(v) for v in os.environ["WINPOS"].split(",")] if os.environ.get("WINPOS") else None
     site_port, res_port = free_port(), free_port()
     result = {}
 
@@ -172,7 +179,22 @@ def run(browser, label, page):
                 'user_pref("toolkit.telemetry.reportingpolicy.firstRun", false);',
                 'user_pref("browser.newtabpage.enabled", false);',
             ]
+            if os.environ.get("FFRATE"):
+                # Firefox on Windows paces every window from the PRIMARY display's vsync (measured Sept 10
+                # 2026: a window placed on the 59 Hz display still ran rAF at 4.2 ms on the 240 Hz box), so
+                # WINPOS alone cannot give Firefox a 60 Hz floor. This pref caps Gecko's refresh driver at
+                # the given rate — a software clock, not a display's vsync, but the per-frame main-thread
+                # work it schedules is the same work a 60 Hz user's Firefox does. The true-vsync route is
+                # to set the primary display to 60 Hz for the run.
+                prefs.append('user_pref("layout.frame_rate", %d);' % int(os.environ["FFRATE"]))
             open(os.path.join(prof, "user.js"), "w").write(NL.join(prefs))
+            if winpos:
+                # Firefox has no command-line position flag; the main window reads its last position from
+                # the profile's xulstore.json, so a fresh profile with this file opens where we say.
+                # Only the position: the size still comes from -width/-height so the run stays comparable.
+                json.dump({"chrome://browser/content/browser.xhtml": {"main-window": {
+                    "screenX": str(winpos[0]), "screenY": str(winpos[1]), "sizemode": "normal"}}},
+                          open(os.path.join(prof, "xulstore.json"), "w"))
             env = dict(os.environ)
             if os.environ.get("FFPROFILE", "1") == "1":
                 # MOZ_PROFILER_SHUTDOWN writes the profile when Firefox closes CLEANLY, which is why the
@@ -201,7 +223,12 @@ def run(browser, label, page):
         else:
             from playwright.sync_api import sync_playwright
             with sync_playwright() as p:
-                b = p.chromium.launch(channel="chromium")   # full Chrome for Testing, not the headless shell
+                # Headless has no window, so it cannot sit on a display: a WINPOS run is headed, and its
+                # frame floor is that display's refresh rate. The default headless run keeps the UA
+                # "HeadlessChrome" and paced at the primary display (measured: 4.2 ms on the 240 Hz box).
+                b = p.chromium.launch(channel="chromium",   # full Chrome for Testing, not the headless shell
+                                      headless=not winpos,
+                                      args=([f"--window-position={winpos[0]},{winpos[1]}", "--window-size=1456,1000"] if winpos else []))
                 pg = b.new_page(viewport={"width": 1440, "height": 900})
                 pg.goto(url, wait_until="load")
                 t0 = time.time()

@@ -46,9 +46,34 @@ if (existsSync(LIVE_PATH)) {
 for (const p of pending) if (p._videoId) seen.add(p._videoId);
 
 const feedUrl = `https://www.youtube.com/feeds/videos.xml?channel_id=${encodeURIComponent(channelId)}`;
-const res = await fetch(feedUrl, { headers: { 'user-agent': 'kundalini-spines-site sync' } });
-if (!res.ok) throw new Error(`feed fetch failed: HTTP ${res.status}`);
-const xml = await res.text();
+
+// The fetch retries, because the feed endpoint is flaky and a single bad answer used to fail the run.
+// Measured from the Actions logs, Sept 3-10 2026: seven failures in eight days, every one inside this
+// fetch and every one YouTube's side — HTTP 404 (Sept 8, 9, 10, all in the ~03:20 UTC run), HTTP 500
+// (Sept 3), and a TLS socket reset (Sept 6). The same URL answered 200 with the full feed from a
+// desktop seconds later and at every other slot of the day. The 404 is not "no such channel": the
+// channel id had not changed and the next run found all nine videos. So a non-2xx or a network error
+// is retried a few times over ~three minutes before the run gives up. If it still fails after that,
+// the run fails loudly as before — a persistent failure should stay visible in the Actions list, and
+// the next scheduled run is only six hours away.
+const ATTEMPTS = 5;
+const BACKOFF_MS = [5000, 15000, 30000, 60000];         // between attempts; ~110 s in total
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+let xml = '';
+for (let attempt = 1; ; attempt++) {
+  let failure;
+  try {
+    const res = await fetch(feedUrl, { headers: { 'user-agent': 'kundalini-spines-site sync' } });
+    if (res.ok) { xml = await res.text(); break; }
+    failure = `HTTP ${res.status}`;
+  } catch (err) {
+    failure = `${err?.cause?.code || err?.name || 'error'}: ${err?.cause?.message || err?.message || err}`;
+  }
+  if (attempt >= ATTEMPTS) throw new Error(`feed fetch failed after ${ATTEMPTS} attempts, last: ${failure}`);
+  const wait = BACKOFF_MS[Math.min(attempt - 1, BACKOFF_MS.length - 1)];
+  console.log(`feed fetch attempt ${attempt} failed (${failure}); retrying in ${wait / 1000}s`);
+  await sleep(wait);
+}
 
 const unescapeXml = (s) => String(s)
   .replace(/&lt;/g, '<').replace(/&gt;/g, '>')

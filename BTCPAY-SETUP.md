@@ -148,6 +148,8 @@ nothing. An invoice-creation failure leaves `status: creating` with no
      `Settled` and release the album the moment an unconfirmed transaction
      appeared in the mempool, and an unconfirmed transaction can be replaced
      or double-spent; a digital download cannot be taken back once served.
+     Confirmed on the live store Sept 10 2026 from the BTCPay database itself
+     (`SpeedPolicy = 1`, "MediumSpeed — 1 confirmation"), not the dashboard.
      One confirmation costs the buyer some minutes of waiting on the pending
      panel, and the email carries the link for when it clears. (Corrected
      Sept 8 2026 — an earlier draft of this line recommended zero

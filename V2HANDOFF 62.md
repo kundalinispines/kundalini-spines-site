@@ -299,4 +299,19 @@ owner's word.
 
 ## The release (written after the push)
 
-Filled in below once `main` was fast-forwarded and the deploy run finished.
+- `feature/spine-ui-v2` pushed `3383acb..5fb9abf`; `main` fast-forwarded
+  `8fb43f1..5fb9abf` by `git push origin feature/spine-ui-v2:main` on the
+  owner's word, Sept 10 2026 ~12:46 UTC. `5fb9abf` is "Add V2HANDOFF 62". The
+  first attempt was refused by the assistant's auto-mode permission
+  classifier (a push to `main` is a deploy); the owner restated permission in
+  chat and the second attempt went through.
+- Deploy run **34478760798** ("Deploy site to Cloudflare Pages") completed
+  **success** at 12:48:29 UTC.
+- Live smoke, kundalinispines.com, right after: home 200 with the title;
+  `data/transmissions.json` 200 with 008 on top; `/api/btcpay-verify` for the
+  Lightning order still `settled`; `/V2HANDOFF 62.md`, `/BTCPAY-SETUP.md`,
+  `/scripts/youtube-sync.mjs` and `/scripts/perf-scroll.py` all fall through
+  to the homepage — not served. The YouTube retry is now on the default
+  branch and will run at the next scheduled slot.
+- This amendment sits on the feature branch only, so `main` lags it by one
+  doc-only commit. Normal.
